@@ -2,20 +2,36 @@ import { AlertTriangle, X } from "lucide-react";
 import { touchWord, type CityFile, type Touch, type TraceEvent } from "../types";
 
 interface InspectorProps {
-  file: CityFile;
+  /** absent when nothing is selected yet — renders the teaching empty state */
+  file?: CityFile;
   touch?: Touch;
   history: TraceEvent[];
   onClose: () => void;
   onJumpTo: (seq: number) => void;
 }
 
+// dock panel content: the selected file's identity, touch state, and visit
+// history. The Dock owns positioning; this owns only its own markup.
 export function Inspector({ file, touch, history, onClose, onJumpTo }: InspectorProps) {
+  if (!file) {
+    return (
+      <div className="dock-body" aria-label="File inspector">
+        <div className="inspector-head">
+          <div className="inspector-path">Inspect</div>
+          <button className="icon-btn" onClick={onClose} title="Close" aria-label="Close inspector">
+            <X size={15} />
+          </button>
+        </div>
+        <p className="dock-note">Click a building in the scene to inspect a file — its touch state, size, and every visit the agent paid it.</p>
+      </div>
+    );
+  }
   const slash = file.path.lastIndexOf("/");
   const dir = slash >= 0 ? file.path.slice(0, slash + 1) : "";
   const name = slash >= 0 ? file.path.slice(slash + 1) : file.path;
 
   return (
-    <aside className="inspector" aria-label={`File ${file.path}`}>
+    <div className="dock-body" aria-label={`File ${file.path}`}>
       <div className="inspector-head">
         <div>
           <div className="inspector-path">
@@ -71,7 +87,7 @@ export function Inspector({ file, touch, history, onClose, onJumpTo }: Inspector
           ) : null}
         </div>
       </section>
-    </aside>
+    </div>
   );
 }
 

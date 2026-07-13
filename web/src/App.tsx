@@ -9,6 +9,7 @@ import {
   startSessionAnalyze
 } from "./api/client";
 import type { ReportStatus } from "./types";
+import { Dock, type DockTab } from "./ui/Dock";
 import { ReportPanel } from "./ui/ReportPanel";
 import { PlaybackEngine } from "./playback/reducer";
 import { downloadBlob, recordingSupported, recordPlayback } from "./playback/recorder";
@@ -60,7 +61,7 @@ export default function App() {
   activeSessionKeyRef.current = activeSessionKey;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [reportOpen, setReportOpen] = useState(false);
+  const [dockTab, setDockTab] = useState<DockTab | null>(null);
   const [reportStatus, setReportStatus] = useState<ReportStatus | undefined>();
 
   // scenes hand up their live <canvas> so the video exporter can capture it;
@@ -227,7 +228,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setReportOpen(false);
+    setDockTab(null);
     setReportStatus(undefined);
     if (activeSessionKey && !mapOnly) void refreshReport(activeSessionKey);
   }, [activeSessionKey, mapOnly, refreshReport]);
@@ -267,10 +268,21 @@ export default function App() {
     }
   }, [setError, refreshSessionList]);
 
-  const toggleReport = useCallback(() => setReportOpen((open) => !open), []);
+  // selecting a file in the scene opens the inspect panel; deselecting keeps
+  // whatever panel the user had open
+  const selectFile = useCallback(
+    (path: string | undefined) => {
+      setSelectedPath(path);
+      if (path) setDockTab("inspect");
+    },
+    [setSelectedPath]
+  );
+
+  const closeDock = useCallback(() => setDockTab(null), []);
 
   // a finding jump moves the playhead and focuses the evidence's file so the
-  // claim is visible in the scene, not just in the panel
+  // claim is visible in the scene, not just in the panel — without stealing
+  // the dock away from the evaluation tab
   const jumpToEvidence = useCallback(
     (seq: number) => {
       setCurrentSeq(seq);
@@ -301,13 +313,6 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const reportBadge = useMemo(() => {
-    if (reportStatus?.state === "running") return "running" as const;
-    if (reportStatus?.state === "failed") return "failed" as const;
-    if (reportStatus?.state === "done") return reportStatus.stale ? ("stale" as const) : ("done" as const);
-    return "idle" as const;
-  }, [reportStatus]);
 
   const engine = useMemo(() => new PlaybackEngine(trace, city), [trace, city]);
   const playback = useMemo(() => engine.snapshotAt(currentSeq), [engine, currentSeq]);
@@ -360,6 +365,7 @@ export default function App() {
           onHarnessFilterChange={setHarnessFilter}
           onCollapse={collapseRail}
           onOpenMap={openMap}
+          activeRepo={trace?.session.cwd}
           locked={exporting}
         />
       )}
@@ -380,7 +386,7 @@ export default function App() {
               city={city}
               playback={playback}
               selectedPath={selectedPath}
-              onSelect={setSelectedPath}
+              onSelect={selectFile}
               onCanvasReady={handleCanvasReady}
             />
           ) : (
@@ -388,7 +394,7 @@ export default function App() {
               city={city}
               playback={playback}
               selectedPath={selectedPath}
-              onSelect={setSelectedPath}
+              onSelect={selectFile}
               onCanvasReady={handleCanvasReady}
               locHeights={mapOnly}
             />
@@ -402,28 +408,34 @@ export default function App() {
             seenNow={touchCounts.seen}
             churn={churn}
             onViewChange={setView}
-            onSelectFile={setSelectedPath}
-            onOpenMap={openMap}
+            onSelectFile={selectFile}
             locked={exporting}
-            reportBadge={mapOnly ? undefined : reportBadge}
-            onToggleReport={mapOnly ? undefined : toggleReport}
           />
-          {reportOpen && !mapOnly && trace ? (
-            <ReportPanel
-              status={reportStatus}
-              analyzing={reportStatus?.state === "running"}
-              onAnalyze={() => void analyzeSession()}
-              onClose={() => setReportOpen(false)}
-              onJumpTo={jumpToEvidence}
-            />
-          ) : selectedFile ? (
-            <Inspector
-              file={selectedFile}
-              touch={playback.touchByPath.get(selectedFile.path)}
-              history={playback.historyByPath.get(selectedFile.path) ?? []}
-              onClose={() => setSelectedPath(undefined)}
-              onJumpTo={setCurrentSeq}
-            />
+          {city ? (
+            <Dock
+              tab={dockTab}
+              tabs={mapOnly || !trace ? ["inspect"] : ["inspect", "evaluate"]}
+              onTabChange={setDockTab}
+              reportStatus={mapOnly ? undefined : reportStatus}
+            >
+              {dockTab === "evaluate" ? (
+                <ReportPanel
+                  status={reportStatus}
+                  analyzing={reportStatus?.state === "running"}
+                  onAnalyze={() => void analyzeSession()}
+                  onClose={closeDock}
+                  onJumpTo={jumpToEvidence}
+                />
+              ) : dockTab === "inspect" ? (
+                <Inspector
+                  file={selectedFile}
+                  touch={selectedFile ? playback.touchByPath.get(selectedFile.path) : undefined}
+                  history={selectedFile ? (playback.historyByPath.get(selectedFile.path) ?? []) : []}
+                  onClose={closeDock}
+                  onJumpTo={setCurrentSeq}
+                />
+              ) : null}
+            </Dock>
           ) : null}
           {!mapOnly && !loading && sessions.length === 0 ? (
             <div className="empty-stage">

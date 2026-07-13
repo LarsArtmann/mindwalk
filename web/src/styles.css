@@ -373,43 +373,44 @@ dd {
   text-overflow: ellipsis;
 }
 
-/* matte source dot: the harness is metadata, so it never glows */
-.harness-dot {
-  flex: none;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--faint);
+/* rail-head map popover: the one entry point for opening any repository map */
+.rail-map {
+  position: relative;
 }
 
-.harness-dot.claude {
-  background: var(--ember);
-}
-
-.harness-dot.codex {
-  background: var(--moon);
-}
-
-.rail-open {
+.rail-map-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
   display: grid;
   gap: 6px;
-  padding: 10px 18px;
-  border-top: 1px solid var(--hairline);
+  padding: 8px;
+  width: 240px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  background: var(--panel-raised);
+  box-shadow: 0 8px 24px oklch(0 0 0 / 0.4);
 }
 
-.rail-open-label {
-  color: var(--faint);
-  font-size: var(--text-xs);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+.rail-map-row {
+  padding: 6px 8px;
+  border-radius: 4px;
+  text-align: left;
+  color: var(--ink);
+  font-size: var(--text-sm);
 }
 
-.rail-open-row {
+.rail-map-row:hover {
+  background: var(--panel);
+}
+
+.rail-map-form {
   display: flex;
   gap: 6px;
 }
 
-.rail-open-input {
+.rail-map-input {
   flex: 1;
   min-width: 0;
   padding: 6px 8px;
@@ -420,33 +421,29 @@ dd {
   border-radius: 4px;
 }
 
-.rail-open-input::placeholder {
+.rail-map-input::placeholder {
   color: var(--faint);
 }
 
-.rail-open-input:focus {
+.rail-map-input:focus {
   outline: none;
   border-color: var(--muted);
 }
 
-.rail-open-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.rail-map-go {
   padding: 6px 11px;
   color: var(--ink);
   font-size: var(--text-xs);
   font-weight: 560;
   border: 1px solid var(--hairline-strong);
   border-radius: 4px;
-  white-space: nowrap;
 }
 
-.rail-open-btn:hover:not(:disabled) {
-  background: var(--panel-raised);
+.rail-map-go:hover:not(:disabled) {
+  background: var(--panel);
 }
 
-.rail-open-btn:disabled {
+.rail-map-go:disabled {
   opacity: 0.4;
 }
 
@@ -717,86 +714,6 @@ dd {
   background: var(--panel-raised);
 }
 
-.map-controls {
-  position: relative;
-  pointer-events: auto;
-  justify-self: end;
-}
-
-.map-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  font-size: var(--text-xs);
-  font-weight: 560;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  border: 1px solid var(--hairline-strong);
-  border-radius: 4px;
-}
-
-.map-btn:hover {
-  color: var(--ink);
-  background: var(--panel-raised);
-}
-
-.map-menu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 20;
-  display: grid;
-  gap: 6px;
-  padding: 8px;
-  min-width: 220px;
-  border: 1px solid var(--hairline-strong);
-  border-radius: 6px;
-  background: var(--panel-raised);
-  box-shadow: 0 8px 24px oklch(0 0 0 / 0.4);
-}
-
-.map-menu-row {
-  padding: 6px 8px;
-  text-align: left;
-  font-size: var(--text-xs);
-  color: var(--ink);
-  border-radius: 4px;
-}
-
-.map-menu-row:hover {
-  background: var(--panel);
-}
-
-.map-menu-form {
-  display: flex;
-  gap: 6px;
-}
-
-.map-menu-input {
-  flex: 1;
-  min-width: 0;
-  padding: 5px 8px;
-  font-size: var(--text-xs);
-  color: var(--ink);
-  background: var(--panel);
-  border: 1px solid var(--hairline-strong);
-  border-radius: 4px;
-}
-
-.map-menu-go {
-  padding: 5px 11px;
-  font-size: var(--text-xs);
-  font-weight: 560;
-  color: var(--ink);
-  border: 1px solid var(--hairline-strong);
-  border-radius: 4px;
-}
-
-.map-menu-go:disabled {
-  opacity: 0.4;
-}
-
 .legend-dot {
   width: 8px;
   height: 8px;
@@ -862,15 +779,13 @@ dd {
   color: var(--muted);
 }
 
-/* ---------- inspector ---------- */
+/* ---------- dock panel shell (inspector + evaluation content) ---------- */
 
-.inspector {
-  position: absolute;
-  /* below the view toggle + encode note, so selecting never buries them */
-  top: 96px;
-  right: 20px;
-  bottom: 20px;
+.dock-panel {
+  /* the .dock container owns placement (below the view toggle, above the
+     transport); the panel fills its column */
   width: 308px;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -882,7 +797,7 @@ dd {
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .inspector {
+  .dock-panel {
     animation: inspector-in 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
 }
@@ -1528,11 +1443,23 @@ dd {
     display: none;
   }
 
-  .inspector {
+  .dock {
+    /* bottom sheet on narrow screens, pinned to the visual viewport so it
+       never floats over the HUD readout */
+    position: fixed;
     top: auto;
     right: 12px;
     bottom: 12px;
     left: 12px;
+    z-index: 30;
+    flex-direction: row-reverse;
+    align-items: flex-end;
+  }
+
+  .dock-panel {
+    position: static;
+    flex: 1;
+    min-width: 0;
     width: auto;
     max-height: 46vh;
   }
@@ -1556,49 +1483,83 @@ dd {
   }
 }
 
-/* ---------- session evaluation ---------- */
+/* ---------- dock: the right-edge home of session-depth panels ---------- */
 
-.report-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  font-size: var(--text-xs);
-  font-weight: 560;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  border: 1px solid var(--hairline-strong);
-  border-radius: 4px;
+.dock {
+  position: absolute;
+  top: 96px;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.dock > * {
   pointer-events: auto;
 }
 
-.report-btn:hover {
+.dock-strip {
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: oklch(0.245 0.014 256 / 0.92);
+}
+
+.dock-strip button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 4px;
+  color: var(--muted);
+}
+
+.dock-strip button:hover {
   color: var(--ink);
   background: var(--panel-raised);
 }
 
-.report-badge {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--faint);
+.dock-strip button.active {
+  color: var(--ink);
+  background: var(--panel-raised);
+  box-shadow: inset 0 0 0 1px var(--hairline-strong);
 }
 
-.report-btn.badge-running .report-badge {
+.dock-strip [data-hint]::after {
+  top: 50%;
+  left: auto;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
+}
+
+.dock-dot {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.dock-dot-running {
   background: var(--moon);
   animation: report-pulse 1.4s ease-in-out infinite;
 }
 
-.report-btn.badge-done .report-badge {
+.dock-dot-done {
   background: var(--pine);
 }
 
-.report-btn.badge-stale .report-badge {
+.dock-dot-stale {
   background: var(--amber);
 }
 
-.report-btn.badge-failed .report-badge {
+.dock-dot-failed {
   background: var(--alarm);
 }
 
@@ -1610,6 +1571,13 @@ dd {
   50% {
     opacity: 0.35;
   }
+}
+
+.dock-note {
+  padding: 14px 16px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
 }
 
 .report-panel .report-meta {

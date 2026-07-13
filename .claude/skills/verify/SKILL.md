@@ -50,8 +50,14 @@ New-tab endpoint needs PUT: `fetch('http://127.0.0.1:9333/json/new?<url>', {meth
 - View toggle `Tree` / `Terrain` buttons rebuild the scene — watch for
   `Runtime.exceptionThrown`.
 - `/?map=1&repo=<abs-path>` renders the citymap with no trace and no transport
-  (map-only mode); the HUD `Map` button opens the same URL via `window.open`,
-  so in headless drive the URL directly instead of clicking.
+  (map-only mode); the rail-head folder icon (`[aria-label="Open a repository
+  map"]`) opens the same URL via `window.open`, so in headless drive the URL
+  directly instead of clicking.
+- The right-edge dock strip hosts session panels: `Crosshair` icon = Inspect
+  (file details; teaching empty state when nothing is selected), `Sparkles`
+  icon = Evaluate (judge report; status dot mirrors running/done/stale/failed).
+  Clicking a report finding jumps the playhead to its evidence seq and selects
+  the file; the rail rows mirror evaluation state with `.rail-eval` badges.
 - `[aria-label="Export video"]` records playback client-side (MediaRecorder →
   webm download): the label flips to `Recording video`, the transport, rail,
   and view toggle lock while recording, and the playhead restores afterwards.

@@ -1,4 +1,3 @@
-import { Map as MapIcon, Sparkles } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import type { ActionCounts, CityMap, MetricObservability, Trace } from "../types";
 import type { SceneView } from "../state/store";
@@ -19,15 +18,9 @@ interface HudProps {
   churn: ChurnEntry[];
   onViewChange: (view: SceneView) => void;
   onSelectFile: (path: string) => void;
-  // opens the static full-repo map for a repo path in a new tab; omit the path
-  // to use the current session's repo (trace.session.cwd)
-  onOpenMap: (repo?: string) => void;
   // while a video export records, the view toggle is locked so switching scenes
   // can't tear down and replace the canvas the recorder is capturing
   locked?: boolean;
-  // session evaluation entry point; absent in map-only mode
-  reportBadge?: "idle" | "running" | "done" | "stale" | "failed";
-  onToggleReport?: () => void;
 }
 
 const CHURN_PANEL_ROWS = 8;
@@ -44,15 +37,9 @@ export const Hud = memo(function Hud({
   churn,
   onViewChange,
   onSelectFile,
-  onOpenMap,
-  locked = false,
-  reportBadge,
-  onToggleReport
+  locked = false
 }: HudProps) {
   const stats = trace?.stats;
-  const [mapOpen, setMapOpen] = useState(false);
-  const [mapPath, setMapPath] = useState("");
-  const sessionRepo = trace?.session.cwd;
   const readFinal = stats ? stats.fovea - stats.edited : 0;
   const unvisitedNow = stats ? Math.max(0, stats.filesInRepo - editedNow - readNow - seenNow) : 0;
   const unvisitedFinal = stats ? Math.max(0, stats.filesInRepo - stats.fovea - stats.parafovea) : 0;
@@ -266,57 +253,6 @@ export const Hud = memo(function Hud({
               Terrain
             </button>
           </div>
-          {trace && onToggleReport ? (
-            <button
-              className={`report-btn badge-${reportBadge ?? "idle"}`}
-              onClick={onToggleReport}
-              data-hint={reportHint(reportBadge)}
-            >
-              <Sparkles size={13} />
-              <span>Evaluate</span>
-              {reportBadge && reportBadge !== "idle" ? <span className="report-badge" /> : null}
-            </button>
-          ) : null}
-          <div className="map-controls">
-            <button
-              className="map-btn"
-              onClick={() => setMapOpen((open) => !open)}
-              aria-expanded={mapOpen}
-              data-hint="Open a static full-repo map — this session's repo, or any repo path"
-            >
-              <MapIcon size={13} />
-              <span>Map</span>
-            </button>
-            {mapOpen ? (
-              <div className="map-menu">
-                {sessionRepo ? (
-                  <button className="map-menu-row" onClick={() => onOpenMap(sessionRepo)} title={sessionRepo}>
-                    This session's repo
-                  </button>
-                ) : null}
-                <form
-                  className="map-menu-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const path = mapPath.trim();
-                    if (path) onOpenMap(path);
-                  }}
-                >
-                  <input
-                    type="text"
-                    className="map-menu-input"
-                    placeholder="/path/to/repo"
-                    value={mapPath}
-                    onChange={(e) => setMapPath(e.currentTarget.value)}
-                    spellCheck={false}
-                  />
-                  <button type="submit" className="map-menu-go" disabled={mapPath.trim() === ""}>
-                    Open
-                  </button>
-                </form>
-              </div>
-            ) : null}
-          </div>
           <div className="encode-note">
             {view === "tree"
               ? trace
@@ -352,21 +288,6 @@ function SpectrumStat({
       <strong>{now === final ? final : `${now} → ${final}`}</strong>
     </div>
   );
-}
-
-function reportHint(badge?: "idle" | "running" | "done" | "stale" | "failed"): string {
-  switch (badge) {
-    case "running":
-      return "The judge is reading the trace — about a minute";
-    case "done":
-      return "Evaluation ready — open the report";
-    case "stale":
-      return "Report ready, but the session has grown since it was judged";
-    case "failed":
-      return "The last evaluation failed — open to retry";
-    default:
-      return "Evaluate this session with your local agent CLI";
-  }
 }
 
 function pct(rate: number): string {

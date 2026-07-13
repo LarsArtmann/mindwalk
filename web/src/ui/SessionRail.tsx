@@ -1,5 +1,5 @@
 import { Eye, EyeOff, FolderOpen, PanelLeftClose, RefreshCw, Search } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { sessionVisible } from "../state/filters";
 import { LogoMark } from "./LogoMark";
 import { toggleRailShortcut } from "./shortcuts";
@@ -19,6 +19,8 @@ interface SessionRailProps {
   onCollapse: () => void;
   // opens the static full-repo map for a repo path in a new tab
   onOpenMap: (repo: string) => void;
+  // the active session's repo, offered as the popover's one-click choice
+  activeRepo?: string;
   // while a video export records, session switching is locked so it can't swap
   // the canvas or playhead out from under the recorder
   locked?: boolean;
@@ -39,10 +41,30 @@ export const SessionRail = memo(function SessionRail({
   onHarnessFilterChange,
   onCollapse,
   onOpenMap,
+  activeRepo,
   locked = false
 }: SessionRailProps) {
   const [query, setQuery] = useState("");
   const [repoPath, setRepoPath] = useState("");
+  const [mapOpen, setMapOpen] = useState(false);
+  const mapPopRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!mapOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      if (mapPopRef.current?.contains(event.target as Node)) return;
+      setMapOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMapOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [mapOpen]);
   const harnesses = useMemo(() => [...new Set(sessions.map((s) => s.harness))].sort(), [sessions]);
   const emptyCount = useMemo(() => sessions.filter((s) => s.eventCount === 0).length, [sessions]);
   // a persisted filter can name a harness with no sessions this scan; treating
@@ -69,6 +91,56 @@ export const SessionRail = memo(function SessionRail({
           </span>
         </h1>
         <div className="rail-head-actions">
+          <div className="rail-map" ref={mapPopRef}>
+            <button
+              className="icon-btn"
+              onClick={() => setMapOpen((open) => !open)}
+              aria-expanded={mapOpen}
+              title="Open a repository map"
+              aria-label="Open a repository map"
+            >
+              <FolderOpen size={15} />
+            </button>
+            {mapOpen ? (
+              <div className="rail-map-pop">
+                {activeRepo ? (
+                  <button
+                    className="rail-map-row"
+                    onClick={() => {
+                      onOpenMap(activeRepo);
+                      setMapOpen(false);
+                    }}
+                    title={activeRepo}
+                  >
+                    This session's repo
+                  </button>
+                ) : null}
+                <form
+                  className="rail-map-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const path = repoPath.trim();
+                    if (path) {
+                      onOpenMap(path);
+                      setMapOpen(false);
+                    }
+                  }}
+                >
+                  <input
+                    type="text"
+                    className="rail-map-input"
+                    placeholder="/path/to/repo"
+                    value={repoPath}
+                    onChange={(e) => setRepoPath(e.currentTarget.value)}
+                    spellCheck={false}
+                  />
+                  <button type="submit" className="rail-map-go" disabled={repoPath.trim() === ""}>
+                    Open
+                  </button>
+                </form>
+              </div>
+            ) : null}
+          </div>
           <button className="icon-btn" onClick={onRefresh} title="Rescan sessions" aria-label="Rescan sessions">
             <RefreshCw size={15} />
           </button>
@@ -142,7 +214,6 @@ export const SessionRail = memo(function SessionRail({
           >
             <span className="session-title">{session.title || session.id}</span>
             <span className="session-meta">
-              <span className={`harness-dot ${harnessClass(session.harness)}`} aria-hidden />
               <span className="session-meta-text">
                 {harnessLabel(session.harness)} · {session.eventCount}{" "}
                 {session.eventCount === 1 ? "call" : "calls"}
@@ -167,33 +238,6 @@ export const SessionRail = memo(function SessionRail({
           </p>
         ) : null}
       </div>
-      <form
-        className="rail-open"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const path = repoPath.trim();
-          if (path) onOpenMap(path);
-        }}
-      >
-        <label className="rail-open-label" htmlFor="rail-open-input">
-          Open a repository map
-        </label>
-        <div className="rail-open-row">
-          <input
-            id="rail-open-input"
-            type="text"
-            className="rail-open-input"
-            placeholder="/path/to/repo"
-            value={repoPath}
-            onChange={(e) => setRepoPath(e.currentTarget.value)}
-            spellCheck={false}
-          />
-          <button type="submit" className="rail-open-btn" disabled={repoPath.trim() === ""} title="Open repository map">
-            <FolderOpen size={13} aria-hidden />
-            <span>Open…</span>
-          </button>
-        </div>
-      </form>
       <div className="rail-foot">
         {shown.length === sessions.length
           ? `${sessions.length} session${sessions.length === 1 ? "" : "s"}`
@@ -222,17 +266,6 @@ function harnessLabel(harness: string): string {
       return "claude";
     default:
       return harness;
-  }
-}
-
-function harnessClass(harness: string): string {
-  switch (harness) {
-    case "claude-code":
-      return "claude";
-    case "codex":
-      return "codex";
-    default:
-      return "other";
   }
 }
 

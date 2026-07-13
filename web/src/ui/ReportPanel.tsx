@@ -17,9 +17,11 @@ const DIMENSION_WORDS: Record<string, { title: string; hint: string }> = {
   verification: { title: "Verification", hint: "Were edits verified, and errors followed up?" }
 };
 
+// dock panel content: the session evaluation. The Dock owns positioning;
+// this owns only its own markup.
 export function ReportPanel({ status, analyzing, onAnalyze, onClose, onJumpTo }: ReportPanelProps) {
   return (
-    <aside className="inspector report-panel" aria-label="Session evaluation">
+    <div className="dock-body" aria-label="Session evaluation">
       <div className="inspector-head">
         <div>
           <div className="inspector-path">Evaluation</div>
@@ -34,7 +36,7 @@ export function ReportPanel({ status, analyzing, onAnalyze, onClose, onJumpTo }:
         </button>
       </div>
       <PanelBody status={status} analyzing={analyzing} onAnalyze={onAnalyze} onJumpTo={onJumpTo} />
-    </aside>
+    </div>
   );
 }
 
