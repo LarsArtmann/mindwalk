@@ -232,11 +232,28 @@ export default function App() {
     if (activeSessionKey && !mapOnly) void refreshReport(activeSessionKey);
   }, [activeSessionKey, mapOnly, refreshReport]);
 
+  // refreshes the rail's evaluation badges without disturbing selection —
+  // scan() owns selection fallback, this only swaps the list data
+  const refreshSessionList = useCallback(async () => {
+    try {
+      setSessions(await listSessions());
+    } catch {
+      // badge refresh is best-effort; the next scan will catch up
+    }
+  }, [setSessions]);
+
   useEffect(() => {
     if (reportStatus?.state !== "running" || !activeSessionKey) return;
-    const timer = setInterval(() => void refreshReport(activeSessionKey), 2500);
-    return () => clearInterval(timer);
-  }, [reportStatus?.state, activeSessionKey, refreshReport]);
+    const timer = setInterval(() => {
+      void refreshReport(activeSessionKey);
+      void refreshSessionList();
+    }, 2500);
+    return () => {
+      clearInterval(timer);
+      // one more list pass so the rail badge leaves "evaluating" promptly
+      void refreshSessionList();
+    };
+  }, [reportStatus?.state, activeSessionKey, refreshReport, refreshSessionList]);
 
   const analyzeSession = useCallback(async () => {
     const key = activeSessionKeyRef.current;
@@ -244,10 +261,11 @@ export default function App() {
     try {
       const status = await startSessionAnalyze(key);
       if (activeSessionKeyRef.current === key) setReportStatus(status);
+      void refreshSessionList();
     } catch (err) {
       setError(describeError(err, "starting the evaluation"));
     }
-  }, [setError]);
+  }, [setError, refreshSessionList]);
 
   const toggleReport = useCallback(() => setReportOpen((open) => !open), []);
 

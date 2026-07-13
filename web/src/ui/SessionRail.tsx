@@ -149,6 +149,15 @@ export const SessionRail = memo(function SessionRail({
                 {session.gitBranch ? ` · ${session.gitBranch}` : ""}
                 {session.endedAt ? ` · ${shortDate(session.endedAt)}` : ""}
               </span>
+              {session.reportState ? (
+                <span
+                  className={`rail-eval rail-eval-${session.reportState}`}
+                  title={evalHint(session.reportState)}
+                  aria-label={evalHint(session.reportState)}
+                >
+                  {session.reportState === "running" ? "evaluating" : ""}
+                </span>
+              ) : null}
             </span>
           </button>
         ))}
@@ -193,6 +202,19 @@ export const SessionRail = memo(function SessionRail({
     </aside>
   );
 });
+
+function evalHint(state: "running" | "done" | "stale" | "failed"): string {
+  switch (state) {
+    case "running":
+      return "Evaluation in progress";
+    case "done":
+      return "Evaluation ready";
+    case "stale":
+      return "Evaluation ready, but the session has grown since";
+    case "failed":
+      return "Last evaluation failed";
+  }
+}
 
 function harnessLabel(harness: string): string {
   switch (harness) {

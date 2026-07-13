@@ -28,6 +28,8 @@ export interface SessionMeta {
   startedAt?: string;
   endedAt?: string;
   eventCount: number;
+  /** evaluation state for the rail badge; absent when never evaluated */
+  reportState?: "running" | "done" | "stale" | "failed";
 }
 
 export interface Rect {

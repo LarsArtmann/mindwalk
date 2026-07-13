@@ -25,6 +25,34 @@ type analyzeState struct {
 	runner judge.Runner
 }
 
+// reportStateFor grades one session for the list view: "running" while a
+// judge job is in flight, then "done" / "stale" / "failed". Staleness here
+// compares the report against the summary event count — cheap, no trace
+// parse — so the badge can be a touch more approximate than the panel.
+func (s *Server) reportStateFor(meta model.SessionMeta) string {
+	s.analyze.mu.Lock()
+	job := s.analyze.jobs[meta.Key]
+	s.analyze.mu.Unlock()
+	var report *model.Report
+	switch {
+	case job != nil && !job.done:
+		return "running"
+	case job != nil && job.err != "":
+		return "failed"
+	case job != nil && job.report != nil:
+		report = job.report
+	default:
+		report = s.reportCache.Load(meta.Key)
+	}
+	if report == nil {
+		return ""
+	}
+	if report.Session.EventCount != meta.EventCount || report.Judge.PromptVersion != judge.PromptVersion {
+		return "stale"
+	}
+	return "done"
+}
+
 func (s *Server) judgeInfo() (string, bool) {
 	if s.analyze.runner != nil {
 		return s.analyze.runner.Name(), true

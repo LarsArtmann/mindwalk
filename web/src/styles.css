@@ -1838,3 +1838,43 @@ dd {
   font-size: var(--text-sm);
   line-height: 1.6;
 }
+
+/* rail evaluation badges: the list mirrors judge state without extra clicks */
+
+.rail-eval {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+}
+
+.rail-eval::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.rail-eval-running {
+  color: var(--moon);
+}
+
+.rail-eval-running::before {
+  background: var(--moon);
+  animation: report-pulse 1.4s ease-in-out infinite;
+}
+
+.rail-eval-done::before {
+  background: var(--pine);
+}
+
+.rail-eval-stale::before {
+  background: var(--amber);
+}
+
+.rail-eval-failed::before {
+  background: var(--alarm);
+}

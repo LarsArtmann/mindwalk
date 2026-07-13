@@ -160,7 +160,18 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, sessions)
+	// annotate each session with its evaluation state so the rail can show
+	// running/finished badges without per-session report requests
+	items := make([]sessionListItem, len(sessions))
+	for i, meta := range sessions {
+		items[i] = sessionListItem{SessionMeta: meta, ReportState: s.reportStateFor(meta)}
+	}
+	writeJSON(w, items)
+}
+
+type sessionListItem struct {
+	model.SessionMeta
+	ReportState string `json:"reportState,omitempty"`
 }
 
 func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
