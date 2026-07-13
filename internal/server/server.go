@@ -23,6 +23,7 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
 	"github.com/cosmtrek/mindwalk/internal/adapter/codex"
 	"github.com/cosmtrek/mindwalk/internal/citymap"
+	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
@@ -56,6 +57,9 @@ type Server struct {
 	summaries map[string]summaryCacheEntry
 	repoMaps  map[string]repoMapEntry
 	repoMapMu sync.Mutex
+
+	analyze     analyzeState
+	reportCache judge.Cache
 }
 
 type repoMapEntry struct {
@@ -104,6 +108,9 @@ func New(cfg Config) *Server {
 		inflight:  map[string]*inflightLoad{},
 		summaries: map[string]summaryCacheEntry{},
 		repoMaps:  map[string]repoMapEntry{},
+
+		analyze:     analyzeState{jobs: map[string]*analyzeJob{}},
+		reportCache: judge.Cache{Dir: judge.DefaultCacheDir()},
 	}
 }
 
@@ -188,6 +195,10 @@ func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeJSON(w, city)
+	case "report":
+		s.handleSessionReport(w, r, selector)
+	case "analyze":
+		s.handleSessionAnalyze(w, r, selector)
 	default:
 		http.NotFound(w, r)
 	}

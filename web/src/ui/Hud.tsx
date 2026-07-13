@@ -1,4 +1,4 @@
-import { Map as MapIcon } from "lucide-react";
+import { Map as MapIcon, Sparkles } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import type { ActionCounts, CityMap, MetricObservability, Trace } from "../types";
 import type { SceneView } from "../state/store";
@@ -25,6 +25,9 @@ interface HudProps {
   // while a video export records, the view toggle is locked so switching scenes
   // can't tear down and replace the canvas the recorder is capturing
   locked?: boolean;
+  // session evaluation entry point; absent in map-only mode
+  reportBadge?: "idle" | "running" | "done" | "stale" | "failed";
+  onToggleReport?: () => void;
 }
 
 const CHURN_PANEL_ROWS = 8;
@@ -42,7 +45,9 @@ export const Hud = memo(function Hud({
   onViewChange,
   onSelectFile,
   onOpenMap,
-  locked = false
+  locked = false,
+  reportBadge,
+  onToggleReport
 }: HudProps) {
   const stats = trace?.stats;
   const [mapOpen, setMapOpen] = useState(false);
@@ -261,6 +266,17 @@ export const Hud = memo(function Hud({
               Terrain
             </button>
           </div>
+          {trace && onToggleReport ? (
+            <button
+              className={`report-btn badge-${reportBadge ?? "idle"}`}
+              onClick={onToggleReport}
+              data-hint={reportHint(reportBadge)}
+            >
+              <Sparkles size={13} />
+              <span>Evaluate</span>
+              {reportBadge && reportBadge !== "idle" ? <span className="report-badge" /> : null}
+            </button>
+          ) : null}
           <div className="map-controls">
             <button
               className="map-btn"
@@ -336,6 +352,21 @@ function SpectrumStat({
       <strong>{now === final ? final : `${now} → ${final}`}</strong>
     </div>
   );
+}
+
+function reportHint(badge?: "idle" | "running" | "done" | "stale" | "failed"): string {
+  switch (badge) {
+    case "running":
+      return "The judge is reading the trace — about a minute";
+    case "done":
+      return "Evaluation ready — open the report";
+    case "stale":
+      return "Report ready, but the session has grown since it was judged";
+    case "failed":
+      return "The last evaluation failed — open to retry";
+    default:
+      return "Evaluate this session with your local agent CLI";
+  }
 }
 
 function pct(rate: number): string {

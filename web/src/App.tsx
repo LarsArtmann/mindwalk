@@ -1,6 +1,15 @@
 import { PanelLeftOpen } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { describeError, getRepoMap, getSessionSnapshot, listSessions } from "./api/client";
+import {
+  describeError,
+  getRepoMap,
+  getSessionReport,
+  getSessionSnapshot,
+  listSessions,
+  startSessionAnalyze
+} from "./api/client";
+import type { ReportStatus } from "./types";
+import { ReportPanel } from "./ui/ReportPanel";
 import { PlaybackEngine } from "./playback/reducer";
 import { downloadBlob, recordingSupported, recordPlayback } from "./playback/recorder";
 import { CityScene } from "./scene/CityScene";
@@ -51,6 +60,8 @@ export default function App() {
   activeSessionKeyRef.current = activeSessionKey;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportStatus, setReportStatus] = useState<ReportStatus | undefined>();
 
   // scenes hand up their live <canvas> so the video exporter can capture it;
   // stable identity keeps the scene mount effect from remounting on every render
@@ -203,6 +214,55 @@ export default function App() {
   const collapseRail = useCallback(() => setRailCollapsed(true), [setRailCollapsed]);
   const expandRail = useCallback(() => setRailCollapsed(false), [setRailCollapsed]);
 
+  // --- session evaluation: fetched on session switch, polled while the judge
+  // runs; the judge itself only ever starts from the explicit button press
+  const refreshReport = useCallback(async (key: string) => {
+    try {
+      const status = await getSessionReport(key);
+      if (activeSessionKeyRef.current === key) setReportStatus(status);
+    } catch {
+      // a missing report endpoint response is not worth a toast; the panel
+      // falls back to its "checking" state and the next poll retries
+    }
+  }, []);
+
+  useEffect(() => {
+    setReportOpen(false);
+    setReportStatus(undefined);
+    if (activeSessionKey && !mapOnly) void refreshReport(activeSessionKey);
+  }, [activeSessionKey, mapOnly, refreshReport]);
+
+  useEffect(() => {
+    if (reportStatus?.state !== "running" || !activeSessionKey) return;
+    const timer = setInterval(() => void refreshReport(activeSessionKey), 2500);
+    return () => clearInterval(timer);
+  }, [reportStatus?.state, activeSessionKey, refreshReport]);
+
+  const analyzeSession = useCallback(async () => {
+    const key = activeSessionKeyRef.current;
+    if (!key) return;
+    try {
+      const status = await startSessionAnalyze(key);
+      if (activeSessionKeyRef.current === key) setReportStatus(status);
+    } catch (err) {
+      setError(describeError(err, "starting the evaluation"));
+    }
+  }, [setError]);
+
+  const toggleReport = useCallback(() => setReportOpen((open) => !open), []);
+
+  // a finding jump moves the playhead and focuses the evidence's file so the
+  // claim is visible in the scene, not just in the panel
+  const jumpToEvidence = useCallback(
+    (seq: number) => {
+      setCurrentSeq(seq);
+      const event = trace?.events[seq];
+      const path = event?.targets.find((target) => target.path)?.path;
+      if (path) setSelectedPath(path);
+    },
+    [trace, setCurrentSeq, setSelectedPath]
+  );
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== "b" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
@@ -223,6 +283,13 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const reportBadge = useMemo(() => {
+    if (reportStatus?.state === "running") return "running" as const;
+    if (reportStatus?.state === "failed") return "failed" as const;
+    if (reportStatus?.state === "done") return reportStatus.stale ? ("stale" as const) : ("done" as const);
+    return "idle" as const;
+  }, [reportStatus]);
 
   const engine = useMemo(() => new PlaybackEngine(trace, city), [trace, city]);
   const playback = useMemo(() => engine.snapshotAt(currentSeq), [engine, currentSeq]);
@@ -320,8 +387,18 @@ export default function App() {
             onSelectFile={setSelectedPath}
             onOpenMap={openMap}
             locked={exporting}
+            reportBadge={mapOnly ? undefined : reportBadge}
+            onToggleReport={mapOnly ? undefined : toggleReport}
           />
-          {selectedFile ? (
+          {reportOpen && !mapOnly && trace ? (
+            <ReportPanel
+              status={reportStatus}
+              analyzing={reportStatus?.state === "running"}
+              onAnalyze={() => void analyzeSession()}
+              onClose={() => setReportOpen(false)}
+              onJumpTo={jumpToEvidence}
+            />
+          ) : selectedFile ? (
             <Inspector
               file={selectedFile}
               touch={playback.touchByPath.get(selectedFile.path)}
