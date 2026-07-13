@@ -1,6 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
 import type { ActionCounts, CityMap, MetricObservability, Trace } from "../types";
-import type { SceneView } from "../state/store";
 
 export interface ChurnEntry {
   path: string;
@@ -10,17 +9,12 @@ export interface ChurnEntry {
 interface HudProps {
   trace?: Trace;
   city?: CityMap;
-  view: SceneView;
   // live counts at the playhead, passed as primitives so memo stays effective
   editedNow: number;
   readNow: number;
   seenNow: number;
   churn: ChurnEntry[];
-  onViewChange: (view: SceneView) => void;
   onSelectFile: (path: string) => void;
-  // while a video export records, the view toggle is locked so switching scenes
-  // can't tear down and replace the canvas the recorder is capturing
-  locked?: boolean;
 }
 
 const CHURN_PANEL_ROWS = 8;
@@ -30,14 +24,11 @@ const CHURN_PANEL_ROWS = 8;
 export const Hud = memo(function Hud({
   trace,
   city,
-  view,
   editedNow,
   readNow,
   seenNow,
   churn,
-  onViewChange,
-  onSelectFile,
-  locked = false
+  onSelectFile
 }: HudProps) {
   const stats = trace?.stats;
   const readFinal = stats ? stats.fovea - stats.edited : 0;
@@ -235,35 +226,6 @@ export const Hud = memo(function Hud({
           </>
         ) : null}
       </div>
-      {city ? (
-        <div className="hud-right">
-          <div className="view-toggle" role="group" aria-label="Scene view">
-            <button
-              className={view === "tree" ? "active" : ""}
-              onClick={() => onViewChange("tree")}
-              disabled={locked}
-            >
-              Tree
-            </button>
-            <button
-              className={view === "terrain" ? "active" : ""}
-              onClick={() => onViewChange("terrain")}
-              disabled={locked}
-            >
-              Terrain
-            </button>
-          </div>
-          <div className="encode-note">
-            {view === "tree"
-              ? trace
-                ? "glow ∝ revisits"
-                : "static map"
-              : trace
-                ? "height ∝ depth × revisits"
-                : "height ∝ lines"}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 });

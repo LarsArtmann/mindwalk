@@ -8,9 +8,11 @@ import {
   listSessions,
   startSessionAnalyze
 } from "./api/client";
+import { Crosshair, Sparkles, Mountain, TreePine } from "lucide-react";
 import type { ReportStatus } from "./types";
-import { Dock, type DockTab } from "./ui/Dock";
+import { Dock, type PanelDescriptor } from "./ui/Dock";
 import { ReportPanel } from "./ui/ReportPanel";
+import { ViewPanel } from "./ui/ViewPanel";
 import { PlaybackEngine } from "./playback/reducer";
 import { downloadBlob, recordingSupported, recordPlayback } from "./playback/recorder";
 import { CityScene } from "./scene/CityScene";
@@ -23,6 +25,21 @@ import { SessionRail } from "./ui/SessionRail";
 import { toggleRailShortcut } from "./ui/shortcuts";
 import { Timeline } from "./ui/Timeline";
 import "./styles.css";
+
+function evaluateHint(badge: "running" | "done" | "stale" | "failed" | null): string {
+  switch (badge) {
+    case "running":
+      return "The judge is reading the trace — about a minute";
+    case "done":
+      return "Evaluation ready";
+    case "stale":
+      return "Evaluation ready, but the session has grown since";
+    case "failed":
+      return "The last evaluation failed — open to retry";
+    default:
+      return "Evaluate this session with your local agent CLI";
+  }
+}
 
 export default function App() {
   const {
@@ -61,8 +78,11 @@ export default function App() {
   activeSessionKeyRef.current = activeSessionKey;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [dockTab, setDockTab] = useState<DockTab | null>(null);
+  const [openSheet, setOpenSheet] = useState<string | null>(null);
+  const [openPop, setOpenPop] = useState<string | null>(null);
   const [reportStatus, setReportStatus] = useState<ReportStatus | undefined>();
+  const exportingRef = useRef(false);
+  exportingRef.current = exporting;
 
   // scenes hand up their live <canvas> so the video exporter can capture it;
   // stable identity keeps the scene mount effect from remounting on every render
@@ -228,7 +248,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setDockTab(null);
+    setOpenSheet(null);
+    setOpenPop(null);
     setReportStatus(undefined);
     if (activeSessionKey && !mapOnly) void refreshReport(activeSessionKey);
   }, [activeSessionKey, mapOnly, refreshReport]);
@@ -268,17 +289,28 @@ export default function App() {
     }
   }, [setError, refreshSessionList]);
 
-  // selecting a file in the scene opens the inspect panel; deselecting keeps
+  // selecting a file in the scene opens the inspect sheet; deselecting keeps
   // whatever panel the user had open
   const selectFile = useCallback(
     (path: string | undefined) => {
       setSelectedPath(path);
-      if (path) setDockTab("inspect");
+      if (path) setOpenSheet("inspect");
     },
     [setSelectedPath]
   );
 
-  const closeDock = useCallback(() => setDockTab(null), []);
+  const closeSheet = useCallback(() => setOpenSheet(null), []);
+  const closePop = useCallback(() => setOpenPop(null), []);
+
+  // sheets are exclusive (one full-height paper at a time); pops toggle
+  // independently so a view tweak never steals the open report
+  const togglePanel = useCallback((panel: PanelDescriptor) => {
+    if (panel.presentation === "sheet") {
+      setOpenSheet((current) => (current === panel.id ? null : panel.id));
+    } else {
+      setOpenPop((current) => (current === panel.id ? null : panel.id));
+    }
+  }, []);
 
   // a finding jump moves the playhead and focuses the evidence's file so the
   // claim is visible in the scene, not just in the panel — without stealing
@@ -304,6 +336,21 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
+  // V cycles the scene view without opening the view pop; locked during
+  // export because switching scenes would swap the recorded canvas
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "v" || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (exportingRef.current) return;
+      const store = useAppStore.getState();
+      store.setView(store.view === "tree" ? "terrain" : "tree");
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   useEffect(() => {
     const params = new URL(window.location.href).searchParams;
     if (params.get("map") === "1") {
@@ -313,6 +360,22 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const reportBadge = useMemo(() => {
+    if (reportStatus?.state === "running") return "running" as const;
+    if (reportStatus?.state === "failed") return "failed" as const;
+    if (reportStatus?.state === "done") return reportStatus.stale ? ("stale" as const) : ("done" as const);
+    return null;
+  }, [reportStatus]);
+
+  const viewNote =
+    view === "tree"
+      ? trace
+        ? "glow ∝ revisits"
+        : "static map"
+      : trace
+        ? "height ∝ depth × revisits"
+        : "height ∝ lines";
 
   const engine = useMemo(() => new PlaybackEngine(trace, city), [trace, city]);
   const playback = useMemo(() => engine.snapshotAt(currentSeq), [engine, currentSeq]);
@@ -402,40 +465,68 @@ export default function App() {
           <Hud
             trace={trace}
             city={city}
-            view={view}
             editedNow={touchCounts.edited}
             readNow={touchCounts.read}
             seenNow={touchCounts.seen}
             churn={churn}
-            onViewChange={setView}
             onSelectFile={selectFile}
-            locked={exporting}
           />
           {city ? (
             <Dock
-              tab={dockTab}
-              tabs={mapOnly || !trace ? ["inspect"] : ["inspect", "evaluate"]}
-              onTabChange={setDockTab}
-              reportStatus={mapOnly ? undefined : reportStatus}
-            >
-              {dockTab === "evaluate" ? (
-                <ReportPanel
-                  status={reportStatus}
-                  analyzing={reportStatus?.state === "running"}
-                  onAnalyze={() => void analyzeSession()}
-                  onClose={closeDock}
-                  onJumpTo={jumpToEvidence}
-                />
-              ) : dockTab === "inspect" ? (
-                <Inspector
-                  file={selectedFile}
-                  touch={selectedFile ? playback.touchByPath.get(selectedFile.path) : undefined}
-                  history={selectedFile ? (playback.historyByPath.get(selectedFile.path) ?? []) : []}
-                  onClose={closeDock}
-                  onJumpTo={setCurrentSeq}
-                />
-              ) : null}
-            </Dock>
+              panels={[
+                {
+                  id: "view",
+                  icon: view === "tree" ? TreePine : Mountain,
+                  hint: `Scene view: ${view} — click to change, or press V`,
+                  section: "scene",
+                  presentation: "pop",
+                  render: () => (
+                    <ViewPanel view={view} onViewChange={setView} note={viewNote} locked={exporting} />
+                  )
+                },
+                {
+                  id: "inspect",
+                  icon: Crosshair,
+                  hint: "Inspect the selected file",
+                  section: "session",
+                  presentation: "sheet",
+                  render: () => (
+                    <Inspector
+                      file={selectedFile}
+                      touch={selectedFile ? playback.touchByPath.get(selectedFile.path) : undefined}
+                      history={selectedFile ? (playback.historyByPath.get(selectedFile.path) ?? []) : []}
+                      onClose={closeSheet}
+                      onJumpTo={setCurrentSeq}
+                    />
+                  )
+                },
+                ...(!mapOnly && trace
+                  ? [
+                      {
+                        id: "evaluate",
+                        icon: Sparkles,
+                        hint: evaluateHint(reportBadge),
+                        section: "session",
+                        presentation: "sheet",
+                        badge: reportBadge,
+                        render: () => (
+                          <ReportPanel
+                            status={reportStatus}
+                            analyzing={reportStatus?.state === "running"}
+                            onAnalyze={() => void analyzeSession()}
+                            onClose={closeSheet}
+                            onJumpTo={jumpToEvidence}
+                          />
+                        )
+                      } satisfies PanelDescriptor
+                    ]
+                  : [])
+              ]}
+              openSheet={openSheet}
+              openPop={openPop}
+              onToggle={togglePanel}
+              onClosePop={closePop}
+            />
           ) : null}
           {!mapOnly && !loading && sessions.length === 0 ? (
             <div className="empty-stage">

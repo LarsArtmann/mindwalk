@@ -105,16 +105,27 @@ export const SessionRail = memo(function SessionRail({
               <div className="rail-map-pop">
                 {activeRepo ? (
                   <button
-                    className="rail-map-row"
+                    className="rail-map-primary"
                     onClick={() => {
                       onOpenMap(activeRepo);
                       setMapOpen(false);
                     }}
-                    title={activeRepo}
+                    title={`Open the map of ${activeRepo}`}
                   >
-                    This session's repo
+                    <FolderOpen size={14} aria-hidden />
+                    <span className="rail-map-primary-text">
+                      <span className="rail-map-primary-name">{repoBasename(activeRepo)}</span>
+                      <span className="rail-map-primary-path">{activeRepo}</span>
+                    </span>
                   </button>
                 ) : null}
+                {activeRepo ? (
+                  <div className="rail-map-divider" aria-hidden>
+                    <span>or open any repository</span>
+                  </div>
+                ) : (
+                  <p className="rail-map-label">Open a repository map</p>
+                )}
                 <form
                   className="rail-map-form"
                   onSubmit={(e) => {
@@ -246,6 +257,11 @@ export const SessionRail = memo(function SessionRail({
     </aside>
   );
 });
+
+function repoBasename(path: string): string {
+  const clean = path.replace(/\/+$/, "");
+  return clean.slice(clean.lastIndexOf("/") + 1) || clean;
+}
 
 function evalHint(state: "running" | "done" | "stale" | "failed"): string {
   switch (state) {

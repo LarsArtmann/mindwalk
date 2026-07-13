@@ -47,15 +47,20 @@ New-tab endpoint needs PUT: `fetch('http://127.0.0.1:9333/json/new?<url>', {meth
 - `[aria-label="Restart playback"]` → `1 / N`; `[aria-label="Play playback"]`
   → ~3 ticks/second at 1× (the `.speed-btn` / `S` key cycles the multiplier);
   playback draws the ember trail + firefly.
-- View toggle `Tree` / `Terrain` buttons rebuild the scene — watch for
-  `Runtime.exceptionThrown`.
+- Scene view lives in the dock's scene section: the top strip icon (tree/
+  mountain shape mirrors the current view) opens a compact pop with `Tree` /
+  `Terrain` radio rows plus the encoding legend; pressing `V` cycles views
+  directly. Switching rebuilds the scene — watch for `Runtime.exceptionThrown`.
+  The pop coexists with an open sheet (report stays open while switching).
 - `/?map=1&repo=<abs-path>` renders the citymap with no trace and no transport
   (map-only mode); the rail-head folder icon (`[aria-label="Open a repository
-  map"]`) opens the same URL via `window.open`, so in headless drive the URL
-  directly instead of clicking.
-- The right-edge dock strip hosts session panels: `Crosshair` icon = Inspect
-  (file details; teaching empty state when nothing is selected), `Sparkles`
-  icon = Evaluate (judge report; status dot mirrors running/done/stale/failed).
+  map"]`) opens a popover — primary card for the active session's repo (name +
+  path), then an "or open any repository" path input — and opens the map via
+  `window.open`, so in headless drive the URL directly instead of clicking.
+- The right-edge dock strip is a panel registry with two sections (scene /
+  session, hairline divider): View (pop), `Crosshair` = Inspect (sheet; file
+  details, teaching empty state when nothing is selected), `Sparkles` =
+  Evaluate (sheet; judge report, status dot mirrors running/done/stale/failed).
   Clicking a report finding jumps the playhead to its evidence seq and selects
   the file; the rail rows mirror evaluation state with `.rail-eval` badges.
 - `[aria-label="Export video"]` records playback client-side (MediaRecorder →
