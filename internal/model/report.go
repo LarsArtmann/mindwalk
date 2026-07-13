@@ -1,0 +1,72 @@
+package model
+
+// Report is the third first-class artifact next to CityMap and Trace: an
+// LLM-assisted evaluation of one session trace. The LLM contributes findings
+// and narrative; dimension verdicts are always derived mechanically from
+// finding severities so two reports stay comparable.
+type Report struct {
+	Version        int               `json:"version"`
+	Session        ReportSession     `json:"session"`
+	Judge          ReportJudge       `json:"judge"`
+	TaskSummary    string            `json:"taskSummary"`
+	Dimensions     []ReportDimension `json:"dimensions"`
+	NotableMoments []ReportMoment    `json:"notableMoments,omitempty"`
+	Narrative      string            `json:"narrative"`
+}
+
+// ReportSession pins the report to the trace state it was generated from;
+// EventCount is the staleness signal for sessions that are still growing.
+type ReportSession struct {
+	ID         string `json:"id"`
+	Harness    string `json:"harness"`
+	Model      string `json:"model,omitempty"`
+	EventCount int    `json:"eventCount"`
+}
+
+type ReportJudge struct {
+	CLI           string `json:"cli"`
+	PromptVersion int    `json:"promptVersion"`
+	GeneratedAt   string `json:"generatedAt"`
+}
+
+// Dimension names, fixed set.
+const (
+	DimensionExploration  = "exploration"
+	DimensionScope        = "scope"
+	DimensionWandering    = "wandering"
+	DimensionVerification = "verification"
+)
+
+// DimensionNames lists the four evaluation dimensions in display order.
+var DimensionNames = []string{DimensionExploration, DimensionScope, DimensionWandering, DimensionVerification}
+
+// Verdict values; SeverityInfo maps to VerdictGood.
+const (
+	VerdictGood             = "good"
+	VerdictWarning          = "warning"
+	VerdictProblem          = "problem"
+	VerdictInsufficientData = "insufficient-data"
+)
+
+const (
+	SeverityInfo    = "info"
+	SeverityWarning = "warning"
+	SeverityProblem = "problem"
+)
+
+type ReportDimension struct {
+	Name     string          `json:"name"`
+	Verdict  string          `json:"verdict"`
+	Findings []ReportFinding `json:"findings"`
+}
+
+type ReportFinding struct {
+	Claim        string `json:"claim"`
+	Severity     string `json:"severity"`
+	EvidenceSeqs []int  `json:"evidenceSeqs,omitempty"`
+}
+
+type ReportMoment struct {
+	Seq  int    `json:"seq"`
+	Note string `json:"note"`
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
 	"github.com/cosmtrek/mindwalk/internal/adapter/codex"
 	"github.com/cosmtrek/mindwalk/internal/citymap"
+	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 	"github.com/cosmtrek/mindwalk/internal/server"
 )
@@ -37,6 +39,8 @@ func run(args []string) error {
 		return build(args[1:])
 	case "trace":
 		return trace(args[1:])
+	case "analyze":
+		return analyze(args[1:])
 	case "-h", "--help", "help":
 		usage()
 		return nil
@@ -125,6 +129,58 @@ func trace(args []string) error {
 	return writeJSON(out, tr)
 }
 
+func analyze(args []string) error {
+	fs := flag.NewFlagSet("analyze", flag.ExitOnError)
+	out := fs.String("o", "", "write the report to this file instead of stdout")
+	judgeCLI := fs.String("judge", "", "judge CLI to use: claude or codex (default: auto-detect)")
+	noCache := fs.Bool("no-cache", false, "re-run the judge even when a fresh cached report exists")
+	timeout := fs.Duration("timeout", judge.DefaultTimeout, "judge subprocess timeout")
+	// Accept flags after the positional argument, matching trace/build.
+	var positional []string
+	for {
+		if err := fs.Parse(args); err != nil {
+			return err
+		}
+		if fs.NArg() == 0 {
+			break
+		}
+		positional = append(positional, fs.Arg(0))
+		args = fs.Args()[1:]
+	}
+	if len(positional) != 1 {
+		return fmt.Errorf("usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--no-cache]")
+	}
+	session, err := filepath.Abs(positional[0])
+	if err != nil {
+		return err
+	}
+	tr, err := parseTrace(session)
+	if err != nil {
+		return err
+	}
+
+	cache := judge.Cache{Dir: judge.DefaultCacheDir()}
+	key := adapter.SessionKey(tr.Session.Harness, session)
+	if !*noCache {
+		if cached := cache.Load(key); judge.Fresh(cached, tr) {
+			fmt.Fprintln(os.Stderr, "mindwalk: using cached report (pass --no-cache to re-run)")
+			return writeJSON(*out, cached)
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+	fmt.Fprintf(os.Stderr, "mindwalk: judging %d events, this can take a minute…\n", tr.Session.EventCount)
+	report, err := judge.Analyze(ctx, tr, judge.Options{CLI: *judgeCLI})
+	if err != nil {
+		return err
+	}
+	if err := cache.Store(key, report); err != nil {
+		fmt.Fprintln(os.Stderr, "mindwalk: report cache write failed:", err)
+	}
+	return writeJSON(*out, report)
+}
+
 func parseTrace(path string) (*model.Trace, error) {
 	var lastErr error
 	for _, source := range []adapter.Source{claudecode.Adapter{}, codex.Adapter{}} {
@@ -184,5 +240,6 @@ Usage:
   mindwalk open [--no-open] <session.jsonl> open a specific Claude Code or Codex session
   mindwalk map [--no-open] <repo>  open the repository citymap with no session
   mindwalk build <repo> [-o out]  write citymap.json
-  mindwalk trace <session> [-o out] write trace.json`)
+  mindwalk trace <session> [-o out] write trace.json
+  mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] evaluate a session with a local agent CLI`)
 }

@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mindwalk.local/schema/report.schema.json",
+  "title": "mindwalk report",
+  "description": "LLM-assisted evaluation of one session trace. Findings come from the judge; dimension verdicts are derived mechanically from finding severities so reports stay comparable across runs.",
+  "type": "object",
+  "required": ["version", "session", "judge", "taskSummary", "dimensions", "narrative"],
+  "properties": {
+    "version": { "const": 1 },
+    "session": {
+      "type": "object",
+      "required": ["id", "harness", "eventCount"],
+      "properties": {
+        "id": { "type": "string" },
+        "harness": { "type": "string" },
+        "model": { "type": "string" },
+        "eventCount": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Event count of the trace the report was generated from; the staleness signal for growing sessions"
+        }
+      },
+      "additionalProperties": false
+    },
+    "judge": {
+      "type": "object",
+      "required": ["cli", "promptVersion", "generatedAt"],
+      "properties": {
+        "cli": { "type": "string" },
+        "promptVersion": { "type": "integer", "minimum": 1 },
+        "generatedAt": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "taskSummary": { "type": "string" },
+    "dimensions": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["name", "verdict", "findings"],
+        "properties": {
+          "name": { "enum": ["exploration", "scope", "wandering", "verification"] },
+          "verdict": {
+            "enum": ["good", "warning", "problem", "insufficient-data"],
+            "description": "max(finding severity), forced to insufficient-data when the trace observability grades the dimension's source signal unavailable"
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["claim", "severity"],
+              "properties": {
+                "claim": { "type": "string" },
+                "severity": { "enum": ["info", "warning", "problem"] },
+                "evidenceSeqs": {
+                  "type": "array",
+                  "items": { "type": "integer", "minimum": 0 },
+                  "description": "Event seqs backing the claim; validated against the trace, invalid references are dropped"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "notableMoments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["seq", "note"],
+        "properties": {
+          "seq": { "type": "integer", "minimum": 0 },
+          "note": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "narrative": { "type": "string" }
+  },
+  "additionalProperties": false
+}
