@@ -48,6 +48,22 @@ func SessionKey(harness, path string) string {
 	return fmt.Sprintf("%s-%x", harness, sum[:12])
 }
 
+// userMessageNoteLimit bounds the text stored on user-message marks; the note
+// exists so downstream analysis can see the task wording, not to mirror the
+// full transcript.
+const userMessageNoteLimit = 2000
+
+// UserMessageNote normalizes user-message text for Mark.Note: trimmed and
+// truncated to a fixed rune budget with an ellipsis marker.
+func UserMessageNote(text string) string {
+	text = strings.TrimSpace(text)
+	runes := []rune(text)
+	if len(runes) <= userMessageNoteLimit {
+		return text
+	}
+	return string(runes[:userMessageNoteLimit]) + "…"
+}
+
 func ReadJSONLines(r io.Reader, visit func([]byte)) error {
 	reader := bufio.NewReaderSize(r, 64*1024)
 	for {

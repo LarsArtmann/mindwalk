@@ -235,13 +235,21 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			}
 			if payload.Type == "message" {
 				if payload.Role == "user" && payload.Content.HasText() {
-					trace.Marks = append(trace.Marks, model.Mark{Seq: len(callOrder), Type: "user-message"})
+					trace.Marks = append(trace.Marks, model.Mark{
+						Seq:  len(callOrder),
+						Type: "user-message",
+						Note: adapter.UserMessageNote(payload.Content.Text()),
+					})
 				}
 			}
 		case "message":
 			recognized = true
 			if line.Role == "user" && line.Content.HasText() {
-				trace.Marks = append(trace.Marks, model.Mark{Seq: len(callOrder), Type: "user-message"})
+				trace.Marks = append(trace.Marks, model.Mark{
+					Seq:  len(callOrder),
+					Type: "user-message",
+					Note: adapter.UserMessageNote(line.Content.Text()),
+				})
 			}
 		case "event_msg":
 			recognized = true
@@ -399,6 +407,16 @@ func (c *codexContentList) UnmarshalJSON(data []byte) error {
 	}
 	c.Items = items
 	return nil
+}
+
+func (c codexContentList) Text() string {
+	var parts []string
+	for _, item := range c.Items {
+		if strings.TrimSpace(item.Text) != "" {
+			parts = append(parts, strings.TrimSpace(item.Text))
+		}
+	}
+	return strings.Join(parts, "\n")
 }
 
 func (c codexContentList) HasText() bool {

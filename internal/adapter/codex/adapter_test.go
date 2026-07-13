@@ -91,7 +91,7 @@ func TestParseCodexSession(t *testing.T) {
 	if trace.Session.Title != "Codex demo trace" || trace.Session.Model != "gpt-5.5" {
 		t.Fatalf("session = %#v", trace.Session)
 	}
-	if len(trace.Marks) != 1 || trace.Marks[0].Type != "user-message" {
+	if len(trace.Marks) != 1 || trace.Marks[0].Type != "user-message" || trace.Marks[0].Note != "inspect" {
 		t.Fatalf("marks = %#v", trace.Marks)
 	}
 	if len(trace.Events) != 3 {

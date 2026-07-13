@@ -168,7 +168,11 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			return
 		}
 		if line.Type == "user" && hasUserMessage(msg.Content) {
-			trace.Marks = append(trace.Marks, model.Mark{Seq: len(trace.Events), Type: "user-message"})
+			trace.Marks = append(trace.Marks, model.Mark{
+				Seq:  len(trace.Events),
+				Type: "user-message",
+				Note: adapter.UserMessageNote(userMessageText(msg.Content)),
+			})
 		}
 		if msg.Model != "" && trace.Session.Model == "" {
 			trace.Session.Model = msg.Model
@@ -281,6 +285,16 @@ func countToolUses(content contentList) int {
 		}
 	}
 	return count
+}
+
+func userMessageText(content contentList) string {
+	var parts []string
+	for _, item := range content.Items {
+		if item.Type == "text" && strings.TrimSpace(item.Text) != "" {
+			parts = append(parts, strings.TrimSpace(item.Text))
+		}
+	}
+	return strings.Join(parts, "\n")
 }
 
 func hasUserMessage(content contentList) bool {

@@ -106,6 +106,31 @@ func TestCompactionUsesSubtypeOnly(t *testing.T) {
 	}
 }
 
+func TestUserMessageMarkCarriesNote(t *testing.T) {
+	long := strings.Repeat("字", 2100)
+	session := filepath.Join(t.TempDir(), "notes.jsonl")
+	writeSession(t, session,
+		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","cwd":"/tmp","sessionId":"notes","message":{"role":"user","content":"fix the login bug"}}`,
+		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","cwd":"/tmp","sessionId":"notes","message":{"role":"assistant","content":[{"type":"tool_use","id":"a","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
+		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","cwd":"/tmp","sessionId":"notes","message":{"role":"user","content":[{"tool_use_id":"a","type":"tool_result","content":"ok","is_error":false}]}}`,
+		`{"type":"user","timestamp":"2026-07-09T00:00:03Z","cwd":"/tmp","sessionId":"notes","message":{"role":"user","content":"`+long+`"}}`,
+	)
+	trace, err := (Adapter{}).Parse(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(trace.Marks) != 2 {
+		t.Fatalf("marks = %#v", trace.Marks)
+	}
+	if trace.Marks[0].Note != "fix the login bug" {
+		t.Fatalf("note = %q", trace.Marks[0].Note)
+	}
+	truncated := []rune(trace.Marks[1].Note)
+	if len(truncated) != 2001 || truncated[len(truncated)-1] != '…' {
+		t.Fatalf("truncated note runes = %d, last = %q", len(truncated), truncated[len(truncated)-1])
+	}
+}
+
 func TestSummarizeRecognizesUnknownClaudeLineWithSessionID(t *testing.T) {
 	session := filepath.Join(t.TempDir(), "metadata.jsonl")
 	writeSession(t, session,
