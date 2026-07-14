@@ -117,12 +117,12 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		cmd = exec.CommandContext(ctx, "claude", append(args, prompt)...)
 		cmd.Stdin = strings.NewReader(input)
 	case "codex":
-		// codex exec takes the whole prompt as an argument and interleaves
-		// its own logging on stdout; extractJSON in the parser copes with
-		// the surrounding noise, and the preamble's "model:" line names the
-		// model. Persistence cannot be disabled, so the run is pinned to the
-		// judge workdir where the codex adapter marks the recorded session
-		// auxiliary.
+		// "-" reads the whole prompt from stdin — as an argv it would hit
+		// per-argument size limits on big traces. codex interleaves its own
+		// logging on stdout; extractJSON in the parser copes with the noise,
+		// and the preamble's "model:" line names the model. Persistence
+		// cannot be disabled, so the run is pinned to the judge workdir
+		// where the codex adapter marks the recorded session auxiliary.
 		args := []string{"exec",
 			"--sandbox", "read-only",
 			"--skip-git-repo-check", // the judge workdir is not a repository
@@ -131,7 +131,8 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		if r.Model != "" {
 			args = append(args, "-c", "model="+r.Model)
 		}
-		cmd = exec.CommandContext(ctx, "codex", append(args, prompt+"\n\n"+input)...)
+		cmd = exec.CommandContext(ctx, "codex", append(args, "-")...)
+		cmd.Stdin = strings.NewReader(prompt + "\n\n" + input)
 	default:
 		return RunResult{}, fmt.Errorf("unsupported judge CLI %q", r.CLI)
 	}
