@@ -384,6 +384,9 @@ dd {
   left: 0;
   z-index: 20;
   display: grid;
+  /* minmax(0, …) keeps the track at the popover width — the form's intrinsic
+     width (input default size + button) is wider and would overflow it */
+  grid-template-columns: minmax(0, 1fr);
   gap: 6px;
   padding: 8px;
   width: 240px;

@@ -115,7 +115,9 @@ export const SessionRail = memo(function SessionRail({
                     <FolderOpen size={14} aria-hidden />
                     <span className="rail-map-primary-text">
                       <span className="rail-map-primary-name">{repoBasename(activeRepo)}</span>
-                      <span className="rail-map-primary-path">{activeRepo}</span>
+                      {/* the leading LRM pins the path's neutral "/" runs to
+                          LTR order inside the RTL ellipsis-at-start trick */}
+                      <span className="rail-map-primary-path">{"\u200E" + activeRepo}</span>
                     </span>
                   </button>
                 ) : null}
