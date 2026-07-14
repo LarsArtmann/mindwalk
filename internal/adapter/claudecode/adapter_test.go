@@ -125,8 +125,9 @@ func TestUserMessageMarkCarriesNote(t *testing.T) {
 	if trace.Marks[0].Note != "fix the login bug" {
 		t.Fatalf("note = %q", trace.Marks[0].Note)
 	}
+	// The ellipsis fits inside the 2000-rune budget the schema promises.
 	truncated := []rune(trace.Marks[1].Note)
-	if len(truncated) != 2001 || truncated[len(truncated)-1] != '…' {
+	if len(truncated) != 2000 || truncated[len(truncated)-1] != '…' {
 		t.Fatalf("truncated note runes = %d, last = %q", len(truncated), truncated[len(truncated)-1])
 	}
 }

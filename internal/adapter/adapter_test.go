@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cosmtrek/mindwalk/internal/model"
@@ -20,6 +21,21 @@ func TestSessionKeyIsStableAndSourceSpecific(t *testing.T) {
 	}
 	if other := SessionKey("codex", path+".copy"); other == first {
 		t.Fatalf("SessionKey ignored path: %q", other)
+	}
+}
+
+func TestUserMessageNoteStaysWithinRuneBudget(t *testing.T) {
+	long := strings.Repeat("字", userMessageNoteLimit+50)
+	note := UserMessageNote(long)
+	if got := len([]rune(note)); got != userMessageNoteLimit {
+		t.Fatalf("truncated note is %d runes, want %d (ellipsis must fit the budget)", got, userMessageNoteLimit)
+	}
+	if !strings.HasSuffix(note, "…") {
+		t.Fatalf("truncated note missing ellipsis marker: %q", note[len(note)-12:])
+	}
+	exact := strings.Repeat("a", userMessageNoteLimit)
+	if UserMessageNote(exact) != exact {
+		t.Fatal("text at the limit must pass through untouched")
 	}
 }
 

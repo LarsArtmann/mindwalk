@@ -54,14 +54,15 @@ func SessionKey(harness, path string) string {
 const userMessageNoteLimit = 2000
 
 // UserMessageNote normalizes user-message text for Mark.Note: trimmed and
-// truncated to a fixed rune budget with an ellipsis marker.
+// truncated to a fixed rune budget, ellipsis marker included — the schema
+// promises the note never exceeds userMessageNoteLimit runes in total.
 func UserMessageNote(text string) string {
 	text = strings.TrimSpace(text)
 	runes := []rune(text)
 	if len(runes) <= userMessageNoteLimit {
 		return text
 	}
-	return string(runes[:userMessageNoteLimit]) + "…"
+	return string(runes[:userMessageNoteLimit-1]) + "…"
 }
 
 func ReadJSONLines(r io.Reader, visit func([]byte)) error {
