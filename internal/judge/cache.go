@@ -46,12 +46,14 @@ func (c Cache) Load(sessionKey string) *model.Report {
 }
 
 // Fresh reports whether a cached report still matches the trace it would be
-// regenerated from: same event count and same prompt version. The judge CLI
-// is deliberately not part of freshness — a valid report stays valid.
+// regenerated from: same prompt version and the same judge input digest —
+// event counts alone miss user messages (stored as marks) and content edits.
+// The judge CLI is deliberately not part of freshness — a valid report stays
+// valid. Reports from before the digest existed are stale by construction.
 func Fresh(report *model.Report, trace *model.Trace) bool {
 	return report != nil &&
-		report.Session.EventCount == trace.Session.EventCount &&
-		report.Judge.PromptVersion == PromptVersion
+		report.Judge.PromptVersion == PromptVersion &&
+		report.Judge.InputDigest == InputDigest(trace)
 }
 
 func (c Cache) Store(sessionKey string, report *model.Report) error {

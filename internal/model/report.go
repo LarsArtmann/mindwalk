@@ -15,7 +15,8 @@ type Report struct {
 }
 
 // ReportSession pins the report to the trace state it was generated from;
-// EventCount is the staleness signal for sessions that are still growing.
+// EventCount is a cheap display/badge signal — freshness is decided by
+// ReportJudge.InputDigest, which also sees user messages and event content.
 type ReportSession struct {
 	ID         string `json:"id"`
 	Harness    string `json:"harness"`
@@ -27,6 +28,9 @@ type ReportJudge struct {
 	CLI           string `json:"cli"`
 	PromptVersion int    `json:"promptVersion"`
 	GeneratedAt   string `json:"generatedAt"`
+	// InputDigest fingerprints the exact evidence document the judge read;
+	// the report is fresh only while the trace still renders to this digest.
+	InputDigest string `json:"inputDigest,omitempty"`
 }
 
 // Dimension names, fixed set.

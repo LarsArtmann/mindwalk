@@ -17,18 +17,22 @@
         "eventCount": {
           "type": "integer",
           "minimum": 0,
-          "description": "Event count of the trace the report was generated from; the staleness signal for growing sessions"
+          "description": "Event count of the trace the report was generated from; a cheap display signal — freshness is decided by judge.inputDigest"
         }
       },
       "additionalProperties": false
     },
     "judge": {
       "type": "object",
-      "required": ["cli", "promptVersion", "generatedAt"],
+      "required": ["cli", "promptVersion", "generatedAt", "inputDigest"],
       "properties": {
         "cli": { "type": "string" },
         "promptVersion": { "type": "integer", "minimum": 1 },
-        "generatedAt": { "type": "string" }
+        "generatedAt": { "type": "string" },
+        "inputDigest": {
+          "type": "string",
+          "description": "SHA-256 hex of the evidence document the judge read; the report is fresh only while the trace still renders to this digest"
+        }
       },
       "additionalProperties": false
     },
@@ -50,14 +54,15 @@
             "type": "array",
             "items": {
               "type": "object",
-              "required": ["claim", "severity"],
+              "required": ["claim", "severity", "evidenceSeqs"],
               "properties": {
                 "claim": { "type": "string" },
                 "severity": { "enum": ["info", "warning", "problem"] },
                 "evidenceSeqs": {
                   "type": "array",
+                  "minItems": 1,
                   "items": { "type": "integer", "minimum": 0 },
-                  "description": "Event seqs backing the claim; validated against the trace, invalid references are dropped"
+                  "description": "Event seqs backing the claim; validated against the trace — invalid references are dropped, and a finding with no valid reference left is dropped entirely"
                 }
               },
               "additionalProperties": false

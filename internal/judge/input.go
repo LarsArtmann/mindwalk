@@ -1,6 +1,8 @@
 package judge
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -31,6 +33,14 @@ func BuildInput(trace *model.Trace) string {
 	writeStats(&b, trace.Stats)
 	writeNarrative(&b, trace)
 	return b.String()
+}
+
+// InputDigest fingerprints the evidence document BuildInput renders for the
+// trace. Unlike a bare event count it moves when user messages, tool results,
+// or stats change, so freshness checks see every input the judge saw.
+func InputDigest(trace *model.Trace) string {
+	sum := sha256.Sum256([]byte(BuildInput(trace)))
+	return hex.EncodeToString(sum[:])
 }
 
 func writeUserMessages(b *strings.Builder, marks []model.Mark) {
