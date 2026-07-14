@@ -1499,7 +1499,7 @@ dd {
 
 .dock {
   position: absolute;
-  top: 96px;
+  top: 20px; /* level with the HUD readout's first line */
   right: 20px;
   bottom: 20px;
   display: flex;
