@@ -25,21 +25,32 @@ type analyzeState struct {
 	runner judge.Runner
 }
 
+// snapshot returns a consistent copy of the session's job state. Job fields
+// are written by the analyze goroutine under mu, so every read must happen
+// inside the lock too — callers get a copy, never the live pointer.
+func (a *analyzeState) snapshot(key string) (analyzeJob, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	job, ok := a.jobs[key]
+	if !ok {
+		return analyzeJob{}, false
+	}
+	return *job, true
+}
+
 // reportStateFor grades one session for the list view: "running" while a
 // judge job is in flight, then "done" / "stale" / "failed". Staleness here
 // compares the report against the summary event count — cheap, no trace
 // parse — so the badge can be a touch more approximate than the panel.
 func (s *Server) reportStateFor(meta model.SessionMeta) string {
-	s.analyze.mu.Lock()
-	job := s.analyze.jobs[meta.Key]
-	s.analyze.mu.Unlock()
+	job, ok := s.analyze.snapshot(meta.Key)
 	var report *model.Report
 	switch {
-	case job != nil && !job.done:
+	case ok && !job.done:
 		return "running"
-	case job != nil && job.err != "":
+	case ok && job.err != "":
 		return "failed"
-	case job != nil && job.report != nil:
+	case ok && job.report != nil:
 		report = job.report
 	default:
 		report = s.reportCache.Load(meta.Key)
@@ -91,16 +102,14 @@ func (s *Server) handleSessionReport(w http.ResponseWriter, r *http.Request, sel
 	status := reportStatus{State: "none"}
 	status.JudgeCLI, status.JudgeAvailable = s.judgeInfo()
 
-	s.analyze.mu.Lock()
-	job := s.analyze.jobs[meta.Key]
-	s.analyze.mu.Unlock()
+	job, ok := s.analyze.snapshot(meta.Key)
 	switch {
-	case job != nil && !job.done:
+	case ok && !job.done:
 		status.State = "running"
-	case job != nil && job.err != "":
+	case ok && job.err != "":
 		status.State = "failed"
 		status.Error = job.err
-	case job != nil && job.report != nil:
+	case ok && job.report != nil:
 		status.State = "done"
 		status.Report = job.report
 		status.Stale = !judge.Fresh(job.report, trace)
@@ -155,6 +164,14 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob) {
 	ctx, cancel := context.WithTimeout(context.Background(), judge.DefaultTimeout)
 	defer cancel()
 	report, err := judge.Analyze(ctx, trace, judge.Options{Runner: s.analyze.runner})
+
+	// Persist before publishing done, and outside the lock: once the job entry
+	// is dropped, polls must be able to find the report on disk.
+	persisted := false
+	if err == nil && s.reportCache.Dir != "" {
+		persisted = s.reportCache.Store(key, report) == nil
+	}
+
 	s.analyze.mu.Lock()
 	defer s.analyze.mu.Unlock()
 	job.done = true
@@ -163,9 +180,11 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob) {
 		return
 	}
 	job.report = report
-	if storeErr := s.reportCache.Store(key, report); storeErr != nil {
-		// the report still lives in the job entry; losing the disk copy only
-		// costs a re-run after restart
-		_ = storeErr
+	if persisted {
+		// The cache owns the report now; dropping the entry keeps the jobs map
+		// bounded. When the disk write failed the entry stays as the only copy —
+		// losing it would cost a re-run — and failed jobs stay too (small, and
+		// the UI needs the error until a re-run replaces them).
+		delete(s.analyze.jobs, key)
 	}
 }
