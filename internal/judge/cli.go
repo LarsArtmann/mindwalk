@@ -124,11 +124,34 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		// pinned to the judge workdir, and the codex adapter marks sessions
 		// recorded there auxiliary — a belt for CLIs that predate
 		// --ephemeral and for sessions old versions already wrote.
+		//
+		// The judge must be a pure text function: the feature flags and
+		// config below strip every tool a prompt injection in the evaluated
+		// trace could reach for. Ground-truth verified (not model
+		// self-reports): with this set the judge cannot read local files,
+		// fetch URLs, apply patches, or spawn collaboration agents — each
+		// attempt fails at the tool router or sandbox.
 		args := []string{"exec",
 			"--ephemeral",          // no session file for mindwalk to re-scan
 			"--ignore-user-config", // no user MCP servers or profiles; auth stays
 			"--ignore-rules",       // no user/project execpolicy rules
-			"--sandbox", "read-only",
+			"--disable", "shell_tool",
+			"--disable", "browser_use",
+			"--disable", "browser_use_external",
+			"--disable", "browser_use_full_cdp_access",
+			"--disable", "computer_use",
+			"--disable", "in_app_browser",
+			"--disable", "apps",
+			"--disable", "plugins",
+			"--disable", "hooks",
+			"--disable", "multi_agent",
+			"--disable", "multi_agent_v2",
+			"--disable", "memories",
+			"--disable", "image_generation",
+			"-c", "include_apply_patch_tool=false",
+			"-c", "tools.view_image=false",
+			"-c", `web_search="disabled"`,
+			"--sandbox", "read-only", // defense in depth behind the tool strip
 			"--skip-git-repo-check", // the judge workdir is not a repository
 			"-C", workdir,
 		}
@@ -157,7 +180,13 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 	if r.CLI == "claude" {
 		return parseClaudeEnvelope(stdout.String()), nil
 	}
-	return RunResult{Text: stdout.String(), Model: codexModel(stdout.String())}, nil
+	// codex prints its config preamble (with the "model:" line) on stderr;
+	// older versions used stdout, so check both.
+	model := codexModel(stderr.String())
+	if model == "" {
+		model = codexModel(stdout.String())
+	}
+	return RunResult{Text: stdout.String(), Model: model}, nil
 }
 
 // claudeEnvelope mirrors the parts of `claude -p --output-format json` output
