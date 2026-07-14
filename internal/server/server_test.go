@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/model"
@@ -284,6 +285,65 @@ func TestInflightLoadsShareOrAdvanceFileSnapshots(t *testing.T) {
 			t.Fatalf("parse count = %d, want 2", got)
 		}
 	})
+}
+
+// A loader that panics mid-load must still close the inflight done channel
+// and drop the inflight entry. Before the fix, net/http's per-connection
+// recover swallowed such a panic while the entry stayed registered, so every
+// later snapshot/report request for that session blocked forever on <-done
+// until the server was restarted.
+func TestInflightLoadSurvivesPanickingLoader(t *testing.T) {
+	s, source, _ := newBlockingServer(t)
+	source.panicMsg = "loader bug"
+
+	owner := make(chan traceMapResult, 1)
+	waiter := make(chan traceMapResult, 1)
+	go func() {
+		trace, city, err := s.traceAndMap("blocking")
+		owner <- traceMapResult{trace: trace, city: city, err: err}
+	}()
+	<-source.started
+	go func() {
+		trace, city, err := s.traceAndMap("blocking")
+		waiter <- traceMapResult{trace: trace, city: city, err: err}
+	}()
+	close(source.release)
+
+	first := awaitTraceMapResult(t, owner, "owner request")
+	if first.err == nil || !strings.Contains(first.err.Error(), "loader bug") {
+		t.Fatalf("owner error = %v, want the recovered panic", first.err)
+	}
+	// The waiter either shared the failed load or, arriving after cleanup,
+	// ran its own parse (which succeeds past the first). Either way it must
+	// return instead of blocking on a leaked done channel.
+	second := awaitTraceMapResult(t, waiter, "waiter request")
+	if second.err != nil && !strings.Contains(second.err.Error(), "loader bug") {
+		t.Fatalf("waiter error = %v, want nil or the recovered panic", second.err)
+	}
+
+	// The key must not stay wedged: a fresh request reloads and succeeds.
+	trace, city, err := s.traceAndMap("blocking")
+	if err != nil || trace == nil || city == nil {
+		t.Fatalf("request after recovered panic: trace=%v city=%v err=%v", trace, city, err)
+	}
+
+	s.mu.Lock()
+	leaked := len(s.inflight)
+	s.mu.Unlock()
+	if leaked != 0 {
+		t.Fatalf("inflight entries leaked: %d", leaked)
+	}
+}
+
+func awaitTraceMapResult(t *testing.T, ch <-chan traceMapResult, what string) traceMapResult {
+	t.Helper()
+	select {
+	case result := <-ch:
+		return result
+	case <-time.After(10 * time.Second):
+		t.Fatalf("%s never returned; inflight done channel leaked", what)
+		return traceMapResult{}
+	}
 }
 
 func TestServerLoadsCodexSessions(t *testing.T) {
@@ -609,6 +669,9 @@ type blockingSource struct {
 	started chan struct{}
 	release chan struct{}
 	parses  atomic.Int32
+	// panicMsg makes the first parse panic after release instead of
+	// returning, mimicking a loader bug mid-load.
+	panicMsg string
 }
 
 func (s *blockingSource) Harness() string    { return "blocking" }
@@ -635,6 +698,9 @@ func (s *blockingSource) Parse(path string) (*model.Trace, error) {
 	if s.parses.Add(1) == 1 {
 		close(s.started)
 		<-s.release
+		if s.panicMsg != "" {
+			panic(s.panicMsg)
+		}
 	}
 	return &model.Trace{
 		Version: 1,
