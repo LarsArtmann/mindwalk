@@ -1737,10 +1737,13 @@ dd {
 
 .report-picker {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
 }
 
 .report-picker select {
+  max-width: 100%;
   appearance: none;
   padding: 4px 8px;
   font-size: var(--text-xs);
@@ -1759,9 +1762,9 @@ dd {
 
 .report-stale-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  flex-shrink: 0;
 }
 
 .report-body {
@@ -1772,9 +1775,9 @@ dd {
 
 .report-stale {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
   margin: 10px 16px 0;
   padding: 7px 10px;
   border: 1px solid var(--hairline-strong);
