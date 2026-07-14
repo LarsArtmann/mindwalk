@@ -27,6 +27,10 @@
       "required": ["cli", "promptVersion", "generatedAt", "inputDigest"],
       "properties": {
         "cli": { "type": "string" },
+        "model": {
+          "type": "string",
+          "description": "The LLM that actually judged, as reported by the CLI itself; best-effort, display and comparability only — never part of freshness"
+        },
         "promptVersion": { "type": "integer", "minimum": 1 },
         "generatedAt": { "type": "string" },
         "inputDigest": {

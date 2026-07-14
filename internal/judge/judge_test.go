@@ -38,10 +38,10 @@ type stubRunner struct {
 	calls   int
 }
 
-func (s *stubRunner) Run(ctx context.Context, prompt, input string) (string, error) {
+func (s *stubRunner) Run(ctx context.Context, prompt, input string) (RunResult, error) {
 	out := s.outputs[s.calls]
 	s.calls++
-	return out, nil
+	return RunResult{Text: out, Model: "stub-model"}, nil
 }
 
 func (s *stubRunner) Name() string { return "stub" }
@@ -79,7 +79,7 @@ func TestAnalyzeParsesAndRollsUp(t *testing.T) {
 	if len(report.NotableMoments) != 1 || report.NotableMoments[0].Seq != 1 {
 		t.Fatalf("moments = %#v", report.NotableMoments)
 	}
-	if report.Judge.CLI != "stub" || report.Judge.PromptVersion != PromptVersion {
+	if report.Judge.CLI != "stub" || report.Judge.Model != "stub-model" || report.Judge.PromptVersion != PromptVersion {
 		t.Fatalf("judge meta = %#v", report.Judge)
 	}
 	if report.Session.EventCount != 3 {

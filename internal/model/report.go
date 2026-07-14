@@ -25,7 +25,10 @@ type ReportSession struct {
 }
 
 type ReportJudge struct {
-	CLI           string `json:"cli"`
+	CLI string `json:"cli"`
+	// Model names the LLM that actually judged (best-effort, reported by the
+	// CLI itself); display and comparability only — never part of freshness.
+	Model         string `json:"model,omitempty"`
 	PromptVersion int    `json:"promptVersion"`
 	GeneratedAt   string `json:"generatedAt"`
 	// InputDigest fingerprints the exact evidence document the judge read;

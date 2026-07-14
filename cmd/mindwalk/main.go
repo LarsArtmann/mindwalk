@@ -133,6 +133,7 @@ func analyze(args []string) error {
 	fs := flag.NewFlagSet("analyze", flag.ExitOnError)
 	out := fs.String("o", "", "write the report to this file instead of stdout")
 	judgeCLI := fs.String("judge", "", "judge CLI to use: claude or codex (default: auto-detect)")
+	judgeModel := fs.String("model", "", "judge model override, e.g. sonnet or gpt-5.6-sol (default: the CLI's default)")
 	noCache := fs.Bool("no-cache", false, "re-run the judge even when a fresh cached report exists")
 	timeout := fs.Duration("timeout", judge.DefaultTimeout, "judge subprocess timeout")
 	// Accept flags after the positional argument, matching trace/build.
@@ -148,7 +149,7 @@ func analyze(args []string) error {
 		args = fs.Args()[1:]
 	}
 	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--no-cache]")
+		return fmt.Errorf("usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache]")
 	}
 	session, err := filepath.Abs(positional[0])
 	if err != nil {
@@ -171,7 +172,7 @@ func analyze(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	fmt.Fprintf(os.Stderr, "mindwalk: judging %d events, this can take a minute…\n", tr.Session.EventCount)
-	report, err := judge.Analyze(ctx, tr, judge.Options{CLI: *judgeCLI})
+	report, err := judge.Analyze(ctx, tr, judge.Options{CLI: *judgeCLI, Model: *judgeModel})
 	if err != nil {
 		return err
 	}

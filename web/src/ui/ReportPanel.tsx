@@ -1,10 +1,11 @@
+import { useCallback, useState, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Sparkles, X } from "lucide-react";
-import type { ReportDimension, ReportStatus, Severity, Verdict } from "../types";
+import type { JudgeChoice, ReportDimension, ReportStatus, Severity, Verdict } from "../types";
 
 interface ReportPanelProps {
   status?: ReportStatus;
   analyzing: boolean;
-  onAnalyze: () => void;
+  onAnalyze: (choice: JudgeChoice) => void;
   onClose: () => void;
   /** jump the playhead to an evidence seq and focus its file in the scene */
   onJumpTo: (seq: number) => void;
@@ -17,9 +18,65 @@ const DIMENSION_WORDS: Record<string, { title: string; hint: string }> = {
   verification: { title: "Verification", hint: "Were edits verified, and errors followed up?" }
 };
 
+/** the mainstream models each judge CLI can be pinned to; "" keeps its default */
+const JUDGE_MODELS: Record<string, { value: string; label: string }[]> = {
+  claude: [
+    { value: "", label: "default model" },
+    { value: "sonnet", label: "sonnet" },
+    { value: "opus", label: "opus" },
+    { value: "fable", label: "fable" }
+  ],
+  codex: [
+    { value: "", label: "default model" },
+    { value: "gpt-5.6-sol", label: "gpt-5.6 sol" },
+    { value: "gpt-5.6-terra", label: "gpt-5.6 terra" }
+  ]
+};
+
+const JUDGE_CHOICE_KEY = "mindwalk:judge-choice";
+
+function loadStoredChoice(): JudgeChoice {
+  try {
+    const raw = localStorage.getItem(JUDGE_CHOICE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<JudgeChoice>;
+      return {
+        cli: typeof parsed.cli === "string" ? parsed.cli : "",
+        model: typeof parsed.model === "string" ? parsed.model : ""
+      };
+    }
+  } catch {
+    // corrupt storage reads as "no preference"
+  }
+  return { cli: "", model: "" };
+}
+
+/** clamp a stored choice to what is actually installed and offered */
+function resolveChoice(choice: JudgeChoice, clis: string[]): JudgeChoice {
+  const cli = clis.includes(choice.cli) ? choice.cli : (clis[0] ?? "");
+  const models = JUDGE_MODELS[cli] ?? [];
+  const model = models.some((m) => m.value === choice.model) ? choice.model : "";
+  return { cli, model };
+}
+
 // dock panel content: the session evaluation. The Dock owns positioning;
 // this owns only its own markup.
 export function ReportPanel({ status, analyzing, onAnalyze, onClose, onJumpTo }: ReportPanelProps) {
+  // the judge choice persists across sessions and reloads; the picker shows
+  // wherever a run can start (empty, failed, stale)
+  const [storedChoice, setStoredChoice] = useState<JudgeChoice>(loadStoredChoice);
+  const clis = status?.judgeClis ?? (status?.judgeCli ? [status.judgeCli] : []);
+  const choice = resolveChoice(storedChoice, clis);
+  const changeChoice = useCallback((next: JudgeChoice) => {
+    setStoredChoice(next);
+    try {
+      localStorage.setItem(JUDGE_CHOICE_KEY, JSON.stringify(next));
+    } catch {
+      // storage full or unavailable — the selection still applies this session
+    }
+  }, []);
+  const analyze = useCallback(() => onAnalyze(choice), [onAnalyze, choice]);
+
   return (
     <div className="dock-body" aria-label="Session evaluation">
       <div className="inspector-head">
@@ -27,7 +84,9 @@ export function ReportPanel({ status, analyzing, onAnalyze, onClose, onJumpTo }:
           <div className="inspector-path">Evaluation</div>
           {status?.report ? (
             <div className="report-meta">
-              judged by {status.report.judge.cli} · {day(status.report.judge.generatedAt)}
+              judged by {status.report.judge.cli}
+              {status.report.judge.model ? ` · ${status.report.judge.model}` : ""} ·{" "}
+              {day(status.report.judge.generatedAt)}
             </div>
           ) : null}
         </div>
@@ -35,7 +94,53 @@ export function ReportPanel({ status, analyzing, onAnalyze, onClose, onJumpTo }:
           <X size={15} />
         </button>
       </div>
-      <PanelBody status={status} analyzing={analyzing} onAnalyze={onAnalyze} onJumpTo={onJumpTo} />
+      <PanelBody
+        status={status}
+        analyzing={analyzing}
+        analyze={analyze}
+        onJumpTo={onJumpTo}
+        picker={clis.length > 0 ? <JudgePicker clis={clis} choice={choice} onChange={changeChoice} /> : null}
+      />
+    </div>
+  );
+}
+
+function JudgePicker({
+  clis,
+  choice,
+  onChange
+}: {
+  clis: string[];
+  choice: JudgeChoice;
+  onChange: (choice: JudgeChoice) => void;
+}) {
+  const models = JUDGE_MODELS[choice.cli] ?? [{ value: "", label: "default model" }];
+  return (
+    <div className="report-picker">
+      <select
+        value={choice.cli}
+        onChange={(e) => onChange({ cli: e.target.value, model: "" })}
+        aria-label="Judge agent"
+        title="Which agent CLI judges this session"
+      >
+        {clis.map((cli) => (
+          <option key={cli} value={cli}>
+            {cli}
+          </option>
+        ))}
+      </select>
+      <select
+        value={choice.model}
+        onChange={(e) => onChange({ ...choice, model: e.target.value })}
+        aria-label="Judge model"
+        title="Which model the judge runs on"
+      >
+        {models.map((model) => (
+          <option key={model.value} value={model.value}>
+            {model.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -43,9 +148,16 @@ export function ReportPanel({ status, analyzing, onAnalyze, onClose, onJumpTo }:
 function PanelBody({
   status,
   analyzing,
-  onAnalyze,
-  onJumpTo
-}: Pick<ReportPanelProps, "status" | "analyzing" | "onAnalyze" | "onJumpTo">) {
+  analyze,
+  onJumpTo,
+  picker
+}: {
+  status?: ReportStatus;
+  analyzing: boolean;
+  analyze: () => void;
+  onJumpTo: (seq: number) => void;
+  picker: ReactNode;
+}) {
   if (!status) {
     return <p className="report-note">Checking for an existing report…</p>;
   }
@@ -67,7 +179,8 @@ function PanelBody({
           <AlertTriangle size={13} /> Evaluation failed
         </p>
         <p className="report-error-detail">{status.error}</p>
-        <button className="report-run" onClick={onAnalyze}>
+        {picker}
+        <button className="report-run" onClick={analyze}>
           <RefreshCw size={13} />
           Retry
         </button>
@@ -86,15 +199,15 @@ function PanelBody({
     return (
       <div className="report-note">
         <p>
-          Ask <strong>{status.judgeCli}</strong> to evaluate this session: how the agent explored, whether the
-          footprint matched the task, where it wandered, and how it verified its work. Every finding links back
-          to the timeline.
+          Ask a local agent to evaluate this session: how the agent explored, whether the footprint matched
+          the task, where it wandered, and how it verified its work. Every finding links back to the timeline.
         </p>
-        <button className="report-run" onClick={onAnalyze}>
+        {picker}
+        <button className="report-run" onClick={analyze}>
           <Sparkles size={13} />
           Evaluate session
         </button>
-        <p className="report-cost">Runs your local {status.judgeCli} CLI · about a minute</p>
+        <p className="report-cost">Runs your local CLI · about a minute</p>
       </div>
     );
   }
@@ -105,10 +218,13 @@ function PanelBody({
       {status.stale ? (
         <div className="report-stale">
           <span>Based on {report.session.eventCount} events — the session has grown since.</span>
-          <button className="report-rerun" onClick={onAnalyze} title="Re-evaluate with the current trace">
-            <RefreshCw size={12} />
-            Re-evaluate
-          </button>
+          <div className="report-stale-actions">
+            {picker}
+            <button className="report-rerun" onClick={analyze} title="Re-evaluate with the current trace">
+              <RefreshCw size={12} />
+              Re-evaluate
+            </button>
+          </div>
         </div>
       ) : null}
       <p className="report-task">{report.taskSummary}</p>

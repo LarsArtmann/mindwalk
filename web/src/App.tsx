@@ -9,7 +9,7 @@ import {
   startSessionAnalyze
 } from "./api/client";
 import { Crosshair, Sparkles, Mountain, TreePine } from "lucide-react";
-import type { ReportStatus } from "./types";
+import type { JudgeChoice, ReportStatus } from "./types";
 import { Dock, type PanelDescriptor } from "./ui/Dock";
 import { ReportPanel } from "./ui/ReportPanel";
 import { ViewPanel } from "./ui/ViewPanel";
@@ -277,11 +277,11 @@ export default function App() {
     };
   }, [reportStatus?.state, activeSessionKey, refreshReport, refreshSessionList]);
 
-  const analyzeSession = useCallback(async () => {
+  const analyzeSession = useCallback(async (choice: JudgeChoice) => {
     const key = activeSessionKeyRef.current;
     if (!key) return;
     try {
-      const status = await startSessionAnalyze(key);
+      const status = await startSessionAnalyze(key, choice);
       if (activeSessionKeyRef.current === key) setReportStatus(status);
       void refreshSessionList();
     } catch (err) {
@@ -513,7 +513,7 @@ export default function App() {
                           <ReportPanel
                             status={reportStatus}
                             analyzing={reportStatus?.state === "running"}
-                            onAnalyze={() => void analyzeSession()}
+                            onAnalyze={(choice) => void analyzeSession(choice)}
                             onClose={closeSheet}
                             onJumpTo={jumpToEvidence}
                           />

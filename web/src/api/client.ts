@@ -1,4 +1,4 @@
-import type { CityMap, ReportStatus, SessionMeta, Trace } from "../types";
+import type { CityMap, JudgeChoice, ReportStatus, SessionMeta, Trace } from "../types";
 
 async function getJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -40,9 +40,14 @@ export function getSessionReport(key: string): Promise<ReportStatus> {
 }
 
 // kicks off a judge run on the server; progress is observed by polling
-// getSessionReport until state leaves "running"
-export async function startSessionAnalyze(key: string): Promise<ReportStatus> {
-  const res = await fetch(`/api/sessions/${encodeURIComponent(key)}/analyze`, { method: "POST" });
+// getSessionReport until state leaves "running". The choice picks judge CLI
+// and model; omitted fields fall back to the server's defaults.
+export async function startSessionAnalyze(key: string, choice?: JudgeChoice): Promise<ReportStatus> {
+  const res = await fetch(`/api/sessions/${encodeURIComponent(key)}/analyze`, {
+    method: "POST",
+    headers: choice ? { "Content-Type": "application/json" } : undefined,
+    body: choice ? JSON.stringify(choice) : undefined
+  });
   if (!res.ok) {
     const detail = (await res.text()).trim();
     throw new Error(detail || `${res.status} ${res.statusText}`);

@@ -12,10 +12,12 @@ import (
 const DefaultTimeout = 5 * time.Minute
 
 type Options struct {
-	// Runner overrides the subprocess runner; nil selects CLIRunner{CLI}.
+	// Runner overrides the subprocess runner; nil selects CLIRunner{CLI, Model}.
 	Runner Runner
 	// CLI names the judge CLI ("claude" or "codex"); empty auto-detects.
 	CLI string
+	// Model overrides the CLI's default model; empty keeps the default.
+	Model string
 }
 
 // Analyze runs the judge over one trace and returns the evaluation report.
@@ -32,23 +34,30 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 			}
 			cli = detected
 		}
-		runner = CLIRunner{CLI: cli}
+		runner = CLIRunner{CLI: cli, Model: opts.Model}
 	}
 
 	input := BuildInput(trace)
 	var lastErr error
 	for attempt := 0; attempt < 2; attempt++ {
-		raw, err := runner.Run(ctx, prompt, input)
+		result, err := runner.Run(ctx, prompt, input)
 		if err != nil {
 			return nil, err
 		}
-		report, err := parseOutput(raw, trace)
+		report, err := parseOutput(result.Text, trace)
 		if err != nil {
 			lastErr = err
 			continue
 		}
+		// Prefer the model the CLI says it used; fall back to what was asked
+		// for so the report never silently drops the information.
+		judgeModel := result.Model
+		if judgeModel == "" {
+			judgeModel = opts.Model
+		}
 		report.Judge = model.ReportJudge{
 			CLI:           runner.Name(),
+			Model:         judgeModel,
 			PromptVersion: PromptVersion,
 			GeneratedAt:   time.Now().UTC().Format(time.RFC3339),
 			InputDigest:   InputDigest(trace),

@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
@@ -17,8 +18,8 @@ type stubJudge struct {
 	err    error
 }
 
-func (s stubJudge) Run(ctx context.Context, prompt, input string) (string, error) {
-	return s.output, s.err
+func (s stubJudge) Run(ctx context.Context, prompt, input string) (judge.RunResult, error) {
+	return judge.RunResult{Text: s.output, Model: "stub-model"}, s.err
 }
 
 func (s stubJudge) Name() string { return "stub" }

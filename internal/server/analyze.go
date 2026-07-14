@@ -2,7 +2,10 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"slices"
 	"sync"
 
 	"github.com/cosmtrek/mindwalk/internal/judge"
@@ -64,12 +67,14 @@ func (s *Server) reportStateFor(meta model.SessionMeta) string {
 	return "done"
 }
 
-func (s *Server) judgeInfo() (string, bool) {
+// judgeInfo lists the judge CLIs the user can pick from, preference order
+// first. A test runner narrows the list to itself.
+func (s *Server) judgeInfo() ([]string, bool) {
 	if s.analyze.runner != nil {
-		return s.analyze.runner.Name(), true
+		return []string{s.analyze.runner.Name()}, true
 	}
-	cli, err := judge.DetectCLI()
-	return cli, err == nil
+	clis := judge.DetectCLIs()
+	return clis, len(clis) > 0
 }
 
 type reportStatus struct {
@@ -80,7 +85,10 @@ type reportStatus struct {
 	Report         *model.Report `json:"report,omitempty"`
 	Error          string        `json:"error,omitempty"`
 	JudgeAvailable bool          `json:"judgeAvailable"`
-	JudgeCLI       string        `json:"judgeCli,omitempty"`
+	// JudgeCLI is the default judge (first available); JudgeCLIs lists every
+	// installed CLI so the panel can offer a choice.
+	JudgeCLI  string   `json:"judgeCli,omitempty"`
+	JudgeCLIs []string `json:"judgeClis,omitempty"`
 }
 
 func (s *Server) handleSessionReport(w http.ResponseWriter, r *http.Request, selector string) {
@@ -100,7 +108,10 @@ func (s *Server) handleSessionReport(w http.ResponseWriter, r *http.Request, sel
 	}
 
 	status := reportStatus{State: "none"}
-	status.JudgeCLI, status.JudgeAvailable = s.judgeInfo()
+	status.JudgeCLIs, status.JudgeAvailable = s.judgeInfo()
+	if status.JudgeAvailable {
+		status.JudgeCLI = status.JudgeCLIs[0]
+	}
 
 	job, ok := s.analyze.snapshot(meta.Key)
 	switch {
@@ -138,8 +149,25 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	if _, available := s.judgeInfo(); !available {
+	clis, available := s.judgeInfo()
+	if !available {
 		http.Error(w, "no judge CLI found on PATH (looked for claude, codex)", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Optional body: the panel's judge choice. An empty body keeps the
+	// default CLI and its default model.
+	var req struct {
+		CLI   string `json:"cli"`
+		Model string `json:"model"`
+	}
+	if r.Body != nil {
+		// A decode failure means an empty or malformed body; only an explicit
+		// unknown CLI is worth rejecting.
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
+	if req.CLI != "" && !slices.Contains(clis, req.CLI) {
+		http.Error(w, fmt.Sprintf("judge CLI %q is not available (installed: %v)", req.CLI, clis), http.StatusBadRequest)
 		return
 	}
 
@@ -154,16 +182,16 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 	s.analyze.jobs[meta.Key] = job
 	s.analyze.mu.Unlock()
 
-	go s.runAnalyze(meta.Key, trace, job)
+	go s.runAnalyze(meta.Key, trace, job, req.CLI, req.Model)
 
 	w.WriteHeader(http.StatusAccepted)
 	writeJSON(w, reportStatus{State: "running", JudgeAvailable: true})
 }
 
-func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob) {
+func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli, judgeModel string) {
 	ctx, cancel := context.WithTimeout(context.Background(), judge.DefaultTimeout)
 	defer cancel()
-	report, err := judge.Analyze(ctx, trace, judge.Options{Runner: s.analyze.runner})
+	report, err := judge.Analyze(ctx, trace, judge.Options{Runner: s.analyze.runner, CLI: cli, Model: judgeModel})
 
 	// Persist before publishing done, and outside the lock: once the job entry
 	// is dropped, polls must be able to find the report on disk.

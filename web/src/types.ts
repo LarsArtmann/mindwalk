@@ -171,6 +171,8 @@ export interface Report {
   };
   judge: {
     cli: string;
+    /** the LLM that actually judged, as reported by the CLI itself */
+    model?: string;
     promptVersion: number;
     generatedAt: string;
   };
@@ -208,7 +210,17 @@ export interface ReportStatus {
   report?: Report;
   error?: string;
   judgeAvailable: boolean;
+  /** default judge (first available) */
   judgeCli?: string;
+  /** every installed judge CLI, preference order first */
+  judgeClis?: string[];
+}
+
+/** the panel's judge selection, sent with the analyze request */
+export interface JudgeChoice {
+  cli: string;
+  /** empty string keeps the CLI's default model */
+  model: string;
 }
 
 export interface ActionCounts {
