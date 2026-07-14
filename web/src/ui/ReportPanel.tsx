@@ -279,9 +279,9 @@ function Dimension({ dimension, onJumpTo }: { dimension: ReportDimension; onJump
         <span className="report-dimension-name">{words.title}</span>
         <span className={`verdict verdict-${dimension.verdict}`}>{verdictWord(dimension.verdict)}</span>
       </div>
-      {dimension.findings.map((finding, index) => (
+      {dimension.findings.map((finding) => (
         <button
-          key={index}
+          key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`}
           className="report-finding"
           onClick={() => {
             const seq = finding.evidenceSeqs?.[0];

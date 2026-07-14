@@ -72,7 +72,9 @@ export function Dock({ panels, openSheet, openPop, onToggle, onClosePop }: DockP
       ) : null}
       {sheet ? <aside className="dock-panel">{sheet.render()}</aside> : null}
       <div className="dock-side" ref={stripRef}>
-        <div className="dock-strip" role="tablist" aria-label="Stage panels">
+        {/* toggle buttons, not tabs: panels open as pops or sheets with no
+            tabpanel relationship, so aria-pressed is the honest semantic */}
+        <div className="dock-strip" role="group" aria-label="Stage panels">
           {grouped.map((group, index) => (
             <div key={group.section} className="dock-strip-group">
               {index > 0 ? <div className="dock-strip-divider" aria-hidden /> : null}
@@ -82,8 +84,7 @@ export function Dock({ panels, openSheet, openPop, onToggle, onClosePop }: DockP
                 return (
                   <button
                     key={panel.id}
-                    role="tab"
-                    aria-selected={active}
+                    aria-pressed={active}
                     className={active ? "active" : ""}
                     onClick={() => onToggle(panel)}
                     data-hint={panel.hint}

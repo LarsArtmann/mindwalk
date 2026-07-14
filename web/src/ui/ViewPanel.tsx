@@ -15,10 +15,11 @@ interface ViewPanelProps {
 // panel instead of growing the strip.
 export function ViewPanel({ view, onViewChange, note, locked = false }: ViewPanelProps) {
   return (
-    <div className="view-pop" role="radiogroup" aria-label="Scene view">
+    // toggle buttons rather than a radiogroup: the full radio pattern would
+    // demand roving tabindex + arrow-key navigation these buttons don't have
+    <div className="view-pop" role="group" aria-label="Scene view">
       <button
-        role="radio"
-        aria-checked={view === "tree"}
+        aria-pressed={view === "tree"}
         className={view === "tree" ? "view-row active" : "view-row"}
         onClick={() => onViewChange("tree")}
         disabled={locked}
@@ -27,8 +28,7 @@ export function ViewPanel({ view, onViewChange, note, locked = false }: ViewPane
         <span>Tree</span>
       </button>
       <button
-        role="radio"
-        aria-checked={view === "terrain"}
+        aria-pressed={view === "terrain"}
         className={view === "terrain" ? "view-row active" : "view-row"}
         onClick={() => onViewChange("terrain")}
         disabled={locked}

@@ -74,9 +74,11 @@ type ReportDimension struct {
 }
 
 type ReportFinding struct {
-	Claim        string `json:"claim"`
-	Severity     string `json:"severity"`
-	EvidenceSeqs []int  `json:"evidenceSeqs,omitempty"`
+	Claim    string `json:"claim"`
+	Severity string `json:"severity"`
+	// Always at least one entry — evidence-less findings are dropped at
+	// parse time, and the schema marks the field required accordingly.
+	EvidenceSeqs []int `json:"evidenceSeqs"`
 }
 
 type ReportMoment struct {
