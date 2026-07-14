@@ -66,14 +66,24 @@ func UserMessageNote(text string) string {
 }
 
 // InjectedUserMessage recognizes harness-injected text recorded as a user
-// message but not written by the user: command envelopes and system
-// reminders start with markup, and Codex records the project's AGENTS.md
-// instructions as the session's first user message. Adapters drop these
-// before they become user-message marks — they would inflate user-turn
-// stats, clutter the timeline, and pose as the task in judge input.
+// message but not written by the user. Adapters drop these before they
+// become user-message marks — they would inflate user-turn stats, clutter
+// the timeline, and pose as the task in judge input.
+//
+// Injected wrappers observed in real logs (<system-reminder>,
+// <command-name>, <local-command-caveat>, <environment_context>,
+// <recommended_plugins>, <turn_aborted>, …) are complete markup envelopes:
+// the message starts with a tag and ends with one. That shape — rather than
+// a tag whitelist that new harness versions would outgrow, or a bare "<"
+// prefix that would swallow real tasks pasting HTML/JSX followed by a
+// question — is what marks a message as injected. Codex's AGENTS.md
+// instructions are the one non-markup injection.
 func InjectedUserMessage(text string) bool {
 	text = strings.TrimSpace(text)
-	return strings.HasPrefix(text, "<") || strings.HasPrefix(text, "# AGENTS.md instructions")
+	if strings.HasPrefix(text, "# AGENTS.md instructions") {
+		return true
+	}
+	return strings.HasPrefix(text, "<") && strings.HasSuffix(text, ">")
 }
 
 func ReadJSONLines(r io.Reader, visit func([]byte)) error {
