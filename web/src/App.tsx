@@ -242,8 +242,9 @@ export default function App() {
       const status = await getSessionReport(key);
       if (activeSessionKeyRef.current === key) setReportStatus(status);
     } catch {
-      // a missing report endpoint response is not worth a toast; the panel
-      // falls back to its "checking" state and the next poll retries
+      // not worth a toast: the status stays undefined, the panel keeps its
+      // "checking" state, and the unknown-status retry effect below tries
+      // again until the server answers
     }
   }, []);
 
@@ -276,6 +277,15 @@ export default function App() {
       void refreshSessionList();
     };
   }, [reportStatus?.state, activeSessionKey, refreshReport, refreshSessionList]);
+
+  // while the report status is unknown (first request failed or still on its
+  // way), keep asking — otherwise a single dropped request would pin the
+  // panel to "checking" until a session switch or reload
+  useEffect(() => {
+    if (reportStatus !== undefined || !activeSessionKey || mapOnly) return;
+    const timer = setInterval(() => void refreshReport(activeSessionKey), 5000);
+    return () => clearInterval(timer);
+  }, [reportStatus === undefined, activeSessionKey, mapOnly, refreshReport]);
 
   const analyzeSession = useCallback(async (choice: JudgeChoice) => {
     const key = activeSessionKeyRef.current;
