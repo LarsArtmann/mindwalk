@@ -52,7 +52,7 @@ func DetectCLIs() []string {
 // WorkDir returns ~/.mindwalk/judge, the neutral directory judge subprocesses
 // run in. It holds no repository and no project instructions, and adapters use
 // IsWorkDir to recognize sessions recorded there as mindwalk's own judge runs
-// (Codex offers no way to turn session persistence off).
+// (a fallback for codex CLIs that predate --ephemeral).
 func WorkDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -120,10 +120,14 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		// "-" reads the whole prompt from stdin — as an argv it would hit
 		// per-argument size limits on big traces. codex interleaves its own
 		// logging on stdout; extractJSON in the parser copes with the noise,
-		// and the preamble's "model:" line names the model. Persistence
-		// cannot be disabled, so the run is pinned to the judge workdir
-		// where the codex adapter marks the recorded session auxiliary.
+		// and the preamble's "model:" line names the model. The run is still
+		// pinned to the judge workdir, and the codex adapter marks sessions
+		// recorded there auxiliary — a belt for CLIs that predate
+		// --ephemeral and for sessions old versions already wrote.
 		args := []string{"exec",
+			"--ephemeral",          // no session file for mindwalk to re-scan
+			"--ignore-user-config", // no user MCP servers or profiles; auth stays
+			"--ignore-rules",       // no user/project execpolicy rules
 			"--sandbox", "read-only",
 			"--skip-git-repo-check", // the judge workdir is not a repository
 			"-C", workdir,
