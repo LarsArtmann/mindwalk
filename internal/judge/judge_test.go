@@ -2,6 +2,7 @@ package judge
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -154,18 +155,52 @@ func TestRollupHonorsObservabilityBlindSpots(t *testing.T) {
 }
 
 func TestBuildInputSelectsUserWordsAndFlagsErrors(t *testing.T) {
-	input := BuildInput(sampleTrace())
+	trace := sampleTrace()
+	trace.Marks = append(trace.Marks, model.Mark{
+		Seq: 0, Type: "user-message", Note: "# AGENTS.md instructions for /repo\n\nproject rules…",
+	})
+	input := BuildInput(trace)
 	if !strings.Contains(input, "[user #1] fix the login bug") {
 		t.Fatalf("missing user message:\n%s", input)
 	}
 	if strings.Contains(input, "system-reminder") {
 		t.Fatalf("markup-wrapped message should be skipped:\n%s", input)
 	}
+	if strings.Contains(input, "AGENTS.md instructions") {
+		t.Fatalf("codex-injected AGENTS.md should be skipped:\n%s", input)
+	}
 	if !strings.Contains(input, "2 | verify ERR | - | go test ./...") {
 		t.Fatalf("missing error narrative line:\n%s", input)
 	}
 	if !strings.Contains(input, "--- mark: user-message ---") {
 		t.Fatalf("missing mark line:\n%s", input)
+	}
+}
+
+func TestBuildInputKeepsFirstAndNewestUserMessages(t *testing.T) {
+	trace := sampleTrace()
+	trace.Marks = nil
+	for i := 1; i <= maxUserMessages+5; i++ {
+		trace.Marks = append(trace.Marks, model.Mark{
+			Seq: 0, Type: "user-message", Note: fmt.Sprintf("message %d", i),
+		})
+	}
+	input := BuildInput(trace)
+	// The task statement and the newest corrections must both survive; the
+	// middle gives way.
+	if !strings.Contains(input, "[user #1] message 1") {
+		t.Fatalf("first message dropped:\n%s", input)
+	}
+	last := maxUserMessages + 5
+	if !strings.Contains(input, fmt.Sprintf("[user #%d] message %d", last, last)) {
+		t.Fatalf("newest message dropped:\n%s", input)
+	}
+	// 17 messages, budget 12: keep #1 and #7–#17, omit the 5 in between.
+	if !strings.Contains(input, "…5 intermediate user messages omitted.") {
+		t.Fatalf("missing omission marker:\n%s", input)
+	}
+	if strings.Contains(input, "[user #2] message 2") {
+		t.Fatalf("middle message should be omitted:\n%s", input)
 	}
 }
 

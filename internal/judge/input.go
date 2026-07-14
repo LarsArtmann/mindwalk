@@ -43,33 +43,51 @@ func InputDigest(trace *model.Trace) string {
 	return hex.EncodeToString(sum[:])
 }
 
+// writeUserMessages renders the user's own words: the first message states
+// the task, later ones are follow-ups and corrections. When the budget
+// overflows, the first message and the newest ones win — a late correction
+// outweighs mid-session chatter.
 func writeUserMessages(b *strings.Builder, marks []model.Mark) {
 	b.WriteString("## User messages (the task; later ones are follow-ups/corrections)\n\n")
-	count := 0
-	skipped := 0
+	type userMessage struct {
+		ordinal int
+		text    string
+	}
+	var messages []userMessage
 	for _, mark := range marks {
 		if mark.Type != "user-message" {
 			continue
 		}
 		text := strings.TrimSpace(mark.Note)
-		// Harness-injected wrappers (command envelopes, system reminders)
-		// start with markup and are not the user's own words.
-		if text == "" || strings.HasPrefix(text, "<") {
+		if text == "" || injectedUserMessage(text) {
 			continue
 		}
-		count++
-		if count > maxUserMessages {
-			skipped++
-			continue
-		}
-		fmt.Fprintf(b, "[user #%d] %s\n\n", count, truncateRunes(text, maxUserMessageLen))
+		messages = append(messages, userMessage{ordinal: len(messages) + 1, text: text})
 	}
-	if skipped > 0 {
-		fmt.Fprintf(b, "…and %d more user messages omitted.\n\n", skipped)
-	}
-	if count == 0 {
+	if len(messages) == 0 {
 		b.WriteString("(no user message text available)\n\n")
+		return
 	}
+	keep := messages
+	if len(messages) > maxUserMessages {
+		keep = append([]userMessage{messages[0]}, messages[len(messages)-(maxUserMessages-1):]...)
+	}
+	previous := 0
+	for _, message := range keep {
+		if message.ordinal != previous+1 {
+			fmt.Fprintf(b, "…%d intermediate user messages omitted.\n\n", message.ordinal-previous-1)
+		}
+		previous = message.ordinal
+		fmt.Fprintf(b, "[user #%d] %s\n\n", message.ordinal, truncateRunes(message.text, maxUserMessageLen))
+	}
+}
+
+// injectedUserMessage recognizes harness-injected text stored as a user
+// message but not written by the user: command envelopes and system
+// reminders start with markup, and Codex records the project's AGENTS.md
+// instructions as the session's first user message.
+func injectedUserMessage(text string) bool {
+	return strings.HasPrefix(text, "<") || strings.HasPrefix(text, "# AGENTS.md instructions")
 }
 
 func writeStats(b *strings.Builder, stats model.Stats) {
