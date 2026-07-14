@@ -87,6 +87,32 @@ func TestAnalyzeParsesAndRollsUp(t *testing.T) {
 	}
 }
 
+func TestAnalyzeDropsFindingsWithoutValidEvidence(t *testing.T) {
+	output := "{\"task_summary\":\"t\",\"dimensions\":[" +
+		"{\"name\":\"exploration\",\"findings\":[]}," +
+		"{\"name\":\"scope\",\"findings\":[]}," +
+		"{\"name\":\"wandering\",\"findings\":[]}," +
+		"{\"name\":\"verification\",\"findings\":[" +
+		"{\"claim\":\"引用了不存在的事件\",\"severity\":\"problem\",\"evidence_seqs\":[99999]}," +
+		"{\"claim\":\"没给任何证据\",\"severity\":\"problem\"}]}]," +
+		"\"notable_moments\":[],\"narrative\":\"n\"}"
+	report, err := Analyze(context.Background(), sampleTrace(), Options{Runner: &stubRunner{outputs: []string{output}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, dim := range report.Dimensions {
+		if dim.Name != "verification" {
+			continue
+		}
+		if len(dim.Findings) != 0 {
+			t.Fatalf("evidence-less findings survived: %#v", dim.Findings)
+		}
+		if dim.Verdict != model.VerdictGood {
+			t.Fatalf("verdict driven by evidence-less finding: %q", dim.Verdict)
+		}
+	}
+}
+
 func TestAnalyzeRetriesOnInvalidJSON(t *testing.T) {
 	runner := &stubRunner{outputs: []string{"not json at all", validOutput}}
 	report, err := Analyze(context.Background(), sampleTrace(), Options{Runner: runner})
@@ -149,7 +175,7 @@ func TestCacheRoundTripAndFreshness(t *testing.T) {
 	report := &model.Report{
 		Version: 1,
 		Session: model.ReportSession{ID: "s1", EventCount: 3},
-		Judge:   model.ReportJudge{CLI: "claude", PromptVersion: PromptVersion},
+		Judge:   model.ReportJudge{CLI: "claude", PromptVersion: PromptVersion, InputDigest: InputDigest(trace)},
 	}
 	if err := cache.Store("key-1", report); err != nil {
 		t.Fatal(err)
@@ -161,9 +187,20 @@ func TestCacheRoundTripAndFreshness(t *testing.T) {
 	if !Fresh(loaded, trace) {
 		t.Fatal("expected fresh")
 	}
-	trace.Session.EventCount = 5
+	// A new user message lands in marks, not events: the count is unchanged
+	// but the judge input moved, so the report must go stale.
+	trace.Marks = append(trace.Marks, model.Mark{Seq: 3, Type: "user-message", Note: "不要修改代码"})
+	if Fresh(loaded, trace) {
+		t.Fatal("expected stale after a new user message with no new events")
+	}
+	trace = sampleTrace()
+	trace.Events = append(trace.Events, model.Event{Seq: 3, Action: "edit", Summary: "Edit b.go"})
+	trace.Session.EventCount = 4
 	if Fresh(loaded, trace) {
 		t.Fatal("expected stale after event growth")
+	}
+	if Fresh(&model.Report{Judge: model.ReportJudge{PromptVersion: PromptVersion}}, sampleTrace()) {
+		t.Fatal("report without a digest must be stale")
 	}
 	if cache.Load("missing") != nil {
 		t.Fatal("expected nil for missing key")

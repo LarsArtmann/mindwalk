@@ -51,6 +51,7 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 			CLI:           runner.Name(),
 			PromptVersion: PromptVersion,
 			GeneratedAt:   time.Now().UTC().Format(time.RFC3339),
+			InputDigest:   InputDigest(trace),
 		}
 		return report, nil
 	}
@@ -109,6 +110,12 @@ func parseOutput(raw string, trace *model.Trace) (*model.Report, error) {
 				if validSeqs[seq] {
 					seqs = append(seqs, seq)
 				}
+			}
+			// Every finding must anchor to real trace events: a claim whose
+			// citations were all hallucinated (or absent) may not enter the
+			// report, let alone drive the dimension verdict.
+			if len(seqs) == 0 {
+				continue
 			}
 			target.Findings = append(target.Findings, model.ReportFinding{
 				Claim:        finding.Claim,
