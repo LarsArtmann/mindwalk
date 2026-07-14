@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
@@ -672,5 +673,43 @@ func writeJSONL(t *testing.T, path string, values ...any) {
 	}
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestSummarizeMarksJudgeWorkdirAuxiliary(t *testing.T) {
+	workdir := judge.WorkDir()
+	if workdir == "" {
+		t.Skip("no home directory available")
+	}
+	dir := t.TempDir()
+	session := filepath.Join(dir, "rollout-2026-07-14T00-00-00-judge-run.jsonl")
+	writeJSONL(t, session,
+		map[string]any{
+			"timestamp": "2026-07-14T00:00:00Z",
+			"type":      "session_meta",
+			"payload": map[string]any{
+				"id":         "judge-run",
+				"session_id": "judge-run",
+				"timestamp":  "2026-07-14T00:00:00Z",
+				"cwd":        workdir,
+			},
+		},
+	)
+	adapter := Adapter{Dir: dir}
+	meta, err := adapter.Summarize(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !meta.Auxiliary {
+		t.Fatalf("session recorded in judge workdir %s should be auxiliary", workdir)
+	}
+	metas, err := adapter.ListSessions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, m := range metas {
+		if m.ID == "judge-run" {
+			t.Fatal("judge session leaked into ListSessions")
+		}
 	}
 }

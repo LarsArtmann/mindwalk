@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
+	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
@@ -144,6 +145,12 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			}
 		}
 	})
+	if judge.IsWorkDir(meta.Cwd) {
+		// Sessions recorded in the judge workdir are mindwalk's own judge
+		// runs (codex cannot disable session persistence), not user coding
+		// sessions; auxiliary keeps them out of every listing.
+		meta.Auxiliary = true
+	}
 	if meta.Title == "" {
 		meta.Title = a.titleFor(meta.ID)
 	}
