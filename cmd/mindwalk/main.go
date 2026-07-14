@@ -129,6 +129,20 @@ func trace(args []string) error {
 	return writeJSON(out, tr)
 }
 
+// judgeMatches reports whether a cached report satisfies an explicit judge
+// choice; unset flags match anything. An alias like --model sonnet won't
+// equal the canonical name a run records (claude-sonnet-5), so an aliased
+// request re-runs rather than serve a cache it cannot verify.
+func judgeMatches(report *model.Report, cli, modelName string) bool {
+	if cli != "" && report.Judge.CLI != cli {
+		return false
+	}
+	if modelName != "" && report.Judge.Model != modelName {
+		return false
+	}
+	return true
+}
+
 func analyze(args []string) error {
 	fs := flag.NewFlagSet("analyze", flag.ExitOnError)
 	out := fs.String("o", "", "write the report to this file instead of stdout")
@@ -163,7 +177,7 @@ func analyze(args []string) error {
 	cache := judge.Cache{Dir: judge.DefaultCacheDir()}
 	key := adapter.SessionKey(tr.Session.Harness, session)
 	if !*noCache {
-		if cached := cache.Load(key); judge.Fresh(cached, tr) {
+		if cached := cache.Load(key); judge.Fresh(cached, tr) && judgeMatches(cached, *judgeCLI, *judgeModel) {
 			fmt.Fprintln(os.Stderr, "mindwalk: using cached report (pass --no-cache to re-run)")
 			return writeJSON(*out, cached)
 		}
