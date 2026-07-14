@@ -3,6 +3,7 @@ package judge
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -114,6 +115,24 @@ func TestAnalyzeDropsFindingsWithoutValidEvidence(t *testing.T) {
 	}
 }
 
+func TestAnalyzeSeverityStrictButCaseInsensitive(t *testing.T) {
+	capitalized := strings.Replace(validOutput, `"severity":"problem"`, `"severity":"Problem"`, 1)
+	report, err := Analyze(context.Background(), sampleTrace(), Options{Runner: &stubRunner{outputs: []string{capitalized}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, dim := range report.Dimensions {
+		if dim.Name == "verification" && dim.Verdict != model.VerdictProblem {
+			t.Fatalf("capitalized severity lost its weight: verdict = %q", dim.Verdict)
+		}
+	}
+
+	unknown := strings.Replace(validOutput, `"severity":"problem"`, `"severity":"blocker"`, 1)
+	if _, err := Analyze(context.Background(), sampleTrace(), Options{Runner: &stubRunner{outputs: []string{unknown, unknown}}}); err == nil {
+		t.Fatal("unknown severity must invalidate the output, not downgrade to info")
+	}
+}
+
 func TestAnalyzeRetriesOnInvalidJSON(t *testing.T) {
 	runner := &stubRunner{outputs: []string{"not json at all", validOutput}}
 	report, err := Analyze(context.Background(), sampleTrace(), Options{Runner: runner})
@@ -208,9 +227,10 @@ func TestCacheRoundTripAndFreshness(t *testing.T) {
 	cache := Cache{Dir: t.TempDir()}
 	trace := sampleTrace()
 	report := &model.Report{
-		Version: 1,
-		Session: model.ReportSession{ID: "s1", EventCount: 3},
-		Judge:   model.ReportJudge{CLI: "claude", PromptVersion: PromptVersion, InputDigest: InputDigest(trace)},
+		Version:    1,
+		Session:    model.ReportSession{ID: "s1", EventCount: 3},
+		Judge:      model.ReportJudge{CLI: "claude", PromptVersion: PromptVersion, InputDigest: InputDigest(trace)},
+		Dimensions: []model.ReportDimension{{Name: "exploration", Verdict: model.VerdictGood, Findings: []model.ReportFinding{}}},
 	}
 	if err := cache.Store("key-1", report); err != nil {
 		t.Fatal(err)
@@ -239,5 +259,19 @@ func TestCacheRoundTripAndFreshness(t *testing.T) {
 	}
 	if cache.Load("missing") != nil {
 		t.Fatal("expected nil for missing key")
+	}
+}
+
+func TestCacheLoadRejectsHollowPayloads(t *testing.T) {
+	cache := Cache{Dir: t.TempDir()}
+	// Valid JSON, useless reports: the panel dereferences dimensions and
+	// judge unconditionally, so these must read as cache misses.
+	for _, payload := range []string{"null", "{}", `{"version":1,"dimensions":[]}`} {
+		if err := os.WriteFile(cache.path("bad"), []byte(payload), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if report := cache.Load("bad"); report != nil {
+			t.Fatalf("payload %q loaded as %#v", payload, report)
+		}
 	}
 }

@@ -42,6 +42,12 @@ func (c Cache) Load(sessionKey string) *model.Report {
 	if json.Unmarshal(data, &report) != nil {
 		return nil
 	}
+	// Syntactically valid but hollow payloads ("null", "{}", hand-edited
+	// files) must read as a miss: the UI dereferences dimensions and judge
+	// unconditionally.
+	if report.Version < 1 || len(report.Dimensions) == 0 || report.Judge.CLI == "" {
+		return nil
+	}
 	return &report
 }
 
@@ -67,9 +73,25 @@ func (c Cache) Store(sessionKey string, report *model.Report) error {
 	if err != nil {
 		return err
 	}
-	tmp := c.path(sessionKey) + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
+	// A unique temp file per writer: the CLI and the server may finish
+	// evaluating the same session concurrently, and a shared name would let
+	// them truncate each other mid-write. Last rename wins, atomically.
+	tmp, err := os.CreateTemp(c.Dir, sessionKey+"-*.tmp")
+	if err != nil {
 		return err
 	}
-	return os.Rename(tmp, c.path(sessionKey))
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		os.Remove(tmp.Name())
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		os.Remove(tmp.Name())
+		return err
+	}
+	if err := os.Rename(tmp.Name(), c.path(sessionKey)); err != nil {
+		os.Remove(tmp.Name())
+		return err
+	}
+	return nil
 }

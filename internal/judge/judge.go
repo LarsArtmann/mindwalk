@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/model"
@@ -126,9 +127,16 @@ func parseOutput(raw string, trace *model.Trace) (*model.Report, error) {
 			if len(seqs) == 0 {
 				continue
 			}
+			severity, err := normalizeSeverity(finding.Severity)
+			if err != nil {
+				// Silently downgrading a misspelled "problem" to info would
+				// launder a red flag into a good verdict; invalid severities
+				// invalidate the whole output and earn the one retry.
+				return nil, err
+			}
 			target.Findings = append(target.Findings, model.ReportFinding{
 				Claim:        finding.Claim,
-				Severity:     normalizeSeverity(finding.Severity),
+				Severity:     severity,
 				EvidenceSeqs: seqs,
 			})
 		}
@@ -192,12 +200,18 @@ func knownDimension(name string) bool {
 	return false
 }
 
-func normalizeSeverity(severity string) string {
-	switch severity {
-	case model.SeverityWarning, model.SeverityProblem:
-		return severity
+// normalizeSeverity forgives casing and whitespace but nothing else: an
+// unrecognized severity is judge output we cannot trust to aggregate.
+func normalizeSeverity(severity string) (string, error) {
+	switch strings.ToLower(strings.TrimSpace(severity)) {
+	case model.SeverityInfo:
+		return model.SeverityInfo, nil
+	case model.SeverityWarning:
+		return model.SeverityWarning, nil
+	case model.SeverityProblem:
+		return model.SeverityProblem, nil
 	default:
-		return model.SeverityInfo
+		return "", fmt.Errorf("judge output: unknown severity %q", severity)
 	}
 }
 
