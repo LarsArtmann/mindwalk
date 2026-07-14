@@ -1937,6 +1937,11 @@ dd {
   line-height: 1.6;
 }
 
+.report-again {
+  padding: 10px 16px 4px;
+  border-top: 1px solid var(--hairline);
+}
+
 /* rail evaluation badges: the list mirrors judge state without extra clicks */
 
 .rail-eval {

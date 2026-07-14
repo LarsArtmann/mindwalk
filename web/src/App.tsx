@@ -185,14 +185,6 @@ export default function App() {
     window.open(url, "_blank", "noopener");
   }, []);
 
-  const refresh = useCallback(() => {
-    if (manualRefreshInFlight.current) return;
-    manualRefreshInFlight.current = true;
-    void scan(true).finally(() => {
-      manualRefreshInFlight.current = false;
-    });
-  }, [scan]);
-
   const selectSession = useCallback((key: string) => {
     activeSessionKeyRef.current = key;
     setActiveSession(key);
@@ -265,6 +257,19 @@ export default function App() {
     }
   }, [setSessions]);
 
+  // manual rescan: the active key usually survives it, so the report status
+  // must be refetched explicitly — it may have gone stale or finished while
+  // we weren't polling
+  const refresh = useCallback(() => {
+    if (manualRefreshInFlight.current) return;
+    manualRefreshInFlight.current = true;
+    const key = activeSessionKeyRef.current;
+    if (key && !mapOnly) void refreshReport(key);
+    void scan(true).finally(() => {
+      manualRefreshInFlight.current = false;
+    });
+  }, [scan, refreshReport, mapOnly]);
+
   useEffect(() => {
     if (reportStatus?.state !== "running" || !activeSessionKey) return;
     const timer = setInterval(() => {
@@ -286,6 +291,16 @@ export default function App() {
     const timer = setInterval(() => void refreshReport(activeSessionKey), 5000);
     return () => clearInterval(timer);
   }, [reportStatus === undefined, activeSessionKey, mapOnly, refreshReport]);
+
+  // a judge can be running for a session other than the active one; keep the
+  // rail badges honest by polling the list until every run finishes (the
+  // running-state effect above already polls while the active session runs)
+  const anyEvaluating = useMemo(() => sessions.some((s) => s.reportState === "running"), [sessions]);
+  useEffect(() => {
+    if (!anyEvaluating || reportStatus?.state === "running") return;
+    const timer = setInterval(() => void refreshSessionList(), 5000);
+    return () => clearInterval(timer);
+  }, [anyEvaluating, reportStatus?.state, refreshSessionList]);
 
   const analyzeSession = useCallback(async (choice: JudgeChoice) => {
     const key = activeSessionKeyRef.current;
@@ -440,6 +455,7 @@ export default function App() {
           onOpenMap={openMap}
           activeRepo={trace?.session.cwd}
           locked={exporting}
+          activeReportState={reportStatus === undefined ? undefined : reportBadge}
         />
       )}
       <section className="stage">

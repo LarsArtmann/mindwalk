@@ -199,15 +199,18 @@ function PanelBody({
     return (
       <div className="report-note">
         <p>
-          Ask a local agent to evaluate this session: how the agent explored, whether the footprint matched
-          the task, where it wandered, and how it verified its work. Every finding links back to the timeline.
+          Ask an agent to evaluate this session: how it explored, whether the footprint matched the task,
+          where it wandered, and how it verified its work. Every finding links back to the timeline.
         </p>
         {picker}
         <button className="report-run" onClick={analyze}>
           <Sparkles size={13} />
           Evaluate session
         </button>
-        <p className="report-cost">Runs your local CLI · about a minute</p>
+        <p className="report-cost">
+          Runs the selected CLI under your own account and sends it a summary of this session — task wording,
+          file paths, event digests — for the model to read. About a minute.
+        </p>
       </div>
     );
   }
@@ -251,6 +254,19 @@ function PanelBody({
         <p className="eyebrow">Narrative</p>
         <p className="report-narrative">{report.narrative}</p>
       </section>
+      {!status.stale && picker ? (
+        // a fresh report can still be re-judged — with a different agent or
+        // model; the stale banner owns this row otherwise
+        <section className="report-again">
+          <div className="report-stale-actions">
+            {picker}
+            <button className="report-rerun" onClick={analyze} title="Run a fresh evaluation of this session">
+              <RefreshCw size={12} />
+              Re-evaluate
+            </button>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

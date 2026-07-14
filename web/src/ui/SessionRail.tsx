@@ -24,6 +24,9 @@ interface SessionRailProps {
   // while a video export records, session switching is locked so it can't swap
   // the canvas or playhead out from under the recorder
   locked?: boolean;
+  // the panel's authoritative (digest-based) status for the active session;
+  // undefined = unknown (keep the list's approximate badge), null = no report
+  activeReportState?: "running" | "done" | "stale" | "failed" | null;
 }
 
 // memo: the app re-renders every playback tick; the rail's props only change
@@ -42,7 +45,8 @@ export const SessionRail = memo(function SessionRail({
   onCollapse,
   onOpenMap,
   activeRepo,
-  locked = false
+  locked = false,
+  activeReportState
 }: SessionRailProps) {
   const [query, setQuery] = useState("");
   const [repoPath, setRepoPath] = useState("");
@@ -233,15 +237,23 @@ export const SessionRail = memo(function SessionRail({
                 {session.gitBranch ? ` · ${session.gitBranch}` : ""}
                 {session.endedAt ? ` · ${shortDate(session.endedAt)}` : ""}
               </span>
-              {session.reportState ? (
-                <span
-                  className={`rail-eval rail-eval-${session.reportState}`}
-                  title={evalHint(session.reportState)}
-                  aria-label={evalHint(session.reportState)}
-                >
-                  {session.reportState === "running" ? "evaluating" : ""}
-                </span>
-              ) : null}
+              {(() => {
+                // the panel's digest-based status outranks the list's cheap
+                // event-count grading for the active session
+                const evalState =
+                  session.key === activeKey && activeReportState !== undefined
+                    ? activeReportState
+                    : session.reportState;
+                return evalState ? (
+                  <span
+                    className={`rail-eval rail-eval-${evalState}`}
+                    title={evalHint(evalState)}
+                    aria-label={evalHint(evalState)}
+                  >
+                    {evalState === "running" ? "evaluating" : ""}
+                  </span>
+                ) : null;
+              })()}
             </span>
           </button>
         ))}
