@@ -3,7 +3,9 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"slices"
 	"sync"
@@ -11,6 +13,11 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
+
+// maxConcurrentJudges bounds simultaneous judge subprocesses: each one is a
+// full agent-CLI run costing tokens and about a minute, and nothing stops a
+// user from clicking evaluate across many sessions.
+const maxConcurrentJudges = 2
 
 // analyzeJob tracks one in-flight or finished judge run, keyed by session
 // key. Evaluation only ever starts from an explicit POST — never from
@@ -24,6 +31,8 @@ type analyzeJob struct {
 type analyzeState struct {
 	mu   sync.Mutex
 	jobs map[string]*analyzeJob
+	// active counts in-flight judge subprocesses across all sessions.
+	active int
 	// runner overrides the judge subprocess in tests; nil auto-detects a CLI.
 	runner judge.Runner
 }
@@ -61,7 +70,9 @@ func (s *Server) reportStateFor(meta model.SessionMeta) string {
 	if report == nil {
 		return ""
 	}
-	if report.Session.EventCount != meta.EventCount || report.Judge.PromptVersion != judge.PromptVersion {
+	// A report without an input digest predates digest freshness and the
+	// panel will grade it stale — say so here too rather than disagree.
+	if report.Session.EventCount != meta.EventCount || report.Judge.PromptVersion != judge.PromptVersion || report.Judge.InputDigest == "" {
 		return "stale"
 	}
 	return "done"
@@ -156,15 +167,18 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 	}
 
 	// Optional body: the panel's judge choice. An empty body keeps the
-	// default CLI and its default model.
+	// default CLI and its default model; a malformed one is rejected — this
+	// request starts an expensive run, so a garbled choice must not silently
+	// fall back to defaults.
 	var req struct {
 		CLI   string `json:"cli"`
 		Model string `json:"model"`
 	}
 	if r.Body != nil {
-		// A decode failure means an empty or malformed body; only an explicit
-		// unknown CLI is worth rejecting.
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
+			http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 	if req.CLI != "" && !slices.Contains(clis, req.CLI) {
 		http.Error(w, fmt.Sprintf("judge CLI %q is not available (installed: %v)", req.CLI, clis), http.StatusBadRequest)
@@ -178,8 +192,14 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		writeJSON(w, reportStatus{State: "running", JudgeAvailable: true})
 		return
 	}
+	if s.analyze.active >= maxConcurrentJudges {
+		s.analyze.mu.Unlock()
+		http.Error(w, fmt.Sprintf("%d evaluations already running; wait for one to finish", maxConcurrentJudges), http.StatusTooManyRequests)
+		return
+	}
 	job := &analyzeJob{}
 	s.analyze.jobs[meta.Key] = job
+	s.analyze.active++
 	s.analyze.mu.Unlock()
 
 	go s.runAnalyze(meta.Key, trace, job, req.CLI, req.Model)
@@ -202,6 +222,7 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli
 
 	s.analyze.mu.Lock()
 	defer s.analyze.mu.Unlock()
+	s.analyze.active--
 	job.done = true
 	if err != nil {
 		job.err = err.Error()
