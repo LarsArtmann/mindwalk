@@ -130,6 +130,15 @@ func TestUserMessageMarkCarriesNote(t *testing.T) {
 	if len(truncated) != 2000 || truncated[len(truncated)-1] != '…' {
 		t.Fatalf("truncated note runes = %d, last = %q", len(truncated), truncated[len(truncated)-1])
 	}
+	// Summarize counts the same turns Parse marks — tool results and other
+	// non-message user lines stay out of both.
+	meta, err := (Adapter{}).Summarize(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if meta.UserTurns != 2 {
+		t.Fatalf("summarized userTurns = %d, want 2", meta.UserTurns)
+	}
 }
 
 func TestSummarizeRecognizesUnknownClaudeLineWithSessionID(t *testing.T) {

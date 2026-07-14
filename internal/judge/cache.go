@@ -48,6 +48,13 @@ func (c Cache) Load(sessionKey string) *model.Report {
 	if report.Version < 1 || len(report.Dimensions) == 0 || report.Judge.CLI == "" {
 		return nil
 	}
+	// A dimension's nil findings serializes as JSON null, which the panel
+	// maps over unconditionally; normalize rather than reject.
+	for i := range report.Dimensions {
+		if report.Dimensions[i].Findings == nil {
+			report.Dimensions[i].Findings = []model.ReportFinding{}
+		}
+	}
 	return &report
 }
 

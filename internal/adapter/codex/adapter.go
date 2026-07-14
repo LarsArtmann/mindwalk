@@ -133,11 +133,26 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 					seenCalls[callID] = true
 					meta.EventCount++
 				}
+				// only message items pay the full decode; the count must
+				// mirror Parse's user-message mark filter
+				if payload.Type == "message" {
+					var msg responseItemPayload
+					if json.Unmarshal(line.Payload, &msg) == nil && msg.Role == "user" && msg.Content.HasText() {
+						if !adapter.InjectedUserMessage(msg.Content.Text()) {
+							meta.UserTurns++
+						}
+					}
+				}
 			}
 		case "event_msg":
 			recognized = true
 		case "message":
 			recognized = true
+			if line.Role == "user" && line.Content.HasText() {
+				if !adapter.InjectedUserMessage(line.Content.Text()) {
+					meta.UserTurns++
+				}
+			}
 		case "":
 			if line.ID != "" {
 				recognized = true

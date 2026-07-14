@@ -57,11 +57,12 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 			judgeModel = opts.Model
 		}
 		report.Judge = model.ReportJudge{
-			CLI:           runner.Name(),
-			Model:         judgeModel,
-			PromptVersion: PromptVersion,
-			GeneratedAt:   time.Now().UTC().Format(time.RFC3339),
-			InputDigest:   InputDigest(trace),
+			CLI:            runner.Name(),
+			Model:          judgeModel,
+			RequestedModel: opts.Model,
+			PromptVersion:  PromptVersion,
+			GeneratedAt:    time.Now().UTC().Format(time.RFC3339),
+			InputDigest:    InputDigest(trace),
 		}
 		return report, nil
 	}
@@ -152,6 +153,7 @@ func parseOutput(raw string, trace *model.Trace) (*model.Report, error) {
 			Harness:    trace.Session.Harness,
 			Model:      trace.Session.Model,
 			EventCount: trace.Session.EventCount,
+			UserTurns:  trace.Stats.UserTurns,
 		},
 		TaskSummary: out.TaskSummary,
 		Narrative:   out.Narrative,

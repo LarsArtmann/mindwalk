@@ -149,16 +149,20 @@ type ActionCounts struct {
 }
 
 type SessionMeta struct {
-	Key        string `json:"key"`
-	ID         string `json:"id"`
-	Harness    string `json:"harness"`
-	Title      string `json:"title,omitempty"`
-	Path       string `json:"path"`
-	Cwd        string `json:"cwd,omitempty"`
-	Model      string `json:"model,omitempty"`
-	GitBranch  string `json:"gitBranch,omitempty"`
-	StartedAt  string `json:"startedAt,omitempty"`
-	EndedAt    string `json:"endedAt,omitempty"`
-	EventCount int    `json:"eventCount"`
-	Auxiliary  bool   `json:"-"`
+	Key       string `json:"key"`
+	ID        string `json:"id"`
+	Harness   string `json:"harness"`
+	Title     string `json:"title,omitempty"`
+	Path      string `json:"path"`
+	Cwd       string `json:"cwd,omitempty"`
+	Model     string `json:"model,omitempty"`
+	GitBranch string `json:"gitBranch,omitempty"`
+	StartedAt string `json:"startedAt,omitempty"`
+	EndedAt   string `json:"endedAt,omitempty"`
+	// EventCount and UserTurns together are the cheap staleness signal for
+	// report badges: user messages land on marks, not events, so the count
+	// alone misses exactly the follow-ups that matter most.
+	EventCount int  `json:"eventCount"`
+	UserTurns  int  `json:"userTurns"`
+	Auxiliary  bool `json:"-"`
 }

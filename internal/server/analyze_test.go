@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -136,5 +137,35 @@ func TestAnalyzeEndpointReportsJudgeFailure(t *testing.T) {
 	}
 	if status.State != "failed" || status.Error == "" {
 		t.Fatalf("status = %+v", status)
+	}
+}
+
+func TestAnalyzeEndpointRejectsBadBodies(t *testing.T) {
+	claudeDir := t.TempDir()
+	writeServerSession(t, filepath.Join(claudeDir, "eval.jsonl"),
+		`{"type":"user","timestamp":"2026-07-14T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
+		`{"type":"assistant","timestamp":"2026-07-14T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
+		`{"type":"user","timestamp":"2026-07-14T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
+	)
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex")})
+	s.analyze.runner = stubJudge{output: stubJudgeOutput}
+	s.reportCache.Dir = t.TempDir()
+
+	// This POST starts an expensive run: garbled JSON and trailing garbage
+	// must both be rejected, not silently run with defaults.
+	for _, body := range []string{`{bad`, `{"cli":"stub"} trailing`} {
+		resp := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", strings.NewReader(body))
+		s.handleSessionResource(resp, req)
+		if resp.Code != http.StatusBadRequest {
+			t.Fatalf("body %q -> %d, want 400", body, resp.Code)
+		}
+	}
+
+	resp := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", strings.NewReader(`{"cli":"gemini"}`))
+	s.handleSessionResource(resp, req)
+	if resp.Code != http.StatusBadRequest {
+		t.Fatalf("unknown cli -> %d, want 400", resp.Code)
 	}
 }

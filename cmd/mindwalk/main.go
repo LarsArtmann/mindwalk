@@ -130,14 +130,15 @@ func trace(args []string) error {
 }
 
 // judgeMatches reports whether a cached report satisfies an explicit judge
-// choice; unset flags match anything. An alias like --model sonnet won't
-// equal the canonical name a run records (claude-sonnet-5), so an aliased
-// request re-runs rather than serve a cache it cannot verify.
+// choice; unset flags match anything. A model matches on either the
+// canonical name the run recorded (claude-sonnet-5) or the alias it was
+// requested with (sonnet) — so repeating an aliased request hits the cache
+// instead of paying for a fresh run every time.
 func judgeMatches(report *model.Report, cli, modelName string) bool {
 	if cli != "" && report.Judge.CLI != cli {
 		return false
 	}
-	if modelName != "" && report.Judge.Model != modelName {
+	if modelName != "" && report.Judge.Model != modelName && report.Judge.RequestedModel != modelName {
 		return false
 	}
 	return true

@@ -18,6 +18,11 @@
           "type": "integer",
           "minimum": 0,
           "description": "Event count of the trace the report was generated from; a cheap display signal — freshness is decided by judge.inputDigest"
+        },
+        "userTurns": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "User-turn count at generation time; with eventCount it lets list badges spot message-only session growth cheaply"
         }
       },
       "additionalProperties": false
@@ -30,6 +35,10 @@
         "model": {
           "type": "string",
           "description": "The LLM that actually judged, as reported by the CLI itself; best-effort, display and comparability only — never part of freshness"
+        },
+        "requestedModel": {
+          "type": "string",
+          "description": "The alias the run was asked for (e.g. \"sonnet\"), kept so a repeated aliased request can recognize its own cached report"
         },
         "promptVersion": { "type": "integer", "minimum": 1 },
         "generatedAt": { "type": "string" },

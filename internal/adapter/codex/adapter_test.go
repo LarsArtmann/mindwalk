@@ -756,4 +756,13 @@ func TestParseSkipsInjectedUserMessages(t *testing.T) {
 	if trace.Stats.UserTurns != 1 {
 		t.Fatalf("userTurns = %d, want 1", trace.Stats.UserTurns)
 	}
+	// Summarize must count the same turns as the parse, or the rail badge's
+	// staleness check would disagree with the report.
+	meta, err := (Adapter{Dir: dir}).Summarize(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if meta.UserTurns != 1 {
+		t.Fatalf("summarized userTurns = %d, want 1", meta.UserTurns)
+	}
 }

@@ -28,6 +28,8 @@ export interface SessionMeta {
   startedAt?: string;
   endedAt?: string;
   eventCount: number;
+  /** user-turn count; with eventCount, the badge's cheap staleness signal */
+  userTurns?: number;
   /** evaluation state for the rail badge; absent when never evaluated */
   reportState?: "running" | "done" | "stale" | "failed";
 }

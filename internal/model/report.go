@@ -22,15 +22,21 @@ type ReportSession struct {
 	Harness    string `json:"harness"`
 	Model      string `json:"model,omitempty"`
 	EventCount int    `json:"eventCount"`
+	// UserTurns mirrors SessionMeta.UserTurns at generation time, giving the
+	// badge's cheap staleness check eyes on message-only session growth.
+	UserTurns int `json:"userTurns,omitempty"`
 }
 
 type ReportJudge struct {
 	CLI string `json:"cli"`
 	// Model names the LLM that actually judged (best-effort, reported by the
 	// CLI itself); display and comparability only — never part of freshness.
-	Model         string `json:"model,omitempty"`
-	PromptVersion int    `json:"promptVersion"`
-	GeneratedAt   string `json:"generatedAt"`
+	Model string `json:"model,omitempty"`
+	// RequestedModel keeps the alias the run was asked for (e.g. "sonnet"),
+	// so a repeated aliased request can recognize its own cached report.
+	RequestedModel string `json:"requestedModel,omitempty"`
+	PromptVersion  int    `json:"promptVersion"`
+	GeneratedAt    string `json:"generatedAt"`
 	// InputDigest fingerprints the exact evidence document the judge read;
 	// the report is fresh only while the trace still renders to this digest.
 	InputDigest string `json:"inputDigest,omitempty"`

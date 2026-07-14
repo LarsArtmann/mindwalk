@@ -71,8 +71,12 @@ func (s *Server) reportStateFor(meta model.SessionMeta) string {
 		return ""
 	}
 	// A report without an input digest predates digest freshness and the
-	// panel will grade it stale — say so here too rather than disagree.
-	if report.Session.EventCount != meta.EventCount || report.Judge.PromptVersion != judge.PromptVersion || report.Judge.InputDigest == "" {
+	// panel will grade it stale — say so here too rather than disagree. User
+	// turns catch message-only growth the event count is blind to.
+	if report.Session.EventCount != meta.EventCount ||
+		report.Session.UserTurns != meta.UserTurns ||
+		report.Judge.PromptVersion != judge.PromptVersion ||
+		report.Judge.InputDigest == "" {
 		return "stale"
 	}
 	return "done"
@@ -175,8 +179,16 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		Model string `json:"model"`
 	}
 	if r.Body != nil {
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
-			http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+		decoder := json.NewDecoder(r.Body)
+		if err := decoder.Decode(&req); err != nil {
+			if !errors.Is(err, io.EOF) {
+				http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+				return
+			}
+		} else if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
+			// One JSON value and nothing after it — trailing garbage means a
+			// broken client, and this request starts an expensive run.
+			http.Error(w, "invalid request body: trailing data after JSON object", http.StatusBadRequest)
 			return
 		}
 	}
