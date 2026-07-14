@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
@@ -59,7 +60,10 @@ func writeUserMessages(b *strings.Builder, marks []model.Mark) {
 			continue
 		}
 		text := strings.TrimSpace(mark.Note)
-		if text == "" || injectedUserMessage(text) {
+		// Adapters already drop injected wrappers before marks exist; the
+		// re-check here keeps judge input clean even for traces built by
+		// older adapters.
+		if text == "" || adapter.InjectedUserMessage(text) {
 			continue
 		}
 		messages = append(messages, userMessage{ordinal: len(messages) + 1, text: text})
@@ -80,14 +84,6 @@ func writeUserMessages(b *strings.Builder, marks []model.Mark) {
 		previous = message.ordinal
 		fmt.Fprintf(b, "[user #%d] %s\n\n", message.ordinal, truncateRunes(message.text, maxUserMessageLen))
 	}
-}
-
-// injectedUserMessage recognizes harness-injected text stored as a user
-// message but not written by the user: command envelopes and system
-// reminders start with markup, and Codex records the project's AGENTS.md
-// instructions as the session's first user message.
-func injectedUserMessage(text string) bool {
-	return strings.HasPrefix(text, "<") || strings.HasPrefix(text, "# AGENTS.md instructions")
 }
 
 func writeStats(b *strings.Builder, stats model.Stats) {

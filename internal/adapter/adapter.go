@@ -65,6 +65,17 @@ func UserMessageNote(text string) string {
 	return string(runes[:userMessageNoteLimit-1]) + "…"
 }
 
+// InjectedUserMessage recognizes harness-injected text recorded as a user
+// message but not written by the user: command envelopes and system
+// reminders start with markup, and Codex records the project's AGENTS.md
+// instructions as the session's first user message. Adapters drop these
+// before they become user-message marks — they would inflate user-turn
+// stats, clutter the timeline, and pose as the task in judge input.
+func InjectedUserMessage(text string) bool {
+	text = strings.TrimSpace(text)
+	return strings.HasPrefix(text, "<") || strings.HasPrefix(text, "# AGENTS.md instructions")
+}
+
 func ReadJSONLines(r io.Reader, visit func([]byte)) error {
 	reader := bufio.NewReaderSize(r, 64*1024)
 	for {

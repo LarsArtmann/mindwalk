@@ -242,21 +242,25 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			}
 			if payload.Type == "message" {
 				if payload.Role == "user" && payload.Content.HasText() {
-					trace.Marks = append(trace.Marks, model.Mark{
-						Seq:  len(callOrder),
-						Type: "user-message",
-						Note: adapter.UserMessageNote(payload.Content.Text()),
-					})
+					if text := payload.Content.Text(); !adapter.InjectedUserMessage(text) {
+						trace.Marks = append(trace.Marks, model.Mark{
+							Seq:  len(callOrder),
+							Type: "user-message",
+							Note: adapter.UserMessageNote(text),
+						})
+					}
 				}
 			}
 		case "message":
 			recognized = true
 			if line.Role == "user" && line.Content.HasText() {
-				trace.Marks = append(trace.Marks, model.Mark{
-					Seq:  len(callOrder),
-					Type: "user-message",
-					Note: adapter.UserMessageNote(line.Content.Text()),
-				})
+				if text := line.Content.Text(); !adapter.InjectedUserMessage(text) {
+					trace.Marks = append(trace.Marks, model.Mark{
+						Seq:  len(callOrder),
+						Type: "user-message",
+						Note: adapter.UserMessageNote(text),
+					})
+				}
 			}
 		case "event_msg":
 			recognized = true

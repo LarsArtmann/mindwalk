@@ -168,11 +168,13 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			return
 		}
 		if line.Type == "user" && hasUserMessage(msg.Content) {
-			trace.Marks = append(trace.Marks, model.Mark{
-				Seq:  len(trace.Events),
-				Type: "user-message",
-				Note: adapter.UserMessageNote(userMessageText(msg.Content)),
-			})
+			if text := userMessageText(msg.Content); !adapter.InjectedUserMessage(text) {
+				trace.Marks = append(trace.Marks, model.Mark{
+					Seq:  len(trace.Events),
+					Type: "user-message",
+					Note: adapter.UserMessageNote(text),
+				})
+			}
 		}
 		if msg.Model != "" && trace.Session.Model == "" {
 			trace.Session.Model = msg.Model

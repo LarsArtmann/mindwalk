@@ -713,3 +713,47 @@ func TestSummarizeMarksJudgeWorkdirAuxiliary(t *testing.T) {
 		}
 	}
 }
+
+func TestParseSkipsInjectedUserMessages(t *testing.T) {
+	dir := t.TempDir()
+	session := filepath.Join(dir, "rollout-2026-07-14T00-00-01-injected.jsonl")
+	userMessage := func(text string) map[string]any {
+		return map[string]any{
+			"timestamp": "2026-07-14T00:00:01Z",
+			"type":      "response_item",
+			"payload": map[string]any{
+				"type":    "message",
+				"role":    "user",
+				"content": []any{map[string]any{"type": "input_text", "text": text}},
+			},
+		}
+	}
+	writeJSONL(t, session,
+		map[string]any{
+			"timestamp": "2026-07-14T00:00:00Z",
+			"type":      "session_meta",
+			"payload":   map[string]any{"id": "injected", "session_id": "injected", "timestamp": "2026-07-14T00:00:00Z", "cwd": "/repo"},
+		},
+		userMessage("# AGENTS.md instructions for /repo\n\nproject rules"),
+		userMessage("<environment_context>shell: zsh</environment_context>"),
+		userMessage("the real task"),
+	)
+	trace, err := (Adapter{Dir: dir}).Parse(session)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var notes []string
+	for _, mark := range trace.Marks {
+		if mark.Type == "user-message" {
+			notes = append(notes, mark.Note)
+		}
+	}
+	// Injected AGENTS.md and markup wrappers stay out of marks — they would
+	// inflate userTurns and pose as the task in judge input.
+	if len(notes) != 1 || notes[0] != "the real task" {
+		t.Fatalf("user-message notes = %#v", notes)
+	}
+	if trace.Stats.UserTurns != 1 {
+		t.Fatalf("userTurns = %d, want 1", trace.Stats.UserTurns)
+	}
+}
