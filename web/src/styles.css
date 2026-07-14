@@ -1937,8 +1937,15 @@ dd {
   line-height: 1.6;
 }
 
+/* moments + narrative share the dimensions' side padding so the report
+   reads as one column */
+.report-section {
+  padding: 10px 16px 6px;
+}
+
 .report-again {
-  padding: 10px 16px 4px;
+  margin-top: 4px;
+  padding: 12px 16px;
   border-top: 1px solid var(--hairline);
 }
 

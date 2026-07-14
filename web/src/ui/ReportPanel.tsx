@@ -235,7 +235,7 @@ function PanelBody({
         <Dimension key={dimension.name} dimension={dimension} onJumpTo={onJumpTo} />
       ))}
       {report.notableMoments?.length ? (
-        <section>
+        <section className="report-section">
           <p className="eyebrow">Moments</p>
           {report.notableMoments.map((moment) => (
             <button
@@ -250,7 +250,7 @@ function PanelBody({
           ))}
         </section>
       ) : null}
-      <section>
+      <section className="report-section">
         <p className="eyebrow">Narrative</p>
         <p className="report-narrative">{report.narrative}</p>
       </section>
