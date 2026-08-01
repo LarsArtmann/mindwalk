@@ -246,6 +246,7 @@ function PanelBody({
       ) : null}
       <p className="report-task">{report.taskSummary}</p>
       <RubricSection rubric={report.rubric} locked={locked} onJumpTo={onJumpTo} />
+      <p className="eyebrow report-chapter">Process</p>
       {report.dimensions.map((dimension) => (
         <Dimension key={dimension.name} dimension={dimension} locked={locked} onJumpTo={onJumpTo} />
       ))}
@@ -328,6 +329,7 @@ function RubricSection({
   const multi = tasks.length > 1;
   return (
     <div className="report-rubric">
+      <p className="eyebrow report-chapter">Tasks</p>
       {showHint ? (
         <p className="report-rubric-hint">
           {thin.length} of {criteria.length} criteria had thin evidence — the log may not show enough to
