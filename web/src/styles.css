@@ -2470,11 +2470,18 @@ dd {
   font-size: var(--text-xs);
 }
 
+/* the scorer's note closes the rubric block: labeled so it reads as rubric
+   metadata, hairlined so it does not run into the first dimension below */
 .report-rubric-footnote {
-  padding: 2px 16px 10px;
+  padding: 8px 16px 10px;
+  border-bottom: 1px solid var(--hairline);
   color: var(--faint);
   font-size: var(--text-xs);
   line-height: 1.55;
+}
+
+.report-rubric-footnote .eyebrow {
+  margin-bottom: 4px;
 }
 
 .report-moment {

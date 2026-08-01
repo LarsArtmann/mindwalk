@@ -337,7 +337,12 @@ function RubricSection({
       {tasks.map((task) => (
         <RubricTaskBlock key={task.title} task={task} multi={multi} locked={locked} onJumpTo={onJumpTo} />
       ))}
-      {rubric.note ? <p className="report-rubric-footnote">{rubric.note}</p> : null}
+      {rubric.note ? (
+        <div className="report-rubric-footnote">
+          <p className="eyebrow">Rubric note</p>
+          <p>{rubric.note}</p>
+        </div>
+      ) : null}
     </div>
   );
 }
