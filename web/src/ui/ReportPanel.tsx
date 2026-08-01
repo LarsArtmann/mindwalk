@@ -232,21 +232,27 @@ function PanelBody({
   const report = status.report;
   return (
     <div className="report-body">
-      {status.stale ? (
-        <div className="report-stale">
-          <span>Based on {report.session.eventCount} events — the session has grown since.</span>
-          <div className="report-stale-actions">
-            {picker}
-            <button className="report-rerun" onClick={analyze} title="Re-evaluate with the current trace">
-              <RefreshCw size={12} />
-              Re-evaluate
-            </button>
-          </div>
+      <div className="report-controls">
+        {status.stale ? (
+          <p className="report-stale-note">
+            Based on {report.session.eventCount} events — the session has grown since.
+          </p>
+        ) : null}
+        <div className="report-stale-actions">
+          {picker}
+          <button
+            className="report-rerun"
+            onClick={analyze}
+            title={status.stale ? "Re-evaluate with the current trace" : "Run a fresh evaluation of this session"}
+          >
+            <RefreshCw size={12} />
+            Re-evaluate
+          </button>
         </div>
-      ) : null}
+      </div>
       <p className="report-task">{report.taskSummary}</p>
       <RubricSection rubric={report.rubric} locked={locked} onJumpTo={onJumpTo} />
-      <p className="eyebrow report-chapter">Process</p>
+      <p className="report-chapter">Process</p>
       {report.dimensions.map((dimension) => (
         <Dimension key={dimension.name} dimension={dimension} locked={locked} onJumpTo={onJumpTo} />
       ))}
@@ -271,19 +277,6 @@ function PanelBody({
         <p className="eyebrow">Narrative</p>
         <p className="report-narrative">{report.narrative}</p>
       </section>
-      {!status.stale && picker ? (
-        // a fresh report can still be re-judged — with a different agent or
-        // model; the stale banner owns this row otherwise
-        <section className="report-again">
-          <div className="report-stale-actions">
-            {picker}
-            <button className="report-rerun" onClick={analyze} title="Run a fresh evaluation of this session">
-              <RefreshCw size={12} />
-              Re-evaluate
-            </button>
-          </div>
-        </section>
-      ) : null}
     </div>
   );
 }
@@ -329,7 +322,7 @@ function RubricSection({
   const multi = tasks.length > 1;
   return (
     <div className="report-rubric">
-      <p className="eyebrow report-chapter">Tasks</p>
+      <p className="report-chapter">Tasks</p>
       {showHint ? (
         <p className="report-rubric-hint">
           {thin.length} of {criteria.length} criteria had thin evidence — the log may not show enough to

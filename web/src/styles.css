@@ -2232,15 +2232,16 @@ dd {
   padding-bottom: 10px;
 }
 
-.report-stale {
+/* one controls block at the top owns judge choice, re-evaluation, and the
+   staleness note — the report below it is pure content */
+.report-controls {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  margin: 10px 16px 0;
-  padding: 7px 10px;
-  border: 1px solid var(--hairline-strong);
-  border-radius: 4px;
+  gap: 7px;
+  padding: 10px 16px 0;
+}
+
+.report-stale-note {
   color: var(--amber);
   font-size: var(--text-xs);
   line-height: 1.4;
@@ -2265,16 +2266,14 @@ dd {
 }
 
 .report-task {
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid var(--hairline);
+  padding: 12px 16px 2px;
   color: var(--ink);
   font-size: var(--text-sm);
   line-height: 1.55;
 }
 
 .report-dimension {
-  padding: 10px 16px 8px;
-  border-bottom: 1px solid var(--hairline);
+  padding: 12px 16px 2px;
 }
 
 .report-dimension-head {
@@ -2377,15 +2376,20 @@ dd {
 /* chapter heads split the report into its two layers — Tasks (accounting)
    and Process (dimensions) — one rank above plain section eyebrows: their
    own ruled row, generous space above, tight below. */
+/* chapter heads are the panel's top type rank: ink, tracked wide, no rule —
+   the report separates by type and spacing, not by lines */
 .report-chapter {
   margin: 0;
-  padding: 18px 16px 7px;
-  border-bottom: 1px solid var(--hairline);
+  padding: 20px 16px 4px;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 620;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .report-rubric-note {
   padding: 8px 16px;
-  border-bottom: 1px solid var(--hairline);
   color: var(--faint);
   font-size: var(--text-xs);
   line-height: 1.5;
@@ -2398,14 +2402,6 @@ dd {
   color: var(--muted);
   font-size: var(--text-sm);
   line-height: 1.5;
-}
-
-.report-rubric-task {
-  border-bottom: 1px solid var(--hairline);
-}
-
-.report-rubric-task .report-dimension {
-  border-bottom: none;
 }
 
 /* spacing ranks the boundaries: chapter > task > criterion > finding.
@@ -2423,7 +2419,7 @@ dd {
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 12px 16px 0;
+  padding: 16px 16px 0;
   text-align: left;
 }
 
@@ -2497,8 +2493,7 @@ dd {
    metadata, hairlined so it does not run into the Process chapter below.
    The label stays an xs eyebrow; the note body is CJK prose and holds sm. */
 .report-rubric-footnote {
-  padding: 10px 16px 12px;
-  border-bottom: 1px solid var(--hairline);
+  padding: 14px 16px 2px;
   color: var(--muted);
   font-size: var(--text-sm);
   line-height: 1.55;
@@ -2543,11 +2538,6 @@ dd {
   padding: 10px 16px 6px;
 }
 
-.report-again {
-  margin-top: 4px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--hairline);
-}
 
 /* rail evaluation badges: the list mirrors judge state without extra clicks */
 
