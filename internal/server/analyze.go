@@ -177,6 +177,8 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 	var req struct {
 		CLI   string `json:"cli"`
 		Model string `json:"model"`
+		// Rubric false skips the task-rubric layer; absent or true keeps it.
+		Rubric *bool `json:"rubric"`
 	}
 	if r.Body != nil {
 		decoder := json.NewDecoder(r.Body)
@@ -214,16 +216,25 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 	s.analyze.active++
 	s.analyze.mu.Unlock()
 
-	go s.runAnalyze(meta.Key, trace, job, req.CLI, req.Model)
+	go s.runAnalyze(meta.Key, trace, job, req.CLI, req.Model, req.Rubric != nil && !*req.Rubric)
 
 	w.WriteHeader(http.StatusAccepted)
 	writeJSON(w, reportStatus{State: "running", JudgeAvailable: true})
 }
 
-func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli, judgeModel string) {
+func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli, judgeModel string, noRubric bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), judge.DefaultTimeout)
 	defer cancel()
-	report, err := judge.Analyze(ctx, trace, judge.Options{Runner: s.analyze.runner, CLI: cli, Model: judgeModel})
+	// The cached report seeds rubric reuse: a re-evaluation with unchanged
+	// task wording keeps the same criteria — including across judge CLIs,
+	// which is exactly what makes their verdicts comparable.
+	report, err := judge.Analyze(ctx, trace, judge.Options{
+		Runner:       s.analyze.runner,
+		CLI:          cli,
+		Model:        judgeModel,
+		NoRubric:     noRubric,
+		CachedReport: s.reportCache.Load(key),
+	})
 
 	// Persist before publishing done, and outside the lock: once the job entry
 	// is dropped, polls must be able to find the report on disk.

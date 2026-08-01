@@ -212,12 +212,53 @@ export interface Report {
     /** the LLM that actually judged, as reported by the CLI itself */
     model?: string;
     promptVersion: number;
+    /** set only when the report carries a scored rubric */
+    rubricPromptVersion?: number;
     generatedAt: string;
   };
   taskSummary: string;
   dimensions: ReportDimension[];
+  /** task-accounting layer; absent on --no-rubric and pre-rubric reports */
+  rubric?: Rubric;
   notableMoments?: ReportMoment[];
   narrative: string;
+}
+
+export type RubricStatus = "scored" | "unavailable";
+export type RubricReason = "generation-failed" | "no-task-text" | "weak-task-text" | "no-events";
+/** what the log let the scorer judge; none forces insufficient-data */
+export type Coverage = "sufficient" | "partial" | "none";
+
+/** session-specific criteria generated before scoring, grouped by the
+ * independent tasks the judge enumerated from the user messages */
+export interface Rubric {
+  status: RubricStatus;
+  reason?: RubricReason;
+  source?: "full" | "task";
+  taskDigest?: string;
+  tasks?: RubricTask[];
+  /** what the scorer felt the rubric did not let it express */
+  note?: string;
+}
+
+export interface RubricTask {
+  title: string;
+  type?: string;
+  anchorUserMessages: number[];
+  /** mark seqs the anchors resolve to — the task's start on the timeline */
+  anchorSeqs?: number[];
+  criteria: RubricCriterion[];
+}
+
+export interface RubricCriterion {
+  id: string;
+  title: string;
+  why?: string;
+  good?: string;
+  bad?: string;
+  coverage?: Coverage;
+  verdict: Verdict;
+  findings: ReportFinding[];
 }
 
 export type Verdict = "good" | "warning" | "problem" | "insufficient-data";

@@ -2370,6 +2370,113 @@ dd {
   overflow-wrap: anywhere;
 }
 
+/* task-accounting layer: criteria reuse the dimension pattern; only the
+   task grouping chrome and coverage metadata are new. Coverage is metadata,
+   not state — it stays on neutral tokens, no new status colors. */
+
+.report-rubric-note {
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--faint);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.report-rubric-hint {
+  padding: 8px 16px 0;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.report-rubric-task {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.report-rubric-task .report-dimension {
+  border-bottom: none;
+}
+
+.rubric-task-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px 0;
+  text-align: left;
+}
+
+.rubric-task-head:not(:disabled):hover .rubric-task-title {
+  color: var(--ink);
+}
+
+.rubric-task-head:disabled {
+  cursor: default;
+}
+
+.rubric-task-title {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 560;
+}
+
+.rubric-task-type {
+  color: var(--faint);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+}
+
+/* the task head dot is display-only: the worst criterion verdict, computed
+   in the UI — it exists nowhere in the report contract */
+.rubric-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--faint);
+}
+
+.rubric-dot.verdict-good {
+  background: var(--pine);
+}
+
+.rubric-dot.verdict-warning {
+  background: var(--amber);
+}
+
+.rubric-dot.verdict-problem {
+  background: var(--alarm);
+}
+
+.report-criterion-name {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 560;
+  overflow-wrap: anywhere;
+}
+
+.report-criterion-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.coverage-badge {
+  padding: 1px 7px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--faint);
+  font-size: var(--text-xs);
+}
+
+.report-rubric-footnote {
+  padding: 2px 16px 10px;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
 .report-moment {
   display: grid;
   grid-template-columns: max-content 1fr;

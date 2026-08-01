@@ -1,6 +1,16 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Sparkles, X } from "lucide-react";
-import type { JudgeChoice, ReportDimension, ReportStatus, Severity, Verdict } from "../types";
+import type {
+  JudgeChoice,
+  ReportDimension,
+  ReportFinding,
+  ReportStatus,
+  Rubric,
+  RubricCriterion,
+  RubricTask,
+  Severity,
+  Verdict
+} from "../types";
 
 interface ReportPanelProps {
   status?: ReportStatus;
@@ -170,8 +180,8 @@ function PanelBody({
       <div className="report-note">
         <p className="report-running">Judging the trajectory…</p>
         <p>
-          The judge reads the whole trace and writes evidence-anchored findings. This usually takes about a
-          minute; you can keep exploring meanwhile.
+          The judge first drafts task-specific criteria from your request, then scores the session against
+          them plus four process dimensions. Usually a minute or two; you can keep exploring meanwhile.
         </p>
       </div>
     );
@@ -235,6 +245,7 @@ function PanelBody({
         </div>
       ) : null}
       <p className="report-task">{report.taskSummary}</p>
+      <RubricSection rubric={report.rubric} locked={locked} onJumpTo={onJumpTo} />
       {report.dimensions.map((dimension) => (
         <Dimension key={dimension.name} dimension={dimension} locked={locked} onJumpTo={onJumpTo} />
       ))}
@@ -276,6 +287,172 @@ function PanelBody({
   );
 }
 
+const VERDICT_RANK: Record<Verdict, number> = { "insufficient-data": 0, good: 1, warning: 2, problem: 3 };
+
+function worstVerdict(criteria: RubricCriterion[]): Verdict {
+  let worst: Verdict = "insufficient-data";
+  for (const criterion of criteria) {
+    if (VERDICT_RANK[criterion.verdict] > VERDICT_RANK[worst]) worst = criterion.verdict;
+  }
+  return worst;
+}
+
+// the task-accounting layer: rubric criteria grouped by task, between the
+// task summary and the four process dimensions. Absent or unavailable
+// rubrics collapse to a single quiet line — the fixed layer never waits.
+function RubricSection({
+  rubric,
+  locked,
+  onJumpTo
+}: {
+  rubric?: Rubric;
+  locked: boolean;
+  onJumpTo: (seq: number) => void;
+}) {
+  if (!rubric) {
+    return <p className="report-rubric-note">This report has no task rubric — re-evaluate to add one.</p>;
+  }
+  if (rubric.status !== "scored" || !rubric.tasks?.length) {
+    const text =
+      rubric.reason === "generation-failed"
+        ? "Task rubric unavailable this run — showing process dimensions only."
+        : rubric.reason === "no-events"
+          ? "No tool events to evidence a rubric."
+          : "No task text to build a rubric from.";
+    return <p className="report-rubric-note">{text}</p>;
+  }
+  const tasks = rubric.tasks;
+  const criteria = tasks.flatMap((task) => task.criteria);
+  const thin = criteria.filter((criterion) => criterion.coverage && criterion.coverage !== "sufficient");
+  const showHint = criteria.length > 0 && thin.length / criteria.length > 0.4;
+  const multi = tasks.length > 1;
+  return (
+    <div className="report-rubric">
+      {showHint ? (
+        <p className="report-rubric-hint">
+          {thin.length} of {criteria.length} criteria had thin evidence — the log may not show enough to
+          judge them.
+        </p>
+      ) : null}
+      {tasks.map((task) => (
+        <RubricTaskBlock key={task.title} task={task} multi={multi} locked={locked} onJumpTo={onJumpTo} />
+      ))}
+      {rubric.note ? <p className="report-rubric-footnote">{rubric.note}</p> : null}
+    </div>
+  );
+}
+
+function RubricTaskBlock({
+  task,
+  multi,
+  locked,
+  onJumpTo
+}: {
+  task: RubricTask;
+  multi: boolean;
+  locked: boolean;
+  onJumpTo: (seq: number) => void;
+}) {
+  const startSeq = task.anchorSeqs?.[0];
+  return (
+    <section className="report-rubric-task">
+      {multi ? (
+        // single-task sessions skip the header: the criteria read like a
+        // fifth..nth dimension and the layout stays close to what it was
+        <button
+          className="rubric-task-head"
+          onClick={() => {
+            if (startSeq !== undefined) onJumpTo(startSeq);
+          }}
+          disabled={locked || startSeq === undefined}
+          title={startSeq !== undefined ? `Jump to this task's start (step ${startSeq + 1})` : undefined}
+        >
+          <span className={`rubric-dot verdict-${worstVerdict(task.criteria)}`} />
+          <span className="rubric-task-title">{task.title}</span>
+          {task.type ? <span className="rubric-task-type">{task.type}</span> : null}
+        </button>
+      ) : null}
+      {task.criteria.map((criterion) => (
+        <Criterion key={criterion.id} criterion={criterion} locked={locked} onJumpTo={onJumpTo} />
+      ))}
+    </section>
+  );
+}
+
+// a criterion renders exactly like a dimension — same head, chip, and
+// finding buttons — plus a muted coverage badge when evidence ran thin
+function Criterion({
+  criterion,
+  locked,
+  onJumpTo
+}: {
+  criterion: RubricCriterion;
+  locked: boolean;
+  onJumpTo: (seq: number) => void;
+}) {
+  const hint = [
+    criterion.why,
+    criterion.good ? `good: ${criterion.good}` : "",
+    criterion.bad ? `bad: ${criterion.bad}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return (
+    <section className="report-dimension report-criterion">
+      <div className="report-dimension-head">
+        <span className="report-criterion-name" title={hint || undefined}>
+          {criterion.title}
+        </span>
+        <span className="report-criterion-badges">
+          {criterion.coverage === "partial" ? <span className="coverage-badge">partial evidence</span> : null}
+          <span
+            className={`verdict verdict-${criterion.verdict}`}
+            title={
+              criterion.coverage === "none"
+                ? "The log cannot evidence this criterion either way"
+                : undefined
+            }
+          >
+            {verdictWord(criterion.verdict)}
+          </span>
+        </span>
+      </div>
+      {criterion.findings.map((finding) => (
+        <FindingButton key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`} finding={finding} locked={locked} onJumpTo={onJumpTo} />
+      ))}
+    </section>
+  );
+}
+
+function FindingButton({
+  finding,
+  locked,
+  onJumpTo
+}: {
+  finding: ReportFinding;
+  locked: boolean;
+  onJumpTo: (seq: number) => void;
+}) {
+  return (
+    <button
+      className="report-finding"
+      onClick={() => {
+        const seq = finding.evidenceSeqs?.[0];
+        if (seq !== undefined) onJumpTo(seq);
+      }}
+      disabled={locked || !finding.evidenceSeqs?.length}
+      title={
+        finding.evidenceSeqs?.length
+          ? `Jump to step ${finding.evidenceSeqs[0] + 1} — evidence: ${finding.evidenceSeqs.map((seq) => `#${seq + 1}`).join(" ")}`
+          : undefined
+      }
+    >
+      <span className={`severity-dot ${severityClass(finding.severity)}`} />
+      <span className="report-claim">{finding.claim}</span>
+    </button>
+  );
+}
+
 function Dimension({
   dimension,
   locked,
@@ -293,23 +470,7 @@ function Dimension({
         <span className={`verdict verdict-${dimension.verdict}`}>{verdictWord(dimension.verdict)}</span>
       </div>
       {dimension.findings.map((finding) => (
-        <button
-          key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`}
-          className="report-finding"
-          onClick={() => {
-            const seq = finding.evidenceSeqs?.[0];
-            if (seq !== undefined) onJumpTo(seq);
-          }}
-          disabled={locked || !finding.evidenceSeqs?.length}
-          title={
-            finding.evidenceSeqs?.length
-              ? `Jump to step ${finding.evidenceSeqs[0] + 1} — evidence: ${finding.evidenceSeqs.map((seq) => `#${seq + 1}`).join(" ")}`
-              : undefined
-          }
-        >
-          <span className={`severity-dot ${severityClass(finding.severity)}`} />
-          <span className="report-claim">{finding.claim}</span>
-        </button>
+        <FindingButton key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`} finding={finding} locked={locked} onJumpTo={onJumpTo} />
       ))}
     </section>
   );

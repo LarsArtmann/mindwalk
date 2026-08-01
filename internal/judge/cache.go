@@ -49,10 +49,20 @@ func (c Cache) Load(sessionKey string) *model.Report {
 		return nil
 	}
 	// A dimension's nil findings serializes as JSON null, which the panel
-	// maps over unconditionally; normalize rather than reject.
+	// maps over unconditionally; normalize rather than reject. Rubric
+	// criteria get the same treatment.
 	for i := range report.Dimensions {
 		if report.Dimensions[i].Findings == nil {
 			report.Dimensions[i].Findings = []model.ReportFinding{}
+		}
+	}
+	if report.Rubric != nil {
+		for i := range report.Rubric.Tasks {
+			for j := range report.Rubric.Tasks[i].Criteria {
+				if report.Rubric.Tasks[i].Criteria[j].Findings == nil {
+					report.Rubric.Tasks[i].Criteria[j].Findings = []model.ReportFinding{}
+				}
+			}
 		}
 	}
 	return &report
@@ -61,12 +71,22 @@ func (c Cache) Load(sessionKey string) *model.Report {
 // Fresh reports whether a cached report still matches the trace it would be
 // regenerated from: same prompt version and the same judge input digest —
 // event counts alone miss user messages (stored as marks) and content edits.
-// The judge CLI is deliberately not part of freshness — a valid report stays
-// valid. Reports from before the digest existed are stale by construction.
+// A scored rubric additionally pins the rubric prompt version; reports
+// without a rubric (or with a deterministic skip) are judged only on what
+// they carry. The judge CLI is deliberately not part of freshness — a valid
+// report stays valid. Reports from before the digest existed are stale by
+// construction.
 func Fresh(report *model.Report, trace *model.Trace) bool {
-	return report != nil &&
-		report.Judge.PromptVersion == PromptVersion &&
-		report.Judge.InputDigest == InputDigest(trace)
+	if report == nil ||
+		report.Judge.PromptVersion != PromptVersion ||
+		report.Judge.InputDigest != InputDigest(trace) {
+		return false
+	}
+	if report.Rubric != nil && report.Rubric.Status == model.RubricStatusScored &&
+		report.Judge.RubricPromptVersion != RubricPromptVersion {
+		return false
+	}
+	return true
 }
 
 func (c Cache) Store(sessionKey string, report *model.Report) error {
