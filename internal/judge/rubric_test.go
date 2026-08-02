@@ -491,7 +491,11 @@ func TestFreshChecksRubricPromptVersion(t *testing.T) {
 	scored := &model.Report{
 		Version: 1, Judge: base,
 		Dimensions: []model.ReportDimension{{Name: "exploration"}},
-		Rubric:     &model.Rubric{Status: model.RubricStatusScored},
+		Rubric: &model.Rubric{
+			Status:     model.RubricStatusScored,
+			Source:     model.RubricSourceFull,
+			TaskDigest: TaskDigest(trace, model.RubricSourceFull),
+		},
 	}
 	if Fresh(scored, trace) {
 		t.Fatal("scored rubric without a rubric prompt version must be stale")
@@ -499,6 +503,16 @@ func TestFreshChecksRubricPromptVersion(t *testing.T) {
 	scored.Judge.RubricPromptVersion = RubricPromptVersion
 	if !Fresh(scored, trace) {
 		t.Fatal("expected fresh with matching rubric prompt version")
+	}
+	// A scored rubric that cannot say what it fingerprinted is stale.
+	scored.Rubric.Source = ""
+	if Fresh(scored, trace) {
+		t.Fatal("scored rubric without a source must be stale")
+	}
+	scored.Rubric.Source = model.RubricSourceFull
+	scored.Rubric.TaskDigest = "stale"
+	if Fresh(scored, trace) {
+		t.Fatal("scored rubric with a mismatched task digest must be stale")
 	}
 
 	// Deterministic skips and rubric-less reports never pin the version.
@@ -510,6 +524,80 @@ func TestFreshChecksRubricPromptVersion(t *testing.T) {
 	bare := &model.Report{Version: 1, Judge: base}
 	if !Fresh(bare, trace) {
 		t.Fatal("rubric-less report must stay fresh")
+	}
+}
+
+func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
+	// A mid-window message revision is invisible to the scoring document
+	// (12-message budget) but visible to the task evidence (48): the report
+	// must go stale even though InputDigest cannot see the change.
+	longTrace := func(text3 string) *model.Trace {
+		trace := sampleTrace()
+		trace.Marks = nil
+		for i := 0; i < maxUserMessages+5; i++ {
+			note := fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)
+			if i == 2 {
+				note = text3
+			}
+			trace.Marks = append(trace.Marks, model.Mark{Seq: 0, Type: "user-message", Note: note})
+		}
+		return trace
+	}
+	before := longTrace("请求 3：修复缓存逻辑")
+	after := longTrace("请求 3：不要修改缓存，只分析性能问题")
+	if InputDigest(before) != InputDigest(after) {
+		t.Fatal("premise broken: the scoring digest should not see a mid-window change")
+	}
+	report := &model.Report{
+		Version: 1,
+		Judge: model.ReportJudge{
+			CLI: "stub", PromptVersion: PromptVersion,
+			RubricPromptVersion: RubricPromptVersion,
+			InputDigest:         InputDigest(before),
+		},
+		Dimensions: []model.ReportDimension{{Name: "exploration"}},
+		Rubric: &model.Rubric{
+			Status:     model.RubricStatusScored,
+			Source:     model.RubricSourceFull,
+			TaskDigest: TaskDigest(before, model.RubricSourceFull),
+		},
+	}
+	if !Fresh(report, before) {
+		t.Fatal("expected fresh against the trace it was generated from")
+	}
+	if Fresh(report, after) {
+		t.Fatal("mid-window task change must stale the rubric-bearing report")
+	}
+
+	// The same discipline covers deterministic skips: a weak-task-text report
+	// stays fresh only while the task evidence is still weak.
+	weakTrace := func(text3 string) *model.Trace {
+		trace := sampleTrace()
+		trace.Marks = nil
+		for i := 0; i < maxUserMessages+5; i++ {
+			note := "好"
+			if i == 2 {
+				note = text3
+			}
+			trace.Marks = append(trace.Marks, model.Mark{Seq: 0, Type: "user-message", Note: note})
+		}
+		return trace
+	}
+	weakBefore := weakTrace("好")
+	weakAfter := weakTrace("请求 3：补一个完整的任务说明，把统计口径修好并加回归测试")
+	if InputDigest(weakBefore) != InputDigest(weakAfter) {
+		t.Fatal("premise broken: mid-window enrichment should not move the scoring digest")
+	}
+	skipped := &model.Report{
+		Version: 1,
+		Judge:   model.ReportJudge{CLI: "stub", PromptVersion: PromptVersion, InputDigest: InputDigest(weakBefore)},
+		Rubric:  &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonWeakTaskText},
+	}
+	if !Fresh(skipped, weakBefore) {
+		t.Fatal("weak-task-text skip should stay fresh while the evidence stays weak")
+	}
+	if Fresh(skipped, weakAfter) {
+		t.Fatal("enriched task evidence must stale the weak-task-text skip")
 	}
 }
 
