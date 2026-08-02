@@ -155,7 +155,7 @@ mindwalk analyze / POST analyze（显式触发，不变）
 - criterion verdict：`coverage=none → insufficient-data`；否则按现行 severity 优先级（problem > warning > good）。
 - 分组校验：anchorUserMessages ⊆ 真实用户消息序号、非空、跨任务不重复；每任务 ≥1 条标准；预算越界即 invalid → 重试 → 降级。
 - 四维的 observability 强制不变，不作用于 rubric 层——rubric 层的对应机制就是 coverage。
-- rubric 层不影响四维 verdict；两层独立汇总；不设 session 级或任务级的存储 verdict（任务节头的「最差色点」是 UI 现算的展示，见 §12）。
+- rubric 层不影响四维 verdict；两层独立汇总；不设 session 级或任务级 verdict——连 UI 派生的聚合色点也在实测后移除（见 §12）。
 
 **运行时质量信号**（只观测、不参与裁决、不新增存储字段）：面板由报告现算 coverage-sufficient 率（低 = 生成违反可观测性门槛）、零 finding 死标准数、`note` 非空（覆盖缺口）。自动重生成本期不做，攒数据再定。
 
@@ -207,16 +207,17 @@ rubric 复用命中（重评且任务文本未变）→ 1 次调用，回到现�
 
 ## 12. UI（ReportPanel）
 
-对账区插在 taskSummary 与四维之间；本节为 M2 起点，上手实物后的微调直接在实现里迭代，不回写本稿。
+本节记录实机迭代后的定稿形态（M2 三轮打磨的结果）。
 
-- **按任务分节**：节头 = 任务 title + 弱化 type 标签 + UI 现算的最差 verdict 色点（纯展示，不入契约）；节头点击 → `anchorSeqs[0]` 跳时间轴任务起点。单任务 session 省略节头，版面与现状几乎一致。
-- **标准行复用 Dimension 模式**：标准名 + verdict 章（insufficient-data 沿用 "no signal"）+ findings 按钮（severity 色点、点击跳证据、tooltip 列 seq——零新交互代码）；`why` 进现有 data-hint 槽，good/bad 进标准行 tooltip，不上版面。
-- **默认全部展开**，与四维一致（实测每标准 2–3 条 findings；M1.5 若显示普遍过长再改折叠）。
-- **coverage 克制展示**：sufficient 静默；partial 一个弱化中性徽章；none 不加元素（verdict 已是 no signal）。徽章用中性灰 token——coverage 是元数据不是状态，不发明新状态色。
-- **质量提示**：sufficient 率 <60% 时对账区头部一行弱文案「N/M 条标准证据单薄」（UI 现算，见 §8）。
-- **空态/降级态一行化**：`generation-failed` →「本次未生成任务 rubric，仅展示过程四维」；`no-task-text` / `weak-task-text` →「无足够任务文本可生成 rubric」；新鲜但无 rubric 的旧报告 →「此报告不含任务对账，重评可补」，CTA 指向面板底部既有 re-evaluate 行。
-- **Running 态**只改静态文案（先起草标准再评分，约一两分钟）；实时阶段进度见开放问题 7。
-- **不动**：SessionRail 徽章、Dock 注册、judge picker、面板 chrome 英文（rubric 内容跟随 session 语言，与 findings 现状一致）。
+- **读序摘要先行**：面板头下是唯一控制区（判官署名、stale 一行琥珀提示、CLI/模型选择、Re-evaluate——原底部重评行已并入）；导语 = taskSummary（主墨）+ 判官 narrative（次级灰）；随后 Tasks / Process 两章，Moments 收尾。
+- **两级标题体系，正文零发丝线**：章头（Tasks/Process）是面板最高字级——主墨、text-sm、加宽字距大写；节头（EXPLORATION 式）保持大写 xs 淡灰。分隔全部由「章 > 任务 > 标准 > finding」的间距梯度承担。
+- **任务节头 = 标题 + 行内 type 标签，无状态点**：最差色点方案实测后废弃——它与标准行的 verdict 章冗余、与 finding 的 severity 色点撞语法；severity 色点是面板唯一色点词汇。节头点击经 `anchorSeqs[0]` 跳任务起点，hover 下划线示意可点；单任务省略节头。
+- **标准行复用 Dimension 模式**：verdict 章（insufficient-data 沿用 "no signal"）+ findings 按钮（点击跳证据、tooltip 列 seq）；`why`/good/bad 进 tooltip 不上版面；默认全部展开。
+- **coverage 克制展示**：sufficient 静默；partial 弱化中性徽章；none 不加元素。**中文语句内容最低 text-sm**，xs 只留给拉丁标签、徽章与 eyebrow。
+- **质量提示**：sufficient 率 <60% 时对账区头部一行弱文案（UI 现算，见 §8）；RUBRIC NOTE 带 eyebrow 标签收尾 rubric 层。
+- **空态/降级态一行化**：`generation-failed` →「仅展示过程四维」；`no-task-text` / `weak-task-text` →「无足够任务文本」；`no-events` →「无工具事件可佐证」；新鲜但无 rubric 的旧报告 →「重评可补」。
+- **Running 态**静态文案（先起草标准再评分，约一两分钟）；实时阶段进度见开放问题 7。
+- **不动**：SessionRail 徽章、Dock 注册、judge picker、面板 chrome 英文（rubric 内容跟随 session 语言）。
 
 ## 13. 安全与不变量核对
 
