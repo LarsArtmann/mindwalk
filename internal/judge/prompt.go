@@ -1,15 +1,17 @@
 package judge
 
-// PromptVersion invalidates cached reports whenever a scoring prompt changes
-// in a way that affects output content or structure. It covers both scoring
-// variants — unified and the dimensions-only fallback — because a report
-// cannot record which rules produced its findings.
-const PromptVersion = 3
+// PromptVersion invalidates cached reports whenever scoring semantics change
+// — the prompt text, or the mechanical verdict rules applied to its output
+// (v4: zero-event traces force insufficient-data on all dimensions). It
+// covers both scoring variants — unified and the dimensions-only fallback —
+// because a report cannot record which rules produced its findings.
+const PromptVersion = 4
 
 // RubricPromptVersion invalidates the rubric layer (and rubric reuse) when
-// the generation prompt changes. Deterministic skips (no/weak task text) are
-// version-independent: no generation happened.
-const RubricPromptVersion = 1
+// the generation prompt or its input contract changes (v2: the task-evidence
+// section covers all task messages, not just the scoring budget).
+// Deterministic skips (no/weak task text, no events) are version-independent.
+const RubricPromptVersion = 2
 
 // dimensionRules is the shared core of both scoring prompts: the four fixed
 // dimensions and the discipline rules findings must follow. The judge asks

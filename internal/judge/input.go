@@ -19,12 +19,32 @@ const (
 	maxUserMessageLen  = 600
 	maxSummaryLen      = 160
 	maxNarrativeEvents = 2000
+	// maxTaskMessages bounds the rubric phase's task-evidence section — much
+	// wider than the scoring budget because the rubric must see every task
+	// the user raised. Anchors, the task digest, and the weak-text gate all
+	// read exactly this set; nothing rubric-related may consult a different
+	// message list.
+	maxTaskMessages = 48
 )
 
-// BuildInput renders one trace as the judge's evidence document: session
-// meta, user task wording, precomputed stats, and a one-line-per-event
-// narrative. The judge reads only this — never the raw session log.
+// BuildInput renders one trace as the scoring judge's evidence document:
+// session meta, budgeted user task wording, precomputed stats, and a
+// one-line-per-event narrative. The judge reads only this — never the raw
+// session log.
 func BuildInput(trace *model.Trace) string {
+	return buildDocument(trace, renderedUserMessages(trace.Marks))
+}
+
+// BuildRubricInput renders the rubric generator's evidence document: same
+// stats and narrative, but the user-message section is the full task
+// evidence (taskMessages) rather than the scoring budget — a task raised in
+// the middle of a long session must be visible to the generator that is
+// asked to enumerate tasks.
+func BuildRubricInput(trace *model.Trace) string {
+	return buildDocument(trace, taskMessages(trace.Marks))
+}
+
+func buildDocument(trace *model.Trace, keep []userMessage) string {
 	var b strings.Builder
 	sess := trace.Session
 	b.WriteString("# Session under evaluation\n\n")
@@ -32,7 +52,7 @@ func BuildInput(trace *model.Trace) string {
 	fmt.Fprintf(&b, "- cwd: %s  events: %d\n", sess.Cwd, sess.EventCount)
 	fmt.Fprintf(&b, "- started: %s  ended: %s\n\n", sess.StartedAt, sess.EndedAt)
 
-	writeUserMessages(&b, trace.Marks)
+	writeMessages(&b, keep)
 	writeStats(&b, trace.Stats)
 	writeNarrative(&b, trace)
 	return b.String()
@@ -75,21 +95,29 @@ func filteredUserMessages(marks []model.Mark) []userMessage {
 	return messages
 }
 
-// renderedUserMessages applies the rendering budget: the first message states
-// the task and the newest ones carry corrections, so when the budget
-// overflows, first plus newest win — mid-session chatter gives way. Rubric
-// task anchors are validated against exactly this list.
-func renderedUserMessages(marks []model.Mark) []userMessage {
-	messages := filteredUserMessages(marks)
-	if len(messages) > maxUserMessages {
-		messages = append([]userMessage{messages[0]}, messages[len(messages)-(maxUserMessages-1):]...)
+// budgetMessages keeps the first message (it states the task) plus the
+// newest budget-1 (they carry corrections); mid-session chatter gives way.
+func budgetMessages(messages []userMessage, budget int) []userMessage {
+	if len(messages) > budget {
+		messages = append([]userMessage{messages[0]}, messages[len(messages)-(budget-1):]...)
 	}
 	return messages
 }
 
-func writeUserMessages(b *strings.Builder, marks []model.Mark) {
+// renderedUserMessages is the scoring document's message budget.
+func renderedUserMessages(marks []model.Mark) []userMessage {
+	return budgetMessages(filteredUserMessages(marks), maxUserMessages)
+}
+
+// taskMessages is the single task-evidence set of the rubric phase: what the
+// generator reads, what anchors may reference, what the digest fingerprints,
+// and what the weak-text gate measures.
+func taskMessages(marks []model.Mark) []userMessage {
+	return budgetMessages(filteredUserMessages(marks), maxTaskMessages)
+}
+
+func writeMessages(b *strings.Builder, keep []userMessage) {
 	b.WriteString("## User messages (the task; later ones are follow-ups/corrections)\n\n")
-	keep := renderedUserMessages(marks)
 	if len(keep) == 0 {
 		b.WriteString("(no user message text available)\n\n")
 		return
@@ -104,32 +132,31 @@ func writeUserMessages(b *strings.Builder, marks []model.Mark) {
 	}
 }
 
-// taskTextRunes measures the task signal available to a rubric: the total
-// trimmed length of every user message, before the rendering budget.
+// taskTextRunes measures the task signal available to a rubric — over the
+// same set the generator will actually see.
 func taskTextRunes(marks []model.Mark) int {
 	total := 0
-	for _, message := range filteredUserMessages(marks) {
+	for _, message := range taskMessages(marks) {
 		total += len([]rune(message.text))
 	}
 	return total
 }
 
-// userMessagesSection renders just the user-message section of the evidence
-// document — the task wording a rubric is derived from.
-func userMessagesSection(marks []model.Mark) string {
+// taskSection renders the rubric phase's user-message section.
+func taskSection(marks []model.Mark) string {
 	var b strings.Builder
-	writeUserMessages(&b, marks)
+	writeMessages(&b, taskMessages(marks))
 	return b.String()
 }
 
-// TaskDigest fingerprints the task wording a rubric would be generated from.
-// Unlike InputDigest it ignores events and stats: a session that only grew in
-// activity keeps its rubric, while any change to the rendered user messages,
-// the generation source mode, or the rubric prompt forces regeneration.
+// TaskDigest fingerprints the exact task section the rubric generator reads.
+// Unlike InputDigest it ignores events and stats: a session that only grew
+// in activity keeps its rubric, while any change to the task wording, the
+// generation source mode, or the rubric prompt forces regeneration.
 func TaskDigest(trace *model.Trace, source string) string {
 	sum := sha256.Sum256([]byte(strings.Join([]string{
 		trace.Session.Harness,
-		userMessagesSection(trace.Marks),
+		taskSection(trace.Marks),
 		source,
 		strconv.Itoa(RubricPromptVersion),
 	}, "\n")))

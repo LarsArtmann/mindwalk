@@ -53,7 +53,7 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 	input := BuildInput(trace)
 	var rubric *model.Rubric
 	if !opts.NoRubric {
-		acquired, err := acquireRubric(ctx, runner, trace, input, opts.CachedReport)
+		acquired, err := acquireRubric(ctx, runner, trace, opts.CachedReport)
 		if err != nil {
 			return nil, err
 		}
@@ -173,7 +173,14 @@ func parseOutput(raw string, trace *model.Trace, rubric *model.Rubric) (*model.R
 	}
 	for _, name := range model.DimensionNames {
 		dim := byName[name]
-		dim.Verdict = rollupVerdict(name, dim.Findings, trace.Stats.Observability)
+		if len(trace.Events) == 0 {
+			// A conversation-only trace has nothing citable: every finding was
+			// just dropped, and a good verdict here would be praise on zero
+			// evidence. No events, no signal — for all four dimensions.
+			dim.Verdict = model.VerdictInsufficientData
+		} else {
+			dim.Verdict = rollupVerdict(name, dim.Findings, trace.Stats.Observability)
+		}
 		report.Dimensions = append(report.Dimensions, *dim)
 	}
 	if rubric != nil {
@@ -238,8 +245,20 @@ func scoreRubric(rubric *model.Rubric, out *llmOutput, validSeqs map[int]bool) (
 		coverage string
 		findings []model.ReportFinding
 	}
+	expected := map[string]bool{}
+	for _, task := range rubric.Tasks {
+		for _, criterion := range task.Criteria {
+			expected[criterion.ID] = true
+		}
+	}
 	scores := map[string]score{}
 	for _, criterion := range out.Criteria {
+		// Unknown ids are dropped before any validation: an invented entry is
+		// noise the contract discards, and its malformed coverage or findings
+		// must not be able to fail the whole scoring pass.
+		if !expected[criterion.ID] {
+			continue
+		}
 		if _, dup := scores[criterion.ID]; dup {
 			continue
 		}

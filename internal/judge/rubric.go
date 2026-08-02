@@ -53,14 +53,18 @@ type llmRubric struct {
 // Generation failure degrades (status unavailable) rather than erroring —
 // the fixed dimensions must never be blocked by the rubric layer. Only a
 // subprocess failure is a hard error, since scoring would hit it too.
-func acquireRubric(ctx context.Context, runner Runner, trace *model.Trace, input string, cached *model.Report) (*model.Rubric, error) {
+func acquireRubric(ctx context.Context, runner Runner, trace *model.Trace, cached *model.Report) (*model.Rubric, error) {
 	// Conversation-only sessions (no tool events) leave nothing to cite:
 	// scoring would drop every finding and hand out good verdicts on zero
 	// evidence — the M1.5 bench caught exactly that.
 	if len(trace.Events) == 0 {
 		return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonNoEvents}, nil
 	}
-	if len(filteredUserMessages(trace.Marks)) == 0 {
+	// One task-evidence contract: the generator's input, the anchor
+	// validation set, the digest, and the weak-text gate all read
+	// taskMessages — never a differently budgeted list.
+	messages := taskMessages(trace.Marks)
+	if len(messages) == 0 {
 		return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonNoTaskText}, nil
 	}
 	if taskTextRunes(trace.Marks) < weakTaskTextRunes {
@@ -70,10 +74,7 @@ func acquireRubric(ctx context.Context, runner Runner, trace *model.Trace, input
 	if reused := reusableRubric(cached, digest); reused != nil {
 		return reused, nil
 	}
-	// Anchors validate against every real message, not just the rendered
-	// ones: past the rendering budget the evidence shows "[user #1] … N
-	// omitted … [user #8]", and a task legitimately spans the omitted range.
-	messages := filteredUserMessages(trace.Marks)
+	input := BuildRubricInput(trace)
 	for attempt := 0; attempt < 2; attempt++ {
 		result, err := runner.Run(ctx, rubricPrompt, input)
 		if err != nil {

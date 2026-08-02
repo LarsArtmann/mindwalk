@@ -60,8 +60,8 @@ mindwalk analyze / POST analyze（显式触发，不变）
 {
   "judge": {
     "cli": "codex", "model": "gpt-5.6-sol",
-    "promptVersion": 3,            // 评分 prompt 改版：2 → 3
-    "rubricPromptVersion": 1,      // 新增；rubric 层缺席时省略
+    "promptVersion": 4,            // 评分语义改版即升（v4：零事件全维 insufficient-data）
+    "rubricPromptVersion": 2,      // 新增；rubric 层缺席时省略（v2：任务证据集契约）
     "generatedAt": "…", "inputDigest": "…"
   },
   "dimensions": [ /* 固定四维，结构不变 */ ],
@@ -99,7 +99,7 @@ mindwalk analyze / POST analyze（显式触发，不变）
 |---|---|
 | 任务分组 | 任务数 1–6；每任务 criteria 1–6 条；总量 3–12，越界即 invalid |
 | criteria 预算（prompt 侧） | 单任务 4–6 条；多任务每任务 2–4 条、总量 ≤10 |
-| anchorUserMessages | 非空；必须是真实存在的 `[user #N]` 序号（含被渲染预算省略的中间消息——任务可合法跨越省略区）；跨任务不重复 |
+| anchorUserMessages | 非空；必须属于 rubric 的任务证据集（见 §6，全部用户消息、上限 48 条）；跨任务不重复 |
 | anchorSeqs | Go 派生（序号 → user-message mark seq），不来自 LLM |
 | criterion.id | `^[a-z0-9]+(-[a-z0-9]+)*$`，≤48 字符，跨任务全局唯一 |
 | title / why / good / bad | ≤80 / ≤500 / ≤500 / ≤500 runes |
@@ -113,7 +113,7 @@ mindwalk analyze / POST analyze（显式触发，不变）
 
 **Phase R（rubric 生成）**
 
-- 输入：完整 evidence。单 session 模式取 full——污染只影响锚点具体度，靠 prompt 压泛化；`source` 如实记录，对比模式必须以 task 模式重生成。
+- **单一任务证据契约**：生成输入（`BuildRubricInput`）、锚点校验集、taskDigest、弱文本门槛四者共用同一消息集合——全部用户消息、上限 48 条（首条 + 最新 47），与评分文档的 12 条预算解耦；超过 48 条之外的消息不可锚定。单 session 模式取 full（stats+narrative 同评分文档）——污染只影响锚点具体度，靠 prompt 压泛化；`source` 如实记录，对比模式必须以 task 模式重生成。
 - 跳过（不算失败）：零工具事件的纯对话 trace → `reason=no-events`（无可引用则评分必然全体裁光、verdict 空转为 good——M1.5 实测抓到的洞）；用户消息段为空 → `no-task-text`；任务文本去空白合计 <30 runes（M1.5 校准后维持）→ `weak-task-text`；缓存报告 taskDigest 匹配且 rubricPromptVersion 相同 → 复用。
 - 生成两步走：先枚举独立任务（新任务 = 引入新交付物/目标；追问、纠偏是 refinement），再按任务分配标准并声明 anchorUserMessages。单任务自然退化为一组；分组错误爆炸半径小——标准只是归错抽屉，评分仍在全量叙事上进行，evidence_seqs 照常锚定。
 - invalid 重试一次，再败降级（`generation-failed`）。rubric 层任何故障不阻塞固定层出报告。
@@ -125,7 +125,7 @@ mindwalk analyze / POST analyze（显式触发，不变）
 
 **rubric 复用与稳定性**
 
-`taskDigest = SHA-256(harness + BuildInput 用户消息段原文 + source + rubricPromptVersion)`
+`taskDigest = SHA-256(harness + 任务证据段原文 + source + rubricPromptVersion)`
 
 任务文本未变的重评沿用上次 rubric、只重跑评分：标准不漂移（稳定性靠缓存，不指望生成确定性），成本回到单次调用；用户消息变化即正当重生成。任务分组随复用保留。
 
@@ -154,14 +154,14 @@ mindwalk analyze / POST analyze（显式触发，不变）
 
 - criterion verdict：`coverage=none → insufficient-data`；否则按现行 severity 优先级（problem > warning > good）。
 - 分组校验：anchorUserMessages ⊆ 真实用户消息序号、非空、跨任务不重复；每任务 ≥1 条标准；预算越界即 invalid → 重试 → 降级。
-- 四维的 observability 强制不变，不作用于 rubric 层——rubric 层的对应机制就是 coverage。
+- 四维的 observability 强制不变，不作用于 rubric 层——rubric 层的对应机制就是 coverage。零事件 trace 额外强制四维全部 insufficient-data：无可引用时任何 good 都是零证据表扬。
 - rubric 层不影响四维 verdict；两层独立汇总；不设 session 级或任务级 verdict——连 UI 派生的聚合色点也在实测后移除（见 §12）。
 
 **运行时质量信号**（只观测、不参与裁决、不新增存储字段）：面板由报告现算 coverage-sufficient 率（低 = 生成违反可观测性门槛）、零 finding 死标准数、`note` 非空（覆盖缺口）。自动重生成本期不做，攒数据再定。
 
 ## 9. 缓存与存储
 
-`Fresh` = `promptVersion == 3 && inputDigest 匹配 && (rubric.status==scored 时 rubricPromptVersion == 1)`。
+`Fresh` = `promptVersion 匹配当前值 && inputDigest 匹配 && (rubric.status==scored 时 rubricPromptVersion 匹配当前值)`。
 
 - `--no-rubric` 报告无 rubric 但合法，`Fresh` 只校验报告有的部分；带 rubric 的请求遇到无 rubric 的新鲜缓存 → 按 stale 交互提示重跑，不静默追加。
 - `reportStateFor` 沿用 promptVersion 粗判，自动翻新，零改动。
@@ -202,7 +202,7 @@ rubric 复用命中（重评且任务文本未变）→ 1 次调用，回到现�
 
 ## 11. CLI 与 Server
 
-- `mindwalk analyze` 加 `--no-rubric`（默认开关由 M1.5 门禁裁决）；`judge.Options` 加 `NoRubric bool`。
+- `mindwalk analyze` 加 `--no-rubric`（默认开关由 M1.5 门禁裁决）；`judge.Options` 加 `NoRubric bool`。`--no-rubric` 双向绕过报告缓存：命中带 rubric 的缓存会违背显式参数，写入 rubric-less 报告会降级更丰富的缓存条目——该 flag 恒定花一次真实调用。
 - Server 请求体加可选 `"rubric": false`，`runAnalyze` 透传；job 状态机、持久化、徽章零改动。
 
 ## 12. UI（ReportPanel）

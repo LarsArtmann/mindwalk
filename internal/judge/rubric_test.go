@@ -231,27 +231,74 @@ func TestAnalyzeSkipsRubricOnEmptyTrace(t *testing.T) {
 	if report.Rubric == nil || report.Rubric.Reason != model.RubricReasonNoEvents {
 		t.Fatalf("rubric = %#v", report.Rubric)
 	}
+	// With nothing citable, praise would be evidence-free: every dimension
+	// must read insufficient-data, not good.
+	for _, dim := range report.Dimensions {
+		if dim.Verdict != model.VerdictInsufficientData {
+			t.Fatalf("%s verdict = %q on an empty trace", dim.Name, dim.Verdict)
+		}
+	}
 }
 
-func TestParseRubricAcceptsOmittedOrdinalAnchors(t *testing.T) {
-	// Past the rendering budget the evidence shows "[user #1] …omitted…
-	// [user #7..17]"; a task may still anchor an omitted ordinal — the
-	// message is real and its seq resolves.
-	var marks []model.Mark
-	for i := 0; i < maxUserMessages+5; i++ {
-		marks = append(marks, model.Mark{Seq: i, Type: "user-message", Note: fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)})
+func TestRubricTaskEvidenceContract(t *testing.T) {
+	// One task-evidence set rules the rubric phase: mid-session messages past
+	// the scoring budget are visible to the generator, anchorable, and
+	// covered by the task digest.
+	longMarks := func(text3 string) []model.Mark {
+		var marks []model.Mark
+		for i := 0; i < maxUserMessages+5; i++ {
+			note := fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)
+			if i == 2 {
+				note = text3
+			}
+			marks = append(marks, model.Mark{Seq: i, Type: "user-message", Note: note})
+		}
+		return marks
 	}
-	raw := `{"tasks":[{"title":"跨越省略区的任务","type":"other","anchor_user_messages":[3],"criteria":[
+	trace := sampleTrace()
+	trace.Marks = longMarks("请求 3：独立的中段任务，别的窗口看不见它")
+
+	// The generator's document carries the mid-window message the scoring
+	// document drops.
+	if !strings.Contains(BuildRubricInput(trace), "[user #3]") {
+		t.Fatal("rubric input must include mid-window messages")
+	}
+	scoring := BuildInput(trace)
+	if strings.Contains(scoring, "[user #3]") || !strings.Contains(scoring, "intermediate user messages omitted") {
+		t.Fatalf("scoring input should keep its tighter budget:\n%s", scoring)
+	}
+
+	// Anchoring the mid-window message is valid and resolves to its seq.
+	raw := `{"tasks":[{"title":"中段任务","type":"other","anchor_user_messages":[3],"criteria":[
 {"id":"c-one","title":"t","why":"w","good":"g","bad":"b"},
 {"id":"c-two","title":"t","why":"w","good":"g","bad":"b"},
 {"id":"c-three","title":"t","why":"w","good":"g","bad":"b"}]}]}`
-	tasks, err := parseRubric(raw, filteredUserMessages(marks))
+	tasks, err := parseRubric(raw, taskMessages(trace.Marks))
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Ordinal 3 is omitted from rendering but resolves to the mark at seq 2.
 	if len(tasks[0].AnchorSeqs) != 1 || tasks[0].AnchorSeqs[0] != 2 {
 		t.Fatalf("anchor seqs = %v", tasks[0].AnchorSeqs)
+	}
+
+	// The digest reads the same set: a mid-window wording change must move it.
+	changed := sampleTrace()
+	changed.Marks = longMarks("请求 3：换了一个完全不同的中段任务")
+	if TaskDigest(trace, model.RubricSourceFull) == TaskDigest(changed, model.RubricSourceFull) {
+		t.Fatal("task digest blind to a mid-window message change")
+	}
+
+	// Past the task budget the message is truly absent — anchoring it fails.
+	var many []model.Mark
+	for i := 0; i < maxTaskMessages+3; i++ {
+		many = append(many, model.Mark{Seq: i, Type: "user-message", Note: fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)})
+	}
+	beyond := `{"tasks":[{"title":"锚到被裁掉的消息","type":"other","anchor_user_messages":[2],"criteria":[
+{"id":"c-one","title":"t","why":"w","good":"g","bad":"b"},
+{"id":"c-two","title":"t","why":"w","good":"g","bad":"b"},
+{"id":"c-three","title":"t","why":"w","good":"g","bad":"b"}]}]}`
+	if _, err := parseRubric(beyond, taskMessages(many)); err == nil {
+		t.Fatal("anchor beyond the task budget must be invalid")
 	}
 }
 
@@ -318,8 +365,11 @@ func TestAnalyzeFailsWhenScoringMissesCriterion(t *testing.T) {
 }
 
 func TestAnalyzeScoringDropsUnknownAndDuplicateIDs(t *testing.T) {
+	// The invented entry is deliberately malformed (unknown coverage, unknown
+	// severity): unknown ids must be dropped before any validation touches
+	// them — noise the contract discards may never fail the scoring pass.
 	noisy := strings.Replace(validScoring, `"criteria":[`,
-		`"criteria":[{"id":"invented","coverage":"sufficient","findings":[]},{"id":"repro-first","coverage":"none","findings":[]},`, 1)
+		`"criteria":[{"id":"invented","coverage":"mostly","findings":[{"claim":"x","severity":"blocker","evidence_seqs":[0]}]},{"id":"repro-first","coverage":"none","findings":[]},`, 1)
 	// First repro-first occurrence wins (the injected duplicate with coverage
 	// none comes first here — so the duplicate is the original below).
 	report, err := Analyze(context.Background(), rubricTrace(), Options{
@@ -368,7 +418,7 @@ func TestAnalyzeCriterionEvidenceDiscipline(t *testing.T) {
 }
 
 func TestParseRubricBounds(t *testing.T) {
-	rendered := renderedUserMessages(rubricTrace().Marks)
+	rendered := taskMessages(rubricTrace().Marks)
 	criterion := func(id string) string {
 		return fmt.Sprintf(`{"id":"%s","title":"t","why":"w","good":"g","bad":"b"}`, id)
 	}
