@@ -250,7 +250,10 @@ function PanelBody({
           </button>
         </div>
       </div>
+      {/* the lede: one line of what was asked, then the judge's overview —
+          the report reads summary-first, details after */}
       <p className="report-task">{report.taskSummary}</p>
+      <p className="report-narrative">{report.narrative}</p>
       <RubricSection rubric={report.rubric} locked={locked} onJumpTo={onJumpTo} />
       <p className="report-chapter">Process</p>
       {report.dimensions.map((dimension) => (
@@ -273,22 +276,8 @@ function PanelBody({
           ))}
         </section>
       ) : null}
-      <section className="report-section">
-        <p className="eyebrow">Narrative</p>
-        <p className="report-narrative">{report.narrative}</p>
-      </section>
     </div>
   );
-}
-
-const VERDICT_RANK: Record<Verdict, number> = { "insufficient-data": 0, good: 1, warning: 2, problem: 3 };
-
-function worstVerdict(criteria: RubricCriterion[]): Verdict {
-  let worst: Verdict = "insufficient-data";
-  for (const criterion of criteria) {
-    if (VERDICT_RANK[criterion.verdict] > VERDICT_RANK[worst]) worst = criterion.verdict;
-  }
-  return worst;
 }
 
 // the task-accounting layer: rubric criteria grouped by task, between the
@@ -367,9 +356,12 @@ function RubricTaskBlock({
           disabled={locked || startSeq === undefined}
           title={startSeq !== undefined ? `Jump to this task's start (step ${startSeq + 1})` : undefined}
         >
-          <span className={`rubric-dot verdict-${worstVerdict(task.criteria)}`} />
-          <span className="rubric-task-title">{task.title}</span>
-          {task.type ? <span className="rubric-task-type">{task.type}</span> : null}
+          {/* no state dot here: each criterion below carries its own verdict
+              chip, and severity dots stay the panel's only dot vocabulary */}
+          <span className="rubric-task-title">
+            {task.title}
+            {task.type ? <span className="rubric-task-type">{task.type}</span> : null}
+          </span>
         </button>
       ) : null}
       {task.criteria.map((criterion) => (

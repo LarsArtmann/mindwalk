@@ -2439,32 +2439,14 @@ dd {
   font-weight: 560;
 }
 
+/* the type tag trails the title's last character so a wrapped title keeps
+   its tag attached; severity dots on findings stay the panel's only dots */
 .rubric-task-type {
+  margin-left: 8px;
   color: var(--faint);
   font-size: var(--text-xs);
+  font-weight: 400;
   letter-spacing: 0.06em;
-}
-
-/* the task head dot is display-only: the worst criterion verdict, computed
-   in the UI — it exists nowhere in the report contract */
-.rubric-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  flex-shrink: 0;
-  background: var(--faint);
-}
-
-.rubric-dot.verdict-good {
-  background: var(--pine);
-}
-
-.rubric-dot.verdict-warning {
-  background: var(--amber);
-}
-
-.rubric-dot.verdict-problem {
-  background: var(--alarm);
 }
 
 .report-criterion-name {
@@ -2526,7 +2508,10 @@ dd {
   font-variant-numeric: tabular-nums;
 }
 
+/* the judge's overview joins the lede right under the task summary — the
+   report reads summary-first, itemized layers after */
 .report-narrative {
+  padding: 0 16px 12px;
   color: var(--muted);
   font-size: var(--text-sm);
   line-height: 1.6;
