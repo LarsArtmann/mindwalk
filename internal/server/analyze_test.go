@@ -140,6 +140,132 @@ func TestAnalyzeEndpointReportsJudgeFailure(t *testing.T) {
 	}
 }
 
+// gateJudge blocks every call until released, so tests can observe the
+// running state deterministically.
+type gateJudge struct {
+	release chan struct{}
+	output  string
+}
+
+func (g gateJudge) Run(ctx context.Context, prompt, input string) (judge.RunResult, error) {
+	select {
+	case <-g.release:
+	case <-ctx.Done():
+		return judge.RunResult{}, ctx.Err()
+	}
+	return judge.RunResult{Text: g.output, Model: "stub-model"}, nil
+}
+
+func (g gateJudge) Name() string { return "stub" }
+
+func TestAnalyzeRubricFalseBypassesReportCache(t *testing.T) {
+	claudeDir := t.TempDir()
+	writeServerSession(t, filepath.Join(claudeDir, "eval.jsonl"),
+		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
+		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
+		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
+	)
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex")})
+	s.analyze.runner = stubJudge{output: stubJudgeOutput}
+	s.reportCache.Dir = t.TempDir()
+
+	meta, err := s.findSession("eval")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A richer, rubric-ful report already sits in the cache; a rubric:false
+	// run must not downgrade it.
+	rich := &model.Report{
+		Version:    1,
+		Session:    model.ReportSession{ID: "eval", EventCount: 1},
+		Judge:      model.ReportJudge{CLI: "stub", PromptVersion: judge.PromptVersion, RubricPromptVersion: judge.RubricPromptVersion},
+		Dimensions: []model.ReportDimension{{Name: "exploration", Verdict: model.VerdictGood, Findings: []model.ReportFinding{}}},
+		Rubric:     &model.Rubric{Status: model.RubricStatusScored},
+	}
+	if err := s.reportCache.Store(meta.Key, rich); err != nil {
+		t.Fatal(err)
+	}
+
+	postResp := httptest.NewRecorder()
+	s.handleSessionResource(postResp, httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", strings.NewReader(`{"rubric":false}`)))
+	if postResp.Code != http.StatusAccepted {
+		t.Fatalf("analyze status = %d body=%s", postResp.Code, postResp.Body.String())
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	var status reportStatus
+	for {
+		resp := httptest.NewRecorder()
+		s.handleSessionResource(resp, httptest.NewRequest(http.MethodGet, "/api/sessions/eval/report", nil))
+		if err := json.Unmarshal(resp.Body.Bytes(), &status); err != nil {
+			t.Fatal(err)
+		}
+		if status.State == "done" || status.State == "failed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("job never finished: %+v", status)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	// The requester gets their dimensions-only result…
+	if status.State != "done" || status.Report == nil || status.Report.Rubric != nil {
+		t.Fatalf("status = %+v", status)
+	}
+	// …and the richer cached report survives untouched on disk.
+	if cached := s.reportCache.Load(meta.Key); cached == nil || cached.Rubric == nil {
+		t.Fatalf("rubric:false overwrote the richer cache: %#v", cached)
+	}
+}
+
+func TestAnalyzeConflictingConfigRejected(t *testing.T) {
+	claudeDir := t.TempDir()
+	writeServerSession(t, filepath.Join(claudeDir, "eval.jsonl"),
+		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
+		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
+		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
+	)
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex")})
+	gate := gateJudge{release: make(chan struct{}), output: stubJudgeOutput}
+	s.analyze.runner = gate
+	s.reportCache.Dir = t.TempDir()
+
+	first := httptest.NewRecorder()
+	s.handleSessionResource(first, httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", nil))
+	if first.Code != http.StatusAccepted {
+		t.Fatalf("first analyze = %d", first.Code)
+	}
+	// Same session, different configuration: the API must refuse rather than
+	// pretend the in-flight run covers it.
+	conflict := httptest.NewRecorder()
+	s.handleSessionResource(conflict, httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", strings.NewReader(`{"rubric":false}`)))
+	if conflict.Code != http.StatusConflict {
+		t.Fatalf("conflicting config = %d, want 409", conflict.Code)
+	}
+	// Same configuration deduplicates as before.
+	same := httptest.NewRecorder()
+	s.handleSessionResource(same, httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", nil))
+	if same.Code != http.StatusAccepted {
+		t.Fatalf("same config = %d, want 202", same.Code)
+	}
+	close(gate.release)
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		resp := httptest.NewRecorder()
+		var status reportStatus
+		s.handleSessionResource(resp, httptest.NewRequest(http.MethodGet, "/api/sessions/eval/report", nil))
+		if err := json.Unmarshal(resp.Body.Bytes(), &status); err != nil {
+			t.Fatal(err)
+		}
+		if status.State == "done" || status.State == "failed" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("job never finished after release")
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
 func TestAnalyzeEndpointRejectsBadBodies(t *testing.T) {
 	claudeDir := t.TempDir()
 	writeServerSession(t, filepath.Join(claudeDir, "eval.jsonl"),

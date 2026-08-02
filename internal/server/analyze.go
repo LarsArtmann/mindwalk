@@ -26,6 +26,15 @@ type analyzeJob struct {
 	done   bool
 	report *model.Report
 	err    string
+	// config identifies what this run was asked to produce (judge CLI, model,
+	// rubric on/off). A concurrent request for the same session with a
+	// different configuration must conflict, not silently receive this run.
+	config string
+}
+
+// jobConfig renders a request's evaluation configuration as the job identity.
+func jobConfig(cli, model string, noRubric bool) string {
+	return fmt.Sprintf("cli=%s|model=%s|rubric=%t", cli, model, !noRubric)
 }
 
 type analyzeState struct {
@@ -199,9 +208,18 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		return
 	}
 
+	noRubric := req.Rubric != nil && !*req.Rubric
+	config := jobConfig(req.CLI, req.Model, noRubric)
 	s.analyze.mu.Lock()
 	if job := s.analyze.jobs[meta.Key]; job != nil && !job.done {
+		sameConfig := job.config == config
 		s.analyze.mu.Unlock()
+		if !sameConfig {
+			// The API must not pretend to accept a configuration it will not
+			// run: the in-flight job was asked for something else.
+			http.Error(w, "an evaluation with a different judge configuration is already running for this session; wait for it to finish", http.StatusConflict)
+			return
+		}
 		w.WriteHeader(http.StatusAccepted)
 		writeJSON(w, reportStatus{State: "running", JudgeAvailable: true})
 		return
@@ -211,12 +229,12 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		http.Error(w, fmt.Sprintf("%d evaluations already running; wait for one to finish", maxConcurrentJudges), http.StatusTooManyRequests)
 		return
 	}
-	job := &analyzeJob{}
+	job := &analyzeJob{config: config}
 	s.analyze.jobs[meta.Key] = job
 	s.analyze.active++
 	s.analyze.mu.Unlock()
 
-	go s.runAnalyze(meta.Key, trace, job, req.CLI, req.Model, req.Rubric != nil && !*req.Rubric)
+	go s.runAnalyze(meta.Key, trace, job, req.CLI, req.Model, noRubric)
 
 	w.WriteHeader(http.StatusAccepted)
 	writeJSON(w, reportStatus{State: "running", JudgeAvailable: true})
@@ -227,19 +245,26 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli
 	defer cancel()
 	// The cached report seeds rubric reuse: a re-evaluation with unchanged
 	// task wording keeps the same criteria — including across judge CLIs,
-	// which is exactly what makes their verdicts comparable.
+	// which is exactly what makes their verdicts comparable. A rubric:false
+	// run mirrors the CLI's --no-rubric semantics and bypasses the cache in
+	// both directions: it neither mines the cache nor overwrites a richer
+	// report with a dimensions-only one — its result lives only in the job.
+	var cached *model.Report
+	if !noRubric {
+		cached = s.reportCache.Load(key)
+	}
 	report, err := judge.Analyze(ctx, trace, judge.Options{
 		Runner:       s.analyze.runner,
 		CLI:          cli,
 		Model:        judgeModel,
 		NoRubric:     noRubric,
-		CachedReport: s.reportCache.Load(key),
+		CachedReport: cached,
 	})
 
 	// Persist before publishing done, and outside the lock: once the job entry
 	// is dropped, polls must be able to find the report on disk.
 	persisted := false
-	if err == nil && s.reportCache.Dir != "" {
+	if err == nil && !noRubric && s.reportCache.Dir != "" {
 		persisted = s.reportCache.Store(key, report) == nil
 	}
 

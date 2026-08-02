@@ -133,7 +133,7 @@ mindwalk analyze / POST analyze（显式触发，不变）
 
 ## 7. Prompt 要求
 
-两个 prompt 各自带版本常量（`RubricPromptVersion=1`；`PromptVersion` 2→3）；语言跟随用户消息（现行规则）。
+两个 prompt 各自带版本常量（当前 `RubricPromptVersion=2`、`PromptVersion=4`，语义变更即升版）；语言跟随用户消息（现行规则）。
 
 **Rubric 生成**：
 
