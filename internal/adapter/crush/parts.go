@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
-	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
 // partKind enumerates the values Crush can stamp on messages.parts[*].type
@@ -311,9 +310,3 @@ func decodeParts(raw string, timestamp string) (finishResult, error) {
 	return parser.finish(), nil
 }
 
-// buildEvent converts one paired call/result into the model.Event the
-// rest of mindwalk already understands. The cwd is needed for path
-// normalisation in targetsFor.
-func buildEvent(trace *model.Trace, call adapter.ToolCall, result adapter.ToolResult) model.Event {
-	return adapter.BuildEvent(trace, call, result)
-}
