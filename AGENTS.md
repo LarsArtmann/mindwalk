@@ -54,11 +54,10 @@ relativize correctly. Subagent sessions are recorded by Crush with
 `parent_session_id` set and use the `messageID$$toolCallID` id
 format; the adapter normalises those into the same `Agent` metadata
 shape that the codex adapter emits, so the Agent Lens panel
-displays them without a new code path. **Known gap:** the agent-graph
-builders in `internal/adapter/crush/agents.go` still call
-`openReadOnly()` (the single-database path) instead of
-`openDBForPath()`, so cross-project agent graphs may miss children;
-see TODO_LIST "Fix `agents.go` multi-DB routing".
+displays them without a new code path. The agent-graph builders in
+`internal/adapter/crush/agents.go` use `enumerateDBPaths()` to
+iterate every known project database, and `openDBForPath()` to route
+launch reads to the correct database in auto-discover mode.
 
 ## Development
 

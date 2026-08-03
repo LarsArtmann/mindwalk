@@ -43,27 +43,35 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	return a.listSingleDB()
 }
 
-// listAllProjectSessions scans every project database listed in the
-// Crush registry and merges the results. Session IDs are globally
-// unique UUIDs, so cross-database collisions do not happen in
-// practice.
-func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
-	projectDBs := loadProjectDBs()
+// allProjectDBs returns every known Crush database, including the
+// global database when it exists. De-duplicated. Used by every multi-DB
+// query so the enumeration logic lives in one place.
+func allProjectDBs() []projectDB {
+	dbs := loadProjectDBs()
 	// Also include the global database (it may not appear in the
 	// projects registry, e.g. the global config session).
 	globalDB := filepath.Join(DefaultDir(), dataDirName, dbName)
 	if _, err := os.Stat(globalDB); err == nil {
 		already := false
-		for _, p := range projectDBs {
+		for _, p := range dbs {
 			if p.DBPath == globalDB {
 				already = true
 				break
 			}
 		}
 		if !already {
-			projectDBs = append(projectDBs, projectDB{DBPath: globalDB})
+			dbs = append(dbs, projectDB{DBPath: globalDB})
 		}
 	}
+	return dbs
+}
+
+// listAllProjectSessions scans every project database listed in the
+// Crush registry and merges the results. Session IDs are globally
+// unique UUIDs, so cross-database collisions do not happen in
+// practice.
+func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
+	projectDBs := allProjectDBs()
 	if len(projectDBs) == 0 {
 		return nil, nil
 	}
@@ -75,7 +83,7 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 		}
 		rows, err := h.db.QueryContext(context.Background(), listSessionsQuery)
 		if err != nil {
-			h.close()
+			_ = h.close()
 			continue
 		}
 		cwd := pdb.ProjectPath
@@ -85,16 +93,16 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 		for rows.Next() {
 			meta, err := scanSessionMeta(rows)
 			if err != nil {
-				rows.Close()
-				h.close()
+				_ = rows.Close()
+				_ = h.close()
 				return nil, err
 			}
 			meta.Cwd = cwd
 			sessionDBIndex.Store(meta.ID, pdb.DBPath)
 			all = append(all, meta)
 		}
-		rows.Close()
-		h.close()
+		_ = rows.Close()
+		_ = h.close()
 	}
 	sort.Slice(all, func(i, j int) bool {
 		return all[i].EndedAt > all[j].EndedAt
@@ -381,6 +389,25 @@ func (h *sqlHandle) close() error {
 		return nil
 	}
 	return h.db.Close()
+}
+
+// enumerateDBPaths returns every database path the adapter should
+// consult for a multi-database scan. In explicit-Dir mode it returns
+// the single configured database; in auto-discover mode it returns
+// every project database plus the global one.
+func (a Adapter) enumerateDBPaths() []string {
+	if a.Dir != "" {
+		if p := a.dbPath(); p != "" {
+			return []string{p}
+		}
+		return nil
+	}
+	dbs := allProjectDBs()
+	paths := make([]string, 0, len(dbs))
+	for _, db := range dbs {
+		paths = append(paths, db.DBPath)
+	}
+	return paths
 }
 
 // openDBForPath resolves which database holds the session identified by

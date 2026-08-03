@@ -70,7 +70,8 @@ func serve(args []string) error {
 
 func open(args []string) error {
 	fs := flag.NewFlagSet("open", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind on 127.0.0.1")
+	port := fs.Int("port", 0, "port to bind")
+	host := fs.String("host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
 	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
 	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
 	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
@@ -81,31 +82,32 @@ func open(args []string) error {
 		return err
 	}
 	if fs.NArg() != 1 {
-		return fmt.Errorf("usage: mindwalk open [--no-open] [--no-crush] <session>")
+		return fmt.Errorf("usage: mindwalk open [--no-open] [--no-crush] [--host 0.0.0.0] <session>")
 	}
 	session, err := filepath.Abs(fs.Arg(0))
 	if err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, OpenSession: session}).Start(!*noOpen)
+	return server.New(server.Config{Port: *port, Host: *host, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, OpenSession: session}).Start(!*noOpen)
 }
 
 func openMap(args []string) error {
 	fs := flag.NewFlagSet("map", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind on 127.0.0.1")
+	port := fs.Int("port", 0, "port to bind")
+	host := fs.String("host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
 	dev := fs.Bool("dev", false, "prefer web/dist from the working tree")
 	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 1 {
-		return fmt.Errorf("usage: mindwalk map [--no-open] <repo>")
+		return fmt.Errorf("usage: mindwalk map [--no-open] [--host 0.0.0.0] <repo>")
 	}
 	repo, err := filepath.Abs(fs.Arg(0))
 	if err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, Dev: *dev, RepoRoot: repo, MapOnly: true}).Start(!*noOpen)
+	return server.New(server.Config{Port: *port, Host: *host, Dev: *dev, RepoRoot: repo, MapOnly: true}).Start(!*noOpen)
 }
 
 func build(args []string) error {

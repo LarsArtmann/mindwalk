@@ -1557,3 +1557,85 @@ func TestAdaptersEndpoint(t *testing.T) {
 		}
 	}
 }
+
+// TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths is a
+// regression test for the round-2 bug where synthetic crush:// paths
+// were treated as filesystem locations by fingerprintAgentGraphInputs.
+// Before the fix, os.Stat on a crush:// path produced an error or a
+// "missing" entry that prevented the fingerprint from reflecting the
+// real input set, causing stale agent-graph caches.
+func TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths(t *testing.T) {
+	crushPath := "crush://session/abc-123"
+	fp1, err := fingerprintAgentGraphInputs([]string{crushPath}, 1)
+	if err != nil {
+		t.Fatalf("fingerprint failed for crush:// path: %v", err)
+	}
+	fp2, err := fingerprintAgentGraphInputs([]string{crushPath}, 1)
+	if err != nil {
+		t.Fatalf("second fingerprint failed: %v", err)
+	}
+	if fp1.digest != fp2.digest {
+		t.Fatal("same inputs produced different fingerprints")
+	}
+	fp3, err := fingerprintAgentGraphInputs([]string{crushPath}, 2)
+	if err != nil {
+		t.Fatalf("fingerprint with different freshGen failed: %v", err)
+	}
+	if fp1.digest == fp3.digest {
+		t.Fatal("different freshGen produced same fingerprint (stale cache)")
+	}
+}
+
+// TestLoadTraceAndMapDoesNotGarbageRootCrushPaths is a regression test
+// for the round-2 bug where loadTraceAndMap fell back to
+// filepath.Dir(meta.Path) for crush:// sessions with no resolved Cwd.
+// Before the fix, filepath.Dir("crush://session/abc") produced
+// "crush:/session" — a garbage root that the citymap builder tried to
+// read, producing a broken map.
+func TestLoadTraceAndMapDoesNotGarbageRootCrushPaths(t *testing.T) {
+	crushPath := "crush://session/no-cwd-session"
+	meta := model.SessionMeta{
+		Key:     adapter.SessionKey("crush", crushPath),
+		ID:      "no-cwd-session",
+		Harness: "crush",
+		Path:    crushPath,
+	}
+	source := &singleCrushSource{
+		path:  crushPath,
+		trace: &model.Trace{Version: 1, Session: model.TraceSession{ID: "no-cwd-session", Harness: "crush", Path: crushPath}, Events: []model.Event{}, Marks: []model.Mark{}},
+		meta:  meta,
+	}
+	s := New(Config{CrushDir: filepath.Join(t.TempDir(), "no-crush")})
+	s.adapters = []adapter.Source{source}
+	s.sessionCatalog = map[string]model.SessionMeta{meta.Key: meta}
+
+	trace, city, err := s.traceAndMapMeta(meta)
+	if err != nil {
+		t.Fatalf("traceAndMapMeta failed: %v", err)
+	}
+	if trace == nil {
+		t.Fatal("trace is nil")
+	}
+	if strings.HasPrefix(city.Repo.Root, "crush:") {
+		t.Fatalf("citymap root = %q (garbage from filepath.Dir on synthetic path)", city.Repo.Root)
+	}
+}
+
+type singleCrushSource struct {
+	path  string
+	trace *model.Trace
+	meta  model.SessionMeta
+}
+
+func (s *singleCrushSource) Harness() string    { return "crush" }
+func (s *singleCrushSource) SessionDir() string { return "" }
+func (s *singleCrushSource) ListSessions() ([]model.SessionMeta, error) {
+	return nil, nil
+}
+func (s *singleCrushSource) Summarize(path string) (model.SessionMeta, error) {
+	return s.meta, nil
+}
+func (s *singleCrushSource) Parse(path string) (*model.Trace, error) {
+	clone := *s.trace
+	return &clone, nil
+}

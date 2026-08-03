@@ -38,13 +38,13 @@ type crushGraphActor struct {
 }
 
 func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.SessionMeta) ([]string, error) {
-	// The Crush adapter stores every trace in the same database, so
+	// The Crush adapter stores every trace in a database, so
 	// the agent graph only needs each session's path. Auxiliary
 	// children are intentionally hidden from the rail (ListSessions
 	// filters them out by parent_session_id IS NULL) but the agent
 	// graph builder needs them so it can match launches ↔
-	// children. Query the catalog first, then fall back to the
-	// database for any harness that didn't surface its
+	// children. Query the catalog first, then fall back to every
+	// known database for any harness that didn't surface its
 	// sub-sessions to the catalog.
 	paths := map[string]bool{root.Path: true}
 	for _, session := range catalog {
@@ -53,9 +53,11 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 		}
 		paths[session.Path] = true
 	}
-	db, err := a.openReadOnly()
-	if err == nil && db != nil {
-		defer db.close()
+	for _, dbPath := range a.enumerateDBPaths() {
+		db, err := openReadOnlyAt(dbPath)
+		if err != nil || db == nil {
+			continue
+		}
 		if rows, err := db.db.Query(allSessionsQuery); err == nil {
 			for rows.Next() {
 				meta, err := scanSessionMeta(rows)
@@ -65,6 +67,7 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 			}
 			rows.Close()
 		}
+		_ = db.close()
 	}
 	inputs := make([]string, 0, len(paths))
 	for path := range paths {
@@ -189,33 +192,33 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 }
 
 // loadAgentChildren reads every auxiliary (agent-tool) session
-// from the database. ListSessions hides these from the rail, but
+// from every known database. ListSessions hides these from the rail, but
 // the agent graph builder needs them so it can match launches to
 // child rows. Errors are non-fatal: the catalog the caller passed
 // in is the source of truth, this is just a supplement.
 func (a Adapter) loadAgentChildren() ([]model.SessionMeta, error) {
-	db, err := a.openReadOnly()
-	if err != nil {
-		return nil, err
-	}
-	if db == nil {
-		return nil, nil
-	}
-	defer db.close()
-	rows, err := db.db.Query(allSessionsQuery)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
 	var children []model.SessionMeta
-	for rows.Next() {
-		meta, err := scanSessionMeta(rows)
-		if err != nil {
+	for _, dbPath := range a.enumerateDBPaths() {
+		db, err := openReadOnlyAt(dbPath)
+		if err != nil || db == nil {
 			continue
 		}
-		if meta.Agent != nil {
-			children = append(children, meta)
+		rows, err := db.db.Query(allSessionsQuery)
+		if err != nil {
+			_ = db.close()
+			continue
 		}
+		for rows.Next() {
+			meta, err := scanSessionMeta(rows)
+			if err != nil {
+				continue
+			}
+			if meta.Agent != nil {
+				children = append(children, meta)
+			}
+		}
+		rows.Close()
+		_ = db.close()
 	}
 	return children, nil
 }
@@ -256,7 +259,7 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 		return nil, nil
 	}
 
-	db, err := a.openReadOnly()
+	db, err := a.openDBForPath(path)
 	if err != nil {
 		return nil, err
 	}
