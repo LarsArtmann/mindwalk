@@ -1,88 +1,88 @@
-# 动态 Rubric 评估 · 需求设计
+# Dynamic Rubric Evaluation · Design
 
-状态：已实现（M1 + M1.5 门禁 + M2 完成于分支 rubric-eval；M3 对比模式未开始） · 2026-07-31
-前置：同日 rubric-first 实验——harness `cmd/rubriclab`，3 个真实 session（文档 / 排查 / 调研实现）实测。
+Status: implemented (M1 + M1.5 gate + M2 landed on branch rubric-eval; M3 comparison mode not started) · 2026-07-31
+Prior work: same-day rubric-first experiment — harness `cmd/rubriclab`, measured on 3 real sessions (docs / debugging / research-and-implement).
 
-## 1. 背景
+## 1. Background
 
-现有 judge 用固定四维（exploration / scope / wandering / verification）单趟评估任意任务。实验结论：
+The existing judge evaluates every task in one pass over four fixed dimensions (exploration / scope / wandering / verification). The experiment concluded:
 
-- 四维是为改码任务设计的过程镜头，对调研、排查、文档类任务系统性偏严——正当的批量实证调查会被判成 wandering warning。
-- 「先生成任务专属 rubric，再按其评分」可行：标准确实任务特异（非四维复述）；重大问题与四维基线收敛且引用同批事件；253 处事件引用零幻觉；耗时约基线 2.2×。
-- 两个必须堵住的失败模式：
-  1. **盲区抽签**——rubric 单次生成有选择方差，没被抽进标准的角度整个不被评；
-  2. **认识论污染**——日志展示不了的内容被 scorer 以「无法核验」记 warning，可观测性缺口被算成执行缺陷。
+- The four dimensions are process lenses designed for code-editing work; on research, debugging, and documentation tasks they are systematically too harsh — a legitimate batch of empirical investigation gets judged as a wandering warning.
+- "Generate a task-specific rubric first, then score against it" is viable: the criteria come out genuinely task-specific (not a restatement of the four dimensions); major problems converge with the four-dimension baseline and cite the same events; 253 event citations with zero hallucinations; wall time about 2.2× the baseline.
+- Two failure modes that must be closed:
+  1. **Blind-spot lottery** — a single rubric generation has selection variance; an angle that doesn't get drawn into the criteria is never evaluated at all;
+  2. **Epistemic contamination** — content the log cannot display gets recorded by the scorer as a "cannot verify" warning, turning an observability gap into an execution defect.
 
-## 2. 目标与非目标
+## 2. Goals and non-goals
 
-**目标**
+**Goals**
 
-- 报告新增「任务对账」层：枚举 session 内的独立任务，按任务分组的专属标准逐条给出带证据的完成度判定。
-- 固定四维原样保留：跨 session 可比、抗操纵的保底层。
-- 评估不变量零妥协：显式触发、判官密封无工具、finding 必须引用真实事件、verdict 只在 Go 机械汇总、trace 视为不可信输入。
-- rubric 产物为对比模式（M3）预留接口；本期不实现对比。
+- Add a "task scorecard" layer to the report: enumerate the session's distinct tasks and, per task, give evidence-backed completion judgments against task-specific criteria.
+- Keep the four fixed dimensions exactly as they are: the cross-session-comparable, manipulation-resistant baseline layer.
+- Zero compromise on the evaluation invariants: explicit trigger, sealed tool-less judge, every finding cites real events, verdicts rolled up mechanically in Go only, trace treated as untrusted input.
+- The rubric artifact reserves an interface for comparison mode (M3); comparison itself is not built in this iteration.
 
-**非目标**：对比模式本体、rubric 人工编辑、LLM 决策 verdict、给判官开工具、benchmark 平台。
+**Non-goals**: comparison mode itself, manual rubric editing, LLM-decided verdicts, giving the judge tools, a benchmark platform.
 
-## 3. 现状锚点
+## 3. Anchors in the current code
 
-- `judge.Analyze`：`BuildInput` 渲染 evidence document → `CLIRunner` 密封子进程 → `parseOutput` 机械校验（幻觉 seq 裁剪、severity 词表严格、四维必须齐）→ `rollupVerdict`；invalid 重试一次。
-- 缓存：`~/.mindwalk/reports/<sessionKey>.json`；`Fresh` = PromptVersion + InputDigest（evidence SHA-256）双匹配；`Load` 拒绝空壳；temp+rename 原子写。
-- Server：`POST /api/session/{sel}/analyze` 异步 job（并发上限 2）；`GET .../report`；列表徽章 `reportStateFor` 粗判 stale。
-- 前端 `ReportPanel.tsx`：finding 按钮已具备 severity 色点、点击跳时间轴、tooltip 列证据 seq 的全套交互；`schema/report.schema.json` 锁契约（`additionalProperties: false`）。
+- `judge.Analyze`: `BuildInput` renders the evidence document → `CLIRunner` sealed subprocess → `parseOutput` mechanical validation (hallucinated seqs stripped, strict severity vocabulary, all four dimensions required) → `rollupVerdict`; invalid output retried once.
+- Cache: `~/.mindwalk/reports/<sessionKey>.json`; `Fresh` = PromptVersion + InputDigest (evidence SHA-256) both match; `Load` rejects empty shells; temp+rename atomic writes.
+- Server: `POST /api/session/{sel}/analyze` async job (concurrency cap 2); `GET .../report`; the session-list badge uses `reportStateFor` for a coarse staleness check.
+- Frontend `ReportPanel.tsx`: finding buttons already carry the full interaction set — severity dots, click-to-jump to the timeline, tooltips listing evidence seqs; `schema/report.schema.json` locks the contract (`additionalProperties: false`).
 
-## 4. 总体设计
+## 4. Overall design
 
-两层报告 + 两阶段密封管线 + 优雅降级：
+Two report layers + a two-phase sealed pipeline + graceful degradation:
 
 ```
-mindwalk analyze / POST analyze（显式触发，不变）
+mindwalk analyze / POST analyze (explicit trigger, unchanged)
   └─ judge.Analyze
-       ├─ [Phase R] rubric 生成（调用①）
-       │    evidence → 任务分组的标准清单（先枚举独立任务，再按任务分配标准）
-       │    Go 校验形状与锚点；invalid 重试一次；再败 → 降级为仅固定层
-       │    复用：缓存报告中 taskDigest 匹配 → 跳过本阶段
-       └─ [Phase S] 统一评分（调用②）
-            rubric(数据段) + evidence → 四维 findings + 每条标准 findings/coverage
+       ├─ [Phase R] rubric generation (call ①)
+       │    evidence → task-grouped criteria list (enumerate distinct tasks first, then assign criteria per task)
+       │    Go validates shape and anchors; invalid retried once; second failure → degrade to fixed layer only
+       │    Reuse: cached report's taskDigest matches → skip this phase
+       └─ [Phase S] unified scoring (call ②)
+            rubric (data section) + evidence → four-dimension findings + per-criterion findings/coverage
             + task_summary + notable_moments + narrative
-            Go 机械校验与裁决；invalid 重试一次；再败 → 整次评估失败
+            Go validates and adjudicates mechanically; invalid retried once; second failure → whole evaluation fails
 ```
 
-- **固定层由 Go 强制存在**，rubric 只增不减：既堵盲区抽签，也堵注入——trace 里的注入最多污染附加层，动不了四维。
-- **评分合并为一次调用**：四维与标准共享同一次 evidence 阅读；总调用数 2，rubric 复用命中时 1（与现状持平）。
-- **先承诺标准、后看结论**：抑制光环效应；rubric 成为可缓存、可展示、可复用的独立产物。
+- **The fixed layer's existence is enforced by Go**; the rubric only ever adds, never subtracts: this closes both the blind-spot lottery and injection — an injection in the trace can at worst pollute the additional layer, never touch the four dimensions.
+- **Scoring merges into a single call**: dimensions and criteria share one reading of the evidence; total calls 2, or 1 when rubric reuse hits (par with the status quo).
+- **Commit to the criteria before seeing the conclusions**: suppresses the halo effect; the rubric becomes a cacheable, displayable, reusable artifact in its own right.
 
-## 5. 数据契约
+## 5. Data contract
 
-`version` 保持 1（纯增量字段）；靠 prompt 版本号翻新旧报告（§9）。
+`version` stays 1 (purely additive fields); prompt version numbers refresh old reports (§9).
 
 ```jsonc
 {
   "judge": {
     "cli": "codex", "model": "gpt-5.6-sol",
-    "promptVersion": 4,            // 评分语义改版即升（v4：零事件全维 insufficient-data）
-    "rubricPromptVersion": 2,      // 新增；rubric 层缺席时省略（v2：任务证据集契约）
+    "promptVersion": 4,            // bumped whenever scoring semantics change (v4: zero events → insufficient-data on all dimensions)
+    "rubricPromptVersion": 2,      // new; omitted when the rubric layer is absent (v2: task-evidence contract)
     "generatedAt": "…", "inputDigest": "…"
   },
-  "dimensions": [ /* 固定四维，结构不变 */ ],
-  "rubric": {                      // 新增，整体 omitempty
+  "dimensions": [ /* the four fixed dimensions, structure unchanged */ ],
+  "rubric": {                      // new, omitempty as a whole
     "status": "scored",            // scored | unavailable
-    "reason": "",                  // unavailable 时：generation-failed | no-task-text | weak-task-text
-    "source": "full",              // full | task（生成输入模式；对比模式只认 task）
-    "taskDigest": "sha256…",       // 复用键，见 §6
-    "tasks": [                     // 按独立任务分组；单任务 session 恰好一组
+    "reason": "",                  // when unavailable: generation-failed | no-task-text | weak-task-text
+    "source": "full",              // full | task (generation input mode; comparison mode accepts only task)
+    "taskDigest": "sha256…",       // reuse key, see §6
+    "tasks": [                     // grouped by distinct task; a single-task session yields exactly one group
       {
-        "title": "优化 README 并提交推送",
+        "title": "Polish the README, commit and push",
         "type": "docs",
-        "anchorUserMessages": [1, 5, 6],  // 任务对应的 [user #N] 序号，机械校验
-        "anchorSeqs": [0, 9, 12],         // Go 由序号解析出的 mark seq，UI 跳转用
+        "anchorUserMessages": [1, 5, 6],  // the [user #N] ordinals this task anchors to, validated mechanically
+        "anchorSeqs": [0, 9, 12],         // mark seqs Go derives from the ordinals, used for UI jumps
         "criteria": [
           {
             "id": "commit-push-and-final-check",
-            "title": "提交、推送与改动检查",
+            "title": "Commit, push, and review the changes",
             "why": "…", "good": "…", "bad": "…",
             "coverage": "sufficient",  // sufficient | partial | none
-            "verdict": "problem",      // Go 机械汇总
+            "verdict": "problem",      // rolled up mechanically in Go
             "findings": [
               { "claim": "…", "severity": "problem", "evidenceSeqs": [14, 24] }
             ]
@@ -90,185 +90,185 @@ mindwalk analyze / POST analyze（显式触发，不变）
         ]
       }
     ],
-    "note": "评分者认为 rubric 未能表达的重要信息（≤3 句）"
+    "note": "important observations the scorer felt the rubric could not express (≤3 sentences)"
   }
 }
 ```
 
-| 项 | 约束 |
+| Item | Constraint |
 |---|---|
-| 任务分组 | 任务数 1–6；每任务 criteria 1–6 条；总量 3–12，越界即 invalid |
-| criteria 预算（prompt 侧） | 单任务 4–6 条；多任务每任务 2–4 条、总量 ≤10 |
-| anchorUserMessages | 非空；必须属于 rubric 的任务证据集（见 §6，全部用户消息、上限 48 条）；跨任务不重复 |
-| anchorSeqs | Go 派生（序号 → user-message mark seq），不来自 LLM |
-| criterion.id | `^[a-z0-9]+(-[a-z0-9]+)*$`，≤48 字符，跨任务全局唯一 |
+| Task grouping | 1–6 tasks; 1–6 criteria per task; 3–12 total; out of bounds → invalid |
+| Criteria budget (prompt side) | 4–6 for a single-task session; 2–4 per task and ≤10 total for multi-task |
+| anchorUserMessages | non-empty; must belong to the rubric's task-evidence set (§6: all user messages, capped at 48); no ordinal shared across tasks |
+| anchorSeqs | derived by Go (ordinal → user-message mark seq), never taken from the LLM |
+| criterion.id | `^[a-z0-9]+(-[a-z0-9]+)*$`, ≤48 chars, globally unique across tasks |
 | title / why / good / bad | ≤80 / ≤500 / ≤500 / ≤500 runes |
-| rubric JSON 总量 | ≤12KB（注入面与排版的双重上界） |
-| coverage / severity | 严格词表，未知值 invalid（拼错的 problem 不许洗成 info） |
-| findings | 与四维同规：evidenceSeqs 全无效整条丢弃，claim 空丢弃 |
+| rubric JSON total | ≤12KB (a joint bound on the injection surface and on what the panel renders) |
+| coverage / severity | strict vocabularies; unknown values → invalid (a misspelled "problem" must not launder into info) |
+| findings | same discipline as the dimensions: all-invalid evidenceSeqs drops the finding, empty claim drops the finding |
 
-**兼容**：旧报告（无 rubric）Load 合法，前端按无此层渲染；promptVersion 2→3 使全部旧报告走现有 stale 交互自然翻新，零迁移逻辑。改动面：`model/report.go`、`internal/judge`、`schema/report.schema.json`、`web/src/types.ts`；trace、citymap、adapter 不碰；rubric findings 复用 `ReportFinding` 类型，校验与四维同一条代码路径。
+**Compatibility**: old reports (no rubric) still Load fine; the frontend renders them without the layer; the promptVersion bump pushes every old report through the existing stale interaction — zero migration logic. Touched surface: `model/report.go`, `internal/judge`, `schema/report.schema.json`, `web/src/types.ts`; trace, citymap, and adapters untouched; rubric findings reuse the `ReportFinding` type, validated by the same code path as the dimensions.
 
-## 6. 管线细节
+## 6. Pipeline details
 
-**Phase R（rubric 生成）**
+**Phase R (rubric generation)**
 
-- **单一任务证据契约**：生成输入（`BuildRubricInput`）、锚点校验集、taskDigest、弱文本门槛四者共用同一消息集合——全部用户消息、上限 48 条（首条 + 最新 47），与评分文档的 12 条预算解耦；超过 48 条之外的消息不可锚定。单 session 模式取 full（stats+narrative 同评分文档）——污染只影响锚点具体度，靠 prompt 压泛化；`source` 如实记录，对比模式必须以 task 模式重生成。
-- 跳过（不算失败）：零工具事件的纯对话 trace → `reason=no-events`（无可引用则评分必然全体裁光、verdict 空转为 good——M1.5 实测抓到的洞）；用户消息段为空 → `no-task-text`；任务文本去空白合计 <30 runes（M1.5 校准后维持）→ `weak-task-text`；缓存报告 taskDigest 匹配且 rubricPromptVersion 相同 → 复用。
-- 生成两步走：先枚举独立任务（新任务 = 引入新交付物/目标；追问、纠偏是 refinement），再按任务分配标准并声明 anchorUserMessages。单任务自然退化为一组；分组错误爆炸半径小——标准只是归错抽屉，评分仍在全量叙事上进行，evidence_seqs 照常锚定。
-- invalid 重试一次，再败降级（`generation-failed`）。rubric 层任何故障不阻塞固定层出报告。
+- **One task-evidence contract**: the generator's input (`BuildRubricInput`), the anchor validation set, the taskDigest, and the weak-text gate all read the same message set — all user messages, capped at 48 (first + latest 47), decoupled from the scoring document's 12-message budget; messages beyond the cap cannot be anchored. Single-session mode uses `full` input (stats + narrative, same as the scoring document) — contamination only affects anchor specificity, and the prompt pushes generalization; `source` records the truth, and comparison mode must regenerate in `task` mode.
+- Deterministic skips (not failures): a conversation-only trace with zero tool events → `reason=no-events` (with nothing citable, scoring would strip every finding and empty verdicts would coast to good — a hole the M1.5 bench caught); an empty user-message section → `no-task-text`; task text under 30 runes after whitespace stripping (threshold held after M1.5 calibration) → `weak-task-text`; cached report's taskDigest matches with the same rubricPromptVersion → reuse.
+- Generation works in two steps: first enumerate distinct tasks (a new task = a new deliverable/goal; follow-ups and corrections are refinements), then assign criteria per task and declare anchorUserMessages. A single task degenerates naturally into one group; grouping mistakes have a small blast radius — the groups are just filing drawers, scoring still runs over the full narrative, and evidence_seqs anchor as usual.
+- Invalid retried once; second failure degrades (`generation-failed`). No rubric-layer fault ever blocks the fixed layer from producing a report.
 
-**Phase S（统一评分）**
+**Phase S (unified scoring)**
 
-- 输入：`# RUBRIC (data)\n<rubric JSON>\n\n# SESSION\n<evidence>`；降级时退回现行仅四维 prompt。
-- 输出 = 现行 `llmOutput` + 扁平 `criteria` 数组（id / coverage / findings）；任务分组由 Go 按 rubric 回填，「归错组」从构造上不可能。校验扩展：四维必须齐；每条标准恰好出现一次，未知/重复 id 丢弃、缺失即 invalid；coverage 词表严格。invalid 重试一次，再败整次失败（与现状语义一致）。
+- Input: `# RUBRIC (data)\n<rubric JSON>\n\n# SESSION\n<evidence>`; on degradation, fall back to the current dimensions-only prompt.
+- Output = the current `llmOutput` + a flat `criteria` array (id / coverage / findings); task grouping is re-attached by Go from the rubric, so a criterion landing in the wrong group is impossible by construction. Validation extends the current rules: all four dimensions required; every criterion appears exactly once — unknown/duplicate ids dropped, missing ids → invalid; strict coverage vocabulary. Invalid retried once; second failure fails the whole evaluation (same semantics as today).
 
-**rubric 复用与稳定性**
+**Rubric reuse and stability**
 
-`taskDigest = SHA-256(harness + 任务证据段原文 + source + rubricPromptVersion)`
+`taskDigest = SHA-256(harness + raw task-evidence section + source + rubricPromptVersion)`
 
-任务文本未变的重评沿用上次 rubric、只重跑评分：标准不漂移（稳定性靠缓存，不指望生成确定性），成本回到单次调用；用户消息变化即正当重生成。任务分组随复用保留。
+A re-evaluation with unchanged task text reuses the previous rubric and only re-runs scoring: criteria don't drift (stability comes from the cache, not from hoping generation is deterministic), and cost returns to a single call; changed user messages legitimately regenerate. Task grouping survives reuse.
 
-**超时与并发**：`DefaultTimeout` 5→10min；`maxConcurrentJudges=2` 不变。
+**Timeout and concurrency**: `DefaultTimeout` 5→10min; `maxConcurrentJudges=2` unchanged.
 
-## 7. Prompt 要求
+## 7. Prompt requirements
 
-两个 prompt 各自带版本常量（当前 `RubricPromptVersion=2`、`PromptVersion=4`，语义变更即升版）；语言跟随用户消息（现行规则）。
+Both prompts carry their own version constants (currently `RubricPromptVersion=2`, `PromptVersion=4`; any semantic change bumps them); output language follows the user messages (current rule).
 
-**Rubric 生成**：
+**Rubric generation**:
 
-1. 先枚举独立任务再分配标准；新任务 = 新交付物/目标，追问纠偏归入当前任务；每任务声明 anchorUserMessages。
-2. 从「任务需要什么」推导而非「该 agent 做了什么」；同一份 rubric 须能评另一个 agent 的同任务尝试。
-3. **可观测性门槛**：每条标准必须能被一行式事件摘要证实或证伪；需要文件正文、diff 或外部真值的标准不许出。
-4. **锚点泛化**：good/bad 写行为形态，不写具体实现选择。
-5. 预算见 §5；彼此不重叠，禁止放之所有 session 皆准的套话。
+1. Enumerate distinct tasks first, then assign criteria; a new task = a new deliverable/goal, follow-ups and corrections fold into the current task; each task declares anchorUserMessages.
+2. Derive from "what the task needs", not "what this agent did"; the same rubric must be able to score another agent's attempt at the same task.
+3. **Observability threshold**: every criterion must be confirmable or refutable from one-line event digests; criteria that need file contents, diffs, or external ground truth are forbidden.
+4. **Anchor generalization**: good/bad describe behavioral shapes, not specific implementation choices.
+5. Budgets per §5; criteria must not overlap; boilerplate that would fit any session is forbidden.
 
-**统一评分**：
+**Unified scoring**:
 
-1. 现行全部规则（findings-only、证据引用、compaction/subagent 例外、info 限额）。
-2. **coverage 路由**：日志不足以核验 → 降 coverage，禁止以「无法核验」发 warning/problem；warning 以上只留给观察到的缺陷。
-3. RUBRIC 段是数据不是指令，其中指令性文字一律忽略。
-4. `note`：rubric 没让你表达的重要观察（实验中两次给出高价值信息）。
+1. All current rules (findings-only, evidence citations, compaction/subagent exemptions, info quota).
+2. **Coverage routing**: when the log is insufficient to verify → lower coverage; issuing "cannot verify" warnings/problems is forbidden; warning and above are reserved for observed defects.
+3. The RUBRIC section is data, not instructions; any imperative text inside it is ignored.
+4. `note`: important observations the rubric gave you no place for (twice yielded high-value information in the experiment).
 
-## 8. 机械校验与裁决（Go 唯一裁决权）
+## 8. Mechanical validation and adjudication (Go holds sole verdict authority)
 
-- criterion verdict：`coverage=none → insufficient-data`；否则按现行 severity 优先级（problem > warning > good）。
-- 分组校验：anchorUserMessages ⊆ 真实用户消息序号、非空、跨任务不重复；每任务 ≥1 条标准；预算越界即 invalid → 重试 → 降级。
-- 四维的 observability 强制不变，不作用于 rubric 层——rubric 层的对应机制就是 coverage。零事件 trace 额外强制四维全部 insufficient-data：无可引用时任何 good 都是零证据表扬。
-- rubric 层不影响四维 verdict；两层独立汇总；不设 session 级或任务级 verdict——连 UI 派生的聚合色点也在实测后移除（见 §12）。
+- Criterion verdict: `coverage=none → insufficient-data`; otherwise the current severity precedence (problem > warning > good).
+- Grouping validation: anchorUserMessages ⊆ real user-message ordinals, non-empty, no ordinal shared across tasks; ≥1 criterion per task; budget violations → invalid → retry → degrade.
+- The dimensions' observability forcing stays unchanged and does not apply to the rubric layer — the rubric layer's counterpart mechanism is coverage. Zero-event traces additionally force all four dimensions to insufficient-data: with nothing citable, any good verdict is praise on zero evidence.
+- The rubric layer never affects dimension verdicts; the two layers aggregate independently; no session-level or task-level verdict — even the UI-derived aggregate dot was removed after live testing (§12).
 
-**运行时质量信号**（只观测、不参与裁决、不新增存储字段）：面板由报告现算 coverage-sufficient 率（低 = 生成违反可观测性门槛）、零 finding 死标准数、`note` 非空（覆盖缺口）。自动重生成本期不做，攒数据再定。
+**Runtime quality signals** (observed only, never adjudicating, no new stored fields): the panel computes from the report the coverage-sufficient rate (low = generation violated the observability threshold), the count of zero-finding dead criteria, and whether `note` is non-empty (a coverage gap). Automatic regeneration is out of scope; collect data first.
 
-## 9. 缓存与存储
+## 9. Cache and storage
 
-`Fresh` = `promptVersion 匹配当前值 && inputDigest 匹配 && (rubric.status==scored 时 rubricPromptVersion 匹配当前值)`。
+`Fresh` = `promptVersion matches current && inputDigest matches && (when rubric.status==scored, rubricPromptVersion matches current)`.
 
-- `--no-rubric` 报告无 rubric 但合法，`Fresh` 只校验报告有的部分；带 rubric 的请求遇到无 rubric 的新鲜缓存 → 按 stale 交互提示重跑，不静默追加。
-- `reportStateFor` 沿用 promptVersion 粗判，自动翻新，零改动。
+- A `--no-rubric` report has no rubric but is legal; `Fresh` only checks what the report carries. A rubric-enabled request that finds a fresh rubric-less cache → surfaced through the stale interaction for a re-run, never silently appended to.
+- `reportStateFor` keeps its coarse promptVersion check; refresh is automatic; zero changes.
 
-**决策：rubric 内嵌报告文件，不建独立 rubric 库**（备选 `~/.mindwalk/rubrics/<taskDigest>.json` 否决）：
+**Decision: the rubric is embedded in the report file; no separate rubric store** (the alternative `~/.mindwalk/rubrics/<taskDigest>.json` was rejected):
 
-1. 一致性免费——报告与其 rubric 天然原子，无跨文件版本歪斜、无第二套 GC；
-2. 复用查找无需索引——只命中本 session 缓存报告，加载后比对内嵌 taskDigest；独立库的唯一增量价值（跨 session 共享）单 session 模式用不上；
-3. 对比模式才是独立 rubric 产物的正当时刻，`source`/`taskDigest` 已预留接口。
+1. Consistency for free — a report and its rubric are naturally atomic; no cross-file version skew, no second GC;
+2. Reuse needs no index — only this session's cached report is ever consulted, comparing the embedded taskDigest after load; the separate store's one extra value (cross-session sharing) is useless in single-session mode;
+3. Comparison mode is the legitimate moment for a standalone rubric artifact; `source`/`taskDigest` already reserve that interface.
 
-报告文件约 4–15KB 涨至 12–30KB，磁盘影响可忽略；迁移成本零。
+Report files grow from ~4–15KB to 12–30KB; disk impact negligible; migration cost zero.
 
-## 10. 性能预算
+## 10. Performance budget
 
-**实测**（2026-07-31 实验，codex / gpt-5.6-sol，含子进程冷启动；evidence 3–15KB，25–132 事件）：
+**Measured** (2026-07-31 experiment, codex / gpt-5.6-sol, including subprocess cold start; evidence 3–15KB, 25–132 events):
 
-| 阶段 | 耗时 | 输出 |
+| Stage | Wall time | Output |
 |---|---|---|
-| 现行单趟基线 | 25–42s | ~3KB |
-| rubric 生成 | 21–39s | 3.3–4.2KB |
-| rubric 评分 | 25–38s | 3.3–4.9KB |
-| 两阶段合计 | **46–77s ≈ 基线 2.2×** | |
+| Current single-pass baseline | 25–42s | ~3KB |
+| Rubric generation | 21–39s | 3.3–4.2KB |
+| Rubric scoring | 25–38s | 3.3–4.9KB |
+| Two-phase total | **46–77s ≈ 2.2× baseline** | |
 
-可靠性：12 次调用全部一次成功、零重试、253 处引用零幻觉——重试是罕见路径。
+Reliability: all 12 calls succeeded first try, zero retries, 253 citations with zero hallucinations — retry is the rare path.
 
-**M1.5 门禁实测**（最终数据：2026-08-02 于定稿实现重跑；同一 27-session 语料：mindwalk/jeju/ryos + 2 个 codex rollout，judge=codex/gpt-5.6-sol，3 并发）：
+**M1.5 gate results** (final data: re-run 2026-08-02 on the finalized implementation; same 27-session corpus: mindwalk/jeju/ryos + 2 codex rollouts; judge = codex/gpt-5.6-sol, concurrency 3):
 
-- 结果分布：**22 scored / 5 确定性跳过（2 弱文本 + 3 零事件）/ 0 降级 / 0 error**。
-- **coverage-sufficient 130/158 = 82%，门禁（≥80%）通过 → rubric 默认开。**partial 23、none 5；**死标准 5/158 = 3%**。
-- 多任务分组真实出现率 12/22（2 任务 ×8、3 任务 ×4），非构造场景——48 条任务证据窗把中段任务捞了出来。
-- 时延：rubric 中位 36s（max 45s）、合并评分中位 54s（max 79s）、整段评估中位 88s、max 118s——约基线 2.5×。
-- 套话抽检（jeju 官网重设计 / ryos 博客改版 / worktree 清理）：三份 rubric 全部任务特异，零通用套话；最小可用样本 39 runes。
-- 阈值校准：weak-task-text = 30 runes 维持不变（其下跳过均正确，其上最小样本仍产出可用 rubric）。
+- Outcome distribution: **22 scored / 5 deterministic skips (2 weak text + 3 zero events) / 0 degraded / 0 errors**.
+- **coverage-sufficient 130/158 = 82%, gate (≥80%) passed → rubric defaults to on.** partial 23, none 5; **dead criteria 5/158 = 3%**.
+- Multi-task grouping genuinely occurred in 12/22 (2 tasks ×8, 3 tasks ×4) — organic, not constructed; the 48-message task-evidence window surfaced mid-session tasks.
+- Latency: rubric median 36s (max 45s), unified scoring median 54s (max 79s), whole evaluation median 88s, max 118s — about 2.5× baseline.
+- Boilerplate spot-check (jeju site redesign / ryos blog revamp / worktree cleanup): all three rubrics fully task-specific, zero generic boilerplate; smallest usable sample 39 runes.
+- Threshold calibration: weak-task-text = 30 runes stands (every skip below it was correct; the smallest sample above it still produced a usable rubric).
 
-首轮门禁（修复前实现）曾录得 23 scored / 2 生成失败 / 死标准 14%——三个差值即三项修复的量化效果：跨省略区锚点误拒（2 例生成失败 → 0）、零事件假 scored（死标准 14% → 3%）、任务证据窗扩到 48 条（3 任务分组 2 → 4 例）。
+The first gate round (pre-fix implementation) recorded 23 scored / 2 generation failures / 14% dead criteria — the three deltas quantify the three fixes: anchors in the elided message window falsely rejected (2 generation failures → 0), zero-event false scored (dead criteria 14% → 3%), task-evidence window widened to 48 (3-task groupings 2 → 4 cases).
 
-rubric 复用命中（重评且任务文本未变）→ 1 次调用，回到现状同级。评测台：`cmd/rubriceval`（支持 `-dump-raw` 留存原始输出供失败分析）。
+Rubric reuse hit (re-evaluation with unchanged task text) → 1 call, back to parity with today. Bench harness: `cmd/rubriceval` (supports `-dump-raw` to retain raw output for failure analysis).
 
-**上界与风险**：evidence 受 2000 事件截断保护（最坏 300–500KB，两次调用各读一遍；撞上界场景见开放问题 6）；单次评估墙钟 ×2.2 → 并发上限 2 下最坏排队同倍放大，显式触发可接受；digest 计算微秒级，报告增量 10–20KB 对面板无感。
+**Upper bounds and risks**: evidence is protected by the 2000-event truncation (worst case 300–500KB, read once per call; for sessions that hit the cap see open question 6); per-evaluation wall time ×2.2 → worst-case queueing under the concurrency cap of 2 amplifies by the same factor, acceptable for an explicit trigger; digest computation is microseconds; the 10–20KB report growth is imperceptible to the panel.
 
-## 11. CLI 与 Server
+## 11. CLI and server
 
-- `mindwalk analyze` 加 `--no-rubric`（默认开关由 M1.5 门禁裁决）；`judge.Options` 加 `NoRubric bool`。`--no-rubric` 双向绕过报告缓存：命中带 rubric 的缓存会违背显式参数，写入 rubric-less 报告会降级更丰富的缓存条目——该 flag 恒定花一次真实调用。
-- Server 请求体加可选 `"rubric": false`，`runAnalyze` 透传；job 状态机、持久化、徽章零改动。
+- `mindwalk analyze` gains `--no-rubric` (the default is decided by the M1.5 gate); `judge.Options` gains `NoRubric bool`. `--no-rubric` bypasses the report cache in both directions: returning a rubric-ful cached report would contradict the explicit flag, and writing a rubric-less report would downgrade a richer cache entry — the flag always costs one real call.
+- The server request body gains an optional `"rubric": false`, passed through by `runAnalyze`; job state machine, persistence, and badges unchanged.
 
-## 12. UI（ReportPanel）
+## 12. UI (ReportPanel)
 
-本节记录实机迭代后的定稿形态（M2 三轮打磨的结果）。
+This section records the final form after live iteration (three rounds of M2 polish).
 
-- **读序摘要先行**：面板头下是唯一控制区（判官署名、stale 一行琥珀提示、CLI/模型选择、Re-evaluate——原底部重评行已并入）；导语 = taskSummary（主墨）+ 判官 narrative（次级灰）；随后 Tasks / Process 两章，Moments 收尾。
-- **两级标题体系，正文零发丝线**：章头（Tasks/Process）是面板最高字级——主墨、text-sm、加宽字距大写；节头（EXPLORATION 式）保持大写 xs 淡灰。分隔全部由「章 > 任务 > 标准 > finding」的间距梯度承担。
-- **任务节头 = 标题 + 行内 type 标签，无状态点**：最差色点方案实测后废弃——它与标准行的 verdict 章冗余、与 finding 的 severity 色点撞语法；severity 色点是面板唯一色点词汇。节头点击经 `anchorSeqs[0]` 跳任务起点，hover 下划线示意可点；单任务省略节头。
-- **标准行复用 Dimension 模式**：verdict 章（insufficient-data 沿用 "no signal"）+ findings 按钮（点击跳证据、tooltip 列 seq）；`why`/good/bad 进 tooltip 不上版面；默认全部展开。
-- **coverage 克制展示**：sufficient 静默；partial 弱化中性徽章；none 不加元素。**中文语句内容最低 text-sm**，xs 只留给拉丁标签、徽章与 eyebrow。
-- **质量提示**：sufficient 率 <60% 时对账区头部一行弱文案（UI 现算，见 §8）；RUBRIC NOTE 带 eyebrow 标签收尾 rubric 层。
-- **空态/降级态一行化**：`generation-failed` →「仅展示过程四维」；`no-task-text` / `weak-task-text` →「无足够任务文本」；`no-events` →「无工具事件可佐证」；新鲜但无 rubric 的旧报告 →「重评可补」。
-- **Running 态**静态文案（先起草标准再评分，约一两分钟）；实时阶段进度见开放问题 7。
-- **不动**：SessionRail 徽章、Dock 注册、judge picker、面板 chrome 英文（rubric 内容跟随 session 语言）。
+- **Summary-first reading order**: below the panel header sits the single controls block (judge attribution, one-line amber stale notice, CLI/model pickers, Re-evaluate — the old bottom re-run row merged in); the lede = taskSummary (primary ink) + the judge's narrative (secondary gray); then the Tasks / Process chapters, with Moments closing.
+- **Two-level heading system, zero hairlines in the body**: chapter heads (Tasks/Process) are the panel's largest type — primary ink, text-sm, wide-tracked uppercase; section heads (the EXPLORATION style) stay uppercase xs muted gray. All separation is carried by the spacing gradient of chapter > task > criterion > finding.
+- **Task section head = title + inline type tag, no status dot**: the worst-dot scheme was scrapped after live testing — it duplicated the criterion rows' verdict chips and collided with the findings' severity dots; severity dots are the panel's only dot vocabulary. Clicking a task head jumps to the task's start via `anchorSeqs[0]`; hover underline signals clickability; single-task sessions omit the head.
+- **Criterion rows reuse the Dimension pattern**: verdict chip (insufficient-data keeps reading "no signal") + finding buttons (click jumps to evidence, tooltip lists seqs); `why`/good/bad live in the tooltip, off the surface; everything expanded by default.
+- **Coverage shown with restraint**: sufficient is silent; partial gets a muted neutral badge; none adds no element. **CJK sentence content never drops below text-sm**; xs is reserved for Latin labels, badges, and eyebrows.
+- **Quality hint**: when the sufficient rate is <60%, one line of muted copy at the scorecard's head (computed in the UI, §8); RUBRIC NOTE closes the rubric layer with an eyebrow label.
+- **Empty/degraded states in one line**: `generation-failed` → "showing the four process dimensions only"; `no-task-text` / `weak-task-text` → "not enough task text"; `no-events` → "no tool events to cite"; a fresh but rubric-less older report → "re-evaluate to add it".
+- **Running state**: static copy (drafts criteria first, then scores; takes a minute or two); live phase progress is open question 7.
+- **Untouched**: SessionRail badges, Dock registration, judge picker, panel chrome stays English (rubric content follows the session's language).
 
-## 13. 安全与不变量核对
+## 13. Security and invariants checklist
 
-| 不变量 | 处置 |
+| Invariant | Treatment |
 |---|---|
-| 显式触发 | 入口未增：仍只有 analyze CLI / POST |
-| 判官密封 | 两次调用走同一 `CLIRunner`，参数不动 |
-| trace 不可信 | rubric 由不可信输入派生 → 亦不可信：数量/长度/字符集硬上限（§5）压注入面；评分 prompt 声明 RUBRIC 是数据；固定层 Go 强制存在；UI 纯文本渲染 |
-| finding 引用真实事件 | 校验代码两层共用同一路径 |
-| verdict 机械化 | rubric 层 verdict 只在 Go 汇总；coverage 只影响机械规则 |
-| 判官产物不回流扫描 | 无新落盘物；rubric 只存在于报告 JSON 内 |
+| Explicit trigger | No new entry points: still only the analyze CLI / POST |
+| Sealed judge | Both calls go through the same `CLIRunner`, parameters unchanged |
+| Untrusted trace | The rubric derives from untrusted input → itself untrusted: hard caps on count/length/character set (§5) shrink the injection surface; the scoring prompt declares RUBRIC as data; the fixed layer's existence is enforced by Go; the UI renders plain text only |
+| Findings cite real events | Both layers share the same validation code path |
+| Mechanical verdicts | Rubric-layer verdicts roll up in Go only; coverage only feeds the mechanical rule |
+| Judge artifacts never re-enter scanning | Nothing new lands on disk; the rubric exists only inside the report JSON |
 
-## 14. 验收标准
+## 14. Acceptance criteria
 
-功能：
+Functional:
 
-1. 含用户消息的 session：报告含 `rubric.status=scored`、≥1 个任务组、每条标准有 verdict 与 coverage，四维完整。
-2. 多任务 fixture（两个不相关请求）：≥2 个任务组，各有 anchorUserMessages 与专属标准，anchorSeqs 派生正确；单任务恰好一组。
-3. rubric 生成两次 invalid → 仅四维报告，`reason=generation-failed`。
-4. 无用户消息文本 → 不发起 rubric 调用，`reason=no-task-text`；任务文本 <30 runes → `weak-task-text`。
-5. 任务文本未变的重评 → 不发起 rubric 调用（stub 断言调用次数），分组与标准逐条一致。
-6. `--no-rubric` / 请求体 `rubric:false` → 单次调用，无 rubric 层。
+1. A session with user messages: report contains `rubric.status=scored`, ≥1 task group, every criterion has a verdict and coverage, all four dimensions intact.
+2. Multi-task fixture (two unrelated requests): ≥2 task groups, each with its own anchorUserMessages and dedicated criteria, anchorSeqs derived correctly; a single task yields exactly one group.
+3. Rubric generation invalid twice → dimensions-only report, `reason=generation-failed`.
+4. No user-message text → no rubric call issued, `reason=no-task-text`; task text <30 runes → `weak-task-text`.
+5. Re-evaluation with unchanged task text → no rubric call issued (stub asserts call count), groups and criteria identical.
+6. `--no-rubric` / request body `rubric:false` → single call, no rubric layer.
 
-校验与裁决（stub runner，`internal/judge`）：
+Validation and adjudication (stub runner, `internal/judge`):
 
-7. coverage=none 且带 problem finding → insufficient-data（coverage 优先）。
-8. 评分缺任一标准 → invalid → 重试；未知/重复 id 丢弃不致命。
-9. 幻觉 evidenceSeqs 裁剪、全无效丢弃、severity/coverage 未知值致 invalid——逐条复刻四维测试。
-10. 分组越界（任务数 >6 / 每任务 >6 / 总量 >12 / anchor 序号不存在或重复 / 空任务组 / 超长文本 / 非法 id）→ invalid → 降级。
-11. 含指令性文字的 rubric（注入样本）不影响固定层产出结构。
+7. coverage=none with a problem finding → insufficient-data (coverage wins).
+8. Scoring missing any criterion → invalid → retry; unknown/duplicate ids dropped, not fatal.
+9. Hallucinated evidenceSeqs stripped, all-invalid dropped, unknown severity/coverage values → invalid — mirroring the dimension tests case by case.
+10. Grouping out of bounds (>6 tasks / >6 per task / >12 total / unknown or duplicate anchor ordinals / empty task group / overlong text / illegal id) → invalid → degrade.
+11. A rubric containing imperative text (injection sample) does not affect the fixed layer's output structure.
 
-契约与兼容：
+Contract and compatibility:
 
-12. schema 更新并通过测试；旧报告 Load 合法、判 stale。
-13. `Fresh` 三元组判定测试覆盖。
+12. Schema updated and tests pass; old reports Load fine and read as stale.
+13. `Fresh` covered by tests across the three-part predicate.
 
-## 15. 里程碑
+## 15. Milestones
 
-- **M1 后端**：model + schema + judge 两阶段（降级、复用、分组校验）+ CLI 参数 + 全部 stub 测试。产出：`mindwalk analyze` JSON 已含 rubric 层。
-- **M1.5 离线评测门禁（已完成，结果见 §10）**：`cmd/rubriceval` 驱动新管线批量跑 27 个历史 session，coverage-sufficient 82% 过线，**rubric 默认开**；门禁顺带修出两个真问题（no-events 跳过、省略序号锚点校验）并确认阈值 30 维持。
-- **M2 前端**：ReportPanel 任务对账区（§12）+ types + `make build`；上手实物后迭代 UI 细节。
-- **M3 对比模式**（另立设计）：task-only rubric 一次生成、N 条轨迹共用，输出标准 × agent 矩阵；`source`/`taskDigest` 即其接口。
+- **M1 backend**: model + schema + two-phase judge (degradation, reuse, grouping validation) + CLI flag + full stub tests. Deliverable: `mindwalk analyze` JSON carries the rubric layer.
+- **M1.5 offline bench gate (done, results in §10)**: `cmd/rubriceval` drives the new pipeline over 27 historical sessions; coverage-sufficient 82% clears the bar, **rubric defaults to on**; the gate also flushed out two real bugs (no-events skip, elided-ordinal anchor validation) and confirmed the 30-rune threshold.
+- **M2 frontend**: ReportPanel task scorecard (§12) + types + `make build`; iterate UI details against the real thing.
+- **M3 comparison mode** (separate design): task-only rubric generated once, shared across N trajectories, output a criteria × agent matrix; `source`/`taskDigest` are its interface.
 
-## 16. 开放问题
+## 16. Open questions
 
-1. rubric 默认开关：由 M1.5 门禁裁决（本稿倾向默认开：显式触发 + 2× 成本可接受）。
-2. coverage=partial 是否参与裁决（如封顶 warning）：先不参与，观察真实分布再定。
-3. 双判官对照：实验只跑了 codex（本机 claude CLI 凭据过期），M1 后补 claude 一轮。
-4. `note` 字段去留：信息价值低则在后续 prompt 版本移除（版本号护栏，零成本）。
-5. weak-task-text 阈值 30 runes 为拍定初值，M1.5 校准。
-6. 真分段（Phase 0 切任务片段、每段独立 rubric 与证据切片）：本期以任务分组替代；留给撞 2000 事件截断的超长 session 与对比模式再评估。
-7. Running 态实时阶段进度（job 加 phase 字段）：破「server 零改动」，价值待 M2 观察后再议。
+1. Rubric default on/off: decided by the M1.5 gate (this doc leans default-on: explicit trigger + 2× cost is acceptable).
+2. Whether coverage=partial should join adjudication (e.g. capping at warning): not for now; watch the real distribution first.
+3. Dual-judge comparison: the experiment only ran codex (the local claude CLI credentials had expired); run a claude round after M1.
+4. Whether `note` stays: if its information value is low, drop it in a later prompt version (version constants make this free).
+5. The weak-task-text threshold of 30 runes was an initial guess; calibrated in M1.5.
+6. True segmentation (a Phase 0 that slices task segments, each with its own rubric and evidence slice): task grouping stands in for it this iteration; revisit for ultra-long sessions hitting the 2000-event truncation and for comparison mode.
+7. Live phase progress for the running state (a phase field on the job): breaks "zero server changes"; weigh the value after M2 observation.

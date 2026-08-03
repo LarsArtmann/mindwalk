@@ -25,7 +25,7 @@ const (
 	maxRubricTextRunes  = 500
 	maxRubricJSONBytes  = 12 * 1024
 	// weakTaskTextRunes is the floor under which user messages carry too
-	// little task signal to derive criteria from ("继续", "好的" sessions).
+	// little task signal to derive criteria from ("continue", "ok" sessions).
 	// Initial guess — calibrated against historical sessions in M1.5.
 	weakTaskTextRunes = 30
 )
