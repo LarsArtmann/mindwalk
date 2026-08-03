@@ -170,9 +170,9 @@ Ground rules (see [AGENTS.md](AGENTS.md) for the full architecture notes):
 
 <a href="https://www.star-history.com/?repos=cosmtrek%2Fmindwalk&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=cosmtrek/mindwalk&type=date&theme=dark&legend=top-left&sealed_token=WIzNqJn6kAsI1Lildw6vI48XyLwVjv8mV2es22DHAkwU2ozi7hbOaGtOJLMaX_zuurbJVyB_ciJ7Tk2FdWZ-kWzMfwSucUggEflq1xwaGMNOQ3qOlMEajBCzmoaA8jI3f6vKLTTHrzQF6_N_ohc6TH3ijPaT20Q-ICsuxGxdqjRk8ohHadTxqw4Xsmt4" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=cosmtrek/mindwalk&type=date&legend=top-left&sealed_token=WIzNqJn6kAsI1Lildw6vI48XyLwVjv8mV2es22DHAkwU2ozi7hbOaGtOJLMaX_zuurbJVyB_ciJ7Tk2FdWZ-kWzMfwSucUggEflq1xwaGMNOQ3qOlMEajBCzmoaA8jI3f6vKLTTHrzQF6_N_ohc6TH3ijPaT20Q-ICsuxGxdqjRk8ohHadTxqw4Xsmt4" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=cosmtrek/mindwalk&type=date&legend=top-left&sealed_token=WIzNqJn6kAsI1Lildw6vI48XyLwVjv8mV2es22DHAkwU2ozi7hbOaGtOJLMaX_zuurbJVyB_ciJ7Tk2FdWZ-kWzMfwSucUggEflq1xwaGMNOQ3qOlMEajBCzmoaA8jI3f6vKLTTHrzQF6_N_ohc6TH3ijPaT20Q-ICsuxGxdqjRk8ohHadTxqw4Xsmt4" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=cosmtrek/mindwalk&type=date&theme=dark&legend=top-left&sealed_token=6ylPq85HVVSbxQtqpYdSNx2EFZXMTk4AhnMG197AQm7TDwfenvf415jqPnPRxRiXz4l_f7NRUM2OlNDptSLXC18Q7cX8CQpUBkJtepMUJg6gYhdNM9fTBqBN08fY19HNfmoCFjN2SThT9w81tO_WWCThVBZtf8tMRUC7Bmi3jJ3HFs-4734aDGFw-LOe" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=cosmtrek/mindwalk&type=date&legend=top-left&sealed_token=6ylPq85HVVSbxQtqpYdSNx2EFZXMTk4AhnMG197AQm7TDwfenvf415jqPnPRxRiXz4l_f7NRUM2OlNDptSLXC18Q7cX8CQpUBkJtepMUJg6gYhdNM9fTBqBN08fY19HNfmoCFjN2SThT9w81tO_WWCThVBZtf8tMRUC7Bmi3jJ3HFs-4734aDGFw-LOe" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=cosmtrek/mindwalk&type=date&legend=top-left&sealed_token=6ylPq85HVVSbxQtqpYdSNx2EFZXMTk4AhnMG197AQm7TDwfenvf415jqPnPRxRiXz4l_f7NRUM2OlNDptSLXC18Q7cX8CQpUBkJtepMUJg6gYhdNM9fTBqBN08fY19HNfmoCFjN2SThT9w81tO_WWCThVBZtf8tMRUC7Bmi3jJ3HFs-4734aDGFw-LOe" />
  </picture>
 </a>
 
