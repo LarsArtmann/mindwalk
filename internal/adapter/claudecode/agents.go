@@ -200,11 +200,11 @@ func sortedClaudeArtifacts(byBasename map[string]*claudeAgentArtifact) []*claude
 }
 
 func readClaudeAgentLaunches(path string) ([]*claudeAgentLaunch, error) {
-	f, err := adapter.OpenFile(path)
+	f, closeFile, err := adapter.OpenFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer closeFile()
 
 	launches := []*claudeAgentLaunch{}
 	launchByCallID := make(map[string]*claudeAgentLaunch)

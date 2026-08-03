@@ -10,14 +10,6 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
-type agentLaunch struct {
-	callID         string
-	seq            int
-	arguments      map[string]any
-	output         string
-	outputObserved bool
-}
-
 type agentLaunchOutput struct {
 	AgentID  string `json:"agent_id"`
 	Nickname string `json:"nickname"`
@@ -121,7 +113,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 		children := childrenByParent[actor.sourceID]
 		linkedChildren := make(map[string]bool)
 		for _, launch := range launches {
-			launchOutput, hasIdentity := parseAgentLaunchOutput(launch.output)
+			launchOutput, hasIdentity := parseAgentLaunchOutput(launch.Output)
 			if hasIdentity && launchOutput.AgentID != "" {
 				var child *model.SessionMeta
 				for i := range children {
@@ -207,14 +199,14 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 	return graph, nil
 }
 
-func readAgentLaunches(path string) ([]agentLaunch, error) {
-	f, err := adapter.OpenFile(path)
+func readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
+	f, closeFile, err := adapter.OpenFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer closeFile()
 
-	launches := []agentLaunch{}
+	launches := []adapter.AgentLaunch{}
 	launchByCallID := make(map[string]int)
 	seenCalls := make(map[string]bool)
 	seq := 0
@@ -234,10 +226,10 @@ func readAgentLaunches(path string) ([]agentLaunch, error) {
 			seenCalls[call.ID] = true
 			if call.Name == "spawn_agent" {
 				launchByCallID[call.ID] = len(launches)
-				launches = append(launches, agentLaunch{
-					callID:    call.ID,
-					seq:       seq,
-					arguments: call.Input,
+				launches = append(launches, adapter.AgentLaunch{
+					CallID:    call.ID,
+					Seq:       seq,
+					Arguments: call.Input,
 				})
 			}
 			seq++
@@ -248,11 +240,11 @@ func readAgentLaunches(path string) ([]agentLaunch, error) {
 			return
 		}
 		index, ok := launchByCallID[callID]
-		if !ok || launches[index].outputObserved {
+		if !ok || launches[index].OutputObserved {
 			return
 		}
-		launches[index].output = result.Content
-		launches[index].outputObserved = true
+		launches[index].Output = result.Content
+		launches[index].OutputObserved = true
 	})
 	return launches, err
 }
@@ -260,21 +252,21 @@ func readAgentLaunches(path string) ([]agentLaunch, error) {
 func exactCodexAgentNode(
 	harness, rootKey string,
 	actor codexGraphActor,
-	launch agentLaunch,
+	launch adapter.AgentLaunch,
 	output agentLaunchOutput,
 	child *model.SessionMeta,
 ) model.AgentNode {
-	seq := launch.seq
+	seq := launch.Seq
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "codex-agent:"+output.AgentID),
 		ParentID:           actor.nodeID,
 		Depth:              actor.depth + 1,
 		Kind:               model.AgentKindSubagent,
 		Label:              output.Nickname,
-		Role:               agentArgument(launch.arguments, "agent_type"),
-		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.arguments, "message")),
+		Role:               agentArgument(launch.Arguments, "agent_type"),
+		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.Arguments, "message")),
 		LaunchSeq:          &seq,
-		LaunchCallID:       launch.callID,
+		LaunchCallID:       launch.CallID,
 		Status:             model.AgentStatusLaunched,
 		TraceAvailability:  model.TraceAvailabilityMissing,
 		LinkQuality:        model.AgentLinkQualityExact,
@@ -293,30 +285,23 @@ func exactCodexAgentNode(
 	if node.Label == "" {
 		node.Label = output.Nickname
 	}
-	if node.Label == "" {
-		node.Label = "Subagent"
-	}
+	adapter.ApplySubagentLabel(&node)
 	return node
 }
 
-func unlinkedCodexLaunchNode(harness, rootKey string, actor codexGraphActor, launch agentLaunch) model.AgentNode {
-	seq := launch.seq
-	status := model.AgentStatusUnknown
-	trimmedOutput := strings.TrimSpace(launch.output)
-	if launch.outputObserved && trimmedOutput != "" && !json.Valid([]byte(trimmedOutput)) {
-		status = model.AgentStatusFailed
-	}
+func unlinkedCodexLaunchNode(harness, rootKey string, actor codexGraphActor, launch adapter.AgentLaunch) model.AgentNode {
+	seq := launch.Seq
 	return model.AgentNode{
-		ID:                 adapter.AgentNodeID(harness, rootKey, "launch:"+actor.nodeID+":"+launch.callID),
+		ID:                 adapter.AgentNodeID(harness, rootKey, "launch:"+actor.nodeID+":"+launch.CallID),
 		ParentID:           actor.nodeID,
 		Depth:              actor.depth + 1,
 		Kind:               model.AgentKindSubagent,
-		Label:              "Subagent",
-		Role:               agentArgument(launch.arguments, "agent_type"),
-		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.arguments, "message")),
+		Label:              adapter.SubagentLabel,
+		Role:               agentArgument(launch.Arguments, "agent_type"),
+		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.Arguments, "message")),
 		LaunchSeq:          &seq,
-		LaunchCallID:       launch.callID,
-		Status:             status,
+		LaunchCallID:       launch.CallID,
+		Status:             adapter.UnlinkedLaunchStatus(launch),
 		TraceAvailability:  model.TraceAvailabilityUnavailable,
 		LinkQuality:        model.AgentLinkQualityUnavailable,
 		LinkMethod:         model.AgentLinkMethodUnavailable,
@@ -326,14 +311,14 @@ func unlinkedCodexLaunchNode(harness, rootKey string, actor codexGraphActor, lau
 func legacyCodexAgentNode(
 	harness, rootKey string,
 	actor codexGraphActor,
-	launch agentLaunch,
+	launch adapter.AgentLaunch,
 	output agentLaunchOutput,
 	child *model.SessionMeta,
 ) model.AgentNode {
-	seq := launch.seq
+	seq := launch.Seq
 	label := filepath.Base(output.TaskName)
 	if label == "." || label == "/" || label == "" {
-		label = "Subagent"
+		label = adapter.SubagentLabel
 	}
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "codex-task:"+output.TaskName),
@@ -341,10 +326,10 @@ func legacyCodexAgentNode(
 		Depth:              actor.depth + 1,
 		Kind:               model.AgentKindSubagent,
 		Label:              label,
-		Role:               agentArgument(launch.arguments, "agent_type"),
-		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.arguments, "message")),
+		Role:               agentArgument(launch.Arguments, "agent_type"),
+		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.Arguments, "message")),
 		LaunchSeq:          &seq,
-		LaunchCallID:       launch.callID,
+		LaunchCallID:       launch.CallID,
 		Status:             model.AgentStatusLaunched,
 		TraceAvailability:  model.TraceAvailabilityMissing,
 		LinkQuality:        model.AgentLinkQualityUnavailable,
@@ -370,7 +355,7 @@ func legacyCodexAgentNode(
 func derivedCodexAgentNode(harness, rootKey string, actor codexGraphActor, child model.SessionMeta) model.AgentNode {
 	label := child.Agent.Label
 	if label == "" {
-		label = "Subagent"
+		label = adapter.SubagentLabel
 	}
 	return model.AgentNode{
 		ID:                adapter.AgentNodeID(harness, rootKey, "session:"+child.Key),

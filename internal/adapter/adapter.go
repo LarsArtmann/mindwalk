@@ -68,12 +68,17 @@ func HomePath(parts ...string) string {
 	return filepath.Join(append([]string{home}, parts...)...)
 }
 
-// OpenFile opens a session log for reading and arranges its close on
-// the supplied cleanup function. Returning the file plus a deferred
-// close inline was repeated across every JSONL adapter; this helper
-// keeps the common two-line ceremony in one place.
-func OpenFile(path string) (*os.File, error) {
-	return os.Open(path)
+// OpenFile opens a session log for reading and returns the file plus a
+// close function callers can `defer` inline. Returning the file plus a
+// deferred close was repeated across every JSONL adapter; this helper
+// keeps the common two-line ceremony in one place and makes the
+// "open then read" intent visible at every call site.
+func OpenFile(path string) (*os.File, func() error, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, nil, err
+	}
+	return f, f.Close, nil
 }
 
 // ReadableDir reports whether dir is a directory the caller can read.

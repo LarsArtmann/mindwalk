@@ -63,7 +63,7 @@ type serveFlags struct {
 	host    string
 	dev     bool
 	noOpen  bool
-	adapter adapterFlags
+	adapter *adapterFlags
 }
 
 // bindServeFlags wires the serve-side flags onto fs and returns the
@@ -307,14 +307,19 @@ type adapterFlags struct {
 	noCrush   bool
 }
 
-func parseAdapterFlags(fs *flag.FlagSet) adapterFlags {
-	return adapterFlags{
-		claudeDir: *fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory"),
-		codexDir:  *fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory"),
-		piDir:     *fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory"),
-		crushDir:  *fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover"),
-		noCrush:   *fs.Bool("no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)"),
-	}
+// parseAdapterFlags registers the adapter-discovery flags onto fs
+// and returns a pointer to the struct that fs.Parse will populate.
+// The pointer MUST be used after fs.Parse has run — StringVar/BoolVar
+// write into the struct fields, so dereferencing before Parse would
+// capture only the defaults (the classic flag-package footgun).
+func parseAdapterFlags(fs *flag.FlagSet) *adapterFlags {
+	af := &adapterFlags{}
+	fs.StringVar(&af.claudeDir, "claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
+	fs.StringVar(&af.codexDir, "codex-dir", codex.DefaultDir(), "Codex sessions directory")
+	fs.StringVar(&af.piDir, "pi-dir", pi.DefaultDir(), "pi sessions directory")
+	fs.StringVar(&af.crushDir, "crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
+	fs.BoolVar(&af.noCrush, "no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
+	return af
 }
 
 func (f adapterFlags) sources() []adapter.Source {
@@ -332,6 +337,17 @@ func (f adapterFlags) sources() []adapter.Source {
 	return append(sources, crush.NewAdapter(f.crushDir))
 }
 
+// closeSources closes any source that implements adapter.Closer. Safe
+// to call on mixed source lists where only some adapters hold open
+// resources (e.g. crush's database connection pool).
+func closeSources(srcs []adapter.Source) {
+	for _, src := range srcs {
+		if c, ok := src.(adapter.Closer); ok {
+			_ = c.Close()
+		}
+	}
+}
+
 // listSessions prints every discovered session across all adapters
 // without starting the server.
 func listSessions(args []string) error {
@@ -340,8 +356,9 @@ func listSessions(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	_ = af
-	for _, src := range af.sources() {
+	srcs := af.sources()
+	defer closeSources(srcs)
+	for _, src := range srcs {
 		metas, err := src.ListSessions()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "mindwalk: %s: %v\n", src.Harness(), err)
@@ -366,7 +383,9 @@ func doctor(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	for _, src := range af.sources() {
+	srcs := af.sources()
+	defer closeSources(srcs)
+	for _, src := range srcs {
 		h := src.Harness()
 		metas, err := src.ListSessions()
 		status := "ok"

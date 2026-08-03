@@ -16,14 +16,6 @@ import (
 // assistant performed during that turn; the matching child row in the
 // sessions table is then read by SourceID/LaunchCallID.
 
-type agentLaunch struct {
-	callID         string
-	seq            int
-	arguments      map[string]any
-	output         string
-	outputObserved bool
-}
-
 type agentLaunchOutput struct {
 	AgentID  string `json:"agent_id"`
 	Nickname string `json:"nickname"`
@@ -127,7 +119,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 		linkedChildren := make(map[string]bool)
 		for _, launch := range launches {
-			output, hasIdentity := parseCrushLaunchOutput(launch.output)
+			output, hasIdentity := parseCrushLaunchOutput(launch.Output)
 			if hasIdentity && output.AgentID != "" {
 				var child *model.SessionMeta
 				for i := range childrenByParent[actor.sourceID] {
@@ -251,7 +243,7 @@ func indexChildrenByParent(catalog []model.SessionMeta) map[string][]model.Sessi
 // Tool calls and their results can land in different messages. The
 // streaming parser keeps an observed-ids map across messages so a
 // tool call in message A is paired with its result in message B.
-func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
+func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	if path == "" {
 		return nil, nil
 	}
@@ -275,7 +267,7 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 	}
 	defer func() { _ = rows.Close() }()
 
-	launches := []agentLaunch{}
+	launches := []adapter.AgentLaunch{}
 	launchByCallID := make(map[string]int)
 	seenCalls := make(map[string]bool)
 	seenResults := make(map[string]bool)
@@ -301,10 +293,10 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 			}
 			seenCalls[call.ID] = true
 			launchByCallID[call.ID] = len(launches)
-			launches = append(launches, agentLaunch{
-				callID:    call.ID,
-				seq:       seq,
-				arguments: call.Input,
+			launches = append(launches, adapter.AgentLaunch{
+				CallID:    call.ID,
+				Seq:       seq,
+				Arguments: call.Input,
 			})
 			seq++
 		}
@@ -321,8 +313,8 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 			if !ok {
 				continue
 			}
-			launches[idx].output = result.Content
-			launches[idx].outputObserved = true
+			launches[idx].Output = result.Content
+			launches[idx].OutputObserved = true
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -346,21 +338,21 @@ func parseCrushLaunchOutput(raw string) (agentLaunchOutput, bool) {
 func exactCrushAgentNode(
 	harness, rootKey string,
 	actor crushGraphActor,
-	launch agentLaunch,
+	launch adapter.AgentLaunch,
 	output agentLaunchOutput,
 	child *model.SessionMeta,
 ) model.AgentNode {
-	seq := launch.seq
+	seq := launch.Seq
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+output.AgentID),
 		ParentID:           actor.nodeID,
 		Depth:              actor.depth + 1,
 		Kind:               model.AgentKindSubagent,
 		Label:              output.Nickname,
-		Role:               agentArgument(launch.arguments, "agent_type"),
-		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.arguments, "message")),
+		Role:               agentArgument(launch.Arguments, "agent_type"),
+		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.Arguments, "message")),
 		LaunchSeq:          &seq,
-		LaunchCallID:       launch.callID,
+		LaunchCallID:       launch.CallID,
 		Status:             model.AgentStatusLaunched,
 		TraceAvailability:  model.TraceAvailabilityMissing,
 		LinkQuality:        model.AgentLinkQualityExact,
@@ -380,30 +372,23 @@ func exactCrushAgentNode(
 	if node.Label == "" {
 		node.Label = output.Nickname
 	}
-	if node.Label == "" {
-		node.Label = "Subagent"
-	}
+	adapter.ApplySubagentLabel(&node)
 	return node
 }
 
-func unlinkedCrushLaunchNode(harness, rootKey string, actor crushGraphActor, launch agentLaunch) model.AgentNode {
-	seq := launch.seq
-	status := model.AgentStatusUnknown
-	trimmedOutput := strings.TrimSpace(launch.output)
-	if launch.outputObserved && trimmedOutput != "" && !json.Valid([]byte(trimmedOutput)) {
-		status = model.AgentStatusFailed
-	}
+func unlinkedCrushLaunchNode(harness, rootKey string, actor crushGraphActor, launch adapter.AgentLaunch) model.AgentNode {
+	seq := launch.Seq
 	return model.AgentNode{
-		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+launch.callID),
+		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+launch.CallID),
 		ParentID:           actor.nodeID,
 		Depth:              actor.depth + 1,
 		Kind:               model.AgentKindSubagent,
-		Label:              launch.callID,
-		Role:               agentArgument(launch.arguments, "agent_type"),
-		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.arguments, "message")),
+		Label:              launch.CallID,
+		Role:               agentArgument(launch.Arguments, "agent_type"),
+		InstructionPreview: adapter.AgentInstructionPreview(agentArgument(launch.Arguments, "message")),
 		LaunchSeq:          &seq,
-		LaunchCallID:       launch.callID,
-		Status:             status,
+		LaunchCallID:       launch.CallID,
+		Status:             adapter.UnlinkedLaunchStatus(launch),
 		TraceAvailability:  model.TraceAvailabilityMissing,
 		LinkQuality:        model.AgentLinkQualityUnavailable,
 		LinkMethod:         model.AgentLinkMethodUnavailable,
@@ -426,9 +411,7 @@ func derivedCrushAgentNode(harness, rootKey string, actor crushGraphActor, child
 		LinkMethod:        model.AgentLinkMethodCodexAgentID,
 		LaunchCallID:      child.Agent.LaunchCallID,
 	}
-	if node.Label == "" {
-		node.Label = "Subagent"
-	}
+	adapter.ApplySubagentLabel(&node)
 	return node
 }
 

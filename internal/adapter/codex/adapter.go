@@ -73,11 +73,11 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 }
 
 func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
-	f, err := adapter.OpenFile(path)
+	f, closeFile, err := adapter.OpenFile(path)
 	if err != nil {
 		return model.SessionMeta{}, err
 	}
-	defer f.Close()
+	defer closeFile()
 
 	id := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	meta := model.SessionMeta{Key: adapter.SessionKey(a.Harness(), path), ID: id, Harness: a.Harness(), Path: path}
@@ -179,11 +179,11 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 }
 
 func (a Adapter) Parse(path string) (*model.Trace, error) {
-	f, err := adapter.OpenFile(path)
+	f, closeFile, err := adapter.OpenFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer closeFile()
 
 	id := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
 	trace := &model.Trace{

@@ -30,6 +30,19 @@ func (a Adapter) SessionDir() string {
 	return DefaultDir()
 }
 
+// sessionIDFromPath derives a stable id for a pi session file. The
+// filename without extension is the conventional id; a session header
+// that records its own id wins (pi uses a generated id that survives
+// resume and rename). Both `Summarize` and `Parse` need the same
+// derivation, so the rule lives here.
+func sessionIDFromPath(path, headerID string) string {
+	id := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
+	if headerID != "" {
+		id = headerID
+	}
+	return id
+}
+
 func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	dir := a.SessionDir()
 	if !adapter.ReadableDir(dir) {
@@ -67,10 +80,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		return model.SessionMeta{}, adapter.NotRecognizedErr(a.Harness(), path)
 	}
 
-	id := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-	if header.ID != "" {
-		id = header.ID
-	}
+	id := sessionIDFromPath(path, header.ID)
 	meta := model.SessionMeta{
 		Key:       adapter.SessionKey(a.Harness(), path),
 		ID:        id,
@@ -136,10 +146,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		return nil, adapter.NotRecognizedErr(a.Harness(), path)
 	}
 
-	id := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
-	if header.ID != "" {
-		id = header.ID
-	}
+	id := sessionIDFromPath(path, header.ID)
 	trace := &model.Trace{
 		Version: 1,
 		Session: model.TraceSession{
@@ -354,11 +361,11 @@ func isPiHeader(data []byte) bool {
 // the file is not a pi session. Entries are only collected once the header
 // is accepted.
 func readSession(path string) (header rawEntry, entries []rawEntry, recognized bool, err error) {
-	f, err := adapter.OpenFile(path)
+	f, closeFile, err := adapter.OpenFile(path)
 	if err != nil {
 		return rawEntry{}, nil, false, err
 	}
-	defer f.Close()
+	defer closeFile()
 
 	sawEntry := false
 	err = adapter.ReadJSONLines(f, func(data []byte) {
