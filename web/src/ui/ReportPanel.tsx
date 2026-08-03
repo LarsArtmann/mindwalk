@@ -301,7 +301,7 @@ function RubricSection({
         ? "Task rubric unavailable this run — showing process dimensions only."
         : rubric.reason === "no-events"
           ? "No tool events to evidence a rubric."
-          : "No task text to build a rubric from.";
+          : "Not enough task text to build a rubric from.";
     return <p className="report-rubric-note">{text}</p>;
   }
   const tasks = rubric.tasks;
@@ -318,8 +318,16 @@ function RubricSection({
           judge them.
         </p>
       ) : null}
-      {tasks.map((task) => (
-        <RubricTaskBlock key={task.title} task={task} multi={multi} locked={locked} onJumpTo={onJumpTo} />
+      {tasks.map((task, i) => (
+        // anchor seqs are validated disjoint across tasks, so the first one is
+        // a unique stable key; titles are LLM-authored and may collide
+        <RubricTaskBlock
+          key={task.anchorSeqs?.[0] ?? `task-${i}`}
+          task={task}
+          multi={multi}
+          locked={locked}
+          onJumpTo={onJumpTo}
+        />
       ))}
       {rubric.note ? (
         <div className="report-rubric-footnote">
