@@ -36,11 +36,11 @@ import (
 var embeddedStatic embed.FS
 
 type Config struct {
-	Port        int
-	ClaudeDir   string
-	CodexDir    string
-	CrushDir    string
-	PiDir       string
+	Port      int
+	ClaudeDir string
+	CodexDir  string
+	CrushDir  string
+	PiDir     string
 	// DisableCrush skips registering the Crush adapter entirely.
 	// Useful for projects where the .crush directory does not
 	// belong to the user (e.g. vendored test fixtures) or for
