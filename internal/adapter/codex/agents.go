@@ -2,7 +2,6 @@ package codex
 
 import (
 	"encoding/json"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -209,7 +208,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 }
 
 func readAgentLaunches(path string) ([]agentLaunch, error) {
-	f, err := os.Open(path)
+	f, err := adapter.OpenFile(path)
 	if err != nil {
 		return nil, err
 	}

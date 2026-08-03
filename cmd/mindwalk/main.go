@@ -55,65 +55,110 @@ func run(args []string) error {
 	}
 }
 
+// serveFlags holds the flags shared by every command that starts a
+// server. The same FlagSet-backed struct covers serve, open, map, and
+// any future command that needs the discovery plumbing.
+type serveFlags struct {
+	port    int
+	host    string
+	dev     bool
+	noOpen  bool
+	adapter adapterFlags
+}
+
+// bindServeFlags wires the serve-side flags onto fs and returns the
+// parsed struct. Pass-through for dev is omitted by map because it
+// only matters when the UI assets are under web/dist.
+func bindServeFlags(fs *flag.FlagSet, withDev bool) *serveFlags {
+	sf := &serveFlags{}
+	fs.IntVar(&sf.port, "port", 0, "port to bind")
+	fs.StringVar(&sf.host, "host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
+	sf.adapter = parseAdapterFlags(fs)
+	if withDev {
+		fs.BoolVar(&sf.dev, "dev", false, "prefer web/dist from the working tree")
+	}
+	fs.BoolVar(&sf.noOpen, "no-open", false, "serve without opening a browser")
+	return sf
+}
+
 func serve(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind")
-	host := fs.String("host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
-	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
-	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
-	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
-	crushDir := fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
-	noCrush := fs.Bool("no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
-	dev := fs.Bool("dev", false, "prefer web/dist from the working tree")
-	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
+	sf := bindServeFlags(fs, true)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, Host: *host, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, Dev: *dev}).
-		Start(!*noOpen)
+	return server.New(serverConfigFromServeFlags(sf)).Start(!sf.noOpen)
 }
 
 func open(args []string) error {
-	fs := flag.NewFlagSet("open", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind")
-	host := fs.String("host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
-	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
-	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
-	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
-	crushDir := fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
-	noCrush := fs.Bool("no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
-	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if fs.NArg() != 1 {
-		return fmt.Errorf("usage: mindwalk open [--no-open] [--no-crush] [--host 0.0.0.0] <session>")
-	}
-	session, err := filepath.Abs(fs.Arg(0))
-	if err != nil {
-		return err
-	}
-	return server.New(server.Config{Port: *port, Host: *host, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, OpenSession: session}).
-		Start(!*noOpen)
+	return openSingle(
+		args,
+		"open",
+		false,
+		"usage: mindwalk open [--no-open] [--no-crush] [--host 0.0.0.0] <session>",
+		func(sf *serveFlags, target string) server.Config {
+			cfg := serverConfigFromServeFlags(sf)
+			cfg.OpenSession = target
+			return cfg
+		},
+	)
 }
 
 func openMap(args []string) error {
-	fs := flag.NewFlagSet("map", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind")
-	host := fs.String("host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
-	dev := fs.Bool("dev", false, "prefer web/dist from the working tree")
-	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
+	return openSingle(
+		args,
+		"map",
+		true,
+		"usage: mindwalk map [--no-open] [--host 0.0.0.0] <repo>",
+		func(sf *serveFlags, target string) server.Config {
+			cfg := serverConfigFromServeFlags(sf)
+			cfg.RepoRoot = target
+			cfg.MapOnly = true
+			return cfg
+		},
+	)
+}
+
+// openSingle runs the shared wiring for every "open one thing against a
+// running server" command. A single positional argument must remain after
+// flag parsing; its absolute path is handed to build to produce the final
+// Config. WithDev turns on the --dev flag, which is meaningless when the
+// command never serves the embedded UI.
+func openSingle(
+	args []string,
+	name string,
+	withDev bool,
+	usage string,
+	build func(sf *serveFlags, target string) server.Config,
+) error {
+	fs := flag.NewFlagSet(name, flag.ExitOnError)
+	sf := bindServeFlags(fs, withDev)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 1 {
-		return fmt.Errorf("usage: mindwalk map [--no-open] [--host 0.0.0.0] <repo>")
+		fmt.Fprintln(os.Stderr, usage)
+		return fmt.Errorf("usage: mindwalk %s <argument>", name)
 	}
-	repo, err := filepath.Abs(fs.Arg(0))
+	target, err := filepath.Abs(fs.Arg(0))
 	if err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, Host: *host, Dev: *dev, RepoRoot: repo, MapOnly: true}).Start(!*noOpen)
+	return server.New(build(sf, target)).Start(!sf.noOpen)
+}
+
+func serverConfigFromServeFlags(sf *serveFlags) server.Config {
+	af := sf.adapter
+	return server.Config{
+		Port:         sf.port,
+		Host:         sf.host,
+		ClaudeDir:    af.claudeDir,
+		CodexDir:     af.codexDir,
+		PiDir:        af.piDir,
+		CrushDir:     af.crushDir,
+		DisableCrush: af.noCrush,
+		Dev:          sf.dev,
+	}
 }
 
 func build(args []string) error {

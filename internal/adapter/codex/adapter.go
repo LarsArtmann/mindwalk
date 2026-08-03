@@ -23,19 +23,11 @@ type Adapter struct {
 }
 
 func DefaultDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".codex", "sessions")
+	return adapter.HomePath(".codex", "sessions")
 }
 
 func DefaultIndexPath() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".codex", "session_index.jsonl")
+	return adapter.HomePath(".codex", "session_index.jsonl")
 }
 
 func (a Adapter) Harness() string {
@@ -51,7 +43,7 @@ func (a Adapter) SessionDir() string {
 
 func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	dir := a.SessionDir()
-	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+	if !adapter.ReadableDir(dir) {
 		return nil, nil
 	}
 	var metas []model.SessionMeta
@@ -81,7 +73,7 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 }
 
 func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
-	f, err := os.Open(path)
+	f, err := adapter.OpenFile(path)
 	if err != nil {
 		return model.SessionMeta{}, err
 	}
@@ -181,13 +173,13 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		meta.Title = filepath.Base(path)
 	}
 	if !recognized {
-		return model.SessionMeta{}, fmt.Errorf("not a Codex session: %s", path)
+		return model.SessionMeta{}, adapter.NotRecognizedErr(a.Harness(), path)
 	}
 	return meta, err
 }
 
 func (a Adapter) Parse(path string) (*model.Trace, error) {
-	f, err := os.Open(path)
+	f, err := adapter.OpenFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +340,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	// the script chooses to print.
 	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilityEstimated)
 	if !recognized {
-		return nil, fmt.Errorf("not a Codex session: %s", path)
+		return nil, adapter.NotRecognizedErr(a.Harness(), path)
 	}
 	return trace, err
 }

@@ -10,6 +10,7 @@
 package crush
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"os/exec"
@@ -57,6 +58,16 @@ type Adapter struct {
 	// call. Nil when the adapter was constructed without NewAdapter;
 	// in that case every call opens and closes its own handle.
 	dbCache *sync.Map
+
+	// projects caches the projects.json registry so projectPathForDB
+	// can resolve a database path to a project working directory without
+	// re-reading the registry on every call. Nil for zero-value
+	// Adapters; they fall back to path inference.
+	projects *projectPathStore
+
+	// warnedOldSchema deduplicates schema warnings so each database
+	// path is warned about at most once per adapter instance.
+	warnedOldSchema *sync.Map
 }
 
 // NewAdapter creates an Adapter with its own session-to-DB index and
@@ -64,7 +75,32 @@ type Adapter struct {
 // Use this in the server and in tests that need to control multi-database
 // routing without sharing global state.
 func NewAdapter(dir string) Adapter {
-	return Adapter{Dir: dir, dbIndex: &sync.Map{}, dbCache: &sync.Map{}}
+	return Adapter{
+		Dir:             dir,
+		dbIndex:         &sync.Map{},
+		dbCache:         &sync.Map{},
+		projects:        &projectPathStore{},
+		warnedOldSchema: &sync.Map{},
+	}
+}
+
+// Close releases cached database connections. Safe to call multiple
+// times; adapters constructed without NewAdapter (nil dbCache) are a
+// no-op.
+func (a Adapter) Close() error {
+	if a.dbCache == nil {
+		return nil
+	}
+	var firstErr error
+	a.dbCache.Range(func(_, value any) bool {
+		if db, ok := value.(*sql.DB); ok && db != nil {
+			if err := db.Close(); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+		return true
+	})
+	return firstErr
 }
 
 // DefaultDir returns the platform-specific global Crush data directory:
@@ -196,18 +232,20 @@ func projectBoundary(dir string) string {
 // `git rev-parse` on every adapter query would be wasteful. Keyed by
 // the requested dir; the value is the resolved root ("" when dir is
 // not in a git worktree).
-var worktreeRootCache = map[string]string{}
+var worktreeRootCache sync.Map
 
 // worktreeRoot returns the absolute path of the git working tree root
 // for dir, or "" when dir is not inside a working tree (bare
 // repositories, missing git binary, plain directories, or any other
 // failure mode).
 func worktreeRoot(dir string) string {
-	if cached, ok := worktreeRootCache[dir]; ok {
-		return cached
+	if v, ok := worktreeRootCache.Load(dir); ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
 	}
 	root := computeWorktreeRoot(dir)
-	worktreeRootCache[dir] = root
+	worktreeRootCache.Store(dir, root)
 	return root
 }
 

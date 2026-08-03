@@ -200,7 +200,7 @@ func sortedClaudeArtifacts(byBasename map[string]*claudeAgentArtifact) []*claude
 }
 
 func readClaudeAgentLaunches(path string) ([]*claudeAgentLaunch, error) {
-	f, err := os.Open(path)
+	f, err := adapter.OpenFile(path)
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package pi
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,11 +16,7 @@ type Adapter struct {
 }
 
 func DefaultDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".pi", "agent", "sessions")
+	return adapter.HomePath(".pi", "agent", "sessions")
 }
 
 func (a Adapter) Harness() string {
@@ -37,7 +32,7 @@ func (a Adapter) SessionDir() string {
 
 func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	dir := a.SessionDir()
-	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+	if !adapter.ReadableDir(dir) {
 		return nil, nil
 	}
 	var metas []model.SessionMeta
@@ -69,7 +64,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		return model.SessionMeta{}, err
 	}
 	if !recognized {
-		return model.SessionMeta{}, fmt.Errorf("not a pi session: %s", path)
+		return model.SessionMeta{}, adapter.NotRecognizedErr(a.Harness(), path)
 	}
 
 	id := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
@@ -138,7 +133,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		return nil, err
 	}
 	if !recognized {
-		return nil, fmt.Errorf("not a pi session: %s", path)
+		return nil, adapter.NotRecognizedErr(a.Harness(), path)
 	}
 
 	id := strings.TrimSuffix(filepath.Base(path), filepath.Ext(path))
@@ -359,7 +354,7 @@ func isPiHeader(data []byte) bool {
 // the file is not a pi session. Entries are only collected once the header
 // is accepted.
 func readSession(path string) (header rawEntry, entries []rawEntry, recognized bool, err error) {
-	f, err := os.Open(path)
+	f, err := adapter.OpenFile(path)
 	if err != nil {
 		return rawEntry{}, nil, false, err
 	}

@@ -143,7 +143,7 @@ func TestSessionDirPrefersProjectFixture(t *testing.T) {
 	}
 	// Truncate any cached git-worktree root from previous runs so
 	// the fresh temp directory is not confused with one upstream.
-	worktreeRootCache = map[string]string{}
+	worktreeRootCache.Clear()
 	t.Setenv("CRUSH_GLOBAL_DATA", filepath.Join(root, "global"))
 
 	got := Adapter{WorkingDir: project}.SessionDir()
@@ -409,19 +409,19 @@ func TestProjectPathForDBDerivation(t *testing.T) {
 
 	tmp := t.TempDir()
 	crushDB := filepath.Join(tmp, dataDirName, dbName)
-	got := projectPathForDB(crushDB)
+	got := Adapter{}.projectPathForDB(crushDB)
 	if got != tmp {
 		t.Fatalf("projectPathForDB(%q) = %q, want %q", crushDB, got, tmp)
 	}
 
 	// Non-.crush directory → empty.
 	plain := filepath.Join(t.TempDir(), "data", dbName)
-	if got := projectPathForDB(plain); got != "" {
+	if got := (Adapter{}).projectPathForDB(plain); got != "" {
 		t.Fatalf("projectPathForDB(%q) = %q, want empty", plain, got)
 	}
 
 	// Empty input → empty.
-	if got := projectPathForDB(""); got != "" {
+	if got := (Adapter{}).projectPathForDB(""); got != "" {
 		t.Fatalf("projectPathForDB(\"\") = %q, want empty", got)
 	}
 }

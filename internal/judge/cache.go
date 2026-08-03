@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
@@ -17,11 +18,7 @@ type Cache struct {
 // DefaultCacheDir is ~/.mindwalk/reports — mindwalk's own data directory,
 // never inside ~/.claude, ~/.codex, or the inspected repository.
 func DefaultCacheDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".mindwalk", "reports")
+	return adapter.HomePath(".mindwalk", "reports")
 }
 
 func (c Cache) path(sessionKey string) string {

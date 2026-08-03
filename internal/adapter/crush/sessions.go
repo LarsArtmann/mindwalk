@@ -77,7 +77,7 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 		}
 		cwd := pdb.ProjectPath
 		if cwd == "" {
-			cwd = projectPathForDB(pdb.DBPath)
+			cwd = a.projectPathForDB(pdb.DBPath)
 		}
 		for rows.Next() {
 			meta, err := scanSessionMeta(rows)
@@ -112,7 +112,7 @@ func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 	defer func() { _ = db.close() }()
 
 	a.warnIfOldSchema(db)
-	cwd := projectPathForDB(db.path)
+	cwd := a.projectPathForDB(db.path)
 	rows, err := db.db.QueryContext(context.Background(), listSessionsQuery)
 	if err != nil {
 		return nil, fmt.Errorf("list crush sessions: %w", err)
@@ -160,11 +160,11 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	meta, err := scanSessionMeta(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.SessionMeta{}, fmt.Errorf("not a Crush session: %s", path)
+			return model.SessionMeta{}, adapter.NotRecognizedErr("Crush", path)
 		}
 		return model.SessionMeta{}, err
 	}
-	meta.Cwd = projectPathForDB(db.path)
+	meta.Cwd = a.projectPathForDB(db.path)
 	if isAgent || meta.Agent != nil {
 		meta.Auxiliary = true
 	}
@@ -232,12 +232,12 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	meta, err := scanSessionMeta(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("not a Crush session: %s", path)
+			return nil, adapter.NotRecognizedErr("Crush", path)
 		}
 		return nil, err
 	}
 	applySessionMeta(trace, meta)
-	trace.Session.Cwd = projectPathForDB(db.path)
+	trace.Session.Cwd = a.projectPathForDB(db.path)
 
 	rows, err := db.db.QueryContext(context.Background(), messagesBySessionQuery, id)
 	if err != nil {
@@ -327,7 +327,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilityEstimated)
 
 	if !recognized {
-		return nil, fmt.Errorf("not a Crush session: %s", path)
+		return nil, adapter.NotRecognizedErr("Crush", path)
 	}
 	return trace, nil
 }
@@ -408,34 +408,62 @@ func (h *sqlHandle) close() error {
 	return h.db.Close()
 }
 
-// warnIfOldSchema checks whether the database has the columns the
-// adapter expects (model, provider — added in Crush's 2025-06-27
-// migration). If the columns are missing the database predates the
-// file-read coverage era and traces will lack model metadata. The
-// warning is printed once per database path so repeated scans stay
-// quiet.
-func (a Adapter) warnIfOldSchema(h *sqlHandle) {
+// expectedSchemaColumns are the columns the adapter relies on. Missing
+// columns mean the database predates the corresponding Crush migration
+// and traces may lack metadata.
+var expectedSchemaColumns = []string{"model", "provider", "parent_session_id"}
+
+// warnIfOldSchema checks whether the messages table has the columns
+// the adapter expects. Missing columns are printed as a stderr warning,
+// deduplicated per database path so repeated scans stay quiet. Returns
+// true when the schema is old (columns missing).
+func (a Adapter) warnIfOldSchema(h *sqlHandle) bool {
 	if h == nil || h.path == "" {
-		return
+		return false
 	}
-	row := h.db.QueryRowContext(
-		context.Background(),
-		"SELECT name FROM pragma_table_info('messages') WHERE name IN ('model','provider') ORDER BY name",
-	)
-	var col string
-	hasModel := false
-	for row.Scan(&col) == nil {
-		if col == "model" {
-			hasModel = true
+	missing := schemaMissingColumns(h)
+	if len(missing) == 0 {
+		return false
+	}
+	if a.warnedOldSchema != nil {
+		if _, already := a.warnedOldSchema.LoadOrStore(h.path, true); already {
+			return true
 		}
 	}
-	if !hasModel {
-		fmt.Fprintf(
-			os.Stderr,
-			"mindwalk: warning: %s has an old schema (missing 'model' column); upgrade Crush to get full trace coverage\n",
-			h.path,
-		)
+	fmt.Fprintf(
+		os.Stderr,
+		"mindwalk: warning: %s has an old schema (missing %s); upgrade Crush to get full trace coverage\n",
+		h.path,
+		strings.Join(missing, ", "),
+	)
+	return true
+}
+
+// schemaMissingColumns returns the expected schema columns that are
+// absent from the messages table.
+func schemaMissingColumns(h *sqlHandle) []string {
+	rows, err := h.db.QueryContext(
+		context.Background(),
+		"SELECT name FROM pragma_table_info('messages') WHERE name IN ('model','provider','parent_session_id')",
+	)
+	if err != nil {
+		return nil
 	}
+	defer func() { _ = rows.Close() }()
+	found := map[string]bool{}
+	for rows.Next() {
+		var col string
+		if rows.Scan(&col) == nil {
+			found[col] = true
+		}
+	}
+	var missing []string
+	for _, col := range expectedSchemaColumns {
+		if !found[col] {
+			missing = append(missing, col)
+		}
+	}
+	return missing
 }
 
 // enumerateDBPaths returns every database path the adapter should

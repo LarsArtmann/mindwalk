@@ -2,7 +2,6 @@ package claudecode
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -17,11 +16,7 @@ type Adapter struct {
 }
 
 func DefaultDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".claude", "projects")
+	return adapter.HomePath(".claude", "projects")
 }
 
 func (a Adapter) Harness() string {
@@ -37,7 +32,7 @@ func (a Adapter) SessionDir() string {
 
 func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	dir := a.SessionDir()
-	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+	if !adapter.ReadableDir(dir) {
 		return nil, nil
 	}
 	var metas []model.SessionMeta
@@ -67,7 +62,7 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 }
 
 func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
-	f, err := os.Open(path)
+	f, err := adapter.OpenFile(path)
 	if err != nil {
 		return model.SessionMeta{}, err
 	}
@@ -149,13 +144,13 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		meta.Title = filepath.Base(path)
 	}
 	if !recognized {
-		return model.SessionMeta{}, fmt.Errorf("not a Claude Code session: %s", path)
+		return model.SessionMeta{}, adapter.NotRecognizedErr("Claude Code", path)
 	}
 	return meta, err
 }
 
 func (a Adapter) Parse(path string) (*model.Trace, error) {
-	f, err := os.Open(path)
+	f, err := adapter.OpenFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +252,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	// Claude Code tool results carry an is_error flag set by the harness.
 	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilityExact)
 	if !recognized {
-		return nil, fmt.Errorf("not a Claude Code session: %s", path)
+		return nil, adapter.NotRecognizedErr("Claude Code", path)
 	}
 	return trace, err
 }

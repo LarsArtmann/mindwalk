@@ -269,7 +269,7 @@ func TestOpenDBForPathExplicitDirIgnoresIndex(t *testing.T) {
 func TestProjectPathForDBInfersFromConventionalPath(t *testing.T) {
 	tmp := t.TempDir()
 	dbPath := filepath.Join(tmp, "myproject", dataDirName, dbName)
-	got := projectPathForDB(dbPath)
+	got := Adapter{}.projectPathForDB(dbPath)
 	expected := filepath.Join(tmp, "myproject")
 	if got != expected {
 		t.Fatalf("projectPathForDB(%q) = %q, want %q", dbPath, got, expected)
@@ -283,7 +283,7 @@ func TestProjectPathForDBRejectsGlobalDir(t *testing.T) {
 	globalDir := t.TempDir()
 	t.Setenv("CRUSH_GLOBAL_DATA", globalDir)
 	dbPath := filepath.Join(globalDir, dataDirName, dbName)
-	got := projectPathForDB(dbPath)
+	got := Adapter{}.projectPathForDB(dbPath)
 	if got != "" {
 		t.Fatalf("projectPathForDB(global DB) = %q, want empty", got)
 	}
@@ -291,7 +291,91 @@ func TestProjectPathForDBRejectsGlobalDir(t *testing.T) {
 
 // TestProjectPathForDBEmptyInput verifies that empty input returns "".
 func TestProjectPathForDBEmptyInput(t *testing.T) {
-	if got := projectPathForDB(""); got != "" {
+	if got := (Adapter{}).projectPathForDB(""); got != "" {
 		t.Fatalf("projectPathForDB(\"\") = %q, want empty", got)
+	}
+}
+
+// TestWarnIfOldSchemaDetectsMissingColumns verifies that a database
+// without the expected columns is detected as old-schema.
+func TestWarnIfOldSchemaDetectsMissingColumns(t *testing.T) {
+	tmp := t.TempDir()
+	dbPath := filepath.Join(tmp, "old.db")
+	// Create a database with a deliberately minimal messages table
+	// missing model, provider, and parent_session_id.
+	dir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	handle, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = handle.Close() })
+	if _, err := handle.Exec(`
+		CREATE TABLE messages (
+			id TEXT PRIMARY KEY,
+			session_id TEXT NOT NULL,
+			role TEXT NOT NULL,
+			parts TEXT NOT NULL DEFAULT '[]',
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		);
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	h := &sqlHandle{path: dbPath, db: handle}
+	a := NewAdapter("")
+	missing := schemaMissingColumns(h)
+	if len(missing) != 3 {
+		t.Fatalf("expected 3 missing columns, got %d: %v", len(missing), missing)
+	}
+	if a.warnIfOldSchema(h) != true {
+		t.Fatal("warnIfOldSchema should return true for old schema")
+	}
+	// Second call should be deduplicated — still returns true but
+	// LoadOrStore confirms the path was stored.
+	if _, ok := a.warnedOldSchema.Load(dbPath); !ok {
+		t.Fatal("warnedOldSchema should have recorded the path")
+	}
+}
+
+// TestWarnIfOldSchemaSkipsGoodSchema verifies that a database with all
+// expected columns does not trigger a warning.
+func TestWarnIfOldSchemaSkipsGoodSchema(t *testing.T) {
+	tmp := t.TempDir()
+	dbPath := filepath.Join(tmp, "good.db")
+	handle, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle.SetMaxOpenConns(1)
+	t.Cleanup(func() { _ = handle.Close() })
+	if _, err := handle.Exec(`
+		CREATE TABLE messages (
+			id TEXT PRIMARY KEY,
+			session_id TEXT NOT NULL,
+			role TEXT NOT NULL,
+			parts TEXT NOT NULL DEFAULT '[]',
+			model TEXT,
+			provider TEXT,
+			parent_session_id TEXT,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		);
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	h := &sqlHandle{path: dbPath, db: handle}
+	a := NewAdapter("")
+	missing := schemaMissingColumns(h)
+	if len(missing) != 0 {
+		t.Fatalf("expected 0 missing columns, got %d: %v", len(missing), missing)
+	}
+	if a.warnIfOldSchema(h) != false {
+		t.Fatal("warnIfOldSchema should return false for good schema")
 	}
 }

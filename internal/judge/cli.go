@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/textutil"
 )
 
@@ -56,11 +57,7 @@ func DetectCLIs() []string {
 // IsWorkDir to recognize sessions recorded there as mindwalk's own judge runs
 // (a fallback for codex CLIs that predate --ephemeral).
 func WorkDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".mindwalk", "judge")
+	return adapter.HomePath(".mindwalk", "judge")
 }
 
 // IsWorkDir reports whether path is the judge working directory.

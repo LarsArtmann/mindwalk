@@ -25,6 +25,14 @@ type Source interface {
 	Parse(path string) (*model.Trace, error)
 }
 
+// Closer is implemented by adapters that hold reusable resources
+// (database connection pools, file handles) that must be released on
+// shutdown. Adapters that do not implement Close rely on garbage
+// collection.
+type Closer interface {
+	Close() error
+}
+
 type AgentGraphSource interface {
 	AgentGraphInputs(root model.SessionMeta, catalog []model.SessionMeta) ([]string, error)
 	BuildAgentGraph(root model.SessionMeta, catalog []model.SessionMeta) (*model.AgentGraph, error)
@@ -35,6 +43,56 @@ type AgentGraphSource interface {
 func IsAgentGraphSource(src Source) bool {
 	_, ok := src.(AgentGraphSource)
 	return ok
+}
+
+// UserHomeDir returns the current user's home directory, or "" when
+// the OS cannot resolve one (containers, unusual platforms). Callers
+// append a relative path and treat the empty return as "do not probe".
+func UserHomeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return home
+}
+
+// HomePath joins an absolute path under the user's home directory,
+// returning "" when the home directory cannot be resolved. Callers use
+// the empty return as a "not configured" signal — they never fall back
+// to a synthesized path.
+func HomePath(parts ...string) string {
+	home := UserHomeDir()
+	if home == "" {
+		return ""
+	}
+	return filepath.Join(append([]string{home}, parts...)...)
+}
+
+// OpenFile opens a session log for reading and arranges its close on
+// the supplied cleanup function. Returning the file plus a deferred
+// close inline was repeated across every JSONL adapter; this helper
+// keeps the common two-line ceremony in one place.
+func OpenFile(path string) (*os.File, error) {
+	return os.Open(path)
+}
+
+// ReadableDir reports whether dir is a directory the caller can read.
+// Adapters use it to short-circuit ListSessions on missing ~/.harness
+// trees before walking them.
+func ReadableDir(dir string) bool {
+	if dir == "" {
+		return false
+	}
+	info, err := os.Stat(dir)
+	return err == nil && info.IsDir()
+}
+
+// NotRecognizedErr builds the error a JSONL adapter returns when it
+// walked the file but never saw a recognizable event for its harness.
+// Centralizing the format keeps the user-visible message and any future
+// flag (e.g. logging the candidate path) consistent across adapters.
+func NotRecognizedErr(harness, path string) error {
+	return fmt.Errorf("not a %s session: %s", harness, path)
 }
 
 type ToolCall struct {

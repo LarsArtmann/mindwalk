@@ -155,6 +155,21 @@ func New(cfg Config) *Server {
 	}
 }
 
+// Close releases resources held by adapters (database connection pools,
+// file handles). Adapters that do not implement adapter.Closer are
+// skipped. Safe to call multiple times.
+func (s *Server) Close() error {
+	var firstErr error
+	for _, src := range s.adapters {
+		if c, ok := src.(adapter.Closer); ok {
+			if err := c.Close(); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+	return firstErr
+}
+
 func (s *Server) Start(openBrowser bool) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/sessions", s.handleSessions)

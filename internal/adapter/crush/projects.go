@@ -60,38 +60,46 @@ func loadProjectDBs() []projectDB {
 	return dbs
 }
 
-// projectPathCache maps dbPath → projectPath, populated once from the
-// Crush projects registry on first use. Keyed by the database path so
-// Parse and Summarize — which open a specific crush.db — can recover
-// the project working directory without re-reading projects.json.
-var (
-	projectPathCache sync.Map // dbPath (string) → projectPath (string)
-	projectPathInit  sync.Once
-)
+// projectPathStore caches dbPath → projectPath, populated once from
+// the Crush projects registry on first use. It lives on the Adapter
+// so each instance has its own cache, isolating tests.
+type projectPathStore struct {
+	cache sync.Map // dbPath (string) → projectPath (string)
+	once  sync.Once
+}
 
-func initProjectPathCache() {
+func (ps *projectPathStore) init() {
 	for _, pdb := range loadProjectDBs() {
-		projectPathCache.Store(pdb.DBPath, pdb.ProjectPath)
+		ps.cache.Store(pdb.DBPath, pdb.ProjectPath)
 	}
 }
 
 // projectPathForDB resolves the project working directory that owns the
-// given crush.db path. It consults the projects.json registry first,
-// then falls back to deriving the path when the database lives inside a
-// conventional <project>/.crush/ data directory. Returns "" when
-// neither yields a result, or when the only candidate is the global
-// data directory (sessions there belong to Crush itself, not a user
-// repo).
-func projectPathForDB(dbPath string) string {
+// given crush.db path. It consults the adapter's projects.json cache
+// when available, then falls back to deriving the path when the
+// database lives inside a conventional <project>/.crush/ data
+// directory. Returns "" when neither yields a result, or when the only
+// candidate is the global data directory (sessions there belong to
+// Crush itself, not a user repo).
+func (a Adapter) projectPathForDB(dbPath string) string {
 	if dbPath == "" {
 		return ""
 	}
-	projectPathInit.Do(initProjectPathCache)
-	if v, ok := projectPathCache.Load(dbPath); ok {
-		if s, ok := v.(string); ok && s != "" {
-			return s
+	if a.projects != nil {
+		a.projects.once.Do(a.projects.init)
+		if v, ok := a.projects.cache.Load(dbPath); ok {
+			if s, ok := v.(string); ok && s != "" {
+				return s
+			}
 		}
 	}
+	return inferProjectPath(dbPath)
+}
+
+// inferProjectPath derives the project working directory from a
+// conventional <project>/.crush/crush.db path. Returns "" when the
+// path does not match the convention or points at the global data dir.
+func inferProjectPath(dbPath string) string {
 	dataDir := filepath.Dir(dbPath)
 	if filepath.Base(dataDir) != dataDirName {
 		return ""
