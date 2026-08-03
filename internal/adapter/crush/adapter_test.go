@@ -335,3 +335,31 @@ func TestSummarizeMissingDatabase(t *testing.T) {
 		t.Fatalf("expected not-a-Crush-session error, got %v", err)
 	}
 }
+
+// TestOpenReadOnlyReportsUnderlyingError verifies the error path
+// surfaces the underlying cause and the resolved path so a user
+// can diagnose a broken configuration without re-deriving the
+// path. An empty file and a directory where crush.db is expected
+// each produce a distinct, helpful error message.
+func TestOpenReadOnlyReportsUnderlyingError(t *testing.T) {
+	// Empty file → "empty (size 0)"
+	dir := t.TempDir()
+	emptyFile := filepath.Join(dir, "crush.db")
+	if err := os.WriteFile(emptyFile, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Adapter{Dir: dir}.ListSessions()
+	if err == nil || !strings.Contains(err.Error(), "empty (size 0)") {
+		t.Fatalf("empty file error = %v", err)
+	}
+
+	// Directory where file is expected → "is a directory"
+	dirAsFile := filepath.Join(t.TempDir(), "crush.db")
+	if err := os.MkdirAll(dirAsFile, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	_, err = Adapter{Dir: filepath.Dir(dirAsFile)}.ListSessions()
+	if err == nil || !strings.Contains(err.Error(), "is a directory") {
+		t.Fatalf("directory-as-file error = %v", err)
+	}
+}

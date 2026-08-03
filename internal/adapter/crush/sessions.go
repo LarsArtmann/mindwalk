@@ -258,21 +258,32 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 
 // openReadOnly opens the database in read-only mode, returning (nil,
 // nil) when the file is absent so ListSessions can return an empty
-// catalog without treating "no Crush installed" as an error.
+// catalog without treating "no Crush installed" as an error. Other
+// errors (permission denied, corrupt file, schema mismatch) are
+// surfaced with the underlying cause and the resolved path so a
+// user can fix the configuration without re-deriving what went
+// wrong.
 func (a Adapter) openReadOnly() (*sqlHandle, error) {
 	path := a.dbPath()
 	if path == "" {
 		return nil, nil
 	}
-	if _, err := os.Stat(path); err != nil {
+	info, err := os.Stat(path)
+	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
-		return nil, err
+		return nil, fmt.Errorf("inspect crush database at %s: %w", path, err)
+	}
+	if info.IsDir() {
+		return nil, fmt.Errorf("crush database path %s is a directory, not a file", path)
+	}
+	if info.Size() == 0 {
+		return nil, fmt.Errorf("crush database at %s is empty (size 0)", path)
 	}
 	db, err := openSQLite(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open crush database at %s: %w", path, err)
 	}
 	return &sqlHandle{path: path, db: db}, nil
 }
