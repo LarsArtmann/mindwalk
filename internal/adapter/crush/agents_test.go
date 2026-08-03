@@ -23,7 +23,7 @@ func TestBuildAgentGraphExactMatch(t *testing.T) {
 	insertMessage(t, db, "root", "msg_root_1", "assistant", writeParts(t,
 		map[string]any{"type": "tool_call", "data": map[string]any{
 			"id": launchID, "name": "agent",
-			"input": `{"task_title":"explore","agent_type":"explore","message":"read the schema"}`,
+			"input":    `{"task_title":"explore","agent_type":"explore","message":"read the schema"}`,
 			"finished": true,
 		}},
 		map[string]any{"type": "tool_result", "data": map[string]any{
@@ -94,7 +94,7 @@ func TestBuildAgentGraphUnlinkedLaunch(t *testing.T) {
 	insertMessage(t, db, "root", "msg_root_1", "assistant", writeParts(t,
 		map[string]any{"type": "tool_call", "data": map[string]any{
 			"id": launchID, "name": "agent",
-			"input": `{"task_title":"explore","agent_type":"explore","message":"read"}`,
+			"input":    `{"task_title":"explore","agent_type":"explore","message":"read"}`,
 			"finished": true,
 		}},
 		// Garbage result — not the expected JSON shape with

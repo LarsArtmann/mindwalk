@@ -30,6 +30,13 @@ type AgentGraphSource interface {
 	BuildAgentGraph(root model.SessionMeta, catalog []model.SessionMeta) (*model.AgentGraph, error)
 }
 
+// IsAgentGraphSource reports whether a source implements the agent-graph
+// capability. Used by the server's adapter-status endpoint.
+func IsAgentGraphSource(src Source) bool {
+	_, ok := src.(AgentGraphSource)
+	return ok
+}
+
 type ToolCall struct {
 	ID        string
 	Name      string
@@ -38,8 +45,9 @@ type ToolCall struct {
 }
 
 type ToolResult struct {
-	Content string
-	IsError bool
+	ToolCallID string
+	Content    string
+	IsError    bool
 }
 
 // SessionKey identifies one session file independently of the harness-level

@@ -374,17 +374,17 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 			agent.SourceID = messageID
 		}
 		return model.SessionMeta{
-			Key:               SessionKey(sr.ID),
-			ID:                sr.ID,
-			Harness:           harnessName,
-			Path:              SessionPath(sr.ID),
-			Title:             sr.Title,
-			StartedAt:         millisToRFC3339(sr.CreatedAt),
-			EndedAt:           millisToRFC3339(sr.UpdatedAt),
-			EventCount:        int(sr.MessageCount),
-			UserTurns:         0,
-			Auxiliary:         true,
-			Agent:             agent,
+			Key:        SessionKey(sr.ID),
+			ID:         sr.ID,
+			Harness:    harnessName,
+			Path:       SessionPath(sr.ID),
+			Title:      sr.Title,
+			StartedAt:  millisToRFC3339(sr.CreatedAt),
+			EndedAt:    millisToRFC3339(sr.UpdatedAt),
+			EventCount: int(sr.MessageCount),
+			UserTurns:  0,
+			Auxiliary:  true,
+			Agent:      agent,
 		}, nil
 	}
 	return model.SessionMeta{

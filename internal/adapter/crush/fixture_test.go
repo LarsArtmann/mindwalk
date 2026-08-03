@@ -158,3 +158,32 @@ func TestFixtureBuildsAgentGraph(t *testing.T) {
 		t.Fatalf("trace key = %q, want %q", sub.TraceSessionKey, childMeta.Key)
 	}
 }
+
+// BenchmarkFixtureListSessions measures the cold-open + session-listing
+// path. Each iteration opens the SQLite file read-only, runs the
+// sessions query, and closes the handle.
+func BenchmarkFixtureListSessions(b *testing.B) {
+	dir := filepath.Join("..", "..", "..", "testdata", "crush")
+	a := Adapter{Dir: dir}
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if _, err := a.ListSessions(); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+// BenchmarkFixtureParse measures the full trace-parse path: open DB,
+// walk every message row, decode parts JSON, build events/marks,
+// close. This is the path /api/sessions/<key>/trace exercises.
+func BenchmarkFixtureParse(b *testing.B) {
+	dir := filepath.Join("..", "..", "..", "testdata", "crush")
+	a := Adapter{Dir: dir}
+	path := SessionPath("fixture-root")
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		if _, err := a.Parse(path); err != nil {
+			b.Fatal(err)
+		}
+	}
+}

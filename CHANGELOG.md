@@ -38,14 +38,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     derived, empty catalog).
   - `docs/crush.md` documents the data-dir resolution, parts
     JSON shape, synthetic path scheme, and sub-agent id format.
+  - `/api/adapters` endpoint returns harness name, session
+    directory, live session count, and agent-graph capability
+    for each registered adapter.
+  - Benchmarks for the SQLite cold-open + parse path
+    (`BenchmarkFixtureListSessions`,
+    `BenchmarkFixtureParse`) catch regressions on the read path.
 
 ### Changed
+- `adapter.ToolResult` now carries a `ToolCallID` field, letting
+  the cross-message tool-call/result pairing happen at the type
+  level instead of through a fragile parallel-slice
+  (`finishResult.resultIDs`) that the consumer had to index in
+  lockstep.
+- `fingerprintAgentGraphInputs` now guards `crush://` synthetic
+  paths so the agent-graph fingerprint records the session id
+  instead of always marking it "missing" (which could serve a
+  stale graph indefinitely).
+- `loadTraceAndMap` no longer falls through to
+  `filepath.Dir(meta.Path)` when the path is a `crush://`
+  synthetic handle, preventing a garbage repo-root from
+  polluting the citymap.
 - `model.SessionMeta.Path` comment now mentions the synthetic
   `crush://session/<id>` URI so future contributors don't trip
   over the silent contract.
 - `crush://session/<id>` is now a single constant in the
-  adapter package; both server call sites
-  (`sourceUsesFilesystem`, `fingerprintPath`) call
+  adapter package; all four server call sites
+  (`sourceUsesFilesystem`, `fingerprintPath`,
+  `fingerprintAgentGraphInputs`, `loadTraceAndMap`) call
   `crush.IsSessionPath` instead of hardcoding the prefix.
 
 ## [0.0.0] - initial

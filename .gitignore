@@ -18,3 +18,5 @@ yarn-debug.log*
 yarn-error.log*
 web/dist/
 web/node_modules/
+testdata/crush/*.db-shm
+testdata/crush/*.db-wal

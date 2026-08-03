@@ -157,6 +157,7 @@ func (s *Server) Start(openBrowser bool) error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/sessions", s.handleSessions)
 	mux.HandleFunc("/api/sessions/", s.handleSessionResource)
+	mux.HandleFunc("/api/adapters", s.handleAdapters)
 	mux.HandleFunc("/api/repomap", s.handleRepoMap)
 	mux.HandleFunc("/", s.handleStatic)
 
@@ -211,6 +212,36 @@ func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
 type sessionListItem struct {
 	model.SessionMeta
 	ReportState string `json:"reportState,omitempty"`
+}
+
+type adapterInfo struct {
+	Harness      string `json:"harness"`
+	SessionDir   string `json:"sessionDir"`
+	SessionCount int    `json:"sessionCount"`
+	AgentGraph   bool   `json:"agentGraph"`
+}
+
+func (s *Server) handleAdapters(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	s.mu.Lock()
+	counts := make(map[string]int, len(s.adapters))
+	for _, sess := range s.sessions {
+		counts[sess.Harness]++
+	}
+	s.mu.Unlock()
+	infos := make([]adapterInfo, 0, len(s.adapters))
+	for _, src := range s.adapters {
+		infos = append(infos, adapterInfo{
+			Harness:      src.Harness(),
+			SessionDir:   src.SessionDir(),
+			SessionCount: counts[src.Harness()],
+			AgentGraph:   adapter.IsAgentGraphSource(src),
+		})
+	}
+	writeJSON(w, infos)
 }
 
 func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
@@ -831,6 +862,10 @@ func fingerprintAgentGraphInputs(paths []string, freshGen uint64) (agentGraphFin
 			continue
 		}
 		previous = path
+		if crush.IsSessionPath(path) {
+			fmt.Fprintf(&material, "%s\x00synthetic\n", path)
+			continue
+		}
 		info, err := os.Stat(path)
 		if os.IsNotExist(err) {
 			fmt.Fprintf(&material, "%s\x00missing\n", path)
@@ -916,7 +951,7 @@ func (s *Server) loadTraceAndMap(meta model.SessionMeta) (*model.Trace, *model.C
 	if repoRoot == "" {
 		repoRoot = s.cfg.RepoRoot
 	}
-	if repoRoot == "" {
+	if repoRoot == "" && !crush.IsSessionPath(meta.Path) {
 		repoRoot = filepath.Dir(meta.Path)
 	}
 	city, err := s.buildCityMap(repoRoot, trace)

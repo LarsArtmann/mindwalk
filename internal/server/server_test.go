@@ -1501,3 +1501,59 @@ func TestServerSkipsCrushWhenDisabled(t *testing.T) {
 		}
 	}
 }
+
+// TestAdaptersEndpoint verifies the /api/adapters endpoint returns
+// every registered adapter with its harness name, session directory,
+// live session count, and agent-graph capability flag.
+func TestAdaptersEndpoint(t *testing.T) {
+	crushDir := filepath.Join("..", "..", "testdata", "crush")
+	s := New(Config{
+		ClaudeDir: filepath.Join(t.TempDir(), "no-claude"),
+		CodexDir:  filepath.Join(t.TempDir(), "no-codex"),
+		PiDir:     filepath.Join(t.TempDir(), "no-pi"),
+		CrushDir:  crushDir,
+	})
+
+	// Warm the scan so session counts are populated.
+	if _, err := s.listSessions(); err != nil {
+		t.Fatal(err)
+	}
+
+	resp := httptest.NewRecorder()
+	s.handleAdapters(resp, httptest.NewRequest(http.MethodGet, "/api/adapters", nil))
+	if resp.Code != http.StatusOK {
+		t.Fatalf("status = %d body=%s", resp.Code, resp.Body.String())
+	}
+	var infos []adapterInfo
+	if err := json.Unmarshal(resp.Body.Bytes(), &infos); err != nil {
+		t.Fatal(err)
+	}
+
+	want := map[string]struct {
+		count      int
+		agentGraph bool
+	}{
+		"claude-code": {0, true},
+		"codex":       {0, true},
+		"pi":          {0, false},
+		"crush":       {1, true},
+	}
+	if len(infos) != len(want) {
+		t.Fatalf("adapter count = %d, want %d", len(infos), len(want))
+	}
+	for _, info := range infos {
+		expected, ok := want[info.Harness]
+		if !ok {
+			t.Fatalf("unexpected harness %q", info.Harness)
+		}
+		if info.SessionCount != expected.count {
+			t.Errorf("harness %q session count = %d, want %d", info.Harness, info.SessionCount, expected.count)
+		}
+		if info.AgentGraph != expected.agentGraph {
+			t.Errorf("harness %q agentGraph = %v, want %v", info.Harness, info.AgentGraph, expected.agentGraph)
+		}
+		if info.SessionDir == "" {
+			t.Errorf("harness %q has empty sessionDir", info.Harness)
+		}
+	}
+}

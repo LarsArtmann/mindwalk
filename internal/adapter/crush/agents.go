@@ -305,14 +305,10 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 			seq++
 		}
 		// Attach tool results to launches. Each result carries the
-		// originating tool_call_id (parallel to the events list
-		// inside one decodeParts call), so we can match them
-		// across messages here.
-		for i, result := range parsed.results {
-			if i >= len(parsed.resultIDs) {
-				continue
-			}
-			callID := parsed.resultIDs[i]
+		// originating tool_call_id, so we can match them across
+		// messages here.
+		for _, result := range parsed.results {
+			callID := result.ToolCallID
 			if callID == "" || seenResults[callID] {
 				continue
 			}
@@ -406,19 +402,19 @@ func unlinkedCrushLaunchNode(harness, rootKey string, actor crushGraphActor, lau
 
 func derivedCrushAgentNode(harness, rootKey string, actor crushGraphActor, child *model.SessionMeta) model.AgentNode {
 	node := model.AgentNode{
-		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-child:"+child.Agent.SourceID),
-		ParentID:           actor.nodeID,
-		Depth:              actor.depth + 1,
-		Kind:               model.AgentKindSubagent,
-		Label:              child.Title,
-		Role:               child.Agent.Role,
-		Status:             model.AgentStatusLaunched,
-		TraceAvailability:  model.TraceAvailabilityAvailable,
-		TraceSessionKey:    child.Key,
-		TraceEventCount:    child.EventCount,
-		LinkQuality:        model.AgentLinkQualityDerived,
-		LinkMethod:         model.AgentLinkMethodCodexAgentID,
-		LaunchCallID:       child.Agent.LaunchCallID,
+		ID:                adapter.AgentNodeID(harness, rootKey, "crush-child:"+child.Agent.SourceID),
+		ParentID:          actor.nodeID,
+		Depth:             actor.depth + 1,
+		Kind:              model.AgentKindSubagent,
+		Label:             child.Title,
+		Role:              child.Agent.Role,
+		Status:            model.AgentStatusLaunched,
+		TraceAvailability: model.TraceAvailabilityAvailable,
+		TraceSessionKey:   child.Key,
+		TraceEventCount:   child.EventCount,
+		LinkQuality:       model.AgentLinkQualityDerived,
+		LinkMethod:        model.AgentLinkMethodCodexAgentID,
+		LaunchCallID:      child.Agent.LaunchCallID,
 	}
 	if node.Label == "" {
 		node.Label = "Subagent"
