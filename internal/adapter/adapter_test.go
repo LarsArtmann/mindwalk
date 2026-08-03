@@ -446,3 +446,58 @@ func jsonString(t *testing.T, value string) string {
 	}
 	return string(encoded)
 }
+
+func TestBuildEventClassifiesPiCoreTools(t *testing.T) {
+	root := t.TempDir()
+	writeAdapterTestFile(t, root, "src/main.go")
+	abs := filepath.Join(root, "src", "main.go")
+
+	tests := []struct {
+		tool   string
+		input  map[string]any
+		action string
+		path   string
+		touch  string
+		weak   bool
+	}{
+		{"read", map[string]any{"path": abs, "offset": float64(10), "limit": float64(5)}, "read", "src/main.go", "read", false},
+		{"edit", map[string]any{"path": abs, "edits": []any{map[string]any{"oldText": "a", "newText": "b"}}}, "edit", "src/main.go", "edit", false},
+		{"write", map[string]any{"path": abs, "content": "x"}, "edit", "src/main.go", "edit", false},
+		{"grep", map[string]any{"pattern": "TODO", "path": abs}, "search", "src/main.go", "hit", true},
+		{"find", map[string]any{"pattern": "*.go", "path": abs}, "search", "src/main.go", "hit", true},
+		{"ls", map[string]any{"path": abs}, "search", "src/main.go", "hit", true},
+		{"bash", map[string]any{"command": "go test ./... | tail -5"}, "verify", "", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.tool, func(t *testing.T) {
+			trace := &model.Trace{Session: model.TraceSession{Cwd: root}}
+			event := BuildEvent(trace, ToolCall{Name: tt.tool, Input: tt.input}, ToolResult{})
+			if event.Action != tt.action {
+				t.Fatalf("action = %q, want %q", event.Action, tt.action)
+			}
+			if tt.path == "" {
+				return
+			}
+			if len(event.Targets) != 1 {
+				t.Fatalf("targets = %#v", event.Targets)
+			}
+			target := event.Targets[0]
+			if target.Path != tt.path || target.Touch != tt.touch || target.Weak != tt.weak {
+				t.Fatalf("target = %#v", target)
+			}
+		})
+	}
+}
+
+func TestBuildEventPiReadRecordsLineRange(t *testing.T) {
+	trace := &model.Trace{Session: model.TraceSession{Cwd: t.TempDir()}}
+	input := map[string]any{"path": "/abs/elsewhere.go", "offset": float64(10), "limit": float64(5)}
+	event := BuildEvent(trace, ToolCall{Name: "read", Input: input}, ToolResult{})
+	if event.Action != "read" {
+		t.Fatalf("action = %q", event.Action)
+	}
+	if len(event.Outside) != 1 {
+		t.Fatalf("outside = %#v", event.Outside)
+	}
+}

@@ -241,13 +241,13 @@ func IntFromAny(v any) int {
 
 func actionFor(tool string, input map[string]any, result string) string {
 	switch tool {
-	case "Read":
+	case "Read", "read":
 		return "read"
-	case "Write", "Edit", "MultiEdit", "NotebookEdit", "apply_patch":
+	case "Write", "Edit", "MultiEdit", "NotebookEdit", "apply_patch", "write", "edit":
 		return "edit"
-	case "Grep", "Glob", "LS", "view_image":
+	case "Grep", "Glob", "LS", "view_image", "grep", "find", "ls":
 		return "search"
-	case "Bash", "exec_command", "write_stdin", "js", "js_repl":
+	case "Bash", "bash", "exec_command", "write_stdin", "js", "js_repl":
 		command := firstString(input, "command", "cmd", "code", "chars", "script", "_raw")
 		if verifyCommand(command) {
 			return "verify"
@@ -323,18 +323,24 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 	}
 
 	switch tool {
-	case "Read":
+	case "Read", "read":
 		if path, ok := input["file_path"].(string); ok {
 			add(path, "read", false, readLines(input), "")
 		}
-	case "Write", "Edit", "MultiEdit", "NotebookEdit":
+		if path, ok := input["path"].(string); ok {
+			add(path, "read", false, readLines(input), "")
+		}
+	case "Write", "Edit", "MultiEdit", "NotebookEdit", "write", "edit":
 		if path, ok := input["file_path"].(string); ok {
 			add(path, "edit", false, nil, "")
 		}
 		if path, ok := input["notebook_path"].(string); ok {
 			add(path, "edit", false, nil, "")
 		}
-	case "Grep":
+		if path, ok := input["path"].(string); ok {
+			add(path, "edit", false, nil, "")
+		}
+	case "Grep", "grep":
 		for _, hit := range parsePathHits(result) {
 			add(hit.path, "hit", false, hit.lines, "")
 		}
@@ -343,14 +349,14 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 				add(path, "hit", true, nil, "")
 			}
 		}
-	case "Glob", "LS":
+	case "Glob", "LS", "find", "ls":
 		for _, hit := range parsePathHits(result) {
 			add(hit.path, "hit", false, nil, "")
 		}
 		if path, ok := input["path"].(string); ok && len(targets) == 0 {
 			add(path, "hit", true, nil, "")
 		}
-	case "Bash":
+	case "Bash", "bash":
 		command := firstString(input, "command")
 		for _, path := range commandReadPaths(command) {
 			add(path, "read", true, nil, "")

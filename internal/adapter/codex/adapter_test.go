@@ -841,3 +841,22 @@ func TestParseSkipsInjectedUserMessages(t *testing.T) {
 		t.Fatalf("summarized userTurns = %d, want 1", meta.UserTurns)
 	}
 }
+
+func TestParseRejectsRolelessMessageLines(t *testing.T) {
+	// pi sessions also write {"type":"message"} lines but nest the payload
+	// under "message" with no top-level role; those files are not Codex's.
+	dir := t.TempDir()
+	path := filepath.Join(dir, "session.jsonl")
+	lines := `{"type":"session","version":3,"id":"s1","timestamp":"2026-07-21T14:34:07.238Z","cwd":"/tmp"}
+{"type":"message","id":"e1","parentId":null,"timestamp":"2026-07-21T14:34:22.963Z","message":{"role":"user","content":"hi"}}
+`
+	if err := os.WriteFile(path, []byte(lines), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (Adapter{}).Parse(path); err == nil {
+		t.Fatal("Parse claimed a roleless message file")
+	}
+	if _, err := (Adapter{}).Summarize(path); err == nil {
+		t.Fatal("Summarize claimed a roleless message file")
+	}
+}
