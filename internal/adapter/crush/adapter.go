@@ -76,13 +76,16 @@ func DefaultDir() string {
 	return ""
 }
 
+// Harness returns the canonical harness identifier the rest of
+// mindwalk uses to filter traces and pick the right adapter.
 func (a Adapter) Harness() string { return "crush" }
 
-// SessionDir is the resolved Crush data directory the adapter will use
-// to look up sessions. It returns the explicit override first, then the
-// project-local .crush (walking up from the working dir, bounded by
-// the git worktree root), then the global directory. The returned path
-// may not exist on disk; callers should fall back gracefully.
+// SessionDir returns the resolved Crush data directory the
+// adapter will use to look up sessions. It returns the explicit
+// override first, then the project-local .crush (walking up from
+// the working dir, bounded by the git worktree root), then the
+// global directory. The returned path may not exist on disk;
+// callers should fall back gracefully.
 func (a Adapter) SessionDir() string {
 	if a.Dir != "" {
 		return a.Dir

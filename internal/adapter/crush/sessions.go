@@ -133,7 +133,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	}
 	defer db.close()
 
-	id, isAgent, ok := splitSessionID(path)
+	id, _, ok := splitSessionID(path)
 	if !ok {
 		return nil, fmt.Errorf("invalid Crush session id in path %q", path)
 	}
@@ -147,10 +147,6 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		},
 		Events: []model.Event{},
 		Marks:  []model.Mark{},
-	}
-	if isAgent {
-		// The synthetic agent-tool session id carries no human-meaningful
-		// title, so leave it blank — the agent graph labels the node.
 	}
 
 	row := db.db.QueryRowContext(context.Background(), sessionByIDQuery, id)
