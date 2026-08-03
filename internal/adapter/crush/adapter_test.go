@@ -182,7 +182,7 @@ func TestParseBuildsEventsAndMarks(t *testing.T) {
 	), "", base.Add(2*time.Second))
 
 	adapter := Adapter{Dir: data}
-	trace, err := adapter.Parse(sessionPath("demo"))
+	trace, err := adapter.Parse(SessionPath("demo"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -218,7 +218,7 @@ func TestParseOrphanToolCallStillEmitsEvent(t *testing.T) {
 		map[string]any{"type": "tool_call", "data": map[string]any{"id": "missing", "name": "bash", "input": `{"command":"go test"}`, "finished": true, "provider_executed": false}},
 	), "", base)
 
-	trace, err := Adapter{Dir: data}.Parse(sessionPath("demo"))
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("demo"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,7 @@ func TestParseMarksSubagentLaunches(t *testing.T) {
 		map[string]any{"type": "tool_call", "data": map[string]any{"id": "agent_1", "name": "agent", "input": `{"task_title":"explore schema","agent_type":"explore","message":"read the migrations"}`, "finished": true, "provider_executed": false}},
 	), "", base)
 
-	trace, err := Adapter{Dir: data}.Parse(sessionPath("root"))
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("root"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -268,7 +268,7 @@ func TestParseHandlesNestedJSONInput(t *testing.T) {
 		map[string]any{"type": "tool_call", "data": map[string]any{"id": "call_view_1", "name": "view", "input": nested, "finished": true, "provider_executed": false}},
 	), "", base)
 
-	trace, err := Adapter{Dir: data}.Parse(sessionPath("demo"))
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("demo"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -290,7 +290,7 @@ func TestSummarizeFlagsAuxiliary(t *testing.T) {
 	insertSession(t, db, "msg-1$$toolcall-1", "root", "Agent: explore", base.Add(time.Minute), 2)
 
 	adapter := Adapter{Dir: data}
-	meta, err := adapter.Summarize(sessionPath("msg-1$$toolcall-1"))
+	meta, err := adapter.Summarize(SessionPath("msg-1$$toolcall-1"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -330,7 +330,7 @@ func TestSummarizeMissingDatabase(t *testing.T) {
 	if err := os.RemoveAll(root); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Adapter{}.Summarize(sessionPath("anything"))
+	_, err := Adapter{}.Summarize(SessionPath("anything"))
 	if err == nil || !strings.Contains(err.Error(), "not a Crush session") {
 		t.Fatalf("expected not-a-Crush-session error, got %v", err)
 	}

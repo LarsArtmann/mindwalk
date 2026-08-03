@@ -37,8 +37,8 @@ func TestBuildAgentGraphExactMatch(t *testing.T) {
 	childID := childMsgID + "$$" + launchID
 	insertSession(t, db, childID, "root", "Agent: explore", base.Add(time.Second), 2)
 
-	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: sessionPath("root"), EventCount: 1}
-	childMeta, err := Adapter{Dir: data}.Summarize(sessionPath(childID))
+	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: SessionPath("root"), EventCount: 1}
+	childMeta, err := Adapter{Dir: data}.Summarize(SessionPath(childID))
 	if err != nil {
 		t.Fatalf("summarize child: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestBuildAgentGraphUnlinkedLaunch(t *testing.T) {
 		}},
 	), "", base)
 
-	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: sessionPath("root")}
+	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: SessionPath("root")}
 	graph, err := Adapter{Dir: data}.BuildAgentGraph(root, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -155,11 +155,11 @@ func TestBuildAgentGraphDerivedChild(t *testing.T) {
 	childID := "msg_some_old$$orphan_call"
 	insertSession(t, db, childID, "root", "Agent: orphan", base.Add(time.Second), 1)
 
-	childMeta, err := Adapter{Dir: data}.Summarize(sessionPath(childID))
+	childMeta, err := Adapter{Dir: data}.Summarize(SessionPath(childID))
 	if err != nil {
 		t.Fatal(err)
 	}
-	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: sessionPath("root")}
+	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: SessionPath("root")}
 	graph, err := Adapter{Dir: data}.BuildAgentGraph(root, []model.SessionMeta{childMeta})
 	if err != nil {
 		t.Fatal(err)
@@ -195,7 +195,7 @@ func TestBuildAgentGraphEmptyCatalog(t *testing.T) {
 		map[string]any{"type": "text", "data": map[string]any{"text": "Just thinking."}},
 	), "", base)
 
-	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: sessionPath("root")}
+	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: SessionPath("root")}
 	graph, err := Adapter{Dir: data}.BuildAgentGraph(root, nil)
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +212,7 @@ func TestBuildAgentGraphEmptyCatalog(t *testing.T) {
 // surfaces only the root session path — no separate on-disk
 // artifacts per session because every trace lives in the same DB.
 func TestAgentGraphInputsReturnsRootPath(t *testing.T) {
-	root := model.SessionMeta{Key: "k", ID: "i", Harness: "crush", Path: sessionPath("xyz")}
+	root := model.SessionMeta{Key: "k", ID: "i", Harness: "crush", Path: SessionPath("xyz")}
 	got, err := Adapter{}.AgentGraphInputs(root, nil)
 	if err != nil {
 		t.Fatal(err)
