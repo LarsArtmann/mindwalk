@@ -1,14 +1,14 @@
 # Status: Crush adapter landed — but the job is not done
 
+**Date:** 2026-08-03 12:32
+**Author:** Crush (with user prompt as scope)
+**Scope of this run:** Add a `crush` (charmbracelet/crush) session adapter so Crush users can visualise their sessions alongside Claude Code and Codex.
+
 > **Update 2026-08-03 (commit `0ba1f79` → `266bd64`):** the adapter shipped,
 > was hardened (tests, fixture, multi-DB discovery, Cwd fix), and Crush is now
 > a supported judge CLI. The "not done" framing below was accurate at the time;
 > most of the 50 follow-ups are resolved — see the [Resolution](#resolution-2026-08-03)
 > appendix. Open work now lives in `TODO_LIST.md`.
-
-**Date:** 2026-08-03 12:32
-**Author:** Crush (with user prompt as scope)
-**Scope of this run:** Add a `crush` (charmbracelet/crush) session adapter so Crush users can visualise their sessions alongside Claude Code and Codex.
 
 ## What I did (a) — fully done
 

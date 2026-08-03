@@ -33,21 +33,32 @@ Agent session log (Claude Code, Codex, pi, or Crush) + repository path
        └─ evaluate (explicit request) -> internal/judge -> report panel
 ```
 
-Crush is a database-backed source: every session lives in one
+Crush is a database-backed source: each project keeps its own
 `crush.db` SQLite file (per-project `.crush/` or global
 `~/.local/share/crush/`), with message parts JSON-encoded in the
-`messages.parts` column. The Crush adapter opens the database in
-read-only mode without taking the data-dir lock, walks the project
-to find the right directory, and uses synthetic `crush://session/<id>`
-paths so the rest of the server can route to it. The server's
-`scanSessions` short-circuits the directory walk for adapters whose
-paths are not real files, and `fingerprintPath` synthesises a stable
-zero fingerprint for `crush://` paths so the trace cache still
-works. Subagent sessions are recorded by Crush with
+`messages.parts` column. When no `--crush-dir` is set, the adapter
+reads Crush's `~/.local/share/crush/projects.json` registry and
+queries every project database, merging all sessions; a process-global
+`sessionDBIndex` (`sync.Map`) routes each session id to its source
+database so `Parse`/`Summarize` open the right file. The adapter
+opens each database in read-only mode without taking the data-dir
+lock, and uses synthetic `crush://session/<id>` paths so the rest of
+the server can route to it. The server's `scanSessions` short-circuits
+the directory walk for adapters whose paths are not real files, and
+`fingerprintPath` synthesises a stable zero fingerprint for `crush://`
+paths so the trace cache still works. Crush sessions have no `cwd`
+column, so the adapter derives the project working directory from the
+database path via `projectPathForDB` (`projects.json`, then path
+inference) and stamps `trace.Session.Cwd` so absolute tool-call paths
+relativize correctly. Subagent sessions are recorded by Crush with
 `parent_session_id` set and use the `messageID$$toolCallID` id
 format; the adapter normalises those into the same `Agent` metadata
 shape that the codex adapter emits, so the Agent Lens panel
-displays them without a new code path.
+displays them without a new code path. **Known gap:** the agent-graph
+builders in `internal/adapter/crush/agents.go` still call
+`openReadOnly()` (the single-database path) instead of
+`openDBForPath()`, so cross-project agent graphs may miss children;
+see TODO_LIST "Fix `agents.go` multi-DB routing".
 
 ## Development
 

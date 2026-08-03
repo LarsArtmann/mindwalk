@@ -44,12 +44,12 @@ and `~/.pi/agent/sessions`, and the per-project `.crush/crush.db` (or
 and opens a browser:
 
 ```text
-mindwalk serve [--port N] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR] [--crush-dir DIR]
+mindwalk serve [--port N] [--host HOST] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR] [--crush-dir DIR]
 mindwalk open [--no-open] <session>          open one specific session
 mindwalk map [--no-open] <repo>              open a repository map, no session needed
 mindwalk build <repo> [-o out]               write the repository citymap JSON
 mindwalk trace <session> [-o out]            write the normalized trace JSON
-mindwalk analyze <session> [--judge claude|codex] [--model name] [--no-rubric]
+mindwalk analyze <session> [--judge claude|codex|crush] [--model name] [--no-rubric]
                                             evaluate one session (see below)
 ```
 
@@ -118,7 +118,7 @@ scorecard is built — and why it is shaped the way it is — is covered in
 [docs/dynamic-rubric-evaluation.md](docs/dynamic-rubric-evaluation.md).
 
 **What leaves your machine, and only when you ask:** evaluation runs your own
-`claude` or `codex` CLI — up to two sealed calls, one drafting criteria and
+`claude`, `codex`, or `crush` CLI — up to two sealed calls, one drafting criteria and
 one scoring. Both send only that session's summary — the user messages'
 wording, file paths, and one-line event digests — to the model behind your
 account. Nothing is sent while viewing sessions, and no other session is

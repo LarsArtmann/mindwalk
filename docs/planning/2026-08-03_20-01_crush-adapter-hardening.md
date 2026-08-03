@@ -199,3 +199,42 @@ graph TD
    `model.SyntheticPath(scheme, id)` now, or wait for a second
    DB-backed adapter? (My instinct: wait for a second adapter so the
    API is informed by two real consumers.)
+
+---
+
+## Resolution (2026-08-03)
+
+All 30 items resolved below. Hashes are post-rebase current values.
+
+| #  | Item | Status | Commit / where |
+|----|------|--------|----------------|
+| 1  | Parts parser branch tests | done | `639cb7d` |
+| 2  | Agent graph branch tests | done | `65de444` |
+| 3  | `crush.SessionPath()` + `IsSessionPath()` | done | `c8baa88` |
+| 4  | `testdata/crush-session.db` fixture + e2e | done | `2e295f6`, `69929b3` |
+| 5  | `--crush-dir` help example | done | `4a1f912` |
+| 6  | `docs/crush.md` | done | `2af50ab` |
+| 7  | `SessionMeta.Path` comment | done | `ed14153` |
+| 8  | GoDoc on Crush adapter public API | done | `39cd372` |
+| 9  | `CHANGELOG.md` entry | done | `a570a44` |
+| 10 | `_ = a` cleanup | done | `639cb7d` |
+| 11 | Align `SessionKey` signatures | deferred | refactor, low priority |
+| 12 | `tool_call.id` collision test | done | `639cb7d` |
+| 13 | `openReadOnly` error reporting | done | `7b0895f` |
+| 14 | `scanSessions` metric log | done | `c2cd011` |
+| 15 | Boot web UI + verify | open | TODO_LIST |
+| 16 | `mindwalk analyze` live | open | TODO_LIST (crush is a judge CLI at `266bd64`) |
+| 17 | `--no-crush` flag | done | `eaebeba` |
+| 18 | `/api/adapters` endpoint | done | `6c986d3` |
+| 19 | Schema-coverage warning | open | TODO_LIST |
+| 20 | Persist agent-graph cache | open | TODO_LIST |
+| 21 | Refactor `summarizeCached` | deferred | refactor, low priority |
+| 22 | Cache `crush.db` reads | open | TODO_LIST |
+| 23 | Benchmarks | done | `6c986d3` |
+| 24 | Package-level GoDoc | done | `39cd372`, `2af50ab` |
+| 25 | 100k-message stress test | open | ROADMAP |
+| 26 | `mindwalk doctor` subcommand | open | TODO_LIST |
+| 27 | Audit server `crush://` assumptions | done | `6c986d3` (found + fixed 2 bugs) |
+| 28 | `findSession` bare-id lookup | done | no change needed (round 2) |
+| 29 | Cross-check parser vs upstream | open | ROADMAP |
+| 30 | Audit `lookupProjectDataDir` boundary | deferred | low priority |

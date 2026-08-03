@@ -1,5 +1,12 @@
 # Status Report — 2026-08-03 23:04
 
+> **Update 2026-08-03 (commit `72f91e2`):** this feature shipped, bundled into
+> the LAN/multi-DB commit. `gitDiffPaths` lives at `adapter.go:883`, wired into
+> all three shell-command paths. The "pre-existing crush build failure" noted
+> below was the multi-DB refactor mid-flight — now resolved. `make test` is
+> green (11 packages). Remaining polish (space-in-path regex, hunk ranges,
+> action classification) is open in `TODO_LIST.md` / `ROADMAP.md`.
+
 ## Session Goal
 
 `git diff` output was treated as "not visited" in the citymap. Files appearing in diff output were scraped as weak **"hit"** targets — the weakest touch rank — indistinguishable from random text mentions. The agent is actually *reading the changes* to those files, a much stronger signal.
@@ -145,3 +152,32 @@ Didn't launch the web UI to confirm that diffed files now render as "read" (blue
 2. **Should diff-extracted touches be weak or non-weak?** Weak excludes them from ghost detection and some trail logic. Since git diff output is structurally deterministic (not heuristic scraping), there's an argument for non-weak. But non-weak touches have stronger semantic weight. What's the right call?
 
 3. **Is the crush adapter build failure (`projectDB` type mismatch at `sessions.go:58`) something I should fix, or is it mid-refactor by someone else?** It blocks the entire crush test suite and I don't know if it's intentional WIP.
+
+---
+
+## Resolution (2026-08-03)
+
+The feature shipped in `72f91e2`. The 20-item next-steps table resolves as:
+
+| # | Item | Status | Where |
+|---|------|--------|-------|
+| 1 | Space-in-path regex | open | low priority |
+| 2 | Extract hunk line ranges | open | low priority |
+| 3 | Classify `git diff` as search/read | open | ROADMAP question |
+| 4 | `make test` full suite | done | 11 packages green |
+| 5 | `---`/`+++` fallback parsing | open | low priority |
+| 6 | `diff --cc` combined diffs | open | low priority |
+| 7 | Non-weak touch for structural parse | open | ROADMAP question |
+| 8 | Fix crush `projectDB` type mismatch | done | resolved in `72f91e2` |
+| 9 | Update AGENTS.md (git diff behavior) | open | low priority |
+| 10 | Parse `git diff --name-only` | open | low priority |
+| 11 | Parse `git diff --stat` | open | low priority |
+| 12 | Integration test real diff fixture | open | low priority |
+| 13 | Test `git show` format | open | low priority |
+| 14 | Test `git log -p` format | open | low priority |
+| 15 | Visual verification in web UI | open | TODO_LIST |
+| 16 | `hg diff` support | deferred | low priority |
+| 17 | Benchmark regex on large diffs | open | low priority |
+| 18 | Dedup `extractPaths` + `gitDiffPaths` | open | low priority |
+| 19 | `git diff` in search/read programs | dedup | of #3 |
+| 20 | Document touch promotion semantics | open | low priority |

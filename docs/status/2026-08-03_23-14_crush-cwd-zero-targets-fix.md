@@ -4,6 +4,11 @@
 **Session scope:** Single bug investigation and fix  
 **Commit:** `72f91e2` (auto-committed alongside pre-existing staged work)
 
+> **Update 2026-08-03:** the fix is current and pushed (`72f91e2`). The 31-item
+> next-steps list (section f) is resolved below; open items moved to
+> `TODO_LIST.md`. The `agents.go` multi-DB routing gap noted in the sibling
+> report (`2026-08-03_23-03`) is the one remaining correctness issue for Crush.
+
 ---
 
 ## The Bug
@@ -161,3 +166,37 @@ However — **one design smell to flag**: the `projectPathCache` uses `sync.Once
 2. **The auto-commit bundled my Cwd fix with pre-existing staged work (LAN serving, multi-DB discovery, pnpm lockfile). Should I create a separate commit for just the Cwd fix?** I did not author the other staged changes and am not sure if they are ready. I also was instructed never to use `git reset` or `git checkout`, so I cannot unstage them without your input.
 
 3. **Crush's sessions table has no `cwd` column. Should we derive Cwd purely from `projects.json` + path inference (current approach), or should we push for an upstream schema change?** The current approach works for typical projects but breaks for sessions whose working directory moved or was renamed since the session ran.
+
+---
+
+## Resolution (2026-08-03)
+
+The fix is current (`72f91e2`). Section (f) next-steps resolved:
+
+| # | Item | Status | Where |
+|---|------|--------|-------|
+| 1 | Fixture with file-touching tool calls | open | TODO_LIST "Enrich the test fixture" |
+| 2–3 | Unchecked `close()` calls (crush) | open | TODO_LIST "Fix errcheck warnings" |
+| 4 | `projectPathForDB` as Adapter method | deferred | low priority |
+| 5 | Debug log on empty-cwd absolute path | open | low priority |
+| 6 | Integration test `stats.fovea > 0` | open | low priority |
+| 7 | Document Cwd chain in AGENTS.md | open | low priority |
+| 8 | Test global-data-dir rejection | open | low priority |
+| 9 | Upstream `cwd` column | open | ROADMAP question |
+| 10 | errcheck citymap `builder.go` | open | TODO_LIST "Fix errcheck warnings" |
+| 11–16 | Modernize idioms (`b.Loop`, `slices.Contains`, `min`, `strings.Cut`, `WaitGroup.Go`, `Sscanf`) | open | TODO_LIST "Modernize Go idioms" |
+| 17 | Audit other errcheck | open | TODO_LIST |
+| 18 | Split slow server tests | open | TODO_LIST "Fix server test isolation" |
+| 19 | `/api/debug/health` endpoint | open | low priority |
+| 20 | Warm project-path cache on `New()` | deferred | low priority |
+| 21 | Frontend warning on 0 targets | open | TODO_LIST |
+| 22 | Show session Cwd in HUD | open | TODO_LIST |
+| 23 | CI matrix | open | TODO_LIST "Add CI workflow" |
+| 24 | Richer multi-tool fixture | open | TODO_LIST (dedup of #1) |
+| 25 | Property tests `normalizePath` | open | ROADMAP "Test infrastructure" |
+| 26 | Test `assignFileIDs` non-nil FileIDs | open | low priority |
+| 27 | AGENTS.md `projects.json` dependency | open | low priority |
+| 28 | Troubleshooting "all unvisited" | open | low priority |
+| 29 | Document `projectPathForDB` order | open | low priority |
+| 30 | Separate auto-commits | process | noted |
+| 31 | Pre-commit `go test` check | open | low priority |

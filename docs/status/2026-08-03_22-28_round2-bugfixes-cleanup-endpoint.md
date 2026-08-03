@@ -6,7 +6,14 @@
 
 ## Summary
 
-1 commit (`1087624`). 15 files changed, 210 insertions, 69 deletions. All 11 packages green (283 tests total). gofmt clean. `go vet` clean. The session found and fixed **two real bugs** in the server that the previous session's tests missed — a stale agent-graph fingerprint and a garbage citymap root for Crush sessions.
+> **Update 2026-08-03:** the round-2 commit was rebased to `6c986d3` (was
+> `1087624`). The **P0 regression tests (items 1–3 in section f) are still
+> open** — neither the `fingerprintAgentGraphInputs` fix nor the
+> `loadTraceAndMap` fix has a regression test. See TODO_LIST "Add regression
+> tests for the two round-2 server bugs". Per-item status in the
+> [Resolution](#resolution-2026-08-03) appendix.
+
+1 commit (`6c986d3`, rebased from `1087624`). 15 files changed, 210 insertions, 69 deletions. All 11 packages green (283 tests total). gofmt clean. `go vet` clean. The session found and fixed **two real bugs** in the server that the previous session's tests missed — a stale agent-graph fingerprint and a garbage citymap root for Crush sessions.
 
 ---
 
@@ -152,3 +159,69 @@
 2. **Should the `/api/adapters` endpoint be documented in `docs/crush.md` or in a new `docs/api.md`?** I added the endpoint but didn't document it beyond the CHANGELOG. The crush doc covers adapter internals; a general API doc would cover all endpoints. Which do you prefer?
 
 3. **Should I split commit `1087624` into smaller commits before pushing, or leave it as-is?** The commit bundles gofmt cleanup, a type refactor, two bug fixes, an endpoint, and benchmarks. Splitting would require `git rebase -i` which the AGENTS.md discourages (`NEVER git reset`). Alternatively I can leave it and commit more granularly going forward.
+
+---
+
+## Resolution (2026-08-03)
+
+Section (f) next-steps resolved. The commit is now `6c986d3` (rebased).
+
+### P0 — still open (regression tests)
+
+| # | Item | Status | Where |
+|---|------|--------|-------|
+| 1 | Regression test: `fingerprintAgentGraphInputs` crush:// | **open** | TODO_LIST "Add regression tests for the two round-2 server bugs" |
+| 2 | Regression test: `loadTraceAndMap` garbage root | **open** | TODO_LIST (same) |
+| 3 | `/api/adapters` test with `DisableCrush: true` | **open** | TODO_LIST |
+
+### Shipped or otherwise resolved
+
+| # | Item | Status | Commit / where |
+|---|------|--------|----------------|
+| 4 | Push to origin | done | pushed |
+| 5 | Audit judge/citymap `crush://` | partial | server audited; judge/citymap deferred |
+| 6 | `mindwalk analyze` end-to-end | open | TODO_LIST |
+| 7 | Boot web UI | open | TODO_LIST |
+| 8 | Live sub-agent session | open | TODO_LIST |
+| 9 | `crushDirFor` magic string | open | TODO_LIST-adjacent |
+| 10 | Cache `crush.db` reads | open | TODO_LIST |
+| 11 | 100k-message stress test | open | ROADMAP |
+| 12 | Cross-check parser vs upstream | open | ROADMAP |
+| 13 | `provider_executed` flag | open | ROADMAP |
+| 14 | Cross-message collision test | open | same-message covered (`639cb7d`) |
+| 15 | Generalise synthetic path | deferred | ROADMAP non-goal |
+| 16 | Persist agent-graph cache | open | TODO_LIST |
+| 17 | `mindwalk doctor` | open | TODO_LIST |
+| 18 | `mindwalk sessions` CLI | open | TODO_LIST |
+| 19 | Schema-coverage warning | open | TODO_LIST |
+| 20 | `title-<sessionID>` support | won't-do | ROADMAP non-goal |
+| 21 | CI workflow | open | TODO_LIST |
+| 22 | README mention | open | TODO_LIST (`--host` in Quick Start) |
+| 23 | `docs/crush.md` adapters section | deferred | low priority |
+| 24 | Reduce test runtime | open | TODO_LIST "Fix server test isolation" |
+| 25 | `--crush-projects-file` flag | won't-do | multi-DB shipped at `72f91e2` |
+| 26 | Fix errcheck warnings | open | TODO_LIST |
+| 27 | Frontend `/api/adapters` component | open | ROADMAP "Frontend observability" |
+| 28 | Cwd extraction | done | `72f91e2` |
+| 29 | Benchmark `BuildAgentGraph` | open | low priority |
+| 30 | Agent-graph cache invalidation test | open | low priority |
+| 31 | Audit `lookupProjectDataDir` | deferred | low priority |
+| 32 | `crush sessions` CLI | dedup | of #18 |
+| 33 | Verify codex adapter after ToolCallID | open | low priority |
+| 34 | `/api/adapters` SessionDir test | open | low priority |
+| 35 | Document synthetic fingerprint marker | deferred | low priority |
+| 36 | `loadTraceAndMap` RepoRoot discussion | deferred | low priority |
+| 37 | `/api/adapters` `--no-crush` e2e | dedup | of #3 |
+| 38 | Benchmark agent-graph build | dedup | of #29 |
+| 39 | Property test `SessionPath` round-trip | open | ROADMAP (property tests) |
+| 40 | Fingerprint by message count | open | low priority |
+| 41 | Update previous status report | done | this annotation pass |
+| 42 | flake.nix gofmt check | open | low priority |
+| 43 | `sync.Once` crush adapter init | dedup | of #24 (test isolation) |
+| 44 | Stable adapter order test | open | low priority |
+| 45 | Document `adapterInfo` shape | deferred | low priority |
+| 46 | `/api/adapters` caching | deferred | low priority |
+| 47 | `/api/health` endpoint | open | low priority |
+| 48 | `SessionDir` returns resolved path | open | low priority |
+| 49 | Benchmark fixture valid test | deferred | low priority |
+| 50 | Review `resultOrder` field | deferred | low priority |

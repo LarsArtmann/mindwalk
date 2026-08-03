@@ -2,7 +2,13 @@
 
 **Date:** 2026-08-03 22:06
 **Author:** Crush (with user prompt as scope)
-**Scope of this run:** Continue the Crush adapter work from the previous session. The adapter landed in `2f4a12a` but had thin test coverage, a cross-message tool-call/result pairing bug, and 30+ open follow-up tasks. This session executed the Pareto backlog: tests, fixture, refactor, docs, CLI flags, and live verification.
+**Scope of this run:** Continue the Crush adapter work from the previous session. The adapter landed in `0ba1f79` but had thin test coverage, a cross-message tool-call/result pairing bug, and 30+ open follow-up tasks. This session executed the Pareto backlog: tests, fixture, refactor, docs, CLI flags, and live verification.
+
+> **Update 2026-08-03:** ~~ready to push~~ pushed and built on. 17 more
+> commits followed this session (multi-DB discovery `72f91e2`, Cwd fix
+> `72f91e2`, judge CLI `266bd64`). The P0 push/gofmt/gitignore items all
+> shipped. Per-item status in the [Resolution](#resolution-2026-08-03)
+> appendix; open work is now in `TODO_LIST.md`.
 
 ## Summary
 
@@ -135,3 +141,45 @@ Ordered by customer value × effort:
 2. **Should the WAL files (`crush.db-shm`, `crush.db-wal`) be committed or gitignored?** Currently they're untracked. SQLite's WAL mode creates them at runtime; they're not needed for the fixture to work but their presence avoids a one-time WAL creation on first test run. I lean toward gitignoring them (they're build artifacts, not source), but the main `crush.db` file IS committed, so there's an argument for consistency.
 
 3. **Should I generalise the `crush://session/<id>` synthetic-path scheme into a `model.SyntheticPath(scheme, id)` helper now, or wait for a second DB-backed adapter?** My instinct is to wait — the typed helpers (`SessionPath`, `IsSessionPath`, `SessionIDFromPath`) are already localised and the generalisation would be speculative without a second consumer. But if you plan to add Aider or Goose support soon, doing it now avoids a second refactor.
+
+---
+
+## Resolution (2026-08-03)
+
+Section (f) next-steps resolved. Hashes are post-rebase current values.
+
+| # | Item | Status | Commit / where |
+|---|------|--------|----------------|
+| **P0** | | | |
+| 1 | Push to origin | done | pushed |
+| 2 | `.gitignore` WAL files | done | round 2 (`6c986d3` era) |
+| 3 | gofmt | done | round 2 |
+| **P1** | | | |
+| 4 | `ToolResult.ToolCallID` field | done | `6c986d3` |
+| 5 | `mindwalk analyze` end-to-end | open | TODO_LIST |
+| 6 | Boot web UI in browser | open | TODO_LIST |
+| 7 | `/api/adapters` endpoint | done | `6c986d3` |
+| 8 | Live sub-agent session test | open | TODO_LIST |
+| 9 | Benchmark SQLite parse | done | `6c986d3` |
+| 10 | `mindwalk doctor` | open | TODO_LIST |
+| 11 | Audit `handleSessionResource` | done | `6c986d3` |
+| 12 | Cache `crush.db` reads | open | TODO_LIST |
+| 13 | `findSession` bare-id | done | no change needed |
+| 14 | Cross-check parser vs upstream | open | ROADMAP |
+| 15 | 100k-message stress test | open | ROADMAP |
+| 16 | Generalise synthetic path | deferred | ROADMAP non-goal |
+| **P2** | | | |
+| 17 | Persist agent-graph cache | open | TODO_LIST |
+| 18 | Refactor `summarizeCached` | deferred | low priority |
+| 19 | `mindwalk sessions` CLI | open | TODO_LIST |
+| 20 | Schema-coverage warning | open | TODO_LIST |
+| 21 | `title-<sessionID>` support | won't-do | ROADMAP non-goal |
+| 22 | `crush sessions` CLI | dedup | of #19 |
+| 23 | `provider_executed` flag | open | ROADMAP |
+| 24 | Audit `lookupProjectDataDir` | deferred | low priority |
+| 25 | Cross-message collision test | open | same-message covered (`639cb7d`) |
+| 26 | Reduce test runtime | open | TODO_LIST |
+| 27 | CI workflow | open | TODO_LIST |
+| 28 | README screenshots | deferred | low priority |
+| 29 | `--crush-projects-file` flag | won't-do | multi-DB shipped at `72f91e2` |
+| 30 | Cwd extraction | done | `72f91e2` (`projectPathForDB`) |

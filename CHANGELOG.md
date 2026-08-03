@@ -44,6 +44,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - Benchmarks for the SQLite cold-open + parse path
     (`BenchmarkFixtureListSessions`,
     `BenchmarkFixtureParse`) catch regressions on the read path.
+  - **Multi-database Crush discovery** — when no `--crush-dir` is
+    set, the adapter reads Crush's `~/.local/share/crush/projects.json`
+    registry and queries every project's `crush.db`, merging all
+    sessions. A `sessionDBIndex` (`sync.Map`) routes each session id
+    to its source database so `Parse`/`Summarize` open the right file.
+  - **`--host` flag** on `serve` — bind to a specific host
+    (`--host 0.0.0.0` for LAN access); defaults to `127.0.0.1`.
+  - **`git diff` touch promotion** — file paths extracted from
+    `diff --git a/… b/…` headers in shell-command output now register
+    as weak "read" targets instead of generic "hit" mentions, so
+    diffed files show as visited in the citymap.
+  - **Crush as a judge CLI** — `crush` joins `claude` and `codex` in
+    `SupportedCLIs`, so a session can be evaluated without installing
+    a second agent. `crush run --quiet --verbose` reads the prompt
+    from stdin and reports the answering model on stderr.
+
+### Fixed
+- **Crush sessions showed zero targets / all-unvisited** —
+  `trace.Session.Cwd` was never set for Crush sessions, so absolute
+  tool-call paths could not be relativized and fell through to
+  `OutsideTouch`. `projectPathForDB` now derives the project working
+  directory from the `crush.db` path (via `projects.json`, then path
+  inference) and stamps `Cwd` in `Parse`, `Summarize`, and both
+  `ListSessions` paths.
 
 ### Changed
 - `adapter.ToolResult` now carries a `ToolCallID` field, letting

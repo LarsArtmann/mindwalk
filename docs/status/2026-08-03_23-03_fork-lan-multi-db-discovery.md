@@ -1,5 +1,14 @@
 # Status: 2026-08-03 23:03 — Fork, LAN Access, Multi-Database Discovery
 
+> **Update 2026-08-03 (commit `72f91e2`):** the `--host` flag and multi-DB
+> discovery were committed (bundled into one commit). The "NOT committed /
+> NOT pushed" claims in section (b) below were true at the time; both are now
+> in `72f91e2` and pushed. **One P0 item is still open:** `agents.go` still
+> calls `openReadOnly()` instead of `openDBForPath()` (item f.1) — cross-
+> project agent graphs are broken. See TODO_LIST "Fix `agents.go` multi-DB
+> routing". Per-item status in the [Resolution](#resolution-2026-08-03)
+> appendix.
+
 ## Session Summary
 
 This session took the Crush adapter fork from "local branch on someone else's repo" to "published fork with LAN-accessible UI showing 196 real sessions." Along the way we rebased onto upstream (which had merged a competing pi adapter), added a `--host` flag for LAN access, and implemented multi-database discovery via Crush's `projects.json` registry.
@@ -29,9 +38,9 @@ This session took the Crush adapter fork from "local branch on someone else's re
 
 ## b) PARTIALLY DONE
 
-1. **`--host` flag for LAN access** — Added `Host` field to `server.Config`, `--host` flag to `serve` command. Defaults to `127.0.0.1` (safe). Works at `0.0.0.0` for LAN. **NOT committed. NOT pushed. NOT added to `open` command.**
+1. **`--host` flag for LAN access** — Added `Host` field to `server.Config`, `--host` flag to `serve` command. Defaults to `127.0.0.1` (safe). Works at `0.0.0.0` for LAN. ~~NOT committed. NOT pushed. NOT added to `open` command.~~ Committed in `72f91e2`. The `--host` flag is still missing from `open` and `map` (TODO_LIST).
 
-2. **Multi-database Crush discovery** — New `internal/adapter/crush/projects.go` reads `~/.local/share/crush/projects.json`, discovers all project `.crush/crush.db` files, and queries every one. `ListSessions()` now returns 196 sessions (up from 2). `sessionDBIndex` (a `sync.Map`) caches session ID → DB path so `Parse()`/`Summarize()` route to the correct database. **NOT committed. NOT pushed. NOT tested. No gofmt check.** Also: `agents.go` agent-graph code still calls `openReadOnly()` directly — it does NOT use `openDBForPath()`, so agent graphs for cross-project sessions may be broken.
+2. **Multi-database Crush discovery** — New `internal/adapter/crush/projects.go` reads `~/.local/share/crush/projects.json`, discovers all project `.crush/crush.db` files, and queries every one. `ListSessions()` now returns 196 sessions (up from 2). `sessionDBIndex` (a `sync.Map`) caches session ID → DB path so `Parse()`/`Summarize()` route to the correct database. ~~NOT committed. NOT pushed. NOT tested. No gofmt check.~~ Committed in `72f91e2`. Still **open**: `agents.go` agent-graph code still calls `openReadOnly()` directly — it does NOT use `openDBForPath()`, so agent graphs for cross-project sessions are broken (TODO_LIST P0). No dedicated tests for `loadProjectDBs` / `listAllProjectSessions` / `openDBForPath` (TODO_LIST).
 
 3. **Live verification** — Server starts and serves sessions, but I did not click through individual sessions in the browser to verify traces render, citymaps load, or agent graphs display.
 
@@ -168,3 +177,61 @@ This session took the Crush adapter fork from "local branch on someone else's re
 2. **Should `web/pnpm-lock.yaml` be committed?** The project uses `npm` conventionally (package.json has no lockfile management specified), but this machine used `pnpm`. Committing the pnpm lockfile would change the project's package manager convention. I can't decide this for you.
 
 3. **Do you want the Crush `projects.json` scan to be opt-in (a flag like `--scan-all-crush-projects`) or always-on when `--crush-dir` is not set?** Always-on is the current behavior and "just works" (196 sessions show up), but it reads a file outside the project directory (`~/.local/share/crush/projects.json`) which some users might not expect.
+
+---
+
+## Resolution (2026-08-03)
+
+Section (f) resolved. The `--host` flag and multi-DB discovery both shipped in
+`72f91e2` (bundled into one commit, not separate). Item **f.1 is still open**
+and is the most important gap.
+
+### P0 — before push (all resolved except agents.go)
+
+| # | Item | Status | Where |
+|---|------|--------|-------|
+| 1 | Fix `agents.go` → `openDBForPath` | **OPEN (P0)** | TODO_LIST "Fix `agents.go` multi-DB routing" |
+| 2 | gofmt | done | build clean |
+| 3 | go vet | done | tests pass |
+| 4 | go build | done | `go build ./...` ok |
+| 5 | go test | done | 11 packages green |
+| 6 | Fix server test isolation | open | TODO_LIST |
+| 7 | `.gitignore` pnpm artifacts | open | TODO_LIST-adjacent (verify) |
+| 8 | Commit `--host` flag | done | bundled into `72f91e2` |
+| 9 | Commit multi-DB discovery | done | bundled into `72f91e2` |
+| 10 | Push to origin | done | 1 commit ahead |
+
+### P1–P4
+
+| # | Item | Status | Where |
+|---|------|--------|-------|
+| 11–13 | Tests for `loadProjectDBs` / `listAllProjectSessions` / `openDBForPath` | open | TODO_LIST "Add tests for multi-DB discovery" |
+| 14–15 | `--host` on `open` / `map` | open | TODO_LIST |
+| 16–18 | Browser verification (graphs/traces/citymaps) | open | TODO_LIST "Verify the web UI" |
+| 19 | `--host` usage text | done | `serve` usage |
+| 20 | README `--host` | open | TODO_LIST |
+| 21 | `sessionDBIndex` field on Adapter | open | TODO_LIST |
+| 22 | Fallback filesystem search | deferred | low priority |
+| 23 | Log project DB count | open | low priority |
+| 24 | Handle locked/corrupt DB | open | low priority |
+| 25 | Cache `projects.json` TTL | deferred | low priority |
+| 26 | `--crush-projects-dir` flag | won't-do | multi-DB always-on |
+| 27 | `Summarize` populates index | open | low priority |
+| 28–30 | Integration tests (multi-DB listing/Parse/agent graph) | open | TODO_LIST (dedup of #11–13) |
+| 31 | gitignore `web/node_modules`/`dist` | verify | VERIFY phase |
+| 32 | `docs/crush.md` multi-DB | open | low priority |
+| 33 | CHANGELOG multi-DB + `--host` | **gap** | CHANGELOG `[Unreleased]` omits these — TODO |
+| 34 | AGENTS.md multi-DB | open | low priority |
+| 35 | Session project name in meta | deferred | ROADMAP-adjacent |
+| 36 | Group sessions by project | open | ROADMAP "Frontend observability" |
+| 37 | Project path subtitle | deferred | low priority |
+| 38 | `--no-scan-crush` shortcut | won't-do | `--no-crush` exists |
+| 39 | trace/analyze multi-DB | verify | uses `traceSources` |
+| 40 | Benchmark multi-DB listing | open | ROADMAP |
+| 41 | PR upstream | open | ROADMAP question |
+| 42 | Modular adapter registration | deferred | low priority |
+| 43 | `crush projects` CLI | deferred | low priority |
+| 44–47 | WAL-safe reads / pool / lazy-load | open | ROADMAP "Performance at scale" |
+| 48 | Session search by project | deferred | low priority |
+| 49 | Dedup global+local sessions | open | low priority |
+| 50 | Health check DB count | open | low priority |
