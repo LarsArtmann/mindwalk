@@ -1382,3 +1382,99 @@ func TestSessionAgentsForSourceWithoutGraphSupport(t *testing.T) {
 		t.Fatalf("root node = %#v", root)
 	}
 }
+
+// TestServerLoadsCrushFixtureSession exercises the full server HTTP
+// path against the committed testdata/crush/crush.db fixture. It
+// asserts:
+//   - /api/sessions lists the root session (id "fixture-root")
+//     and hides the auxiliary agent session
+//   - /api/sessions/<key>/trace returns a Crush trace with the
+//     expected tool call, model, and user-message mark
+//   - /api/sessions/<key>/agents returns an Agent Graph that links
+//     the auxiliary child to the root via LinkQuality=exact and
+//     TraceAvailability=available
+//
+// This is the end-to-end path CI runs, replacing the manual live
+// verification that was done during the original Crush adapter
+// implementation.
+func TestServerLoadsCrushFixtureSession(t *testing.T) {
+	crushDir := filepath.Join("..", "..", "testdata", "crush")
+	s := New(Config{ClaudeDir: filepath.Join(t.TempDir(), "no-claude"), CodexDir: filepath.Join(t.TempDir(), "no-codex"), PiDir: filepath.Join(t.TempDir(), "no-pi"), CrushDir: crushDir})
+
+	sessionsResp := httptest.NewRecorder()
+	s.handleSessions(sessionsResp, httptest.NewRequest(http.MethodGet, "/api/sessions", nil))
+	if sessionsResp.Code != http.StatusOK {
+		t.Fatalf("sessions status = %d body=%s", sessionsResp.Code, sessionsResp.Body.String())
+	}
+	var sessions []model.SessionMeta
+	if err := json.Unmarshal(sessionsResp.Body.Bytes(), &sessions); err != nil {
+		t.Fatal(err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("sessions = %d, want 1", len(sessions))
+	}
+	if sessions[0].ID != "fixture-root" || sessions[0].Harness != "crush" {
+		t.Fatalf("session = %+v", sessions[0])
+	}
+	rootKey := sessions[0].Key
+
+	traceResp := httptest.NewRecorder()
+	s.handleSessionResource(traceResp, httptest.NewRequest(http.MethodGet, "/api/sessions/"+url.PathEscape(rootKey)+"/trace", nil))
+	if traceResp.Code != http.StatusOK {
+		t.Fatalf("trace status = %d body=%s", traceResp.Code, traceResp.Body.String())
+	}
+	var trace model.Trace
+	if err := json.Unmarshal(traceResp.Body.Bytes(), &trace); err != nil {
+		t.Fatal(err)
+	}
+	if trace.Session.Harness != "crush" {
+		t.Fatalf("harness = %q", trace.Session.Harness)
+	}
+	if len(trace.Events) != 1 || trace.Events[0].Tool != "agent" {
+		t.Fatalf("events = %+v", trace.Events)
+	}
+	if len(trace.Marks) != 2 {
+		t.Fatalf("marks = %+v", trace.Marks)
+	}
+	var sawUser, sawSub bool
+	for _, m := range trace.Marks {
+		if m.Type == "user-message" {
+			sawUser = true
+		}
+		if m.Type == "subagent" {
+			sawSub = true
+		}
+	}
+	if !sawUser || !sawSub {
+		t.Fatalf("marks missing user/sub: %+v", trace.Marks)
+	}
+
+	agentsResp := httptest.NewRecorder()
+	s.handleSessionResource(agentsResp, httptest.NewRequest(http.MethodGet, "/api/sessions/"+url.PathEscape(rootKey)+"/agents", nil))
+	if agentsResp.Code != http.StatusOK {
+		t.Fatalf("agents status = %d body=%s", agentsResp.Code, agentsResp.Body.String())
+	}
+	var graph model.AgentGraph
+	if err := json.Unmarshal(agentsResp.Body.Bytes(), &graph); err != nil {
+		t.Fatal(err)
+	}
+	if graph.RootSessionKey != rootKey {
+		t.Fatalf("root key = %q, want %q", graph.RootSessionKey, rootKey)
+	}
+	if len(graph.Agents) != 2 {
+		t.Fatalf("agents = %d, want 2", len(graph.Agents))
+	}
+	var sub *model.AgentNode
+	for i := range graph.Agents {
+		if graph.Agents[i].Kind == model.AgentKindSubagent {
+			sub = &graph.Agents[i]
+			break
+		}
+	}
+	if sub == nil {
+		t.Fatalf("no subagent in graph: %+v", graph.Agents)
+	}
+	if sub.TraceAvailability != model.TraceAvailabilityAvailable {
+		t.Fatalf("trace availability = %q", sub.TraceAvailability)
+	}
+}

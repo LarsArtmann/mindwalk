@@ -97,6 +97,7 @@ type partsParser struct {
 	pending       map[string]adapter.ToolCall
 	pendingOrder  []string
 	results       map[string]adapter.ToolResult
+	resultOrder   []string // tool_call_id for each tool_result part in declaration order
 	text          strings.Builder
 	subagentNote  string
 	subagentSeen  bool
@@ -185,6 +186,7 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 			Content: tr.Content,
 			IsError: tr.IsError,
 		}
+		p.resultOrder = append(p.resultOrder, tr.ToolCallID)
 	case partFinish:
 		var f finishData
 		if err := json.Unmarshal(part.Data, &f); err != nil {
@@ -261,12 +263,13 @@ func parseCrushInput(raw string) map[string]any {
 //                  of `stop`, matching Crush's user-typed prompt shape
 //                  (the assistant finishes the user turn with `stop`).
 type finishResult struct {
-	text          string
-	events        []adapter.ToolCall
-	results       []adapter.ToolResult
-	subagent      bool
-	subagentNote  string
-	userFinish    bool
+	text         string
+	events       []adapter.ToolCall
+	results      []adapter.ToolResult
+	resultIDs    []string // tool_call_id for each result, parallel to results
+	subagent     bool
+	subagentNote string
+	userFinish   bool
 }
 
 func (p *partsParser) finish() finishResult {
@@ -276,14 +279,36 @@ func (p *partsParser) finish() finishResult {
 		subagentNote: p.subagentNote,
 		userFinish:   p.hasUserFinish,
 	}
+	// Surface every tool_call that landed in this message, paired
+	// with its result when one was observed in the same message.
+	// An unmatched tool_call gets an empty result so the timeline
+	// does not silently lose the attempt. Remember which results
+	// have been paired so the cross-message resultOrder loop
+	// below doesn't double-emit them.
+	paired := make(map[string]bool, len(p.results))
 	for _, id := range p.pendingOrder {
 		call := p.pending[id]
 		result.events = append(result.events, call)
 		if r, ok := p.results[id]; ok {
 			result.results = append(result.results, r)
+			result.resultIDs = append(result.resultIDs, id)
+			paired[id] = true
 		} else {
 			result.results = append(result.results, adapter.ToolResult{})
+			result.resultIDs = append(result.resultIDs, "")
 		}
+	}
+	// Append tool results whose originating tool_call lives in a
+	// different message — they have no event in this message but
+	// the agent graph reader needs them to pair launches across
+	// messages. The parallel resultIDs slice preserves the
+	// originating tool_call_id.
+	for _, callID := range p.resultOrder {
+		if paired[callID] {
+			continue
+		}
+		result.results = append(result.results, p.results[callID])
+		result.resultIDs = append(result.resultIDs, callID)
 	}
 	return result
 }

@@ -1,6 +1,7 @@
 package crush
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -209,20 +210,25 @@ func TestBuildAgentGraphEmptyCatalog(t *testing.T) {
 }
 
 // TestAgentGraphInputsReturnsRootPath verifies the inputs helper
-// surfaces only the root session path — no separate on-disk
-// artifacts per session because every trace lives in the same DB.
+// surfaces the root session path. Tests that want a deterministic
+// catalog without touching the host filesystem use a t.TempDir.
 func TestAgentGraphInputsReturnsRootPath(t *testing.T) {
 	root := model.SessionMeta{Key: "k", ID: "i", Harness: "crush", Path: SessionPath("xyz")}
-	got, err := Adapter{}.AgentGraphInputs(root, nil)
+	got, err := Adapter{Dir: filepath.Join(t.TempDir(), "no-crush")}.AgentGraphInputs(root, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 1 || got[0] != root.Path {
 		t.Fatalf("inputs = %v, want [%q]", got, root.Path)
 	}
-	empty, _ := Adapter{}.AgentGraphInputs(model.SessionMeta{}, nil)
-	if empty != nil {
-		t.Fatalf("empty root path should return nil, got %v", empty)
+	// Empty root path: no path to discover, but the inputs helper
+	// must not crash. It returns whatever auxiliary paths the
+	// catalog/database had — here, none.
+	empty, _ := Adapter{Dir: filepath.Join(t.TempDir(), "no-crush")}.AgentGraphInputs(model.SessionMeta{}, nil)
+	for _, p := range empty {
+		if p != "" {
+			t.Fatalf("empty root path should produce no non-empty inputs, got %v", empty)
+		}
 	}
 }
 

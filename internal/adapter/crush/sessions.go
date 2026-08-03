@@ -291,12 +291,15 @@ func (h *sqlHandle) close() error {
 	return h.db.Close()
 }
 
-// listSessionsQuery, sessionByIDQuery and messagesBySessionQuery match
-// the schema shipped in charmbracelet/crush's initial migration plus
-// every later addition we care about. Stable identifiers (id, role,
-// parts, created_at) come from the initial schema; model and provider
-// come from the 2025-06-27 migration.
+// listSessionsQuery, sessionByIDQuery, allSessionsQuery and
+// messagesBySessionQuery match the schema shipped in
+// charmbracelet/crush's initial migration plus every later
+// addition we care about. Stable identifiers (id, role, parts,
+// created_at) come from the initial schema; model and provider come
+// from the 2025-06-27 migration.
 const listSessionsQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`
+
+const allSessionsQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`
 
 const sessionByIDQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`
 

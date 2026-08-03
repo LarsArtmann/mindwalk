@@ -44,9 +44,9 @@ func TestFixtureLoadsAllSessions(t *testing.T) {
 }
 
 // TestFixtureParsesTraceAsExpected decodes the root session into a
-// Trace and checks the event count, model field, and user-message
-// mark. This is the same path the server's /api/sessions/<key>/trace
-// endpoint takes.
+// Trace and checks the event count, model field, and the marks
+// (user-message + subagent). This is the same path the server's
+// /api/sessions/<key>/trace endpoint takes.
 func TestFixtureParsesTraceAsExpected(t *testing.T) {
 	dir := fixtureDir(t)
 	trace, err := Adapter{Dir: dir}.Parse(SessionPath("fixture-root"))
@@ -60,20 +60,34 @@ func TestFixtureParsesTraceAsExpected(t *testing.T) {
 		t.Fatalf("model = %q", trace.Session.Model)
 	}
 	if len(trace.Events) != 1 {
-		t.Fatalf("events = %d, want 1 (single view tool call)", len(trace.Events))
+		t.Fatalf("events = %d, want 1 (single agent tool call)", len(trace.Events))
 	}
 	ev := trace.Events[0]
-	if ev.Tool != "view" || ev.Action != "read" {
+	if ev.Tool != "agent" {
 		t.Fatalf("event = %+v", ev)
 	}
-	if len(ev.Targets) != 1 || ev.Targets[0].Path != "internal/server/server.go" {
-		t.Fatalf("targets = %+v", ev.Targets)
-	}
-	if len(trace.Marks) != 1 || trace.Marks[0].Type != "user-message" {
+	// Two marks: user-message (from finish/stop) and subagent
+	// (from the agent tool call).
+	if len(trace.Marks) != 2 {
 		t.Fatalf("marks = %+v", trace.Marks)
 	}
-	if trace.Marks[0].Note != "Read internal/server/server.go." {
-		t.Fatalf("note = %q", trace.Marks[0].Note)
+	var sawUser, sawSub bool
+	for _, m := range trace.Marks {
+		switch m.Type {
+		case "user-message":
+			sawUser = true
+			if m.Note != "Read internal/server/server.go." {
+				t.Fatalf("user note = %q", m.Note)
+			}
+		case "subagent":
+			sawSub = true
+			if m.Note != "read server" {
+				t.Fatalf("subagent note = %q", m.Note)
+			}
+		}
+	}
+	if !sawUser || !sawSub {
+		t.Fatalf("expected both marks, got user=%v sub=%v", sawUser, sawSub)
 	}
 }
 
@@ -82,7 +96,7 @@ func TestFixtureParsesTraceAsExpected(t *testing.T) {
 // LaunchCallID parsed from the `$$` separator.
 func TestFixtureSummarizesChildSession(t *testing.T) {
 	dir := fixtureDir(t)
-	meta, err := Adapter{Dir: dir}.Summarize(SessionPath("m_assistant_1$$call_view_1"))
+	meta, err := Adapter{Dir: dir}.Summarize(SessionPath("m_assistant_1$$call_agent_1"))
 	if err != nil {
 		t.Fatalf("Summarize: %v", err)
 	}
@@ -95,7 +109,7 @@ func TestFixtureSummarizesChildSession(t *testing.T) {
 	if meta.Agent.SourceID != "m_assistant_1" {
 		t.Fatalf("SourceID = %q", meta.Agent.SourceID)
 	}
-	if meta.Agent.LaunchCallID != "call_view_1" {
+	if meta.Agent.LaunchCallID != "call_agent_1" {
 		t.Fatalf("LaunchCallID = %q", meta.Agent.LaunchCallID)
 	}
 	if meta.Agent.RootSessionID != "fixture-root" {
@@ -113,7 +127,7 @@ func TestFixtureBuildsAgentGraph(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	childMeta, err := adapter.Summarize(SessionPath("m_assistant_1$$call_view_1"))
+	childMeta, err := adapter.Summarize(SessionPath("m_assistant_1$$call_agent_1"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,6 +150,9 @@ func TestFixtureBuildsAgentGraph(t *testing.T) {
 	}
 	if sub == nil {
 		t.Fatalf("no subagent node in graph: %+v", graph.Agents)
+	}
+	if sub.LinkQuality != model.AgentLinkQualityExact {
+		t.Fatalf("link quality = %q, want exact", sub.LinkQuality)
 	}
 	if sub.TraceSessionKey != childMeta.Key {
 		t.Fatalf("trace key = %q, want %q", sub.TraceSessionKey, childMeta.Key)

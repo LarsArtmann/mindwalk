@@ -38,13 +38,40 @@ type crushGraphActor struct {
 }
 
 func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.SessionMeta) ([]string, error) {
-	// The Crush adapter has no separate on-disk artifacts per session
-	// — every trace lives in the same database — so the agent graph
-	// builder only needs the root session's path.
-	if root.Path == "" {
-		return nil, nil
+	// The Crush adapter stores every trace in the same database, so
+	// the agent graph only needs each session's path. Auxiliary
+	// children are intentionally hidden from the rail (ListSessions
+	// filters them out by parent_session_id IS NULL) but the agent
+	// graph builder needs them so it can match launches ↔
+	// children. Query the catalog first, then fall back to the
+	// database for any harness that didn't surface its
+	// sub-sessions to the catalog.
+	paths := map[string]bool{root.Path: true}
+	for _, session := range catalog {
+		if session.Harness != harnessName || session.Agent == nil || session.Path == "" {
+			continue
+		}
+		paths[session.Path] = true
 	}
-	return []string{root.Path}, nil
+	db, err := a.openReadOnly()
+	if err == nil && db != nil {
+		defer db.close()
+		if rows, err := db.db.Query(allSessionsQuery); err == nil {
+			for rows.Next() {
+				meta, err := scanSessionMeta(rows)
+				if err == nil && meta.Agent != nil {
+					paths[meta.Path] = true
+				}
+			}
+			rows.Close()
+		}
+	}
+	inputs := make([]string, 0, len(paths))
+	for path := range paths {
+		inputs = append(inputs, path)
+	}
+	sort.Strings(inputs)
+	return inputs, nil
 }
 
 // BuildAgentGraph stitches the agent-tool launches recorded in the
@@ -53,6 +80,11 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 // both directions — a launch with no matching child and a child
 // with no recorded launch — and renders each into the graph at the
 // appropriate quality tier.
+//
+// Auxiliary children are hidden from the rail (ListSessions filters
+// them out), so the catalog handed in by the server does not contain
+// them. The builder supplements the catalog with any agent-tool
+// sessions present in the same database.
 func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.SessionMeta) (*model.AgentGraph, error) {
 	mainID := adapter.AgentNodeID(harnessName, root.Key, "root:"+root.Key)
 	graph := &model.AgentGraph{
@@ -73,6 +105,11 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 	}
 
 	childrenByParent := indexChildrenByParent(catalog)
+	if extras, err := a.loadAgentChildren(); err == nil {
+		for _, child := range extras {
+			childrenByParent[child.Agent.RootSessionID] = append(childrenByParent[child.Agent.RootSessionID], child)
+		}
+	}
 	launches, err := a.readAgentLaunches(root.Path)
 	if err != nil {
 		return nil, err
@@ -151,6 +188,38 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 	return graph, nil
 }
 
+// loadAgentChildren reads every auxiliary (agent-tool) session
+// from the database. ListSessions hides these from the rail, but
+// the agent graph builder needs them so it can match launches to
+// child rows. Errors are non-fatal: the catalog the caller passed
+// in is the source of truth, this is just a supplement.
+func (a Adapter) loadAgentChildren() ([]model.SessionMeta, error) {
+	db, err := a.openReadOnly()
+	if err != nil {
+		return nil, err
+	}
+	if db == nil {
+		return nil, nil
+	}
+	defer db.close()
+	rows, err := db.db.Query(allSessionsQuery)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var children []model.SessionMeta
+	for rows.Next() {
+		meta, err := scanSessionMeta(rows)
+		if err != nil {
+			continue
+		}
+		if meta.Agent != nil {
+			children = append(children, meta)
+		}
+	}
+	return children, nil
+}
+
 // indexChildrenByParent groups the catalog's auxiliary sessions by the
 // parent session id (the one stored in parent_session_id when the
 // child row was created). The Crush schema records the parent session
@@ -174,6 +243,10 @@ func indexChildrenByParent(catalog []model.SessionMeta) map[string][]model.Sessi
 // readAgentLaunches scans one session's messages for `agent` tool
 // calls and their results. The agent tool is the only Crush-internal
 // tool that spawns a child session, so anything else is ignored here.
+//
+// Tool calls and their results can land in different messages. The
+// streaming parser keeps an observed-ids map across messages so a
+// tool call in message A is paired with its result in message B.
 func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 	if path == "" {
 		return nil, nil
@@ -201,6 +274,7 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 	launches := []agentLaunch{}
 	launchByCallID := make(map[string]int)
 	seenCalls := make(map[string]bool)
+	seenResults := make(map[string]bool)
 	seq := 0
 	for rows.Next() {
 		var msg messageRow
@@ -211,6 +285,9 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 		if err != nil {
 			continue
 		}
+		// Record each agent tool call (first occurrence wins).
+		// The events loop runs first so a tool result observed in
+		// the same message finds its corresponding launch.
 		for _, call := range parsed.events {
 			if call.Name != "agent" || call.ID == "" {
 				continue
@@ -227,18 +304,24 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 			})
 			seq++
 		}
-		for i, call := range parsed.events {
-			if call.Name != "agent" || call.ID == "" {
+		// Attach tool results to launches. Each result carries the
+		// originating tool_call_id (parallel to the events list
+		// inside one decodeParts call), so we can match them
+		// across messages here.
+		for i, result := range parsed.results {
+			if i >= len(parsed.resultIDs) {
 				continue
 			}
-			if i >= len(parsed.results) {
+			callID := parsed.resultIDs[i]
+			if callID == "" || seenResults[callID] {
 				continue
 			}
-			idx, ok := launchByCallID[call.ID]
-			if !ok || launches[idx].outputObserved {
+			seenResults[callID] = true
+			idx, ok := launchByCallID[callID]
+			if !ok {
 				continue
 			}
-			launches[idx].output = parsed.results[i].Content
+			launches[idx].output = result.Content
 			launches[idx].outputObserved = true
 		}
 	}
