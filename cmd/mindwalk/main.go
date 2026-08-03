@@ -53,7 +53,8 @@ func run(args []string) error {
 
 func serve(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind on 127.0.0.1")
+	port := fs.Int("port", 0, "port to bind")
+	host := fs.String("host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
 	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
 	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
 	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
@@ -64,7 +65,7 @@ func serve(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, Dev: *dev}).Start(!*noOpen)
+	return server.New(server.Config{Port: *port, Host: *host, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, Dev: *dev}).Start(!*noOpen)
 }
 
 func open(args []string) error {

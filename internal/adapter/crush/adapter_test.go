@@ -280,6 +280,76 @@ func TestParseHandlesNestedJSONInput(t *testing.T) {
 	}
 }
 
+// TestParseRelativizesAbsolutePathsFromCwd is the regression test for the
+// root cause of the "everything is unvisited" bug: Crush tool calls use
+// absolute file paths, but without trace.Session.Cwd the normalizer
+// classifies every path as outside the repo and no target is emitted.
+// The fixture lives under <tmp>/.crush/crush.db, so projectPathForDB
+// derives <tmp> as the project root and Parse must set it as the cwd
+// before BuildEvent runs.
+func TestParseRelativizesAbsolutePathsFromCwd(t *testing.T) {
+	data, db := newFixtureDB(t, nil)
+	// data is <tmp>/.crush — projectPathForDB should derive <tmp>.
+	wantCwd := filepath.Dir(data)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	insertSession(t, db, "demo", "", "Demo", base, 1)
+
+	absPath := filepath.Join(wantCwd, "internal", "server", "server.go")
+	insertMessage(t, db, "demo", "m1", "assistant", writeParts(t,
+		map[string]any{"type": "tool_call", "data": map[string]any{"id": "call_view_1", "name": "view", "input": `{"file_path":"` + absPath + `"}`, "finished": true, "provider_executed": false}},
+	), "", base)
+
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("demo"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if trace.Session.Cwd != wantCwd {
+		t.Fatalf("cwd = %q, want %q", trace.Session.Cwd, wantCwd)
+	}
+	if len(trace.Events) != 1 {
+		t.Fatalf("events = %d, want 1", len(trace.Events))
+	}
+	ev := trace.Events[0]
+	if len(ev.Targets) != 1 {
+		t.Fatalf("targets = %+v (want 1)", ev.Targets)
+	}
+	wantRel := filepath.ToSlash(filepath.Join("internal", "server", "server.go"))
+	if ev.Targets[0].Path != wantRel {
+		t.Fatalf("target path = %q, want %q", ev.Targets[0].Path, wantRel)
+	}
+	if len(ev.Outside) != 0 {
+		t.Fatalf("outside = %+v (want none)", ev.Outside)
+	}
+}
+
+// TestProjectPathForDBDerivation verifies the path-based fallback:
+// <project>/.crush/crush.db resolves to <project>, while databases not
+// under a .crush directory resolve to "".
+func TestProjectPathForDBDerivation(t *testing.T) {
+	// Ensure the projects.json cache doesn't interfere — point the
+	// global data dir at an empty temp dir so loadProjectDBs returns nil.
+	empty := t.TempDir()
+	t.Setenv("CRUSH_GLOBAL_DATA", empty)
+
+	tmp := t.TempDir()
+	crushDB := filepath.Join(tmp, dataDirName, dbName)
+	got := projectPathForDB(crushDB)
+	if got != tmp {
+		t.Fatalf("projectPathForDB(%q) = %q, want %q", crushDB, got, tmp)
+	}
+
+	// Non-.crush directory → empty.
+	plain := filepath.Join(t.TempDir(), "data", dbName)
+	if got := projectPathForDB(plain); got != "" {
+		t.Fatalf("projectPathForDB(%q) = %q, want empty", plain, got)
+	}
+
+	// Empty input → empty.
+	if got := projectPathForDB(""); got != "" {
+		t.Fatalf("projectPathForDB(\"\") = %q, want empty", got)
+	}
+}
+
 // TestSummarizeFlagsAuxiliary verifies the Summarize path stamps
 // Auxiliary=true on agent-tool child sessions and exposes both the
 // message id and launching tool call id on Agent.

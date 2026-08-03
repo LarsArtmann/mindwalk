@@ -37,6 +37,7 @@ var embeddedStatic embed.FS
 
 type Config struct {
 	Port      int
+	Host      string
 	ClaudeDir string
 	CodexDir  string
 	CrushDir  string
@@ -165,7 +166,11 @@ func (s *Server) Start(openBrowser bool) error {
 	if port == 0 {
 		port = 0
 	}
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	host := s.cfg.Host
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return err
 	}

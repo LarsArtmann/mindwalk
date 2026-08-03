@@ -371,6 +371,73 @@ func TestCommandReadPaths(t *testing.T) {
 	}
 }
 
+func TestGitDiffPaths(t *testing.T) {
+	diff := "diff --git a/internal/server/server.go b/internal/server/server.go\n" +
+		"index abc..def 100644\n" +
+		"--- a/internal/server/server.go\n" +
+		"+++ b/internal/server/server.go\n" +
+		"@@ -1,5 +1,7 @@\n" +
+		"diff --git a/cmd/mindwalk/main.go b/cmd/mindwalk/main.go\n" +
+		"index 123..456 100644\n" +
+		"--- a/cmd/mindwalk/main.go\n" +
+		"+++ b/cmd/mindwalk/main.go\n"
+	got := gitDiffPaths(diff)
+	want := []string{"cmd/mindwalk/main.go", "internal/server/server.go"}
+	if len(got) != len(want) {
+		t.Fatalf("gitDiffPaths = %#v, want %#v", got, want)
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			t.Fatalf("gitDiffPaths = %#v, want %#v", got, want)
+		}
+	}
+}
+
+func TestGitDiffPathsHandlesRenames(t *testing.T) {
+	diff := "diff --git a/old/path.go b/new/path.go\n" +
+		"similarity index 95%\n" +
+		"rename from old/path.go\n" +
+		"rename to new/path.go\n"
+	got := gitDiffPaths(diff)
+	if len(got) != 1 || got[0] != "new/path.go" {
+		t.Fatalf("gitDiffPaths = %#v, want [new/path.go]", got)
+	}
+}
+
+func TestGitDiffPathsEmpty(t *testing.T) {
+	if got := gitDiffPaths("no diff here"); len(got) != 0 {
+		t.Fatalf("gitDiffPaths = %#v, want empty", got)
+	}
+}
+
+func TestBuildEventBashGitDiffProducesReadTargets(t *testing.T) {
+	root := t.TempDir()
+	writeAdapterTestFile(t, root, "internal/server/server.go")
+	writeAdapterTestFile(t, root, "cmd/mindwalk/main.go")
+	diff := "diff --git a/internal/server/server.go b/internal/server/server.go\n" +
+		"index abc..def 100644\n" +
+		"--- a/internal/server/server.go\n" +
+		"+++ b/internal/server/server.go\n" +
+		"@@ -1,5 +1,7 @@\n" +
+		"diff --git a/cmd/mindwalk/main.go b/cmd/mindwalk/main.go\n" +
+		"index 123..456 100644\n" +
+		"--- a/cmd/mindwalk/main.go\n" +
+		"+++ b/cmd/mindwalk/main.go\n"
+	trace := &model.Trace{Session: model.TraceSession{Cwd: root}}
+	event := BuildEvent(trace, ToolCall{
+		Name:  "Bash",
+		Input: map[string]any{"command": "git diff"},
+	}, ToolResult{Content: diff})
+	if len(event.Targets) != 2 {
+		t.Fatalf("targets = %#v", event.Targets)
+	}
+	for _, target := range event.Targets {
+		if target.Touch != "read" || !target.Weak {
+			t.Fatalf("target %#v should be weak read", target)
+		}
+	}
+}
+
 func TestBuildEventDoesNotPairDistantExecWorkdir(t *testing.T) {
 	root := t.TempDir()
 	writeAdapterTestFile(t, root, "README.md")

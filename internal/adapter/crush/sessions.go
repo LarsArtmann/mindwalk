@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
@@ -22,11 +23,86 @@ import (
 // input shape) so it must stay stable.
 const harnessName = "crush"
 
+// sessionDBIndex maps session IDs to their crush.db filesystem path,
+// populated during ListSessions so Parse/Summarize can open the right
+// database. Only used in auto-discover mode (Dir == "").
+var sessionDBIndex sync.Map // sessionID (string) → dbPath (string)
+
 // ListSessions returns the metadata for every top-level Crush session
-// found in the resolved data directory, newest first. Auxiliary
-// (sub-agent) sessions are intentionally hidden from the rail because
-// the Agent Lens surfaces them on demand from a root session.
+// found across all known project databases, newest first. In
+// auto-discover mode (Dir == "") it reads the Crush projects registry
+// (~/.local/share/crush/projects.json) and queries every project's
+// crush.db. When Dir is set explicitly only that one database is used.
+//
+// Auxiliary (sub-agent) sessions are intentionally hidden from the rail
+// because the Agent Lens surfaces them on demand from a root session.
 func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
+	if a.Dir == "" {
+		return a.listAllProjectSessions()
+	}
+	return a.listSingleDB()
+}
+
+// listAllProjectSessions scans every project database listed in the
+// Crush registry and merges the results. Session IDs are globally
+// unique UUIDs, so cross-database collisions do not happen in
+// practice.
+func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
+	projectDBs := loadProjectDBs()
+	// Also include the global database (it may not appear in the
+	// projects registry, e.g. the global config session).
+	globalDB := filepath.Join(DefaultDir(), dataDirName, dbName)
+	if _, err := os.Stat(globalDB); err == nil {
+		already := false
+		for _, p := range projectDBs {
+			if p.DBPath == globalDB {
+				already = true
+				break
+			}
+		}
+		if !already {
+			projectDBs = append(projectDBs, projectDB{DBPath: globalDB})
+		}
+	}
+	if len(projectDBs) == 0 {
+		return nil, nil
+	}
+	var all []model.SessionMeta
+	for _, pdb := range projectDBs {
+		h, err := openReadOnlyAt(pdb.DBPath)
+		if err != nil || h == nil {
+			continue
+		}
+		rows, err := h.db.QueryContext(context.Background(), listSessionsQuery)
+		if err != nil {
+			h.close()
+			continue
+		}
+		cwd := pdb.ProjectPath
+		if cwd == "" {
+			cwd = projectPathForDB(pdb.DBPath)
+		}
+		for rows.Next() {
+			meta, err := scanSessionMeta(rows)
+			if err != nil {
+				rows.Close()
+				h.close()
+				return nil, err
+			}
+			meta.Cwd = cwd
+			sessionDBIndex.Store(meta.ID, pdb.DBPath)
+			all = append(all, meta)
+		}
+		rows.Close()
+		h.close()
+	}
+	sort.Slice(all, func(i, j int) bool {
+		return all[i].EndedAt > all[j].EndedAt
+	})
+	return all, nil
+}
+
+func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 	db, err := a.openReadOnly()
 	if err != nil {
 		return nil, err
@@ -36,6 +112,7 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	}
 	defer db.close()
 
+	cwd := projectPathForDB(db.path)
 	rows, err := db.db.QueryContext(context.Background(), listSessionsQuery)
 	if err != nil {
 		return nil, fmt.Errorf("list crush sessions: %w", err)
@@ -48,6 +125,7 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 		if err != nil {
 			return nil, err
 		}
+		meta.Cwd = cwd
 		metas = append(metas, meta)
 	}
 	if err := rows.Err(); err != nil {
@@ -64,7 +142,7 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 // format `messageID$$toolCallID` is detected here so the rail can hide
 // the corresponding rows from the root listing.
 func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
-	db, err := a.openReadOnly()
+	db, err := a.openDBForPath(path)
 	if err != nil {
 		return model.SessionMeta{}, err
 	}
@@ -86,6 +164,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		}
 		return model.SessionMeta{}, err
 	}
+	meta.Cwd = projectPathForDB(db.path)
 	if isAgent || meta.Agent != nil {
 		meta.Auxiliary = true
 	}
@@ -124,7 +203,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 // produce a user-message mark so the judge layer sees the same task
 // text the rail does.
 func (a Adapter) Parse(path string) (*model.Trace, error) {
-	db, err := a.openReadOnly()
+	db, err := a.openDBForPath(path)
 	if err != nil {
 		return nil, err
 	}
@@ -158,6 +237,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		return nil, err
 	}
 	applySessionMeta(trace, meta)
+	trace.Session.Cwd = projectPathForDB(db.path)
 
 	rows, err := db.db.QueryContext(context.Background(), messagesBySessionQuery, id)
 	if err != nil {
@@ -264,6 +344,11 @@ func (a Adapter) openReadOnly() (*sqlHandle, error) {
 	if path == "" {
 		return nil, nil
 	}
+	return openReadOnlyAt(path)
+}
+
+// openReadOnlyAt opens a specific crush.db path in read-only mode.
+func openReadOnlyAt(path string) (*sqlHandle, error) {
 	info, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -296,6 +381,27 @@ func (h *sqlHandle) close() error {
 		return nil
 	}
 	return h.db.Close()
+}
+
+// openDBForPath resolves which database holds the session identified by
+// path. In explicit-Dir mode it always opens the single configured
+// database. In auto-discover mode it consults the sessionDBIndex built
+// during ListSessions; on a cache miss it falls back to the resolved
+// single database (which covers the mindwalk open/trace CLI paths that
+// bypass the server's session scan).
+func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
+	if a.Dir != "" {
+		return a.openReadOnly()
+	}
+	id, _, ok := splitSessionID(path)
+	if ok {
+		if cached, hit := sessionDBIndex.Load(id); hit {
+			if dbPath, ok := cached.(string); ok && dbPath != "" {
+				return openReadOnlyAt(dbPath)
+			}
+		}
+	}
+	return a.openReadOnly()
 }
 
 // listSessionsQuery, sessionByIDQuery, allSessionsQuery and
@@ -401,9 +507,9 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 
 // applySessionMeta copies the rows of scanSessionMeta that matter to
 // the trace: title, started/ended timestamps, model (best-effort).
-// Cwd is not part of Crush's session schema; the visualizer still
-// uses trace.Session.Cwd for path normalization so we leave it empty
-// and let Parse fill it from individual message rows.
+// Cwd is not part of Crush's session schema; Parse sets
+// trace.Session.Cwd directly from the database path so path
+// normalization in BuildEvent can relativise absolute tool-call paths.
 func applySessionMeta(trace *model.Trace, meta model.SessionMeta) {
 	if meta.Title != "" {
 		trace.Session.Title = meta.Title

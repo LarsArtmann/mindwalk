@@ -382,6 +382,9 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 		for _, path := range extractPaths(command + "\n" + result) {
 			add(path, "hit", true, nil, base)
 		}
+		for _, path := range gitDiffPaths(result) {
+			add(path, "read", true, nil, base)
+		}
 	case "exec_command":
 		command := firstString(input, "cmd", "command")
 		base := firstString(input, "workdir")
@@ -396,6 +399,9 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 		}
 		for _, hit := range parsePathHits(result) {
 			add(hit.path, "hit", true, hit.lines, base)
+		}
+		for _, path := range gitDiffPaths(result) {
+			add(path, "read", true, nil, base)
 		}
 	case "exec":
 		for _, command := range execCommands(input) {
@@ -417,6 +423,9 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 		}
 		for _, hit := range parsePathHits(result) {
 			add(hit.path, "hit", true, hit.lines, "")
+		}
+		for _, path := range gitDiffPaths(result) {
+			add(path, "read", true, nil, "")
 		}
 		for _, path := range execPatchPaths(input) {
 			add(path, "edit", false, nil, "")
@@ -790,6 +799,7 @@ var pathLineRe = regexp.MustCompile(`(?:^|[\s"'([])([A-Za-z0-9_./@+-]*[A-Za-z0-9
 var pathOnlyRe = regexp.MustCompile(`(?:^|[\s"'([])([./~A-Za-z0-9_@+-]*[/][A-Za-z0-9_./~@+-]*\.[A-Za-z0-9][A-Za-z0-9._-]*)(?:$|[\s"',)\]:;])`)
 var commandPathRe = regexp.MustCompile(`(?:^|[\s"'=])([./~A-Za-z0-9_@+-]+\.[A-Za-z0-9][A-Za-z0-9._-]*)(?:$|[\s"',)\]:;])`)
 var patchFileRe = regexp.MustCompile(`(?m)^\*\*\* (?:Add|Update|Delete) File: (.+)$|^\*\*\* Move to: (.+)$`)
+var gitDiffHeaderRe = regexp.MustCompile(`(?m)^diff --git a/.+? b/(.+)$`)
 
 func parsePathHits(text string) []pathHit {
 	byPath := map[string][][2]int{}
@@ -861,6 +871,27 @@ func parsePatchPaths(patch string) []string {
 		}
 		path, ok := cleanExtractedPath(raw, true)
 		if !ok || seen[path] {
+			continue
+		}
+		seen[path] = true
+		paths = append(paths, path)
+	}
+	sort.Strings(paths)
+	return paths
+}
+
+// gitDiffPaths extracts the current ("b/") paths from unified diff output —
+// the `diff --git a/old b/new` headers that git diff, git show, and git log -p
+// emit for each changed file. Structural parsing is more reliable than the
+// generic extractPaths regex, which leaves diff paths as weak "hit" targets
+// indistinguishable from unvisited files in the citymap.
+func gitDiffPaths(text string) []string {
+	matches := gitDiffHeaderRe.FindAllStringSubmatch(text, -1)
+	seen := map[string]bool{}
+	paths := make([]string, 0, len(matches))
+	for _, m := range matches {
+		path := strings.TrimSpace(m[1])
+		if path == "" || seen[path] {
 			continue
 		}
 		seen[path] = true
