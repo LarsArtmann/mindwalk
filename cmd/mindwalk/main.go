@@ -126,10 +126,18 @@ func trace(args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk trace <session.jsonl> [-o out]")
+	crushDir := ""
+	for i, arg := range positional {
+		if arg == "--crush-dir" && i+1 < len(positional) {
+			crushDir = positional[i+1]
+			positional = append(positional[:i], positional[i+2:]...)
+			break
+		}
 	}
-	tr, err := parseTrace(positional[0])
+	if len(positional) != 1 {
+		return fmt.Errorf("usage: mindwalk trace [--crush-dir DIR] <session> [-o out]")
+	}
+	tr, err := parseTrace(positional[0], crushDir)
 	if err != nil {
 		return err
 	}
@@ -158,6 +166,8 @@ func analyze(args []string) error {
 	judgeModel := fs.String("model", "", "judge model override, e.g. sonnet or gpt-5.6-sol (default: the CLI's default)")
 	noCache := fs.Bool("no-cache", false, "re-run the judge even when a fresh cached report exists")
 	noRubric := fs.Bool("no-rubric", false, "skip the task rubric layer: one dimensions-only judge call, bypassing the report cache")
+	crushDir := fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
+	noCrush := fs.Bool("no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
 	timeout := fs.Duration("timeout", judge.DefaultTimeout, "judge subprocess timeout")
 	// Accept flags after the positional argument, matching trace/build.
 	var positional []string
@@ -178,7 +188,7 @@ func analyze(args []string) error {
 	if err != nil {
 		return err
 	}
-	tr, err := parseTrace(session)
+	tr, err := parseTrace(session, crushDirFor(*crushDir, *noCrush))
 	if err != nil {
 		return err
 	}
@@ -218,9 +228,9 @@ func analyze(args []string) error {
 	return writeJSON(*out, report)
 }
 
-func parseTrace(path string) (*model.Trace, error) {
+func parseTrace(path string, crushDir string) (*model.Trace, error) {
 	var lastErr error
-	for _, source := range []adapter.Source{claudecode.Adapter{}, codex.Adapter{}, pi.Adapter{}, crush.Adapter{}} {
+	for _, source := range traceSources(crushDir) {
 		trace, err := source.Parse(path)
 		if err == nil {
 			return trace, nil
@@ -231,6 +241,27 @@ func parseTrace(path string) (*model.Trace, error) {
 		return nil, lastErr
 	}
 	return nil, fmt.Errorf("no session adapters configured")
+}
+
+// traceSources returns the adapter sources parseTrace will try, in
+// order. An empty crushDir means "auto-discover"; a non-empty
+// value pins a specific installation. The noCrush flag is signalled
+// by passing a path that cannot possibly exist.
+func traceSources(crushDir string) []adapter.Source {
+	sources := []adapter.Source{claudecode.Adapter{}, codex.Adapter{}, pi.Adapter{}}
+	if crushDir == "" {
+		return append(sources, crush.Adapter{})
+	}
+	return append(sources, crush.Adapter{Dir: crushDir})
+}
+
+// crushDirFor resolves the crush directory based on the --crush-dir
+// and --no-crush flag values. Empty string means auto-discover.
+func crushDirFor(override string, noCrush bool) string {
+	if noCrush {
+		return "/dev/null/mindwalk-no-crush"
+	}
+	return override
 }
 
 func parseOutputArgs(args []string) ([]string, string, error) {
