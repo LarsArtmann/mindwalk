@@ -45,13 +45,16 @@ and opens a browser:
 
 ```text
 mindwalk serve [--port N] [--host HOST] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR] [--crush-dir DIR]
-mindwalk open [--no-open] <session>          open one specific session
-mindwalk map [--no-open] <repo>              open a repository map, no session needed
+mindwalk open [--no-open] [--host HOST] <session>          open one specific session
+mindwalk map [--no-open] [--host HOST] <repo>              open a repository map, no session needed
 mindwalk build <repo> [-o out]               write the repository citymap JSON
 mindwalk trace <session> [-o out]            write the normalized trace JSON
 mindwalk analyze <session> [--judge claude|codex|crush] [--model name] [--no-rubric]
                                             evaluate one session (see below)
 ```
+
+Pass `--host 0.0.0.0` to any of `serve`, `open`, or `map` to expose the UI
+on your LAN instead of localhost.
 
 ## Reading the picture
 
