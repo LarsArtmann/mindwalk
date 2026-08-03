@@ -348,35 +348,76 @@ func closeSources(srcs []adapter.Source) {
 	}
 }
 
+// sessionEntry is the JSON representation of one discovered session,
+// used when `mindwalk sessions --json` is requested.
+type sessionEntry struct {
+	Harness    string `json:"harness"`
+	StartedAt  string `json:"startedAt,omitempty"`
+	EventCount int    `json:"eventCount"`
+	Title      string `json:"title,omitempty"`
+	Cwd        string `json:"cwd,omitempty"`
+	Path       string `json:"path"`
+}
+
 // listSessions prints every discovered session across all adapters
-// without starting the server.
+// without starting the server. Supports --json for machine-readable
+// output, --harness to filter by adapter, and --limit to cap results.
 func listSessions(args []string) error {
 	fs := flag.NewFlagSet("sessions", flag.ExitOnError)
 	af := parseAdapterFlags(fs)
+	jsonOut := fs.Bool("json", false, "output sessions as JSON")
+	harnessFilter := fs.String("harness", "", "filter by harness (claude-code, codex, pi, crush)")
+	limit := fs.Int("limit", 0, "maximum sessions to list (0 = all)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	srcs := af.sources()
 	defer closeSources(srcs)
+	entries := []sessionEntry{}
 	for _, src := range srcs {
+		h := src.Harness()
+		if *harnessFilter != "" && h != *harnessFilter {
+			continue
+		}
 		metas, err := src.ListSessions()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "mindwalk: %s: %v\n", src.Harness(), err)
+			fmt.Fprintf(os.Stderr, "mindwalk: %s: %v\n", h, err)
 			continue
 		}
 		for _, m := range metas {
-			cwd := ""
-			if m.Cwd != "" {
-				cwd = "  cwd=" + m.Cwd
+			if *limit > 0 && len(entries) >= *limit {
+				break
 			}
-			fmt.Printf("%-8s  %s  %4d events  %s%s\n", src.Harness(), m.StartedAt, m.EventCount, m.Title, cwd)
+			if *jsonOut {
+				entries = append(entries, sessionEntry{
+					Harness:    h,
+					StartedAt:  m.StartedAt,
+					EventCount: m.EventCount,
+					Title:      m.Title,
+					Cwd:        m.Cwd,
+					Path:       m.Path,
+				})
+			} else {
+				cwd := ""
+				if m.Cwd != "" {
+					cwd = "  cwd=" + m.Cwd
+				}
+				fmt.Printf("%-8s  %s  %4d events  %s%s\n", h, m.StartedAt, m.EventCount, m.Title, cwd)
+			}
 		}
+		if *limit > 0 && len(entries) >= *limit {
+			break
+		}
+	}
+	if *jsonOut {
+		return writeJSON("", entries)
 	}
 	return nil
 }
 
-// doctor prints adapter status, data-directory paths, and session
-// counts so users can verify their configuration.
+// doctor prints adapter status, data-directory paths, session
+// counts, and diagnostic checks so users can verify their
+// configuration and troubleshoot issues.
 func doctor(args []string) error {
 	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
 	af := parseAdapterFlags(fs)
@@ -395,7 +436,21 @@ func doctor(args []string) error {
 		} else {
 			count = len(metas)
 		}
-		fmt.Printf("%-8s  sessions=%-4d  %s\n", h, count, status)
+		dirStatus := ""
+		if d := src.SessionDir(); d != "" {
+			if adapter.ReadableDir(d) {
+				dirStatus = " [dir ok]"
+			} else {
+				dirStatus = " [dir missing]"
+			}
+		}
+		fmt.Printf("%-8s  sessions=%-4d  %s%s\n", h, count, status, dirStatus)
+
+		if diag, ok := src.(adapter.DiagnosticsSource); ok {
+			for _, check := range diag.Diagnostics() {
+				fmt.Printf("         %-16s  %-5s  %s\n", check.Name, check.Status, check.Detail)
+			}
+		}
 	}
 	fmt.Println()
 	fmt.Println("Data directories:")

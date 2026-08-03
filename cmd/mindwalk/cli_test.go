@@ -79,6 +79,33 @@ func TestListSessionsPrintsHeaders(t *testing.T) {
 	}
 }
 
+// TestListSessionsJSON verifies that --json produces valid JSON (an
+// empty array when no sessions exist).
+func TestListSessionsJSON(t *testing.T) {
+	args := append(emptyAdapterArgs(t), "--json")
+	out, err := captureStdout(t, func() error { return listSessions(args) })
+	if err != nil {
+		t.Fatalf("listSessions --json error: %v", err)
+	}
+	out = strings.TrimSpace(out)
+	if out != "[]" {
+		t.Fatalf("expected '[]' for empty --json output, got: %q", out)
+	}
+}
+
+// TestListSessionsHarnessFilter verifies that --harness filters out
+// non-matching adapters without error.
+func TestListSessionsHarnessFilter(t *testing.T) {
+	args := append(emptyAdapterArgs(t), "--harness", "codex")
+	out, err := captureStdout(t, func() error { return listSessions(args) })
+	if err != nil {
+		t.Fatalf("listSessions --harness error: %v", err)
+	}
+	if out != "" {
+		t.Fatalf("expected empty output for filtered empty dirs, got:\n%s", out)
+	}
+}
+
 // TestDoctorPrintsDataDirectories verifies that doctor output includes
 // the data directory paths.
 func TestDoctorPrintsDataDirectories(t *testing.T) {
@@ -92,6 +119,19 @@ func TestDoctorPrintsDataDirectories(t *testing.T) {
 	}
 	if !strings.Contains(out, "crush") {
 		t.Fatalf("expected 'crush' in output, got:\n%s", out)
+	}
+}
+
+// TestDoctorShowsDirectoryStatus verifies that doctor reports
+// directory readability status ([dir missing] for non-existent dirs).
+func TestDoctorShowsDirectoryStatus(t *testing.T) {
+	args := emptyAdapterArgs(t)
+	out, err := captureStdout(t, func() error { return doctor(args) })
+	if err != nil {
+		t.Fatalf("doctor error: %v", err)
+	}
+	if !strings.Contains(out, "[dir missing]") {
+		t.Fatalf("expected '[dir missing]' for empty dirs, got:\n%s", out)
 	}
 }
 

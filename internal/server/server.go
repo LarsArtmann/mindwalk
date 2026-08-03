@@ -212,8 +212,7 @@ func (s *Server) Start(openBrowser bool) error {
 }
 
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	sessions, err := s.listSessionsFresh(r.URL.Query().Get("fresh") == "1")
@@ -243,8 +242,7 @@ type adapterInfo struct {
 }
 
 func (s *Server) handleAdapters(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	s.mu.Lock()
@@ -315,8 +313,7 @@ func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSessionAgents(w http.ResponseWriter, r *http.Request, selector string) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	root, err := s.findSession(selector)
@@ -333,8 +330,7 @@ func (s *Server) handleSessionAgents(w http.ResponseWriter, r *http.Request, sel
 }
 
 func (s *Server) handleSessionAgentTrace(w http.ResponseWriter, r *http.Request, selector, nodeID string) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	root, err := s.findSession(selector)
@@ -400,8 +396,7 @@ func (s *Server) handleSessionAgentTrace(w http.ResponseWriter, r *http.Request,
 // for arbitrary session repos, so accepting a repo path here does not widen the
 // read surface. The builder only reads the tree (git ls-files / walk).
 func (s *Server) handleRepoMap(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	repo := r.URL.Query().Get("repo")
@@ -949,6 +944,22 @@ func (s *Server) runAgentGraphInflight(
 	load.graph, load.err = source.BuildAgentGraph(root, catalog)
 }
 
+// agentGraphCacheVersion is the on-disk format version. Bumping this
+// invalidates all existing cache files so a format change never serves
+// a stale or incompatible graph.
+const agentGraphCacheVersion = 1
+
+// agentGraphCacheFile wraps a persisted graph with a version tag so
+// future format changes can reject old files cleanly.
+type agentGraphCacheFile struct {
+	Version int              `json:"version"`
+	Graph   model.AgentGraph `json:"graph"`
+}
+
+// maxAgentGraphCacheBytes is the soft cap for the total disk cache.
+// When exceeded, oldest files are evicted until usage drops below it.
+const maxAgentGraphCacheBytes = 100 * 1024 * 1024 // 100 MB
+
 // agentGraphCacheDir returns the disk directory for persisted agent
 // graphs. Created lazily on first store. When MINDWALK_HOME is set
 // (e.g. to /dev/null in tests), the cache lives there instead.
@@ -964,7 +975,8 @@ func agentGraphCacheDir() string {
 }
 
 // loadAgentGraphFromDisk tries to read a previously persisted agent
-// graph for the given digest. Returns (nil, false) on any miss.
+// graph for the given digest. Returns (nil, false) on any miss,
+// version mismatch, or corruption.
 func loadAgentGraphFromDisk(digest [sha256.Size]byte) (*model.AgentGraph, bool) {
 	dir := agentGraphCacheDir()
 	if dir == "" {
@@ -975,30 +987,93 @@ func loadAgentGraphFromDisk(digest [sha256.Size]byte) (*model.AgentGraph, bool) 
 	if err != nil {
 		return nil, false
 	}
-	var graph model.AgentGraph
-	if err := json.Unmarshal(data, &graph); err != nil {
+	var file agentGraphCacheFile
+	if err := json.Unmarshal(data, &file); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: corrupt file %s: %v", path, err)
 		return nil, false
 	}
-	return &graph, true
+	if file.Version != agentGraphCacheVersion {
+		log.Printf("mindwalk: agent-graph disk cache: version %d in %s (expected %d), ignoring",
+			file.Version, path, agentGraphCacheVersion)
+		return nil, false
+	}
+	log.Printf("mindwalk: agent-graph disk cache hit: %s", path)
+	return &file.Graph, true
 }
 
 // storeAgentGraphToDisk writes the graph to disk keyed by digest so
-// the next cold start can skip rebuilding it. Errors are silent —
-// the disk cache is best-effort.
+// the next cold start can skip rebuilding it. Errors are logged but
+// never block the caller — the disk cache is best-effort.
 func storeAgentGraphToDisk(digest [sha256.Size]byte, graph *model.AgentGraph) {
 	dir := agentGraphCacheDir()
 	if dir == "" {
 		return
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: cannot create dir %s: %v", dir, err)
 		return
 	}
-	data, err := json.Marshal(graph)
+	file := agentGraphCacheFile{Version: agentGraphCacheVersion, Graph: *graph}
+	data, err := json.Marshal(file)
 	if err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: marshal error: %v", err)
 		return
 	}
 	path := filepath.Join(dir, hex.EncodeToString(digest[:])+".json")
-	_ = os.WriteFile(path, data, 0o644)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: write %s: %v", path, err)
+		return
+	}
+	log.Printf("mindwalk: agent-graph disk cache miss: stored %s", path)
+	evictAgentGraphCache(dir)
+}
+
+// evictAgentGraphCache removes oldest cache files when the total size
+// of the directory exceeds maxAgentGraphCacheBytes. Files are sorted
+// by modification time (oldest first) and deleted until usage is under
+// the cap.
+func evictAgentGraphCache(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	type cacheFile struct {
+		path    string
+		size    int64
+		modTime int64
+	}
+	var files []cacheFile
+	var total int64
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		files = append(files, cacheFile{
+			path:    filepath.Join(dir, entry.Name()),
+			size:    info.Size(),
+			modTime: info.ModTime().UnixNano(),
+		})
+		total += info.Size()
+	}
+	if total <= maxAgentGraphCacheBytes {
+		return
+	}
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].modTime < files[j].modTime
+	})
+	for _, f := range files {
+		if total <= maxAgentGraphCacheBytes {
+			break
+		}
+		if err := os.Remove(f.path); err == nil {
+			total -= f.size
+			log.Printf("mindwalk: agent-graph disk cache: evicted %s", f.path)
+		}
+	}
 }
 
 func (s *Server) findCatalogSession(key string) (model.SessionMeta, error) {

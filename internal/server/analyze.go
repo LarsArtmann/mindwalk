@@ -116,8 +116,7 @@ type reportStatus struct {
 }
 
 func (s *Server) handleSessionReport(w http.ResponseWriter, r *http.Request, selector string) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	meta, err := s.findSession(selector)

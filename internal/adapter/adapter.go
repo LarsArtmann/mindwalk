@@ -33,6 +33,22 @@ type Closer interface {
 	Close() error
 }
 
+// DiagnosticCheck is the result of a single health probe. Status is
+// "ok", "warn", or "error"; Detail carries a human-readable explanation
+// or the resolved value (e.g. the data-directory path).
+type DiagnosticCheck struct {
+	Name   string
+	Status string
+	Detail string
+}
+
+// DiagnosticsSource is optionally implemented by adapters that can run
+// deeper health checks beyond listing sessions. The doctor command
+// discovers this via type assertion.
+type DiagnosticsSource interface {
+	Diagnostics() []DiagnosticCheck
+}
+
 type AgentGraphSource interface {
 	AgentGraphInputs(root model.SessionMeta, catalog []model.SessionMeta) ([]string, error)
 	BuildAgentGraph(root model.SessionMeta, catalog []model.SessionMeta) (*model.AgentGraph, error)
