@@ -24,11 +24,6 @@ import (
 // input shape) so it must stay stable.
 const harnessName = "crush"
 
-// sessionDBIndex maps session IDs to their crush.db filesystem path,
-// populated during ListSessions so Parse/Summarize can open the right
-// database. Only used in auto-discover mode (Dir == "").
-var sessionDBIndex sync.Map // sessionID (string) → dbPath (string)
-
 // ListSessions returns the metadata for every top-level Crush session
 // found across all known project databases, newest first. In
 // auto-discover mode (Dir == "") it reads the Crush projects registry
@@ -92,7 +87,9 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 				return nil, err
 			}
 			meta.Cwd = cwd
-			sessionDBIndex.Store(meta.ID, pdb.DBPath)
+			if a.dbIndex != nil {
+				a.dbIndex.Store(meta.ID, pdb.DBPath)
+			}
 			all = append(all, meta)
 		}
 		_ = rows.Close()
@@ -415,8 +412,8 @@ func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
 		return a.openReadOnly()
 	}
 	id, _, ok := splitSessionID(path)
-	if ok {
-		if cached, hit := sessionDBIndex.Load(id); hit {
+	if ok && a.dbIndex != nil {
+		if cached, hit := a.dbIndex.Load(id); hit {
 			if dbPath, ok := cached.(string); ok && dbPath != "" {
 				return openReadOnlyAt(dbPath)
 			}

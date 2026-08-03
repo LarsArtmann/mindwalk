@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 )
 
 const (
@@ -43,6 +44,21 @@ type Adapter struct {
 	// .crush directory. Empty defaults to os.Getwd. Tests inject a
 	// temp directory so they never read the host filesystem.
 	WorkingDir string
+
+	// dbIndex maps session IDs to their crush.db filesystem path,
+	// populated during ListSessions so Parse/Summarize can open the
+	// right database. Nil when the adapter was constructed without
+	// NewAdapter (e.g. Adapter{Dir: dir}); in that case routing falls
+	// back to the single resolved database.
+	dbIndex *sync.Map
+}
+
+// NewAdapter creates an Adapter with its own session-to-DB index,
+// isolating it from other Adapter instances. Use this in the server
+// and in tests that need to control multi-database routing without
+// sharing global state.
+func NewAdapter(dir string) Adapter {
+	return Adapter{Dir: dir, dbIndex: &sync.Map{}}
 }
 
 // DefaultDir returns the platform-specific global Crush data directory:
