@@ -11,13 +11,13 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
 	"github.com/cosmtrek/mindwalk/internal/adapter/codex"
+	"github.com/cosmtrek/mindwalk/internal/adapter/crush"
 	"github.com/cosmtrek/mindwalk/internal/adapter/pi"
 	"github.com/cosmtrek/mindwalk/internal/citymap"
 	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 	"github.com/cosmtrek/mindwalk/internal/server"
 )
-
 func main() {
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "mindwalk:", err)
@@ -56,12 +56,13 @@ func serve(args []string) error {
 	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
 	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
 	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
+	crushDir := fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
 	dev := fs.Bool("dev", false, "prefer web/dist from the working tree")
 	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, Dev: *dev}).Start(!*noOpen)
+	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, Dev: *dev}).Start(!*noOpen)
 }
 
 func open(args []string) error {
@@ -70,18 +71,19 @@ func open(args []string) error {
 	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
 	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
 	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
+	crushDir := fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
 	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	if fs.NArg() != 1 {
-		return fmt.Errorf("usage: mindwalk open [--no-open] <session.jsonl>")
+		return fmt.Errorf("usage: mindwalk open [--no-open] <session>")
 	}
 	session, err := filepath.Abs(fs.Arg(0))
 	if err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, OpenSession: session}).Start(!*noOpen)
+	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, OpenSession: session}).Start(!*noOpen)
 }
 
 func openMap(args []string) error {
@@ -216,7 +218,7 @@ func analyze(args []string) error {
 
 func parseTrace(path string) (*model.Trace, error) {
 	var lastErr error
-	for _, source := range []adapter.Source{claudecode.Adapter{}, codex.Adapter{}, pi.Adapter{}} {
+	for _, source := range []adapter.Source{claudecode.Adapter{}, codex.Adapter{}, pi.Adapter{}, crush.Adapter{}} {
 		trace, err := source.Parse(path)
 		if err == nil {
 			return trace, nil

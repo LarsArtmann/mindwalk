@@ -243,9 +243,9 @@ func actionFor(tool string, input map[string]any, result string) string {
 	switch tool {
 	case "Read", "read":
 		return "read"
-	case "Write", "Edit", "MultiEdit", "NotebookEdit", "apply_patch", "write", "edit":
+	case "Write", "Edit", "MultiEdit", "NotebookEdit", "apply_patch", "write", "edit", "multiedit":
 		return "edit"
-	case "Grep", "Glob", "LS", "view_image", "grep", "find", "ls":
+	case "Grep", "Glob", "LS", "view_image", "grep", "find", "ls", "glob", "sourcegraph":
 		return "search"
 	case "Bash", "bash", "exec_command", "write_stdin", "js", "js_repl":
 		command := firstString(input, "command", "cmd", "code", "chars", "script", "_raw")
@@ -289,6 +289,12 @@ func actionFor(tool string, input map[string]any, result string) string {
 			return "read"
 		}
 		return "exec"
+	case "view", "lsp_definition", "lsp_references", "lsp_symbols", "lsp_call_hierarchy", "fetch", "agentic_fetch", "web_fetch":
+		return "read"
+	case "download":
+		return "read"
+	case "todos", "question":
+		return "other"
 	default:
 		_ = result
 		return "other"
@@ -330,7 +336,7 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 		if path, ok := input["path"].(string); ok {
 			add(path, "read", false, readLines(input), "")
 		}
-	case "Write", "Edit", "MultiEdit", "NotebookEdit", "write", "edit":
+	case "Write", "Edit", "MultiEdit", "NotebookEdit", "write", "edit", "multiedit":
 		if path, ok := input["file_path"].(string); ok {
 			add(path, "edit", false, nil, "")
 		}
@@ -349,7 +355,7 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 				add(path, "hit", true, nil, "")
 			}
 		}
-	case "Glob", "LS", "find", "ls":
+	case "Glob", "LS", "find", "ls", "glob":
 		for _, hit := range parsePathHits(result) {
 			add(hit.path, "hit", false, nil, "")
 		}
@@ -357,15 +363,16 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 			add(path, "hit", true, nil, "")
 		}
 	case "Bash", "bash":
-		command := firstString(input, "command")
+		command := firstString(input, "command", "cmd", "_raw")
+		base := firstString(input, "workdir", "cwd")
 		for _, path := range commandReadPaths(command) {
-			add(path, "read", true, nil, "")
+			add(path, "read", true, nil, base)
 		}
 		for _, path := range extractCommandPaths(command) {
-			add(path, "hit", true, nil, "")
+			add(path, "hit", true, nil, base)
 		}
 		for _, path := range extractPaths(command + "\n" + result) {
-			add(path, "hit", true, nil, "")
+			add(path, "hit", true, nil, base)
 		}
 	case "exec_command":
 		command := firstString(input, "cmd", "command")
@@ -420,6 +427,29 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 		for _, path := range extractPaths(code + "\n" + result) {
 			add(path, "hit", true, nil, "")
 		}
+	case "view":
+		// Crush's view tool uses {file_path, start_line?, end_line?};
+		// the JSON literal stored in parts[].data.input occasionally
+		// nests an extra wrapper, but normalizePath tolerates any
+		// plain string we surface here.
+		if path, ok := input["file_path"].(string); ok {
+			add(path, "read", false, readLines(input), "")
+		}
+		if path, ok := input["path"].(string); ok {
+			add(path, "read", false, nil, "")
+		}
+	case "lsp_definition", "lsp_references", "lsp_symbols", "lsp_call_hierarchy":
+		// LSP lookup results carry the target path in the result body;
+		// mine it the same way parsePathHits does for Grep.
+		for _, hit := range parsePathHits(result) {
+			add(hit.path, "hit", false, hit.lines, "")
+		}
+	case "fetch", "agentic_fetch", "web_fetch":
+		// Fetch tools return URL-only payloads — there is no path to
+		// target. Leaving targets empty keeps the citymap free of
+		// spurious hits while the action still surfaces as "read".
+	case "download":
+		// Download targets a remote URL too; nothing to anchor.
 	}
 	return targets, outside
 }

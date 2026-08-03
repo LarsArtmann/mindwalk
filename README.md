@@ -16,7 +16,7 @@ raw JSONL line by line doesn't answer any of that.
 Draw the repository as a night map, and play the session back as light moving
 through it: where the agent searched, read, and edited, the map glows —
 everything else stays dark. The agent's understanding of the task becomes a
-shape you can see at a glance. One Go binary reads Claude Code, Codex, and pi
+shape you can see at a glance. One Go binary reads Claude Code, Codex, pi, and Crush
 session logs, fully local; viewing sends nothing anywhere. The one exception
 is the optional session evaluation: when you explicitly run it, a summary of
 that session (task wording, file paths, event digests) is sent to the model
@@ -37,15 +37,16 @@ Windows archives are on [GitHub Releases](https://github.com/cosmtrek/mindwalk/r
 To build from source: `make setup && make build` → `bin/mindwalk`.
 
 With no arguments, mindwalk scans `~/.claude/projects`, `~/.codex/sessions`,
-and `~/.pi/agent/sessions`, serves the UI on a random local port, and opens a
-browser:
+and `~/.pi/agent/sessions`, and the per-project `.crush/crush.db` (or
+`~/.local/share/crush/crush.db`), serves the UI on a random local port,
+and opens a browser:
 
 ```text
-mindwalk serve [--port N] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR]
-mindwalk open [--no-open] <session.jsonl>   open one specific session
-mindwalk map [--no-open] <repo>             open a repository map, no session needed
-mindwalk build <repo> [-o out]              write the repository citymap JSON
-mindwalk trace <session> [-o out]           write the normalized trace JSON
+mindwalk serve [--port N] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR] [--crush-dir DIR]
+mindwalk open [--no-open] <session>          open one specific session
+mindwalk map [--no-open] <repo>              open a repository map, no session needed
+mindwalk build <repo> [-o out]               write the repository citymap JSON
+mindwalk trace <session> [-o out]            write the normalized trace JSON
 mindwalk analyze <session> [--judge claude|codex] [--model name] [--no-rubric]
                                             evaluate one session (see below)
 ```

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`mindwalk` is a local visualizer for coding-agent sessions. It supports Claude Code, Codex, and pi, turning agent session logs plus repository structure into a deterministic 3D "code city" that can be explored in a browser.
+`mindwalk` is a local visualizer for coding-agent sessions. It supports Claude Code, Codex, pi, and Crush, turning agent session logs plus repository structure into a deterministic 3D "code city" that can be explored in a browser.
 
 ## Design
 
@@ -15,7 +15,7 @@ The UI combines those artifacts so users can see how a coding agent moved throug
 ## Architecture
 
 - `cmd/mindwalk` provides the CLI commands: serve a local UI, open a session, build a citymap, export a trace, or evaluate a session.
-- `internal/adapter` converts supported agent session formats into the shared model. Claude Code, Codex, and pi each have an adapter; keep every source, current and future, behind its adapter boundary.
+- `internal/adapter` converts supported agent session formats into the shared model. Claude Code, Codex, pi, and Crush each have an adapter; keep every source, current and future, behind its adapter boundary.
 - `internal/model` owns the trace, citymap, and report data contracts.
 - `internal/citymap` builds deterministic layouts from repository contents.
 - `internal/judge` renders a trace into an evidence document and runs a sealed local agent CLI (claude or codex) over it in up to two calls: the first drafts a task rubric — task-grouped criteria derived from the session's user messages — and the second is one unified scoring pass over the four fixed dimensions plus any rubric criteria. The rubric phase can skip (no events, no or too-little task text), reuse the cached report's rubric when the task wording is unchanged, or degrade to a dimensions-only report when generation fails; it never blocks the fixed layer. The judge subprocess gets no tools; verdicts — per dimension and per criterion — are always derived mechanically from finding severities and coverage, never decided by the LLM. Reports are cached in `~/.mindwalk/reports`; `docs/dynamic-rubric-evaluation.md` explains the rubric layer.
@@ -26,12 +26,28 @@ The UI combines those artifacts so users can see how a coding agent moved throug
 The normal flow is:
 
 ```text
-Agent session log (Claude Code, Codex, or pi) + repository path
+Agent session log (Claude Code, Codex, pi, or Crush) + repository path
   -> Go adapters and citymap builder
   -> local Go server APIs
   -> React/Three.js playback UI
        └─ evaluate (explicit request) -> internal/judge -> report panel
 ```
+
+Crush is a database-backed source: every session lives in one
+`crush.db` SQLite file (per-project `.crush/` or global
+`~/.local/share/crush/`), with message parts JSON-encoded in the
+`messages.parts` column. The Crush adapter opens the database in
+read-only mode without taking the data-dir lock, walks the project
+to find the right directory, and uses synthetic `crush://session/<id>`
+paths so the rest of the server can route to it. The server's
+`scanSessions` short-circuits the directory walk for adapters whose
+paths are not real files, and `fingerprintPath` synthesises a stable
+zero fingerprint for `crush://` paths so the trace cache still
+works. Subagent sessions are recorded by Crush with
+`parent_session_id` set and use the `messageID$$toolCallID` id
+format; the adapter normalises those into the same `Agent` metadata
+shape that the codex adapter emits, so the Agent Lens panel
+displays them without a new code path.
 
 ## Development
 

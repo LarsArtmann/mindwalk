@@ -28,7 +28,7 @@ func TestTraceStillLoadsWhenSessionCwdIsMissing(t *testing.T) {
 		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"missingcwd","cwd":`+quoteJSON(missingRoot)+`,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
 	)
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	traceResp := httptest.NewRecorder()
 	s.handleSessionResource(traceResp, httptest.NewRequest(http.MethodGet, "/api/sessions/missingcwd/trace", nil))
 	if traceResp.Code != http.StatusOK {
@@ -79,7 +79,7 @@ func TestOpenSessionUsesUniqueKeyAndFindSessionAcceptsBasename(t *testing.T) {
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"internal-id","cwd":"/tmp","message":{"role":"user","content":"hello"}}`,
 	)
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi"), OpenSession: session})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi"), OpenSession: session, CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	wantKey := adapter.SessionKey("claude-code", session)
 	if got := s.openSessionKey(); got != wantKey {
 		t.Fatalf("openSessionKey = %q, want %q", got, wantKey)
@@ -110,7 +110,7 @@ func TestDuplicateSessionIDsUseDistinctKeysAndCaches(t *testing.T) {
 		})
 	}
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	sessions, err := s.listSessions()
 	if err != nil {
 		t.Fatal(err)
@@ -155,7 +155,7 @@ func TestTraceCacheReloadsWhenActiveSessionGrows(t *testing.T) {
 		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"growing","cwd":`+quoteJSON(repoRoot)+`,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
 	)
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	firstTrace, firstCity, err := s.traceAndMap("growing")
 	if err != nil {
 		t.Fatal(err)
@@ -189,7 +189,7 @@ func TestSessionsFreshBypassesListTTL(t *testing.T) {
 	writeServerSession(t, filepath.Join(claudeDir, "first.jsonl"),
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"first","cwd":"/tmp","message":{"role":"user","content":"hello"}}`,
 	)
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 
 	initial := requestSessions(t, s, "/api/sessions")
 	if len(initial) != 1 {
@@ -214,7 +214,7 @@ func TestConcurrentFreshGenerationReusesCompletedScan(t *testing.T) {
 	writeServerSession(t, filepath.Join(claudeDir, "session.jsonl"),
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"session","cwd":"/tmp","message":{"role":"user","content":"hello"}}`,
 	)
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 
 	// Two fresh callers that enter before either scan completes observe the
 	// same generation. The second must reuse the first completed scan.
@@ -386,7 +386,7 @@ func TestServerLoadsCodexSessions(t *testing.T) {
 		},
 	)
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	sessionsResp := httptest.NewRecorder()
 	s.handleSessions(sessionsResp, httptest.NewRequest(http.MethodGet, "/api/sessions", nil))
 	if sessionsResp.Code != http.StatusOK {
@@ -475,7 +475,7 @@ func TestCodexAgentAPIsDoNotDeriveChildAcrossDuplicateRootIDs(t *testing.T) {
 		},
 	})
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	sessions := requestSessions(t, s, "/api/sessions")
 	if len(sessions) != 2 {
 		t.Fatalf("visible sessions = %#v, want duplicate-ID roots only", sessions)
@@ -534,7 +534,7 @@ func TestServerRetainsClaudeSubagentInCatalog(t *testing.T) {
 		`{"type":"user","timestamp":"2026-07-09T00:00:01Z","sessionId":"root-id","agentId":"child","isSidechain":true,"cwd":"/tmp","message":{"role":"user","content":"internal"}}`,
 	)
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	sessions := requestSessions(t, s, "/api/sessions")
 	if len(sessions) != 1 || sessions[0].ID != "root-id" {
 		t.Fatalf("sessions = %#v", sessions)
@@ -852,7 +852,7 @@ func TestFreshScanReloadsClaudeSidecarMetadata(t *testing.T) {
 		`{"type":"user","timestamp":"2026-07-09T00:00:01Z","sessionId":"root-id","agentId":"child","isSidechain":true,"cwd":"/tmp","message":{"role":"user","content":"internal"}}`,
 	)
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	requestSessions(t, s, "/api/sessions")
 	childKey := adapter.SessionKey("claude-code", child)
 	if got := s.sessionCatalog[childKey].Agent.Role; got != "" {
@@ -909,7 +909,7 @@ func TestServerSkipsCodexSubagentSessions(t *testing.T) {
 		},
 	)
 
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi")})
+	s := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi"), CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	sessions, err := s.scanSessions()
 	if err != nil {
 		t.Fatal(err)
@@ -920,7 +920,7 @@ func TestServerSkipsCodexSubagentSessions(t *testing.T) {
 
 	// Explicitly opening an auxiliary rollout keeps it available internally
 	// without leaking it into the visible session list.
-	explicit := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi"), OpenSession: subagentSession})
+	explicit := New(Config{ClaudeDir: claudeDir, CodexDir: codexDir, PiDir: filepath.Join(t.TempDir(), "pi"), OpenSession: subagentSession, CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	explicitSessions, err := explicit.listSessions()
 	if err != nil {
 		t.Fatal(err)
@@ -943,7 +943,7 @@ func TestRepoMapServesCitymapWithoutSession(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := New(Config{RepoRoot: repoRoot, MapOnly: true})
+	s := New(Config{RepoRoot: repoRoot, MapOnly: true, CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	resp := httptest.NewRecorder()
 	s.handleRepoMap(resp, httptest.NewRequest(http.MethodGet, "/api/repomap", nil))
 	if resp.Code != http.StatusOK {
@@ -970,7 +970,7 @@ func TestRepoMapAcceptsRepoQueryParam(t *testing.T) {
 	}
 
 	// No RepoRoot configured; the repo comes entirely from the query param.
-	s := New(Config{})
+	s := New(Config{CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	resp := httptest.NewRecorder()
 	s.handleRepoMap(resp, httptest.NewRequest(http.MethodGet, "/api/repomap?repo="+url.QueryEscape(repoRoot), nil))
 	if resp.Code != http.StatusOK {
@@ -986,7 +986,7 @@ func TestRepoMapAcceptsRepoQueryParam(t *testing.T) {
 }
 
 func TestRepoMapWithoutRepoRootReturns404(t *testing.T) {
-	s := New(Config{})
+	s := New(Config{CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	resp := httptest.NewRecorder()
 	s.handleRepoMap(resp, httptest.NewRequest(http.MethodGet, "/api/repomap", nil))
 	if resp.Code != http.StatusNotFound {
@@ -1000,7 +1000,7 @@ func TestRepoMapCacheExpiresWhenRepoChanges(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := New(Config{RepoRoot: repoRoot})
+	s := New(Config{RepoRoot: repoRoot, CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	first, err := s.repoCityMap(repoRoot)
 	if err != nil {
 		t.Fatal(err)
@@ -1031,7 +1031,7 @@ func TestRepoMapCacheExpiresWhenRepoChanges(t *testing.T) {
 }
 
 func TestRepoMapCacheIsBounded(t *testing.T) {
-	s := New(Config{})
+	s := New(Config{CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	for i := 0; i < repoMapMaxEntries+5; i++ {
 		repo := t.TempDir()
 		if err := os.WriteFile(filepath.Join(repo, "a.go"), []byte("package demo\n"), 0o644); err != nil {
@@ -1243,7 +1243,7 @@ func newAgentAPIServer(t *testing.T) (*Server, *agentAPISource) {
 		},
 	}
 	source := &agentAPISource{dir: dir, metas: metas, traces: traces, graphs: graphs, parses: map[string]int{}}
-	s := New(Config{})
+	s := New(Config{CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	s.adapters = []adapter.Source{source}
 	return s, source
 }
@@ -1317,7 +1317,7 @@ func newBlockingServer(t *testing.T) (*Server, *blockingSource, string) {
 	session := filepath.Join(dir, "blocking.jsonl")
 	writeServerSession(t, session, "v1")
 	source := &blockingSource{dir: dir, root: root, started: make(chan struct{}), release: make(chan struct{})}
-	s := New(Config{})
+	s := New(Config{CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	s.adapters = []adapter.Source{source}
 	return s, source, session
 }
@@ -1357,7 +1357,7 @@ func TestSessionAgentsForSourceWithoutGraphSupport(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s := New(Config{ClaudeDir: filepath.Join(t.TempDir(), "claude"), CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: piRoot})
+	s := New(Config{ClaudeDir: filepath.Join(t.TempDir(), "claude"), CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: piRoot, CrushDir: filepath.Join(t.TempDir(), "no-crush")})
 	if sessions := requestSessions(t, s, "/api/sessions"); len(sessions) != 1 {
 		t.Fatalf("sessions = %#v", sessions)
 	}

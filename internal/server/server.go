@@ -25,6 +25,7 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
 	"github.com/cosmtrek/mindwalk/internal/adapter/codex"
+	"github.com/cosmtrek/mindwalk/internal/adapter/crush"
 	"github.com/cosmtrek/mindwalk/internal/adapter/pi"
 	"github.com/cosmtrek/mindwalk/internal/citymap"
 	"github.com/cosmtrek/mindwalk/internal/judge"
@@ -38,6 +39,7 @@ type Config struct {
 	Port        int
 	ClaudeDir   string
 	CodexDir    string
+	CrushDir    string
 	PiDir       string
 	OpenSession string
 	Dev         bool
@@ -127,7 +129,7 @@ const (
 func New(cfg Config) *Server {
 	return &Server{
 		cfg:             cfg,
-		adapters:        []adapter.Source{claudecode.Adapter{Dir: cfg.ClaudeDir}, codex.Adapter{Dir: cfg.CodexDir}, pi.Adapter{Dir: cfg.PiDir}},
+		adapters:        []adapter.Source{claudecode.Adapter{Dir: cfg.ClaudeDir}, codex.Adapter{Dir: cfg.CodexDir}, pi.Adapter{Dir: cfg.PiDir}, crushAdapter(cfg.CrushDir)},
 		traces:          map[string]*model.Trace{},
 		maps:            map[string]*model.CityMap{},
 		cacheAt:         map[string]time.Time{},
@@ -470,6 +472,24 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	seen := map[string]bool{}
 	var files []sessionFile
 	for _, source := range s.adapters {
+		// Most harnesses store sessions as files on disk. The
+		// Crush adapter uses a SQLite database instead, so we
+		// additionally ask it for its enumerated metadata and
+		// short-circuit before the directory walk. Each Crush
+		// path is synthetic (crush://...) so the legacy WalkDir
+		// would not find it; we record it here and let the
+		// summarise pass below pick it up.
+		metas, err := source.ListSessions()
+		if err != nil {
+			return nil, fmt.Errorf("%s sessions: %w", source.Harness(), err)
+		}
+		if !sourceUsesFilesystem(metas) {
+			for _, meta := range metas {
+				seen[summaryKey(source, meta.Path)] = true
+				files = append(files, sessionFile{source: source, path: meta.Path})
+			}
+			continue
+		}
 		dir := source.SessionDir()
 		if dir == "" {
 			continue
@@ -477,7 +497,7 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 			continue
 		}
-		err := filepath.WalkDir(dir, func(path string, entry os.DirEntry, walkErr error) error {
+		err = filepath.WalkDir(dir, func(path string, entry os.DirEntry, walkErr error) error {
 			if walkErr != nil {
 				return nil
 			}
@@ -552,6 +572,20 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	return sessions, nil
 }
 
+// sourceUsesFilesystem reports whether a list of metas came from a
+// filesystem walk rather than an explicit adapter enumeration. The
+// Crush adapter returns synthetic paths rooted at "crush://" so the
+// presence of a single such path is a strong signal the adapter is
+// database-backed and the legacy directory walk should be skipped.
+func sourceUsesFilesystem(metas []model.SessionMeta) bool {
+	for _, meta := range metas {
+		if strings.HasPrefix(meta.Path, "crush://") {
+			return false
+		}
+	}
+	return true
+}
+
 func (s *Server) summarizeAnyCached(path string, info fs.FileInfo) (model.SessionMeta, error) {
 	var lastErr error
 	for _, source := range s.adapters {
@@ -569,11 +603,20 @@ func (s *Server) summarizeAnyCached(path string, info fs.FileInfo) (model.Sessio
 
 func (s *Server) summarizeCached(source adapter.Source, path string, info fs.FileInfo) (model.SessionMeta, error) {
 	if info == nil {
-		var err error
-		info, err = os.Stat(path)
+		// Adapters that store sessions outside the filesystem
+		// (e.g. Crush's SQLite database) surface a synthetic path
+		// that os.Stat will reject. Fall through to a direct
+		// adapter call instead of running the fingerprint short
+		// circuit and sidecar file checks that only make sense
+		// for real on-disk files.
+		meta, err := source.Summarize(path)
 		if err != nil {
 			return model.SessionMeta{}, err
 		}
+		if meta.Key == "" {
+			meta.Key = adapter.SessionKey(source.Harness(), path)
+		}
+		return meta, nil
 	}
 	key := summaryKey(source, path)
 	sidecar, sidecarExists := summarySidecarFingerprint(source, path)
@@ -637,7 +680,7 @@ func (s *Server) traceAndMapMeta(meta model.SessionMeta) (*model.Trace, *model.C
 		key = adapter.SessionKey(meta.Harness, meta.Path)
 	}
 	for {
-		fingerprint, err := fingerprintFile(meta.Path)
+		fingerprint, err := fingerprintPath(meta.Path)
 		if err != nil {
 			s.mu.Lock()
 			s.deleteTraceCacheLocked(key)
@@ -950,6 +993,20 @@ func fingerprintFile(path string) (fileFingerprint, error) {
 	return fileFingerprint{size: info.Size(), modTime: info.ModTime()}, nil
 }
 
+// fingerprintPath handles paths that are not real on-disk files.
+// Adapters that surface sessions via a database (Crush) hand the
+// rest of the server a synthetic "crush://..." handle; os.Stat
+// rejects those, but the per-call result still needs a fingerprint
+// to drive the trace cache. We synthesise a stable zero fingerprint
+// for those cases — the cache always misses, so each request goes
+// back to the adapter, which is fine for a DB-backed source.
+func fingerprintPath(path string) (fileFingerprint, error) {
+	if strings.HasPrefix(path, "crush://") {
+		return fileFingerprint{}, nil
+	}
+	return fingerprintFile(path)
+}
+
 func (f fileFingerprint) equal(other fileFingerprint) bool {
 	return f.size == other.size && f.modTime.Equal(other.modTime)
 }
@@ -1081,6 +1138,19 @@ func writeJSON(w http.ResponseWriter, v any) {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	_ = enc.Encode(v)
+}
+
+// crushAdapter builds a Crush adapter. An empty explicit override
+// leaves the adapter to discover the per-project .crush directory
+// itself; an explicit path is used verbatim and disables discovery
+// so users can pin a specific installation. The same convention is
+// available via the --crush-dir CLI flag, where the default value
+// is an empty string so the adapter's project walk runs.
+func crushAdapter(explicit string) adapter.Source {
+	if explicit == "" {
+		return crush.Adapter{}
+	}
+	return crush.Adapter{Dir: explicit}
 }
 
 func openURL(url string) error {

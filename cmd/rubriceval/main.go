@@ -25,6 +25,7 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
 	"github.com/cosmtrek/mindwalk/internal/adapter/codex"
+	"github.com/cosmtrek/mindwalk/internal/adapter/crush"
 	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
@@ -289,7 +290,7 @@ func parseTrace(path string) (*model.Trace, error) {
 		return nil, err
 	}
 	var lastErr error
-	for _, source := range []adapter.Source{claudecode.Adapter{}, codex.Adapter{}} {
+	for _, source := range []adapter.Source{claudecode.Adapter{}, codex.Adapter{}, crush.Adapter{}} {
 		trace, err := source.Parse(abs)
 		if err == nil {
 			return trace, nil
