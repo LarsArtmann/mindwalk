@@ -25,6 +25,7 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
 	"github.com/cosmtrek/mindwalk/internal/adapter/codex"
+	"github.com/cosmtrek/mindwalk/internal/adapter/pi"
 	"github.com/cosmtrek/mindwalk/internal/citymap"
 	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
@@ -37,6 +38,7 @@ type Config struct {
 	Port        int
 	ClaudeDir   string
 	CodexDir    string
+	PiDir       string
 	OpenSession string
 	Dev         bool
 	RepoRoot    string
@@ -125,7 +127,7 @@ const (
 func New(cfg Config) *Server {
 	return &Server{
 		cfg:             cfg,
-		adapters:        []adapter.Source{claudecode.Adapter{Dir: cfg.ClaudeDir}, codex.Adapter{Dir: cfg.CodexDir}},
+		adapters:        []adapter.Source{claudecode.Adapter{Dir: cfg.ClaudeDir}, codex.Adapter{Dir: cfg.CodexDir}, pi.Adapter{Dir: cfg.PiDir}},
 		traces:          map[string]*model.Trace{},
 		maps:            map[string]*model.CityMap{},
 		cacheAt:         map[string]time.Time{},
@@ -685,7 +687,25 @@ func (s *Server) agentGraph(root model.SessionMeta) (*model.AgentGraph, error) {
 	source := s.adapterForHarness(root.Harness)
 	graphSource, ok := source.(adapter.AgentGraphSource)
 	if !ok {
-		return nil, fmt.Errorf("adapter for harness %q does not support agent graphs", root.Harness)
+		// A source without subagent support is not a server failure: answer
+		// with the same single-root graph a graph-capable source returns for
+		// a session that launched no subagents.
+		return &model.AgentGraph{
+			Version:        model.AgentGraphVersion,
+			RootSessionKey: root.Key,
+			Agents: []model.AgentNode{{
+				ID:                adapter.AgentNodeID(root.Harness, root.Key, "root:"+root.Key),
+				Depth:             0,
+				Kind:              model.AgentKindMain,
+				Label:             "Main",
+				Status:            model.AgentStatusMain,
+				TraceAvailability: model.TraceAvailabilityAvailable,
+				TraceSessionKey:   root.Key,
+				TraceEventCount:   root.EventCount,
+				LinkQuality:       model.AgentLinkQualityExact,
+				LinkMethod:        model.AgentLinkMethodRoot,
+			}},
+		}, nil
 	}
 	for {
 		s.mu.Lock()

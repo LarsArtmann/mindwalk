@@ -851,8 +851,8 @@ export default function App() {
               <div className="card">
                 <h2>No sessions found</h2>
                 <p>
-                  mindwalk scans <code>~/.claude/projects</code> and <code>~/.codex/sessions</code> for agent
-                  traces. Run a session there, then refresh.
+                  mindwalk scans <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, and{" "}
+                  <code>~/.pi/agent/sessions</code> for agent traces. Run a session there, then refresh.
                 </p>
               </div>
             </div>

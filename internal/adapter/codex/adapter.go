@@ -147,6 +147,12 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		case "event_msg":
 			recognized = true
 		case "message":
+			// Codex message lines carry the role at the top level; pi
+			// sessions also use type "message" but nest theirs, so a
+			// roleless line must not claim the file for this adapter.
+			if line.Role == "" {
+				return
+			}
 			recognized = true
 			if line.Role == "user" && line.Content.HasText() {
 				if !adapter.InjectedUserMessage(line.Content.Text()) {
@@ -270,6 +276,11 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				}
 			}
 		case "message":
+			// Mirrors Summarize: a roleless "message" line is another
+			// source's shape (pi nests the payload), not a Codex line.
+			if line.Role == "" {
+				return
+			}
 			recognized = true
 			if line.Role == "user" && line.Content.HasText() {
 				if text := line.Content.Text(); !adapter.InjectedUserMessage(text) {
