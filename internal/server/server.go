@@ -476,6 +476,7 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	}
 	seen := map[string]bool{}
 	var files []sessionFile
+	counts := map[string]int{}
 	for _, source := range s.adapters {
 		// Most harnesses store sessions as files on disk. The
 		// Crush adapter uses a SQLite database instead, so we
@@ -488,6 +489,7 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s sessions: %w", source.Harness(), err)
 		}
+		counts[source.Harness()] = len(metas)
 		if !sourceUsesFilesystem(metas) {
 			for _, meta := range metas {
 				seen[summaryKey(source, meta.Path)] = true
@@ -518,6 +520,7 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 			}
 			seen[summaryKey(source, path)] = true
 			files = append(files, sessionFile{source: source, path: path, info: info})
+			counts[source.Harness()]++
 			return nil
 		})
 		if err != nil {
@@ -574,7 +577,24 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	s.sessionCatalog = catalog
 	s.mu.Unlock()
 	s.pruneSummaryCache(seen)
+	log.Printf("mindwalk: found %d session(s) — %s", len(sessions), formatAdapterCounts(counts))
 	return sessions, nil
+}
+
+// formatAdapterCounts renders a per-harness session count summary
+// for the log line emitted by scanSessions. Output order is
+// deterministic so the line is stable across cold scans.
+func formatAdapterCounts(counts map[string]int) string {
+	names := make([]string, 0, len(counts))
+	for name := range counts {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	parts := make([]string, 0, len(names))
+	for _, name := range names {
+		parts = append(parts, fmt.Sprintf("%d %s", counts[name], name))
+	}
+	return strings.Join(parts, ", ")
 }
 
 // sourceUsesFilesystem reports whether a list of metas came from a
