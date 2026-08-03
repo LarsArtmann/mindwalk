@@ -5,8 +5,8 @@ import { expect, test, type Page, type Route } from "playwright/test";
 const fixtures = JSON.parse(
   readFileSync(
     fileURLToPath(new URL("../../testdata/agent-lens/browser-fixtures.json", import.meta.url)),
-    "utf8"
-  )
+    "utf8",
+  ),
 );
 
 type TraceRoute = (agentID: string, requestCount: number, route: Route) => Promise<void>;
@@ -59,10 +59,13 @@ async function installHeldRecorder(page: Page) {
       }
     }
 
-    Object.defineProperty(window, "MediaRecorder", { configurable: true, value: FakeMediaRecorder });
+    Object.defineProperty(window, "MediaRecorder", {
+      configurable: true,
+      value: FakeMediaRecorder,
+    });
     Object.defineProperty(HTMLCanvasElement.prototype, "captureStream", {
       configurable: true,
-      value: () => ({ getTracks: () => [{ stop() {} }] })
+      value: () => ({ getTracks: () => [{ stop() {} }] }),
     });
     HTMLAnchorElement.prototype.click = function click() {};
   });
@@ -72,7 +75,9 @@ async function beginHeldExport(page: Page) {
   await page.getByRole("button", { name: "More playback controls" }).click();
   await page.getByRole("button", { name: "Export video" }).click();
   await page.waitForFunction(() => {
-    return (window as Window & { __fakeRecordingStopped?: boolean }).__fakeRecordingStopped === true;
+    return (
+      (window as Window & { __fakeRecordingStopped?: boolean }).__fakeRecordingStopped === true
+    );
   });
 }
 
@@ -145,7 +150,10 @@ async function openFixture(page: Page) {
 }
 
 async function openAgents(page: Page) {
-  await page.locator(".dock-strip").getByRole("button", { name: /Agent lenses/ }).click();
+  await page
+    .locator(".dock-strip")
+    .getByRole("button", { name: /Agent lenses/ })
+    .click();
   return page.getByLabel("Agent lenses", { exact: true });
 }
 
@@ -160,7 +168,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("Agents shows truthful rows and switches lenses without letting missing rows move the scene", async ({
-  page
+  page,
 }) => {
   await mockApp(page);
   await openFixture(page);
@@ -214,7 +222,9 @@ test("an available zero-event child opens an empty lens and returns to Main", as
   await expect(page.locator(".deck-pos-count")).toHaveText("4 / 4");
 });
 
-test("HUD entry points open compact two-line Agent rows with accessible details", async ({ page }) => {
+test("HUD entry points open compact two-line Agent rows with accessible details", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const graph = structuredClone(fixtures.graph);
   const longInstruction = "g".repeat(240);
@@ -223,7 +233,7 @@ test("HUD entry points open compact two-line Agent rows with accessible details"
   await mockApp(page, undefined, {
     graph: async (route) => {
       await route.fulfill({ json: graph });
-    }
+    },
   });
   await openFixture(page);
 
@@ -247,7 +257,7 @@ test("HUD entry points open compact two-line Agent rows with accessible details"
   const dockPanel = page.locator(".dock-panel");
   const overflow = await dockPanel.evaluate((element) => ({
     clientWidth: element.clientWidth,
-    scrollWidth: element.scrollWidth
+    scrollWidth: element.scrollWidth,
   }));
   expect(overflow.scrollWidth).toBe(overflow.clientWidth);
 
@@ -258,7 +268,7 @@ test("HUD entry points open compact two-line Agent rows with accessible details"
     .poll(async () => {
       const [currentPanelBox, currentDetailBox] = await Promise.all([
         dockPanel.boundingBox(),
-        detail.boundingBox()
+        detail.boundingBox(),
       ]);
       return currentPanelBox!.x - (currentDetailBox!.x + currentDetailBox!.width);
     })
@@ -266,7 +276,7 @@ test("HUD entry points open compact two-line Agent rows with accessible details"
 });
 
 test("pinned Agent details scroll without switching lenses and dismiss cleanly", async ({
-  page
+  page,
 }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   const graph = structuredClone(fixtures.graph);
@@ -275,7 +285,7 @@ test("pinned Agent details scroll without switching lenses and dismiss cleanly",
   await mockApp(page, undefined, {
     graph: async (route) => {
       await route.fulfill({ json: graph });
-    }
+    },
   });
   await openFixture(page);
   const panel = await openAgents(page);
@@ -288,7 +298,7 @@ test("pinned Agent details scroll without switching lenses and dismiss cleanly",
   const metrics = await pinned.evaluate((element) => ({
     clientHeight: element.clientHeight,
     scrollHeight: element.scrollHeight,
-    overflowY: getComputedStyle(element).overflowY
+    overflowY: getComputedStyle(element).overflowY,
   }));
   expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
   expect(metrics.overflowY).toBe("auto");
@@ -305,7 +315,9 @@ test("pinned Agent details scroll without switching lenses and dismiss cleanly",
   await expect(pinned).toBeHidden();
 });
 
-test("top child failure keeps its error and Retry row-local in a 12-row panel", async ({ page }) => {
+test("top child failure keeps its error and Retry row-local in a 12-row panel", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   const graph = structuredClone(fixtures.graph);
   for (let i = 0; i < 7; i++) {
@@ -324,7 +336,7 @@ test("top child failure keeps its error and Retry row-local in a 12-row panel", 
       traceSessionKey: `synthetic-extra-${i}`,
       traceEventCount: 1,
       linkQuality: "derived",
-      linkMethod: "parent-thread-id"
+      linkMethod: "parent-thread-id",
     });
   }
 
@@ -337,7 +349,7 @@ test("top child failure keeps its error and Retry row-local in a 12-row panel", 
       }
       await fulfillAgentTrace(agentID, route);
     },
-    { graph: async (route) => route.fulfill({ json: graph }) }
+    { graph: async (route) => route.fulfill({ json: graph }) },
   );
   await openFixture(page);
   const panel = await openAgents(page);
@@ -348,7 +360,7 @@ test("top child failure keeps its error and Retry row-local in a 12-row panel", 
   await expect(alert).toContainText("fictional top-row timeout");
   await expect(alert.getByRole("button", { name: "Retry" })).toBeVisible();
   await expect(
-    atlas.locator("xpath=ancestor::*[contains(@class, 'agent-row')]/following-sibling::*[1]")
+    atlas.locator("xpath=ancestor::*[contains(@class, 'agent-row')]/following-sibling::*[1]"),
   ).toHaveAttribute("role", "alert");
   expect(await panel.evaluate((element) => element.scrollTop)).toBe(0);
   const box = await alert.boundingBox();
@@ -357,7 +369,7 @@ test("top child failure keeps its error and Retry row-local in a 12-row panel", 
 
 test("no session keeps the start-walk empty state", async ({ page }) => {
   await mockApp(page, undefined, {
-    sessions: async (_fresh, route) => route.fulfill({ json: [] })
+    sessions: async (_fresh, route) => route.fulfill({ json: [] }),
   });
   await page.goto("/");
   await expect(page.locator(".readout-summary")).toHaveText("Select a session to start the walk.");
@@ -384,7 +396,9 @@ test("subagent marks open Agents only and report evidence restores Main", async 
   await expect(page.locator(".deck-pos-count")).toHaveText("3 / 4");
 });
 
-test("export locks evaluation navigation without changing the child lens or playhead", async ({ page }) => {
+test("export locks evaluation navigation without changing the child lens or playhead", async ({
+  page,
+}) => {
   await installHeldRecorder(page);
 
   await mockApp(page);
@@ -465,7 +479,10 @@ test("export locks Rescan and guards forced refresh requests", async ({ page }) 
     button.click();
   });
   await page.evaluate(
-    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())))
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
   );
 
   expect(sessionRequests).toHaveLength(before);
@@ -487,7 +504,7 @@ test("rescan invalidates child projections and preserves the actor playhead", as
     bytes: 200,
     lang: "TypeScript",
     rect: { x: 4, z: 0, w: 1, d: 1 },
-    ghost: false
+    ghost: false,
   });
 
   const refreshedChild = structuredClone(fixtures.traces["child-a"]);
@@ -499,7 +516,7 @@ test("rescan invalidates child projections and preserves the actor playhead", as
     targets: [{ path: "src/orbit.ts", fileId: 3, touch: "read" }],
     resultBytes: 7,
     isError: false,
-    summary: "Read the refreshed fictional orbit module"
+    summary: "Read the refreshed fictional orbit module",
   });
   refreshedChild.stats.filesInRepo = 3;
   refreshedChild.stats.fovea = 2;
@@ -509,7 +526,9 @@ test("rescan invalidates child projections and preserves the actor playhead", as
     page,
     async (agentID, requestCount, route) => {
       if (agentID === "child-a") {
-        await route.fulfill({ json: requestCount === 1 ? fixtures.traces["child-a"] : refreshedChild });
+        await route.fulfill({
+          json: requestCount === 1 ? fixtures.traces["child-a"] : refreshedChild,
+        });
         return;
       }
       await fulfillAgentTrace(agentID, route);
@@ -521,13 +540,13 @@ test("rescan invalidates child projections and preserves the actor playhead", as
       },
       snapshot: async (route) => {
         await route.fulfill({
-          json: { trace: fixtures.traces.root, city: refreshed ? refreshedCity : fixtures.city }
+          json: { trace: fixtures.traces.root, city: refreshed ? refreshedCity : fixtures.city },
         });
       },
       graph: async (route) => {
         await route.fulfill({ json: refreshed ? refreshedGraph : fixtures.graph });
-      }
-    }
+      },
+    },
   );
 
   await openFixture(page);
@@ -556,7 +575,9 @@ test("rescan preserves the Main actor playhead", async ({ page }) => {
   await expect(page.locator(".deck-pos-count")).toHaveText("2 / 4");
 });
 
-test("a rapid delayed Atlas to Borealis switch cannot let Atlas overwrite Borealis", async ({ page }) => {
+test("a rapid delayed Atlas to Borealis switch cannot let Atlas overwrite Borealis", async ({
+  page,
+}) => {
   const atlasRelease = deferred();
   const atlasFulfilled = deferred();
   await mockApp(page, async (agentID, _count, route) => {
@@ -579,7 +600,9 @@ test("a rapid delayed Atlas to Borealis switch cannot let Atlas overwrite Boreal
   await expect(row(panel, "Borealis")).toHaveAttribute("aria-pressed", "true");
 });
 
-test("a failed child load keeps Main visible and Retry starts a fresh request", async ({ page }) => {
+test("a failed child load keeps Main visible and Retry starts a fresh request", async ({
+  page,
+}) => {
   await mockApp(page, async (agentID, count, route) => {
     if (agentID === "child-a" && count === 1) {
       await route.fulfill({ status: 503, body: "fictional child timeout" });
@@ -601,7 +624,7 @@ test("a failed child load keeps Main visible and Retry starts a fresh request", 
 });
 
 test("export locks lens controls, discards delayed child data, and allows a fresh request afterward", async ({
-  page
+  page,
 }) => {
   const borealisRelease = deferred();
   const borealisFulfilled = deferred();
@@ -632,10 +655,13 @@ test("export locks lens controls, discards delayed child data, and allows a fres
       }
     }
 
-    Object.defineProperty(window, "MediaRecorder", { configurable: true, value: FakeMediaRecorder });
+    Object.defineProperty(window, "MediaRecorder", {
+      configurable: true,
+      value: FakeMediaRecorder,
+    });
     Object.defineProperty(HTMLCanvasElement.prototype, "captureStream", {
       configurable: true,
-      value: () => ({ getTracks: () => [{ stop() {} }] })
+      value: () => ({ getTracks: () => [{ stop() {} }] }),
     });
     HTMLAnchorElement.prototype.click = function click() {};
   });
@@ -662,9 +688,13 @@ test("export locks lens controls, discards delayed child data, and allows a fres
   await page.getByRole("button", { name: "Export video" }).click();
   await expect(retry).toBeDisabled();
   await expect(row(panel, "Atlas")).toBeDisabled();
-  await expect(page.getByRole("button", { name: /Jump to fictional helper launch/ })).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: /Jump to fictional helper launch/ }),
+  ).toBeDisabled();
   await expect(page.getByRole("slider", { name: "Playback position" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "More playback controls" })).toBeEnabled({ timeout: 3_000 });
+  await expect(page.getByRole("button", { name: "More playback controls" })).toBeEnabled({
+    timeout: 3_000,
+  });
 
   await retry.click();
   await expect(page.locator(".hud-lens")).toHaveText("LensAtlas");
@@ -679,7 +709,9 @@ test("export locks lens controls, discards delayed child data, and allows a fres
   borealisRelease.resolve();
   await borealisFulfilled.promise;
   await expect(page.locator(".hud-lens")).toHaveText("LensMain");
-  await expect(page.getByRole("button", { name: "More playback controls" })).toBeEnabled({ timeout: 3_000 });
+  await expect(page.getByRole("button", { name: "More playback controls" })).toBeEnabled({
+    timeout: 3_000,
+  });
   await expect(page.locator(".hud-lens")).toHaveText("LensMain");
 
   await row(panel, "Borealis").click();

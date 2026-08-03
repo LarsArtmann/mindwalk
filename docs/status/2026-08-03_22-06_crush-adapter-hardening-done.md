@@ -16,70 +16,70 @@
 
 ## What I did (a) — fully done
 
-| # | Item | Evidence |
-|---|------|----------|
-| 1 | Added a `docs/planning/2026-08-03_20-01_crush-adapter-hardening.md` Pareto plan with 30 ranked tasks, effort/impact table, and a mermaid execution graph. | commit `5b300c8` |
-| 2 | Added `internal/adapter/crush/parts_test.go` covering every part discriminator (text, reasoning, tool_call, tool_result, finish, shell_command, image_url, binary, unknown), malformed input, empty/null/whitespace edge cases, tool_call id collision, nested JSON input, and the `agentLabelFromInput` / `splitAgentID` / `splitSessionID` helpers. 14 tests, 42 sub-tests. | commit `3cf5265` |
-| 3 | Added `internal/adapter/crush/agents_test.go` covering the exact-match, unlinked-launch, derived-child, and empty-catalog branches plus all helper functions (`parseCrushLaunchOutput`, `crushChildDepth`, `agentArgument`, `indexChildrenByParent`). 10 tests. | commit `84357ab` |
-| 4 | Fixed the `RootSessionID` bug in `Summarize` that overwrote the parent session id with the source message id. | commit `84357ab` |
-| 5 | Extracted the `crush://session/<id>` magic string into `crush.SessionPath(id)`, `crush.IsSessionPath(path)`, and `crush.SessionIDFromPath(path)` helpers; updated both server call sites to use the predicate. Replaced `HasPrefix + TrimPrefix` with `CutPrefix`. | commit `7bb2232` |
-| 6 | Updated `model.SessionMeta.Path` comment to document the synthetic URI scheme. | commit `f5c1416` |
-| 7 | Committed `testdata/crush/crush.db` fixture (20KB) with a root session, a user prompt, an `agent` tool call + result, and a sub-agent child session. | commit `3ea8f4c` |
-| 8 | Added `internal/adapter/crush/fixture_test.go` with 4 end-to-end tests that exercise ListSessions, Parse, Summarize, and BuildAgentGraph against the committed fixture. | commit `3ea8f4c` |
-| 9 | Added `TestServerLoadsCrushFixtureSession` in `internal/server/server_test.go` exercising the full HTTP path: `/api/sessions`, `/api/sessions/<key>/trace`, `/api/sessions/<key>/agents`. Asserts session listing, event count, mark types, and agent graph link quality. | commit `69c8e96` |
-| 10 | Fixed the cross-message tool-call/result pairing bug. The parts parser now records `resultIDs` (parallel to results) so the agent graph reader can match a tool result in message B to its tool call in message A. Added `allSessionsQuery` so the agent graph builder can find auxiliary children that `ListSessions` intentionally hides from the rail. | commit `69c8e96` |
-| 11 | Added `--no-crush` flag and `Config.DisableCrush` field. Server skips registering the Crush adapter entirely when set. Refactored adapter registration into `buildAdapters(cfg)` helper. | commit `fcba6de` |
-| 12 | Added `TestServerSkipsCrushWhenDisabled` to verify the flag works. | commit `fcba6de` |
-| 13 | Tightened `openReadOnly` error reporting: wraps every non-NotFound failure with the resolved path, detects empty files and directory-where-file-expected early. Added `TestOpenReadOnlyReportsUnderlyingError`. | commit `db98d81` |
-| 14 | Added per-harness session count log line in `scanSessions`: `mindwalk: found N session(s) — N claude-code, N codex, N crush`. | commit `9a435fe` |
-| 15 | Documented `--crush-dir`, `--no-crush`, and `crush://session/<id>` path in the CLI `--help` text with concrete examples. | commit `4c49684` |
-| 16 | Added `docs/crush.md` — 193-line reference covering data-dir resolution, parts JSON shape table, synthetic path scheme, sub-agent id format, agent graph link quality tiers, fixture regeneration recipe, and `--no-crush` flag. | commit `d2ebd5f` |
-| 17 | Tightened GoDoc on `Adapter.Harness()` and removed a dead-code empty branch in `Parse` (the `isAgent` local was unused). | commit `3966b52` |
-| 18 | Added `CHANGELOG.md` with the initial-release entry and a full [Unreleased] section documenting every change in this cycle. | commit `6c799a9` |
-| 19 | Added `--crush-dir` and `--no-crush` flags to `mindwalk trace` and `mindwalk analyze`. Refactored `parseTrace` to accept a crushDir parameter and added a `crushDirFor` helper. | commit `c630310` |
-| 20 | Removed the unused `buildEvent` wrapper in `parts.go` and its now-unneeded `internal/model` import. | commit `3cf5265` |
-| 21 | Live-verified `mindwalk trace --crush-dir <path> "crush://session/<id>"` against 4 real sessions from the host's Crush database. Confirmed correct harness, model, events (0-93), and marks (1-27) across MiniMax-M2.7-highspeed and mimo-v2-pro models. | session output |
-| 22 | Live-verified the server boots and serves the Crush session through `/api/sessions`. Confirmed the scan log line works. | session output |
+| #   | Item                                                                                                                                                                                                                                                                                                                                                                          | Evidence         |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| 1   | Added a `docs/planning/2026-08-03_20-01_crush-adapter-hardening.md` Pareto plan with 30 ranked tasks, effort/impact table, and a mermaid execution graph.                                                                                                                                                                                                                     | commit `5b300c8` |
+| 2   | Added `internal/adapter/crush/parts_test.go` covering every part discriminator (text, reasoning, tool_call, tool_result, finish, shell_command, image_url, binary, unknown), malformed input, empty/null/whitespace edge cases, tool_call id collision, nested JSON input, and the `agentLabelFromInput` / `splitAgentID` / `splitSessionID` helpers. 14 tests, 42 sub-tests. | commit `3cf5265` |
+| 3   | Added `internal/adapter/crush/agents_test.go` covering the exact-match, unlinked-launch, derived-child, and empty-catalog branches plus all helper functions (`parseCrushLaunchOutput`, `crushChildDepth`, `agentArgument`, `indexChildrenByParent`). 10 tests.                                                                                                               | commit `84357ab` |
+| 4   | Fixed the `RootSessionID` bug in `Summarize` that overwrote the parent session id with the source message id.                                                                                                                                                                                                                                                                 | commit `84357ab` |
+| 5   | Extracted the `crush://session/<id>` magic string into `crush.SessionPath(id)`, `crush.IsSessionPath(path)`, and `crush.SessionIDFromPath(path)` helpers; updated both server call sites to use the predicate. Replaced `HasPrefix + TrimPrefix` with `CutPrefix`.                                                                                                            | commit `7bb2232` |
+| 6   | Updated `model.SessionMeta.Path` comment to document the synthetic URI scheme.                                                                                                                                                                                                                                                                                                | commit `f5c1416` |
+| 7   | Committed `testdata/crush/crush.db` fixture (20KB) with a root session, a user prompt, an `agent` tool call + result, and a sub-agent child session.                                                                                                                                                                                                                          | commit `3ea8f4c` |
+| 8   | Added `internal/adapter/crush/fixture_test.go` with 4 end-to-end tests that exercise ListSessions, Parse, Summarize, and BuildAgentGraph against the committed fixture.                                                                                                                                                                                                       | commit `3ea8f4c` |
+| 9   | Added `TestServerLoadsCrushFixtureSession` in `internal/server/server_test.go` exercising the full HTTP path: `/api/sessions`, `/api/sessions/<key>/trace`, `/api/sessions/<key>/agents`. Asserts session listing, event count, mark types, and agent graph link quality.                                                                                                     | commit `69c8e96` |
+| 10  | Fixed the cross-message tool-call/result pairing bug. The parts parser now records `resultIDs` (parallel to results) so the agent graph reader can match a tool result in message B to its tool call in message A. Added `allSessionsQuery` so the agent graph builder can find auxiliary children that `ListSessions` intentionally hides from the rail.                     | commit `69c8e96` |
+| 11  | Added `--no-crush` flag and `Config.DisableCrush` field. Server skips registering the Crush adapter entirely when set. Refactored adapter registration into `buildAdapters(cfg)` helper.                                                                                                                                                                                      | commit `fcba6de` |
+| 12  | Added `TestServerSkipsCrushWhenDisabled` to verify the flag works.                                                                                                                                                                                                                                                                                                            | commit `fcba6de` |
+| 13  | Tightened `openReadOnly` error reporting: wraps every non-NotFound failure with the resolved path, detects empty files and directory-where-file-expected early. Added `TestOpenReadOnlyReportsUnderlyingError`.                                                                                                                                                               | commit `db98d81` |
+| 14  | Added per-harness session count log line in `scanSessions`: `mindwalk: found N session(s) — N claude-code, N codex, N crush`.                                                                                                                                                                                                                                                 | commit `9a435fe` |
+| 15  | Documented `--crush-dir`, `--no-crush`, and `crush://session/<id>` path in the CLI `--help` text with concrete examples.                                                                                                                                                                                                                                                      | commit `4c49684` |
+| 16  | Added `docs/crush.md` — 193-line reference covering data-dir resolution, parts JSON shape table, synthetic path scheme, sub-agent id format, agent graph link quality tiers, fixture regeneration recipe, and `--no-crush` flag.                                                                                                                                              | commit `d2ebd5f` |
+| 17  | Tightened GoDoc on `Adapter.Harness()` and removed a dead-code empty branch in `Parse` (the `isAgent` local was unused).                                                                                                                                                                                                                                                      | commit `3966b52` |
+| 18  | Added `CHANGELOG.md` with the initial-release entry and a full [Unreleased] section documenting every change in this cycle.                                                                                                                                                                                                                                                   | commit `6c799a9` |
+| 19  | Added `--crush-dir` and `--no-crush` flags to `mindwalk trace` and `mindwalk analyze`. Refactored `parseTrace` to accept a crushDir parameter and added a `crushDirFor` helper.                                                                                                                                                                                               | commit `c630310` |
+| 20  | Removed the unused `buildEvent` wrapper in `parts.go` and its now-unneeded `internal/model` import.                                                                                                                                                                                                                                                                           | commit `3cf5265` |
+| 21  | Live-verified `mindwalk trace --crush-dir <path> "crush://session/<id>"` against 4 real sessions from the host's Crush database. Confirmed correct harness, model, events (0-93), and marks (1-27) across MiniMax-M2.7-highspeed and mimo-v2-pro models.                                                                                                                      | session output   |
+| 22  | Live-verified the server boots and serves the Crush session through `/api/sessions`. Confirmed the scan log line works.                                                                                                                                                                                                                                                       | session output   |
 
 ## What I did (b) — partially done
 
-| # | Item | Gap |
-|---|------|-----|
-| 1 | **`mindwalk analyze` against a live Crush session**: I added the `--crush-dir` and `--no-crush` flags and verified the trace export path works. But I did NOT fire `mindwalk analyze` end-to-end because the judge requires a local `claude` or `codex` CLI binary, which is not installed on this machine. The trace pipeline (the adapter's Parse path the judge reads) is live-verified; the judge subprocess invocation is not. | The judge CLI is a hard external dependency. |
-| 2 | **Web UI (Three.js) verification**: I started the server, confirmed `/api/sessions` returns the Crush session with the right metadata, and confirmed the scan log line. But I did NOT open a browser and visually inspect the 3D citymap, event ticks, file targets, or agent graph. The API shape is correct; the rendering is unverified. | No browser in this environment. |
-| 3 | **Agent Lens end-to-end with a real sub-agent session**: The fixture has a sub-agent session and the agent graph test passes against it. The live sessions I tested don't have sub-agents (the `agent` tool was never called), so the real-data Agent Lens path is only verified through the fixture, not through the host's actual database. | Would need a live Crush session that spawned a sub-agent. |
-| 4 | **`/api/adapters` endpoint**: Not started. The planning doc listed it as a P2 task. The `scanSessions` log line partially covers the "which adapters are wired" need, but an HTTP endpoint would be better for debugging. | Deferred — P2 tier. |
+| #   | Item                                                                                                                                                                                                                                                                                                                                                                                                                                | Gap                                                       |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 1   | **`mindwalk analyze` against a live Crush session**: I added the `--crush-dir` and `--no-crush` flags and verified the trace export path works. But I did NOT fire `mindwalk analyze` end-to-end because the judge requires a local `claude` or `codex` CLI binary, which is not installed on this machine. The trace pipeline (the adapter's Parse path the judge reads) is live-verified; the judge subprocess invocation is not. | The judge CLI is a hard external dependency.              |
+| 2   | **Web UI (Three.js) verification**: I started the server, confirmed `/api/sessions` returns the Crush session with the right metadata, and confirmed the scan log line. But I did NOT open a browser and visually inspect the 3D citymap, event ticks, file targets, or agent graph. The API shape is correct; the rendering is unverified.                                                                                         | No browser in this environment.                           |
+| 3   | **Agent Lens end-to-end with a real sub-agent session**: The fixture has a sub-agent session and the agent graph test passes against it. The live sessions I tested don't have sub-agents (the `agent` tool was never called), so the real-data Agent Lens path is only verified through the fixture, not through the host's actual database.                                                                                       | Would need a live Crush session that spawned a sub-agent. |
+| 4   | **`/api/adapters` endpoint**: Not started. The planning doc listed it as a P2 task. The `scanSessions` log line partially covers the "which adapters are wired" need, but an HTTP endpoint would be better for debugging.                                                                                                                                                                                                           | Deferred — P2 tier.                                       |
 
 ## What I did NOT start (c)
 
-| # | Item |
-|---|------|
-| 1 | `/api/adapters` status endpoint returning harness name, session count, and data dir for each registered adapter. |
-| 2 | `mindwalk doctor` subcommand that prints session counts, data dir paths, and which adapters are wired. |
-| 3 | Stress test with a 100k-message Crush session to find the first place the read path chokes. |
-| 4 | Cache `crush.db` reads across requests via `sync.Map` so a long-lived server doesn't open the file per call. |
-| 5 | Persist the agent graph cache to disk keyed by `(session_key, fingerprint_of_messages_count)`. |
-| 6 | Benchmark for the SQLite parse path to catch a future regression on large sessions. |
-| 7 | Schema coverage warning at startup if the Crush DB schema is older than expected. |
-| 8 | `mindwalk sessions` CLI subcommand that prints the rail without starting the server. |
-| 9 | Frontend (Three.js) verification in a real browser. |
-| 10 | Audit other `internal/server` paths for `crush://` assumptions beyond the two I already fixed. |
+| #   | Item                                                                                                             |
+| --- | ---------------------------------------------------------------------------------------------------------------- |
+| 1   | `/api/adapters` status endpoint returning harness name, session count, and data dir for each registered adapter. |
+| 2   | `mindwalk doctor` subcommand that prints session counts, data dir paths, and which adapters are wired.           |
+| 3   | Stress test with a 100k-message Crush session to find the first place the read path chokes.                      |
+| 4   | Cache `crush.db` reads across requests via `sync.Map` so a long-lived server doesn't open the file per call.     |
+| 5   | Persist the agent graph cache to disk keyed by `(session_key, fingerprint_of_messages_count)`.                   |
+| 6   | Benchmark for the SQLite parse path to catch a future regression on large sessions.                              |
+| 7   | Schema coverage warning at startup if the Crush DB schema is older than expected.                                |
+| 8   | `mindwalk sessions` CLI subcommand that prints the rail without starting the server.                             |
+| 9   | Frontend (Three.js) verification in a real browser.                                                              |
+| 10  | Audit other `internal/server` paths for `crush://` assumptions beyond the two I already fixed.                   |
 
 ## What I screwed up (d) — fully owned
 
-| # | Item | Cost |
-|---|------|------|
-| 1 | The first version of the fixture had a `view` tool call (not an `agent` tool call), so the agent graph builder couldn't test the exact-match branch. Had to regenerate the fixture with an `agent` tool call + matching tool_result. | One round-trip. |
-| 2 | The first cross-message pairing fix was wrong: I tried to pair results inside the same `decodeParts` call, but real Crush splits tool_call and tool_result across separate messages. Had to extend the parser with `resultOrder` and `resultIDs` so the agent reader can match across message boundaries. | Three iterations. |
-| 3 | The first version of `loadAgentChildren` used `listSessionsQuery` (which filters `WHERE parent_session_id IS NULL`), so it only found root sessions — never the auxiliary children it was supposed to find. Had to add `allSessionsQuery` without the filter. | One iteration. |
-| 4 | When I changed `finish()` to surface cross-message results, I accidentally broke the same-message pairing: the "paired" check used `p.results[callID]` (which is always populated for any result), so every result looked paired and the cross-message loop was skipped. Had to track paired results in a separate `map[string]bool`. | One iteration. |
-| 5 | The `TestAgentGraphInputsReturnsRootPath` test used `Adapter{}` (empty Dir) which auto-discovers the host's real Crush database, making the test non-deterministic. Had to change to `Adapter{Dir: filepath.Join(t.TempDir(), "no-crush")}`. | One iteration. |
-| 6 | I initially wrote `_ = trace` as a no-op to silence the `isAgent unused` lint warning, then realised that's exactly the kind of no-op the status report flagged as a smell. Reverted and just used `_` in the destructuring. | One round-trip. |
-| 7 | The first `parseCrushInput` nested-JSON test was wrong: `jsonEscape` used `strings.Trim` to strip quotes, which mangled the escaped inner quotes. Had to rewrite using `json.Marshal` directly. | One iteration. |
-| 8 | When I extended `SessionMeta.Path` with a comment, I accidentally deleted the `Path` field itself (the `old_string` match was too aggressive). The build broke with 16 errors. Had to re-add the field. | One panic + one fix. |
-| 9 | The sed-based `sessionPath` → `SessionPath` rename worked on the source files but the LSP reported stale errors for 10+ minutes, making it look like the rename had failed. Had to restart the LSP and re-verify with `go build`. | Wasted time on stale diagnostics. |
-| 10 | I spent too long debugging the fixture's agent graph (3-node issue) by adding temporary debug test files instead of reading the code path carefully. The root cause — `loadAgentChildren` querying the wrong SQL — was obvious once I added one log line. | ~20 minutes of unnecessary iteration. |
-| 11 | The first version of the `trace` command's `--crush-dir` support used a manual loop over positional args, which was fragile and didn't match the `flag.NewFlagSet` pattern used by the other subcommands. Had to refactor to use `crushDirFor` helper. | One round-trip. |
+| #   | Item                                                                                                                                                                                                                                                                                                                                  | Cost                                  |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| 1   | The first version of the fixture had a `view` tool call (not an `agent` tool call), so the agent graph builder couldn't test the exact-match branch. Had to regenerate the fixture with an `agent` tool call + matching tool_result.                                                                                                  | One round-trip.                       |
+| 2   | The first cross-message pairing fix was wrong: I tried to pair results inside the same `decodeParts` call, but real Crush splits tool_call and tool_result across separate messages. Had to extend the parser with `resultOrder` and `resultIDs` so the agent reader can match across message boundaries.                             | Three iterations.                     |
+| 3   | The first version of `loadAgentChildren` used `listSessionsQuery` (which filters `WHERE parent_session_id IS NULL`), so it only found root sessions — never the auxiliary children it was supposed to find. Had to add `allSessionsQuery` without the filter.                                                                         | One iteration.                        |
+| 4   | When I changed `finish()` to surface cross-message results, I accidentally broke the same-message pairing: the "paired" check used `p.results[callID]` (which is always populated for any result), so every result looked paired and the cross-message loop was skipped. Had to track paired results in a separate `map[string]bool`. | One iteration.                        |
+| 5   | The `TestAgentGraphInputsReturnsRootPath` test used `Adapter{}` (empty Dir) which auto-discovers the host's real Crush database, making the test non-deterministic. Had to change to `Adapter{Dir: filepath.Join(t.TempDir(), "no-crush")}`.                                                                                          | One iteration.                        |
+| 6   | I initially wrote `_ = trace` as a no-op to silence the `isAgent unused` lint warning, then realised that's exactly the kind of no-op the status report flagged as a smell. Reverted and just used `_` in the destructuring.                                                                                                          | One round-trip.                       |
+| 7   | The first `parseCrushInput` nested-JSON test was wrong: `jsonEscape` used `strings.Trim` to strip quotes, which mangled the escaped inner quotes. Had to rewrite using `json.Marshal` directly.                                                                                                                                       | One iteration.                        |
+| 8   | When I extended `SessionMeta.Path` with a comment, I accidentally deleted the `Path` field itself (the `old_string` match was too aggressive). The build broke with 16 errors. Had to re-add the field.                                                                                                                               | One panic + one fix.                  |
+| 9   | The sed-based `sessionPath` → `SessionPath` rename worked on the source files but the LSP reported stale errors for 10+ minutes, making it look like the rename had failed. Had to restart the LSP and re-verify with `go build`.                                                                                                     | Wasted time on stale diagnostics.     |
+| 10  | I spent too long debugging the fixture's agent graph (3-node issue) by adding temporary debug test files instead of reading the code path carefully. The root cause — `loadAgentChildren` querying the wrong SQL — was obvious once I added one log line.                                                                             | ~20 minutes of unnecessary iteration. |
+| 11  | The first version of the `trace` command's `--crush-dir` support used a manual loop over positional args, which was fragile and didn't match the `flag.NewFlagSet` pattern used by the other subcommands. Had to refactor to use `crushDirFor` helper.                                                                                | One round-trip.                       |
 
 ## What to improve (e) — process, judgment, scope
 
@@ -148,38 +148,38 @@ Ordered by customer value × effort:
 
 Section (f) next-steps resolved. Hashes are post-rebase current values.
 
-| # | Item | Status | Commit / where |
-|---|------|--------|----------------|
-| **P0** | | | |
-| 1 | Push to origin | done | pushed |
-| 2 | `.gitignore` WAL files | done | round 2 (`6c986d3` era) |
-| 3 | gofmt | done | round 2 |
-| **P1** | | | |
-| 4 | `ToolResult.ToolCallID` field | done | `6c986d3` |
-| 5 | `mindwalk analyze` end-to-end | open | TODO_LIST |
-| 6 | Boot web UI in browser | open | TODO_LIST |
-| 7 | `/api/adapters` endpoint | done | `6c986d3` |
-| 8 | Live sub-agent session test | open | TODO_LIST |
-| 9 | Benchmark SQLite parse | done | `6c986d3` |
-| 10 | `mindwalk doctor` | open | TODO_LIST |
-| 11 | Audit `handleSessionResource` | done | `6c986d3` |
-| 12 | Cache `crush.db` reads | open | TODO_LIST |
-| 13 | `findSession` bare-id | done | no change needed |
-| 14 | Cross-check parser vs upstream | open | ROADMAP |
-| 15 | 100k-message stress test | open | ROADMAP |
-| 16 | Generalise synthetic path | deferred | ROADMAP non-goal |
-| **P2** | | | |
-| 17 | Persist agent-graph cache | open | TODO_LIST |
-| 18 | Refactor `summarizeCached` | deferred | low priority |
-| 19 | `mindwalk sessions` CLI | open | TODO_LIST |
-| 20 | Schema-coverage warning | open | TODO_LIST |
-| 21 | `title-<sessionID>` support | won't-do | ROADMAP non-goal |
-| 22 | `crush sessions` CLI | dedup | of #19 |
-| 23 | `provider_executed` flag | open | ROADMAP |
-| 24 | Audit `lookupProjectDataDir` | deferred | low priority |
-| 25 | Cross-message collision test | open | same-message covered (`639cb7d`) |
-| 26 | Reduce test runtime | open | TODO_LIST |
-| 27 | CI workflow | open | TODO_LIST |
-| 28 | README screenshots | deferred | low priority |
-| 29 | `--crush-projects-file` flag | won't-do | multi-DB shipped at `72f91e2` |
-| 30 | Cwd extraction | done | `72f91e2` (`projectPathForDB`) |
+| #      | Item                           | Status   | Commit / where                   |
+| ------ | ------------------------------ | -------- | -------------------------------- |
+| **P0** |                                |          |                                  |
+| 1      | Push to origin                 | done     | pushed                           |
+| 2      | `.gitignore` WAL files         | done     | round 2 (`6c986d3` era)          |
+| 3      | gofmt                          | done     | round 2                          |
+| **P1** |                                |          |                                  |
+| 4      | `ToolResult.ToolCallID` field  | done     | `6c986d3`                        |
+| 5      | `mindwalk analyze` end-to-end  | open     | TODO_LIST                        |
+| 6      | Boot web UI in browser         | open     | TODO_LIST                        |
+| 7      | `/api/adapters` endpoint       | done     | `6c986d3`                        |
+| 8      | Live sub-agent session test    | open     | TODO_LIST                        |
+| 9      | Benchmark SQLite parse         | done     | `6c986d3`                        |
+| 10     | `mindwalk doctor`              | open     | TODO_LIST                        |
+| 11     | Audit `handleSessionResource`  | done     | `6c986d3`                        |
+| 12     | Cache `crush.db` reads         | open     | TODO_LIST                        |
+| 13     | `findSession` bare-id          | done     | no change needed                 |
+| 14     | Cross-check parser vs upstream | open     | ROADMAP                          |
+| 15     | 100k-message stress test       | open     | ROADMAP                          |
+| 16     | Generalise synthetic path      | deferred | ROADMAP non-goal                 |
+| **P2** |                                |          |                                  |
+| 17     | Persist agent-graph cache      | open     | TODO_LIST                        |
+| 18     | Refactor `summarizeCached`     | deferred | low priority                     |
+| 19     | `mindwalk sessions` CLI        | open     | TODO_LIST                        |
+| 20     | Schema-coverage warning        | open     | TODO_LIST                        |
+| 21     | `title-<sessionID>` support    | won't-do | ROADMAP non-goal                 |
+| 22     | `crush sessions` CLI           | dedup    | of #19                           |
+| 23     | `provider_executed` flag       | open     | ROADMAP                          |
+| 24     | Audit `lookupProjectDataDir`   | deferred | low priority                     |
+| 25     | Cross-message collision test   | open     | same-message covered (`639cb7d`) |
+| 26     | Reduce test runtime            | open     | TODO_LIST                        |
+| 27     | CI workflow                    | open     | TODO_LIST                        |
+| 28     | README screenshots             | deferred | low priority                     |
+| 29     | `--crush-projects-file` flag   | won't-do | multi-DB shipped at `72f91e2`    |
+| 30     | Cwd extraction                 | done     | `72f91e2` (`projectPathForDB`)   |

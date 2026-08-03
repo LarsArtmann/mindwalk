@@ -120,7 +120,11 @@
                   "type": "object",
                   "required": ["id", "title", "verdict", "findings"],
                   "properties": {
-                    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 48 },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                      "maxLength": 48
+                    },
                     "title": { "type": "string" },
                     "why": { "type": "string" },
                     "good": { "type": "string" },

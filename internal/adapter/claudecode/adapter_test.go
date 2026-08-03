@@ -76,7 +76,7 @@ func TestParsePendingToolUsesRemainDeterministic(t *testing.T) {
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","cwd":"/tmp","sessionId":"pending","message":{"role":"user","content":"x"}}`,
 		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","cwd":"/tmp","sessionId":"pending","message":{"role":"assistant","content":[{"type":"tool_use","id":"a","name":"Read","input":{"file_path":"/tmp/a.go"}},{"type":"tool_use","id":"b","name":"Read","input":{"file_path":"/tmp/b.go"}},{"type":"tool_use","id":"c","name":"Read","input":{"file_path":"/tmp/c.go"}}]}}`,
 	)
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		trace, err := (Adapter{}).Parse(session)
 		if err != nil {
 			t.Fatal(err)
@@ -211,11 +211,11 @@ func TestSummarizeHandlesLargeJSONLines(t *testing.T) {
 
 func writeSession(t *testing.T, path string, lines ...string) {
 	t.Helper()
-	content := ""
+	var content strings.Builder
 	for _, line := range lines {
-		content += line + "\n"
+		content.WriteString(line + "\n")
 	}
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(content.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }

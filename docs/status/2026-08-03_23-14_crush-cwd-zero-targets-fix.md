@@ -26,25 +26,27 @@ Result: zero targets → `stats.fovea = 0`, `stats.parafovea = 0`, `stats.edited
 ### The Fix
 
 Added `projectPathForDB(dbPath)` in `internal/adapter/crush/projects.go` — resolves the project working directory from the crush.db path by:
+
 1. Consulting the `projects.json` registry (cached via `sync.Once` + `sync.Map`)
 2. Falling back to path derivation (`<project>/.crush/crush.db` → `<project>`)
 3. Guarding against returning the global data dir
 
 Set `Cwd` in three places:
+
 - **`Parse`**: `trace.Session.Cwd = projectPathForDB(db.path)` — before events are built
 - **`Summarize`**: `meta.Cwd = projectPathForDB(db.path)`
 - **`listAllProjectSessions` / `listSingleDB`**: `meta.Cwd = cwd` on every session
 
 ### Before / After (real session `crush-5bf66712dc6d6b0bc1f337da`)
 
-| Metric       | Before | After |
-| ------------ | ------ | ----- |
-| fovea        | 0      | 15    |
-| parafovea    | 0      | 7     |
-| edited       | 0      | 3     |
-| targets      | 0      | 42    |
-| outside      | all    | 10    |
-| targets w/ fileId | 0 | 34   |
+| Metric            | Before | After |
+| ----------------- | ------ | ----- |
+| fovea             | 0      | 15    |
+| parafovea         | 0      | 7     |
+| edited            | 0      | 3     |
+| targets           | 0      | 42    |
+| outside           | all    | 10    |
+| targets w/ fileId | 0      | 34    |
 
 ---
 
@@ -113,6 +115,7 @@ However — **one design smell to flag**: the `projectPathCache` uses `sync.Once
 ## f) Up to 50 Things to Get Done Next
 
 ### Crush adapter hardening (high priority)
+
 1. Add a `view` tool call with an absolute file path to `testdata/crush/crush.db` fixture so path normalization is covered end-to-end
 2. Fix the 3 unchecked `h.close()` calls in `listAllProjectSessions` error paths
 3. Fix the 2 unchecked `handle.Close()` calls in `newFixtureDB` test helper
@@ -124,6 +127,7 @@ However — **one design smell to flag**: the `projectPathCache` uses `sync.Once
 9. Consider adding `cwd` as a column to Crush's sessions table schema (upstream feature request)
 
 ### Codebase-wide lint cleanup (medium priority)
+
 10. Fix `errcheck` warnings in `internal/citymap/builder.go` (2 unchecked `f.Close()`)
 11. Modernize benchmarks in `fixture_test.go` to use `b.Loop()`
 12. Replace `strings.IndexByte` with `strings.Cut` in `server.go:1121`
@@ -134,26 +138,31 @@ However — **one design smell to flag**: the `projectPathCache` uses `sync.Once
 17. Audit all other `errcheck` warnings across the codebase
 
 ### Server improvements (medium priority)
+
 18. Split slow server tests into a separate `test_slow` tag or package
 19. Add a `/api/debug/health` endpoint that reports adapter status, cache sizes, and scan timing
 20. Consider warming the project-path cache on `New()` instead of lazy `sync.Once`
 
 ### Frontend (lower priority)
+
 21. Add a console warning when a trace loads with 0 targets but non-zero events — surface misconfigured adapters in the UI
 22. Show the session Cwd somewhere in the HUD or inspector so users can verify the adapter resolved the right project root
 
 ### Testing infrastructure
+
 23. Add a CI matrix that runs tests with and without real Crush/Claude/Codex data
 24. Create a richer test fixture with multiple tool types (read, edit, bash, grep) covering path normalization edge cases
 25. Add property-based tests for `normalizePath` (absolute, relative, with/without cwd, symlinks)
 26. Add a test that verifies `assignFileIDs` produces non-nil FileIDs for targets whose paths match citymap files
 
 ### Documentation
+
 27. Update AGENTS.md with the `projects.json` registry dependency
 28. Add a troubleshooting section: "If everything shows as unvisited, check that the adapter resolved the project Cwd"
 29. Document the `projectPathForDB` resolution order in the crush adapter package doc comment
 
 ### Process
+
 30. Request that the auto-commit daemon create separate commits for logically separate changes (the Cwd fix was bundled with unrelated LAN-serving work)
 31. Add a pre-commit check that runs `go test ./internal/adapter/...` (fast subset) before allowing commits
 
@@ -173,30 +182,30 @@ However — **one design smell to flag**: the `projectPathCache` uses `sync.Once
 
 The fix is current (`72f91e2`). Section (f) next-steps resolved:
 
-| # | Item | Status | Where |
-|---|------|--------|-------|
-| 1 | Fixture with file-touching tool calls | open | TODO_LIST "Enrich the test fixture" |
-| 2–3 | Unchecked `close()` calls (crush) | open | TODO_LIST "Fix errcheck warnings" |
-| 4 | `projectPathForDB` as Adapter method | deferred | low priority |
-| 5 | Debug log on empty-cwd absolute path | open | low priority |
-| 6 | Integration test `stats.fovea > 0` | open | low priority |
-| 7 | Document Cwd chain in AGENTS.md | open | low priority |
-| 8 | Test global-data-dir rejection | open | low priority |
-| 9 | Upstream `cwd` column | open | ROADMAP question |
-| 10 | errcheck citymap `builder.go` | open | TODO_LIST "Fix errcheck warnings" |
-| 11–16 | Modernize idioms (`b.Loop`, `slices.Contains`, `min`, `strings.Cut`, `WaitGroup.Go`, `Sscanf`) | open | TODO_LIST "Modernize Go idioms" |
-| 17 | Audit other errcheck | open | TODO_LIST |
-| 18 | Split slow server tests | open | TODO_LIST "Fix server test isolation" |
-| 19 | `/api/debug/health` endpoint | open | low priority |
-| 20 | Warm project-path cache on `New()` | deferred | low priority |
-| 21 | Frontend warning on 0 targets | open | TODO_LIST |
-| 22 | Show session Cwd in HUD | open | TODO_LIST |
-| 23 | CI matrix | open | TODO_LIST "Add CI workflow" |
-| 24 | Richer multi-tool fixture | open | TODO_LIST (dedup of #1) |
-| 25 | Property tests `normalizePath` | open | ROADMAP "Test infrastructure" |
-| 26 | Test `assignFileIDs` non-nil FileIDs | open | low priority |
-| 27 | AGENTS.md `projects.json` dependency | open | low priority |
-| 28 | Troubleshooting "all unvisited" | open | low priority |
-| 29 | Document `projectPathForDB` order | open | low priority |
-| 30 | Separate auto-commits | process | noted |
-| 31 | Pre-commit `go test` check | open | low priority |
+| #     | Item                                                                                           | Status   | Where                                 |
+| ----- | ---------------------------------------------------------------------------------------------- | -------- | ------------------------------------- |
+| 1     | Fixture with file-touching tool calls                                                          | open     | TODO_LIST "Enrich the test fixture"   |
+| 2–3   | Unchecked `close()` calls (crush)                                                              | open     | TODO_LIST "Fix errcheck warnings"     |
+| 4     | `projectPathForDB` as Adapter method                                                           | deferred | low priority                          |
+| 5     | Debug log on empty-cwd absolute path                                                           | open     | low priority                          |
+| 6     | Integration test `stats.fovea > 0`                                                             | open     | low priority                          |
+| 7     | Document Cwd chain in AGENTS.md                                                                | open     | low priority                          |
+| 8     | Test global-data-dir rejection                                                                 | open     | low priority                          |
+| 9     | Upstream `cwd` column                                                                          | open     | ROADMAP question                      |
+| 10    | errcheck citymap `builder.go`                                                                  | open     | TODO_LIST "Fix errcheck warnings"     |
+| 11–16 | Modernize idioms (`b.Loop`, `slices.Contains`, `min`, `strings.Cut`, `WaitGroup.Go`, `Sscanf`) | open     | TODO_LIST "Modernize Go idioms"       |
+| 17    | Audit other errcheck                                                                           | open     | TODO_LIST                             |
+| 18    | Split slow server tests                                                                        | open     | TODO_LIST "Fix server test isolation" |
+| 19    | `/api/debug/health` endpoint                                                                   | open     | low priority                          |
+| 20    | Warm project-path cache on `New()`                                                             | deferred | low priority                          |
+| 21    | Frontend warning on 0 targets                                                                  | open     | TODO_LIST                             |
+| 22    | Show session Cwd in HUD                                                                        | open     | TODO_LIST                             |
+| 23    | CI matrix                                                                                      | open     | TODO_LIST "Add CI workflow"           |
+| 24    | Richer multi-tool fixture                                                                      | open     | TODO_LIST (dedup of #1)               |
+| 25    | Property tests `normalizePath`                                                                 | open     | ROADMAP "Test infrastructure"         |
+| 26    | Test `assignFileIDs` non-nil FileIDs                                                           | open     | low priority                          |
+| 27    | AGENTS.md `projects.json` dependency                                                           | open     | low priority                          |
+| 28    | Troubleshooting "all unvisited"                                                                | open     | low priority                          |
+| 29    | Document `projectPathForDB` order                                                              | open     | low priority                          |
+| 30    | Separate auto-commits                                                                          | process  | noted                                 |
+| 31    | Pre-commit `go test` check                                                                     | open     | low priority                          |

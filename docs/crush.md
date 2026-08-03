@@ -70,17 +70,17 @@ Every message has a `parts` column with a JSON array of part
 objects. Each part has a `type` discriminator and a `data` payload.
 The supported discriminators are:
 
-| type           | data shape                                                                 | effect on the trace                                     |
-| -------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `text`         | `{"text": "..."}`                                                          | Concatenated into the message body, used for `user-message` mark when paired with `finish/stop`. |
-| `reasoning`    | `{"thinking": "..."}`                                                       | Decoded for schema coverage; dropped from the trace.    |
-| `tool_call`    | `{"id": "...", "name": "...", "input": "...", "finished": true, ...}`       | Emitted as a `model.Event`. Inputs are JSON-decoded; a string-of-JSON input is peeled recursively. |
-| `tool_result`  | `{"tool_call_id": "...", "name": "...", "content": "...", "is_error": ...}` | Paired with the originating `tool_call` by `tool_call_id`. An orphan result (no matching call in scope) is dropped. |
-| `finish`       | `{"reason": "stop\|length\|tool_use\|safety\|...", "time": ...}`            | When `reason == "stop"` on a user message, records `userFinish` so `Parse` emits a `user-message` mark. |
-| `shell_command`| `{"command": "...", "output": "...", "exit_code": 0}`                       | Decoded for schema coverage; dropped from the trace (the parallel `bash` tool call drives replay). |
-| `image_url`    | `{"url": "data:image/png;base64,..."}`                                      | Decoded for schema coverage; dropped from the trace.     |
-| `binary`       | `{"data": "...", "mime_type": "..."}`                                       | Decoded for schema coverage; dropped from the trace.     |
-| _other_        | _any_                                                                       | Silently ignored. A future Crush schema bump never crashes an older mindwalk binary. |
+| type            | data shape                                                                  | effect on the trace                                                                                                 |
+| --------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `text`          | `{"text": "..."}`                                                           | Concatenated into the message body, used for `user-message` mark when paired with `finish/stop`.                    |
+| `reasoning`     | `{"thinking": "..."}`                                                       | Decoded for schema coverage; dropped from the trace.                                                                |
+| `tool_call`     | `{"id": "...", "name": "...", "input": "...", "finished": true, ...}`       | Emitted as a `model.Event`. Inputs are JSON-decoded; a string-of-JSON input is peeled recursively.                  |
+| `tool_result`   | `{"tool_call_id": "...", "name": "...", "content": "...", "is_error": ...}` | Paired with the originating `tool_call` by `tool_call_id`. An orphan result (no matching call in scope) is dropped. |
+| `finish`        | `{"reason": "stop\|length\|tool_use\|safety\|...", "time": ...}`            | When `reason == "stop"` on a user message, records `userFinish` so `Parse` emits a `user-message` mark.             |
+| `shell_command` | `{"command": "...", "output": "...", "exit_code": 0}`                       | Decoded for schema coverage; dropped from the trace (the parallel `bash` tool call drives replay).                  |
+| `image_url`     | `{"url": "data:image/png;base64,..."}`                                      | Decoded for schema coverage; dropped from the trace.                                                                |
+| `binary`        | `{"data": "...", "mime_type": "..."}`                                       | Decoded for schema coverage; dropped from the trace.                                                                |
+| _other_         | _any_                                                                       | Silently ignored. A future Crush schema bump never crashes an older mindwalk binary.                                |
 
 The parts parser accumulates tool calls and their results across
 messages, so a `tool_call` in message A is correctly paired with

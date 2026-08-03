@@ -38,8 +38,9 @@
   --mark-subagent: oklch(0.74 0.09 300);
 
   --font-display: "Fraunces Variable", "Songti SC", "Noto Serif SC", serif;
-  --font-body: "Schibsted Grotesk Variable", "PingFang SC", "Hiragino Sans GB",
-    "Noto Sans SC", system-ui, sans-serif;
+  --font-body:
+    "Schibsted Grotesk Variable", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui,
+    sans-serif;
 
   color: var(--ink);
   background: var(--sky);
@@ -135,7 +136,9 @@ dd {
   flex-direction: column;
   background: var(--panel);
   border-right: 1px solid var(--hairline);
-  transition: margin 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s;
+  transition:
+    margin 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s;
 }
 
 /* slide out by margin so the rail's content never reflows mid-transition;
@@ -143,7 +146,9 @@ dd {
 .session-rail.collapsed {
   margin-left: -293px;
   visibility: hidden;
-  transition: margin 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0s 0.28s;
+  transition:
+    margin 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+    visibility 0s 0.28s;
 }
 
 .rail-head {
@@ -2522,7 +2527,6 @@ dd {
 .report-section {
   padding: 10px 16px 6px;
 }
-
 
 /* rail evaluation badges: the list mirrors judge state without extra clicks */
 

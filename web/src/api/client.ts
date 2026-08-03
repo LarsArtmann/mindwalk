@@ -32,7 +32,9 @@ export function getCityMap(key: string): Promise<CityMap> {
 }
 
 export function getSessionSnapshot(key: string): Promise<{ trace: Trace; city: CityMap }> {
-  return getJSON<{ trace: Trace; city: CityMap }>(`/api/sessions/${encodeURIComponent(key)}/snapshot`);
+  return getJSON<{ trace: Trace; city: CityMap }>(
+    `/api/sessions/${encodeURIComponent(key)}/snapshot`,
+  );
 }
 
 export function getSessionAgents(rootKey: string): Promise<AgentGraph> {
@@ -41,7 +43,7 @@ export function getSessionAgents(rootKey: string): Promise<AgentGraph> {
 
 export function getAgentTrace(rootKey: string, agentID: string): Promise<Trace> {
   return getJSON<Trace>(
-    `/api/sessions/${encodeURIComponent(rootKey)}/agents/${encodeURIComponent(agentID)}/trace`
+    `/api/sessions/${encodeURIComponent(rootKey)}/agents/${encodeURIComponent(agentID)}/trace`,
   );
 }
 
@@ -52,11 +54,14 @@ export function getSessionReport(key: string): Promise<ReportStatus> {
 // kicks off a judge run on the server; progress is observed by polling
 // getSessionReport until state leaves "running". The choice picks judge CLI
 // and model; omitted fields fall back to the server's defaults.
-export async function startSessionAnalyze(key: string, choice?: JudgeChoice): Promise<ReportStatus> {
+export async function startSessionAnalyze(
+  key: string,
+  choice?: JudgeChoice,
+): Promise<ReportStatus> {
   const res = await fetch(`/api/sessions/${encodeURIComponent(key)}/analyze`, {
     method: "POST",
     headers: choice ? { "Content-Type": "application/json" } : undefined,
-    body: choice ? JSON.stringify(choice) : undefined
+    body: choice ? JSON.stringify(choice) : undefined,
   });
   if (!res.ok) {
     const detail = (await res.text()).trim();

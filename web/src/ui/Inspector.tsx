@@ -19,7 +19,7 @@ export function Inspector({
   history,
   onClose,
   onJumpTo,
-  locked = false
+  locked = false,
 }: InspectorProps) {
   if (!file) {
     return (
@@ -30,7 +30,10 @@ export function Inspector({
             <X size={15} />
           </button>
         </div>
-        <p className="dock-note">Click a building in the scene to inspect a file — its touch state, size, and every visit the agent paid it.</p>
+        <p className="dock-note">
+          Click a building in the scene to inspect a file — its touch state, size, and every visit
+          the agent paid it.
+        </p>
       </div>
     );
   }
@@ -92,7 +95,9 @@ export function Inspector({
               </button>
             ))}
           {history.length === 0 ? (
-            <p className="muted">Not visited yet at this point of the walk. Scrub the timeline forward.</p>
+            <p className="muted">
+              Not visited yet at this point of the walk. Scrub the timeline forward.
+            </p>
           ) : null}
         </div>
       </section>
@@ -103,5 +108,7 @@ export function Inspector({
 function clock(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
 }

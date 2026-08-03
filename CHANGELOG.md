@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+
 - **Crush (charmbracelet/crush) session adapter** — visualise
   Crush sessions alongside Claude Code and Codex. The adapter
   reads the SQLite-backed `crush.db`, decodes the `parts` JSON
@@ -61,6 +62,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     from stdin and reports the answering model on stderr.
 
 ### Fixed
+
 - **Crush sessions showed zero targets / all-unvisited** —
   `trace.Session.Cwd` was never set for Crush sessions, so absolute
   tool-call paths could not be relativized and fell through to
@@ -70,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `ListSessions` paths.
 
 ### Changed
+
 - `adapter.ToolResult` now carries a `ToolCallID` field, letting
   the cross-message tool-call/result pairing happen at the type
   level instead of through a fragile parallel-slice

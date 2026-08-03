@@ -101,7 +101,7 @@ how the session went. A report has two layers:
 - **Process dimensions** — exploration, scope, wandering, verification: four
   fixed lenses, the same for every session, so reports stay comparable.
 - **Task scorecard** — before scoring, the judge drafts criteria from your
-  own request wording: what would count as done for *this* task, grouped per
+  own request wording: what would count as done for _this_ task, grouped per
   task when the session carried several. Each criterion is then scored
   against the session, alongside the dimensions, in one pass.
 

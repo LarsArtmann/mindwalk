@@ -5,6 +5,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/cosmtrek/mindwalk/internal/judge"
@@ -738,15 +739,15 @@ func mustJSON(t *testing.T, value any) string {
 
 func writeJSONL(t *testing.T, path string, values ...any) {
 	t.Helper()
-	content := ""
+	var content strings.Builder
 	for _, value := range values {
 		b, err := json.Marshal(value)
 		if err != nil {
 			t.Fatal(err)
 		}
-		content += string(b) + "\n"
+		content.WriteString(string(b) + "\n")
 	}
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(content.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
 }

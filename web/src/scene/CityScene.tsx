@@ -12,7 +12,7 @@ import {
   prefersReducedMotion,
   SceneTip,
   SKY,
-  touchColors
+  touchColors,
 } from "./sceneUtils";
 import { fireflyTexture } from "./textures";
 import { TrailRenderer } from "./trail";
@@ -34,7 +34,7 @@ interface CitySceneProps {
 const colors: Record<Touch | "unvisited" | "ghost" | "selected", THREE.Color> = {
   unvisited: new THREE.Color("#5b6372"),
   ghost: new THREE.Color("#404551"),
-  ...touchColors
+  ...touchColors,
 };
 
 const TILE_H = 0.14;
@@ -70,7 +70,7 @@ const LOC_RAMP: { at: number; color: THREE.Color }[] = [
   { at: 0.0, color: new THREE.Color("#5b6372") }, // grey (matches unvisited)
   { at: 0.35, color: new THREE.Color("#e0894f") }, // orange
   { at: 0.7, color: new THREE.Color("#9a6bd8") }, // purple
-  { at: 1.0, color: new THREE.Color("#e0524f") } // red
+  { at: 1.0, color: new THREE.Color("#e0524f") }, // red
 ];
 function locColor(t: number): THREE.Color {
   for (let i = 1; i < LOC_RAMP.length; i++) {
@@ -91,7 +91,14 @@ interface TerrainSlot {
   color: THREE.Color;
 }
 
-export function CityScene({ city, playback, selectedPath, onSelect, onCanvasReady, locHeights }: CitySceneProps) {
+export function CityScene({
+  city,
+  playback,
+  selectedPath,
+  onSelect,
+  onCanvasReady,
+  locHeights,
+}: CitySceneProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const tileMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const terrainMeshRef = useRef<THREE.InstancedMesh | null>(null);
@@ -133,7 +140,7 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
       cz: (minZ + maxZ) / 2,
       size: Math.max(maxX - minX, maxZ - minZ, 60),
       halfW: (maxX - minX) / 2,
-      halfD: (maxZ - minZ) / 2
+      halfD: (maxZ - minZ) / 2,
     };
   }, [city]);
 
@@ -147,7 +154,12 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
     scene.background = SKY;
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(38, host.clientWidth / host.clientHeight || 1, 0.1, 2400);
+    const camera = new THREE.PerspectiveCamera(
+      38,
+      host.clientWidth / host.clientHeight || 1,
+      0.1,
+      2400,
+    );
     camera.position.set(70, 130, 100);
     cameraRef.current = camera;
 
@@ -186,7 +198,9 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
       pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
       pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(pointer, cameraRef.current);
-      const targets = [terrainMeshRef.current, tileMeshRef.current].filter(Boolean) as THREE.Object3D[];
+      const targets = [terrainMeshRef.current, tileMeshRef.current].filter(
+        Boolean,
+      ) as THREE.Object3D[];
       const hit = raycaster.intersectObjects(targets, false)[0];
       if (!hit || hit.instanceId === undefined) return undefined;
       if (hit.object === terrainMeshRef.current) {
@@ -259,7 +273,11 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
     const quaternion = new THREE.Quaternion();
     const render = () => {
       controls.update();
-      labelSetRef.current?.updateTargets(camera, renderer.domElement.clientWidth, renderer.domElement.clientHeight);
+      labelSetRef.current?.updateTargets(
+        camera,
+        renderer.domElement.clientWidth,
+        renderer.domElement.clientHeight,
+      );
       labelSetRef.current?.ease(reducedRef.current);
 
       // grow / shrink terrain columns toward their attention targets
@@ -289,10 +307,10 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
             new THREE.Vector3(
               file.rect.x + file.rect.w / 2 - boundsRef.current.cx,
               Math.max(cur, 0.02) / 2 + TILE_H,
-              file.rect.z + file.rect.d / 2 - boundsRef.current.cz
+              file.rect.z + file.rect.d / 2 - boundsRef.current.cz,
             ),
             quaternion,
-            new THREE.Vector3(sx, Math.max(cur, 0.02), sz)
+            new THREE.Vector3(sx, Math.max(cur, 0.02), sz),
           );
           terrain.setMatrixAt(i, matrix);
         }
@@ -345,7 +363,7 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
 
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(size * 6, size * 6),
-      new THREE.MeshStandardMaterial({ color: "#14171e", roughness: 1 })
+      new THREE.MeshStandardMaterial({ color: "#14171e", roughness: 1 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.32;
@@ -371,10 +389,10 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
           new THREE.Vector3(
             dir.rect.x + dir.rect.w / 2 - bounds.cx,
             top - height / 2,
-            dir.rect.z + dir.rect.d / 2 - bounds.cz
+            dir.rect.z + dir.rect.d / 2 - bounds.cz,
           ),
           new THREE.Quaternion(),
-          new THREE.Vector3(dir.rect.w, height, dir.rect.d)
+          new THREE.Vector3(dir.rect.w, height, dir.rect.d),
         );
         plates.setMatrixAt(i, matrix);
         shade.set("#1a1f29").lerp(new THREE.Color("#252b37"), Math.min(dir.depth, 3) / 3);
@@ -395,7 +413,11 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
       const sz = Math.max(file.rect.d, 0.45);
       const x = file.rect.x + file.rect.w / 2 - bounds.cx;
       const z = file.rect.z + file.rect.d / 2 - bounds.cz;
-      matrix.compose(new THREE.Vector3(x, TILE_H / 2, z), new THREE.Quaternion(), new THREE.Vector3(sx, TILE_H, sz));
+      matrix.compose(
+        new THREE.Vector3(x, TILE_H / 2, z),
+        new THREE.Quaternion(),
+        new THREE.Vector3(sx, TILE_H, sz),
+      );
       tiles.setMatrixAt(file.id, matrix);
       tiles.setColorAt(file.id, baseColor(file));
     }
@@ -408,9 +430,12 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
     const terrain = new THREE.InstancedMesh(
       attentionColumnGeometry(),
       new THREE.MeshBasicMaterial({ toneMapped: false, vertexColors: true }),
-      city.files.length
+      city.files.length,
     );
-    terrain.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(city.files.length * 3), 3);
+    terrain.instanceColor = new THREE.InstancedBufferAttribute(
+      new Float32Array(city.files.length * 3),
+      3,
+    );
     terrain.count = 0;
     terrain.frustumCulled = false;
     terrainMeshRef.current = terrain;
@@ -427,11 +452,11 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
           z: dir.rect.z + dir.rect.d / 2 - bounds.cz,
           radius: Math.hypot(dir.rect.w, dir.rect.d) / 2,
           fileCount: dir.fileCount,
-          depth: dir.depth
+          depth: dir.depth,
         })),
       group,
       LABEL_Y,
-      true
+      true,
     );
 
     const firefly = new THREE.Sprite(
@@ -440,8 +465,8 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
         color: EMBER,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
-        transparent: true
-      })
+        transparent: true,
+      }),
     );
     firefly.userData.baseScale = Math.max(size * 0.028, 2.2);
     firefly.visible = false;
@@ -508,7 +533,12 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
     // static map mode: no session drives attention, so raise every column by
     // its lines of code instead of leaving the terrain flat
     const maxLog = locHeights
-      ? Math.log2(Math.max(1, city.files.reduce((m, f) => Math.max(m, f.lines), 1)))
+      ? Math.log2(
+          Math.max(
+            1,
+            city.files.reduce((m, f) => Math.max(m, f.lines), 1),
+          ),
+        )
       : 0;
     for (const file of city.files) {
       const touch = playback.touchByFile.get(file.id);
@@ -558,7 +588,14 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
     const top = heightsRef.current.get(file.id) ?? TILE_H;
     const world = centerFor(file, bounds);
     world.y = top;
-    ensureVisible(camera, controls, world, canvas.clientWidth, canvas.clientHeight, INSPECTOR_RESERVED_PX);
+    ensureVisible(
+      camera,
+      controls,
+      world,
+      canvas.clientWidth,
+      canvas.clientHeight,
+      INSPECTOR_RESERVED_PX,
+    );
   }, [city, bounds, selectedPath]);
 
   // trail: ballistic arcs between recent fixations + the firefly at the head
@@ -595,7 +632,7 @@ export function CityScene({ city, playback, selectedPath, onSelect, onCanvasRead
         const p = centerFor(file, bounds);
         p.y = peakFor(file) + 0.4;
         return p;
-      })
+      }),
     );
   }, [city, playback, bounds]);
 
@@ -630,7 +667,11 @@ function baseColor(file: CityFile): THREE.Color {
 }
 
 function centerFor(file: CityFile, bounds: { cx: number; cz: number }): THREE.Vector3 {
-  return new THREE.Vector3(file.rect.x + file.rect.w / 2 - bounds.cx, 0, file.rect.z + file.rect.d / 2 - bounds.cz);
+  return new THREE.Vector3(
+    file.rect.x + file.rect.w / 2 - bounds.cx,
+    0,
+    file.rect.z + file.rect.d / 2 - bounds.cz,
+  );
 }
 
 function dirBasename(path: string): string {

@@ -9,7 +9,7 @@ import type {
   RubricCriterion,
   RubricTask,
   Severity,
-  Verdict
+  Verdict,
 } from "../types";
 
 interface ReportPanelProps {
@@ -23,10 +23,13 @@ interface ReportPanelProps {
 }
 
 const DIMENSION_WORDS: Record<string, { title: string; hint: string }> = {
-  exploration: { title: "Exploration", hint: "Did the agent build enough understanding before editing?" },
+  exploration: {
+    title: "Exploration",
+    hint: "Did the agent build enough understanding before editing?",
+  },
   scope: { title: "Scope", hint: "Does the footprint match what the task needed?" },
   wandering: { title: "Wandering", hint: "Purposeful path, or circles and dead ends?" },
-  verification: { title: "Verification", hint: "Were edits verified, and errors followed up?" }
+  verification: { title: "Verification", hint: "Were edits verified, and errors followed up?" },
 };
 
 /** the mainstream models each judge CLI can be pinned to; "" keeps its default */
@@ -35,13 +38,13 @@ const JUDGE_MODELS: Record<string, { value: string; label: string }[]> = {
     { value: "", label: "default model" },
     { value: "sonnet", label: "sonnet" },
     { value: "opus", label: "opus" },
-    { value: "fable", label: "fable" }
+    { value: "fable", label: "fable" },
   ],
   codex: [
     { value: "", label: "default model" },
     { value: "gpt-5.6-sol", label: "gpt-5.6 sol" },
-    { value: "gpt-5.6-terra", label: "gpt-5.6 terra" }
-  ]
+    { value: "gpt-5.6-terra", label: "gpt-5.6 terra" },
+  ],
 };
 
 const JUDGE_CHOICE_KEY = "mindwalk:judge-choice";
@@ -53,7 +56,7 @@ function loadStoredChoice(): JudgeChoice {
       const parsed = JSON.parse(raw) as Partial<JudgeChoice>;
       return {
         cli: typeof parsed.cli === "string" ? parsed.cli : "",
-        model: typeof parsed.model === "string" ? parsed.model : ""
+        model: typeof parsed.model === "string" ? parsed.model : "",
       };
     }
   } catch {
@@ -72,7 +75,14 @@ function resolveChoice(choice: JudgeChoice, clis: string[]): JudgeChoice {
 
 // dock panel content: the session evaluation. The Dock owns positioning;
 // this owns only its own markup.
-export function ReportPanel({ status, analyzing, locked, onAnalyze, onClose, onJumpTo }: ReportPanelProps) {
+export function ReportPanel({
+  status,
+  analyzing,
+  locked,
+  onAnalyze,
+  onClose,
+  onJumpTo,
+}: ReportPanelProps) {
   // the judge choice persists across sessions and reloads; the picker shows
   // wherever a run can start (empty, failed, stale)
   const [storedChoice, setStoredChoice] = useState<JudgeChoice>(loadStoredChoice);
@@ -111,7 +121,11 @@ export function ReportPanel({ status, analyzing, locked, onAnalyze, onClose, onJ
         locked={locked}
         analyze={analyze}
         onJumpTo={onJumpTo}
-        picker={clis.length > 0 ? <JudgePicker clis={clis} choice={choice} onChange={changeChoice} /> : null}
+        picker={
+          clis.length > 0 ? (
+            <JudgePicker clis={clis} choice={choice} onChange={changeChoice} />
+          ) : null
+        }
       />
     </div>
   );
@@ -120,7 +134,7 @@ export function ReportPanel({ status, analyzing, locked, onAnalyze, onClose, onJ
 function JudgePicker({
   clis,
   choice,
-  onChange
+  onChange,
 }: {
   clis: string[];
   choice: JudgeChoice;
@@ -163,7 +177,7 @@ function PanelBody({
   locked,
   analyze,
   onJumpTo,
-  picker
+  picker,
 }: {
   status?: ReportStatus;
   analyzing: boolean;
@@ -180,8 +194,9 @@ function PanelBody({
       <div className="report-note">
         <p className="report-running">Judging the trajectory…</p>
         <p>
-          The judge first drafts task-specific criteria from your request, then scores the session against
-          them plus four process dimensions. Usually a minute or two; you can keep exploring meanwhile.
+          The judge first drafts task-specific criteria from your request, then scores the session
+          against them plus four process dimensions. Usually a minute or two; you can keep exploring
+          meanwhile.
         </p>
       </div>
     );
@@ -205,16 +220,17 @@ function PanelBody({
     if (!status.judgeAvailable) {
       return (
         <p className="report-note">
-          Evaluation needs a local agent CLI as judge. Install <code>claude</code>, <code>codex</code>, or <code>crush</code> and
-          make it available on PATH.
+          Evaluation needs a local agent CLI as judge. Install <code>claude</code>,{" "}
+          <code>codex</code>, or <code>crush</code> and make it available on PATH.
         </p>
       );
     }
     return (
       <div className="report-note">
         <p>
-          Ask an agent to evaluate this session: how it explored, whether the footprint matched the task,
-          where it wandered, and how it verified its work. Every finding links back to the timeline.
+          Ask an agent to evaluate this session: how it explored, whether the footprint matched the
+          task, where it wandered, and how it verified its work. Every finding links back to the
+          timeline.
         </p>
         {picker}
         <button className="report-run" onClick={analyze}>
@@ -222,8 +238,8 @@ function PanelBody({
           Evaluate session
         </button>
         <p className="report-cost">
-          Runs the selected CLI under your own account and sends it a summary of this session — task wording,
-          file paths, event digests — for the model to read. About a minute.
+          Runs the selected CLI under your own account and sends it a summary of this session — task
+          wording, file paths, event digests — for the model to read. About a minute.
         </p>
       </div>
     );
@@ -243,7 +259,11 @@ function PanelBody({
           <button
             className="report-rerun"
             onClick={analyze}
-            title={status.stale ? "Re-evaluate with the current trace" : "Run a fresh evaluation of this session"}
+            title={
+              status.stale
+                ? "Re-evaluate with the current trace"
+                : "Run a fresh evaluation of this session"
+            }
           >
             <RefreshCw size={12} />
             Re-evaluate
@@ -286,14 +306,16 @@ function PanelBody({
 function RubricSection({
   rubric,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   rubric?: Rubric;
   locked: boolean;
   onJumpTo: (seq: number) => void;
 }) {
   if (!rubric) {
-    return <p className="report-rubric-note">This report has no task rubric — re-evaluate to add one.</p>;
+    return (
+      <p className="report-rubric-note">This report has no task rubric — re-evaluate to add one.</p>
+    );
   }
   if (rubric.status !== "scored" || !rubric.tasks?.length) {
     const text =
@@ -306,7 +328,9 @@ function RubricSection({
   }
   const tasks = rubric.tasks;
   const criteria = tasks.flatMap((task) => task.criteria);
-  const thin = criteria.filter((criterion) => criterion.coverage && criterion.coverage !== "sufficient");
+  const thin = criteria.filter(
+    (criterion) => criterion.coverage && criterion.coverage !== "sufficient",
+  );
   const showHint = criteria.length > 0 && thin.length / criteria.length > 0.4;
   const multi = tasks.length > 1;
   return (
@@ -314,8 +338,8 @@ function RubricSection({
       <p className="report-chapter">Tasks</p>
       {showHint ? (
         <p className="report-rubric-hint">
-          {thin.length} of {criteria.length} criteria had thin evidence — the log may not show enough to
-          judge them.
+          {thin.length} of {criteria.length} criteria had thin evidence — the log may not show
+          enough to judge them.
         </p>
       ) : null}
       {tasks.map((task, i) => (
@@ -343,7 +367,7 @@ function RubricTaskBlock({
   task,
   multi,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   task: RubricTask;
   multi: boolean;
@@ -362,7 +386,9 @@ function RubricTaskBlock({
             if (startSeq !== undefined) onJumpTo(startSeq);
           }}
           disabled={locked || startSeq === undefined}
-          title={startSeq !== undefined ? `Jump to this task's start (step ${startSeq + 1})` : undefined}
+          title={
+            startSeq !== undefined ? `Jump to this task's start (step ${startSeq + 1})` : undefined
+          }
         >
           {/* no state dot here: each criterion below carries its own verdict
               chip, and severity dots stay the panel's only dot vocabulary */}
@@ -384,7 +410,7 @@ function RubricTaskBlock({
 function Criterion({
   criterion,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   criterion: RubricCriterion;
   locked: boolean;
@@ -393,7 +419,7 @@ function Criterion({
   const hint = [
     criterion.why,
     criterion.good ? `good: ${criterion.good}` : "",
-    criterion.bad ? `bad: ${criterion.bad}` : ""
+    criterion.bad ? `bad: ${criterion.bad}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -404,7 +430,9 @@ function Criterion({
           {criterion.title}
         </span>
         <span className="report-criterion-badges">
-          {criterion.coverage === "partial" ? <span className="coverage-badge">partial evidence</span> : null}
+          {criterion.coverage === "partial" ? (
+            <span className="coverage-badge">partial evidence</span>
+          ) : null}
           <span
             className={`verdict verdict-${criterion.verdict}`}
             title={
@@ -418,7 +446,12 @@ function Criterion({
         </span>
       </div>
       {criterion.findings.map((finding) => (
-        <FindingButton key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`} finding={finding} locked={locked} onJumpTo={onJumpTo} />
+        <FindingButton
+          key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`}
+          finding={finding}
+          locked={locked}
+          onJumpTo={onJumpTo}
+        />
       ))}
     </section>
   );
@@ -427,7 +460,7 @@ function Criterion({
 function FindingButton({
   finding,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   finding: ReportFinding;
   locked: boolean;
@@ -456,7 +489,7 @@ function FindingButton({
 function Dimension({
   dimension,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   dimension: ReportDimension;
   locked: boolean;
@@ -467,10 +500,17 @@ function Dimension({
     <section className="report-dimension">
       <div className="report-dimension-head" data-hint={words.hint}>
         <span className="report-dimension-name">{words.title}</span>
-        <span className={`verdict verdict-${dimension.verdict}`}>{verdictWord(dimension.verdict)}</span>
+        <span className={`verdict verdict-${dimension.verdict}`}>
+          {verdictWord(dimension.verdict)}
+        </span>
       </div>
       {dimension.findings.map((finding) => (
-        <FindingButton key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`} finding={finding} locked={locked} onJumpTo={onJumpTo} />
+        <FindingButton
+          key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`}
+          finding={finding}
+          locked={locked}
+          onJumpTo={onJumpTo}
+        />
       ))}
     </section>
   );

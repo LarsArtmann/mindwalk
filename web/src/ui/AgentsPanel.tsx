@@ -39,7 +39,7 @@ export function AgentsPanel({
   retryAgentID,
   onSelect,
   onRetry,
-  onClose
+  onClose,
 }: AgentsPanelProps) {
   const children = graph?.agents.filter((agent) => agent.kind !== "main") ?? [];
   const main = graph?.agents.find((agent) => agent.kind === "main");
@@ -68,9 +68,7 @@ export function AgentsPanel({
         </button>
       </div>
 
-      {graphError ? (
-        <AgentError error={graphError} locked={locked} onRetry={onRetry} />
-      ) : null}
+      {graphError ? <AgentError error={graphError} locked={locked} onRetry={onRetry} /> : null}
 
       <div className="agent-list" aria-busy={loading || loadingAgentID !== undefined}>
         <button
@@ -111,21 +109,21 @@ export function AgentsPanel({
                   setDetail((currentDetail) =>
                     currentDetail?.mode === "pinned"
                       ? currentDetail
-                      : { agentID: agent.id, mode: "preview", anchor }
+                      : { agentID: agent.id, mode: "preview", anchor },
                   )
                 }
                 onPreviewEnd={(agentID) =>
                   setDetail((currentDetail) =>
                     currentDetail?.agentID === agentID && currentDetail.mode === "preview"
                       ? null
-                      : currentDetail
+                      : currentDetail,
                   )
                 }
                 onToggleDetails={(anchor) =>
                   setDetail((currentDetail) =>
                     currentDetail?.agentID === agent.id && currentDetail.mode === "pinned"
                       ? null
-                      : { agentID: agent.id, mode: "pinned", anchor }
+                      : { agentID: agent.id, mode: "pinned", anchor },
                   )
                 }
               />
@@ -136,7 +134,9 @@ export function AgentsPanel({
           );
         })}
 
-        {graph && children.length === 0 ? <p className="agents-empty">No child agents found.</p> : null}
+        {graph && children.length === 0 ? (
+          <p className="agents-empty">No child agents found.</p>
+        ) : null}
         {!graph && loading ? (
           <p className="agents-state" aria-live="polite">
             <Loader size={13} className="spin" aria-hidden />
@@ -156,7 +156,7 @@ function AgentError({
   error,
   locked,
   onRetry,
-  rowLocal = false
+  rowLocal = false,
 }: {
   error: string;
   locked: boolean;
@@ -186,7 +186,7 @@ function AgentRow({
   detailMode,
   onPreview,
   onPreviewEnd,
-  onToggleDetails
+  onToggleDetails,
 }: {
   agent: AgentNode;
   current: boolean;
@@ -259,7 +259,7 @@ function AgentRow({
 function AgentDetailPopover({
   agent,
   state,
-  onClose
+  onClose,
 }: {
   agent: AgentNode;
   state: NonNullable<AgentDetailState>;
@@ -271,7 +271,7 @@ function AgentDetailPopover({
     left: margin,
     top: margin,
     width: Math.min(520, window.innerWidth - margin * 2),
-    maxHeight: window.innerHeight - margin * 2
+    maxHeight: window.innerHeight - margin * 2,
   });
 
   useLayoutEffect(() => {
@@ -286,15 +286,12 @@ function AgentDetailPopover({
           ? leftCandidate
           : rightCandidate + width <= window.innerWidth - margin
             ? rightCandidate
-            : Math.min(
-                Math.max(anchorRect.left, margin),
-                window.innerWidth - width - margin
-              );
+            : Math.min(Math.max(anchorRect.left, margin), window.innerWidth - width - margin);
       const maxHeight = window.innerHeight - margin * 2;
       const measuredHeight = Math.min(popoverRef.current?.offsetHeight ?? maxHeight, maxHeight);
       const top = Math.min(
         Math.max(anchorRect.top, margin),
-        window.innerHeight - measuredHeight - margin
+        window.innerHeight - measuredHeight - margin,
       );
       setPosition({ left, top, width, maxHeight });
     };
@@ -355,7 +352,7 @@ function AgentDetailPopover({
       ) : null}
       <div className="agent-detail-meta">{agentDetail(agent)}</div>
     </div>,
-    document.body
+    document.body,
   );
 }
 

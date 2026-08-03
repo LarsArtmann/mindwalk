@@ -9,7 +9,7 @@
 
 ## Session Goal
 
-`git diff` output was treated as "not visited" in the citymap. Files appearing in diff output were scraped as weak **"hit"** targets — the weakest touch rank — indistinguishable from random text mentions. The agent is actually *reading the changes* to those files, a much stronger signal.
+`git diff` output was treated as "not visited" in the citymap. Files appearing in diff output were scraped as weak **"hit"** targets — the weakest touch rank — indistinguishable from random text mentions. The agent is actually _reading the changes_ to those files, a much stronger signal.
 
 ## What Was Done
 
@@ -53,6 +53,7 @@ Nothing. No regressions, no broken changes. The only build failure (`internal/ad
 ### 1. Regex doesn't handle paths with spaces
 
 Git diff uses quoted format for paths containing spaces:
+
 ```
 diff --git "a/path with space.go" "b/path with space.go"
 ```
@@ -120,28 +121,28 @@ Didn't launch the web UI to confirm that diffed files now render as "read" (blue
 
 ## Next Steps (Up to 50)
 
-| # | Task | Priority | Effort |
-|---|------|----------|--------|
-| 1 | Fix regex to handle quoted paths with spaces | High | Small |
-| 2 | Extract hunk line ranges from `@@` headers into `Target.Lines` | High | Medium |
-| 3 | Classify `git diff`/`git show` as "search" in `actionFor` | High | Small |
-| 4 | Run `make test` full suite | High | Trivial |
-| 5 | Add `---`/`+++` line parsing as diff fallback | Medium | Small |
-| 6 | Handle `diff --cc` combined merge diffs | Medium | Small |
-| 7 | Evaluate non-weak touch for structurally-parsed diff paths | Medium | Trivial |
-| 8 | Fix crush adapter `projectDB` type mismatch | Medium | Unknown |
-| 9 | Update AGENTS.md with git diff touch behavior | Low | Trivial |
-| 10 | Parse `git diff --name-only` / `--name-status` output | Low | Small |
-| 11 | Parse `git diff --stat` summary table | Low | Small |
-| 12 | Add integration test with real git diff output fixture | Low | Medium |
-| 13 | Add test for `git show` output format | Low | Trivial |
-| 14 | Add test for `git log -p` output format | Low | Trivial |
-| 15 | Verify visually in the web UI with a real session | Low | Medium |
-| 16 | Consider `hg diff` / other VCS diff support | Low | Medium |
-| 17 | Benchmark regex on large diff outputs | Low | Trivial |
-| 18 | Consider deduplication of `extractPaths` + `gitDiffPaths` overlap | Low | Trivial |
-| 19 | Add `git diff` to the `searchPrograms`/`readOnlyPrograms` maps for action classification | Medium | Trivial |
-| 20 | Document the touch promotion semantics in a code comment | Low | Trivial |
+| #   | Task                                                                                     | Priority | Effort  |
+| --- | ---------------------------------------------------------------------------------------- | -------- | ------- |
+| 1   | Fix regex to handle quoted paths with spaces                                             | High     | Small   |
+| 2   | Extract hunk line ranges from `@@` headers into `Target.Lines`                           | High     | Medium  |
+| 3   | Classify `git diff`/`git show` as "search" in `actionFor`                                | High     | Small   |
+| 4   | Run `make test` full suite                                                               | High     | Trivial |
+| 5   | Add `---`/`+++` line parsing as diff fallback                                            | Medium   | Small   |
+| 6   | Handle `diff --cc` combined merge diffs                                                  | Medium   | Small   |
+| 7   | Evaluate non-weak touch for structurally-parsed diff paths                               | Medium   | Trivial |
+| 8   | Fix crush adapter `projectDB` type mismatch                                              | Medium   | Unknown |
+| 9   | Update AGENTS.md with git diff touch behavior                                            | Low      | Trivial |
+| 10  | Parse `git diff --name-only` / `--name-status` output                                    | Low      | Small   |
+| 11  | Parse `git diff --stat` summary table                                                    | Low      | Small   |
+| 12  | Add integration test with real git diff output fixture                                   | Low      | Medium  |
+| 13  | Add test for `git show` output format                                                    | Low      | Trivial |
+| 14  | Add test for `git log -p` output format                                                  | Low      | Trivial |
+| 15  | Verify visually in the web UI with a real session                                        | Low      | Medium  |
+| 16  | Consider `hg diff` / other VCS diff support                                              | Low      | Medium  |
+| 17  | Benchmark regex on large diff outputs                                                    | Low      | Trivial |
+| 18  | Consider deduplication of `extractPaths` + `gitDiffPaths` overlap                        | Low      | Trivial |
+| 19  | Add `git diff` to the `searchPrograms`/`readOnlyPrograms` maps for action classification | Medium   | Trivial |
+| 20  | Document the touch promotion semantics in a code comment                                 | Low      | Trivial |
 
 ---
 
@@ -159,25 +160,25 @@ Didn't launch the web UI to confirm that diffed files now render as "read" (blue
 
 The feature shipped in `72f91e2`. The 20-item next-steps table resolves as:
 
-| # | Item | Status | Where |
-|---|------|--------|-------|
-| 1 | Space-in-path regex | open | low priority |
-| 2 | Extract hunk line ranges | open | low priority |
-| 3 | Classify `git diff` as search/read | open | ROADMAP question |
-| 4 | `make test` full suite | done | 11 packages green |
-| 5 | `---`/`+++` fallback parsing | open | low priority |
-| 6 | `diff --cc` combined diffs | open | low priority |
-| 7 | Non-weak touch for structural parse | open | ROADMAP question |
-| 8 | Fix crush `projectDB` type mismatch | done | resolved in `72f91e2` |
-| 9 | Update AGENTS.md (git diff behavior) | open | low priority |
-| 10 | Parse `git diff --name-only` | open | low priority |
-| 11 | Parse `git diff --stat` | open | low priority |
-| 12 | Integration test real diff fixture | open | low priority |
-| 13 | Test `git show` format | open | low priority |
-| 14 | Test `git log -p` format | open | low priority |
-| 15 | Visual verification in web UI | open | TODO_LIST |
-| 16 | `hg diff` support | deferred | low priority |
-| 17 | Benchmark regex on large diffs | open | low priority |
-| 18 | Dedup `extractPaths` + `gitDiffPaths` | open | low priority |
-| 19 | `git diff` in search/read programs | dedup | of #3 |
-| 20 | Document touch promotion semantics | open | low priority |
+| #   | Item                                  | Status   | Where                 |
+| --- | ------------------------------------- | -------- | --------------------- |
+| 1   | Space-in-path regex                   | open     | low priority          |
+| 2   | Extract hunk line ranges              | open     | low priority          |
+| 3   | Classify `git diff` as search/read    | open     | ROADMAP question      |
+| 4   | `make test` full suite                | done     | 11 packages green     |
+| 5   | `---`/`+++` fallback parsing          | open     | low priority          |
+| 6   | `diff --cc` combined diffs            | open     | low priority          |
+| 7   | Non-weak touch for structural parse   | open     | ROADMAP question      |
+| 8   | Fix crush `projectDB` type mismatch   | done     | resolved in `72f91e2` |
+| 9   | Update AGENTS.md (git diff behavior)  | open     | low priority          |
+| 10  | Parse `git diff --name-only`          | open     | low priority          |
+| 11  | Parse `git diff --stat`               | open     | low priority          |
+| 12  | Integration test real diff fixture    | open     | low priority          |
+| 13  | Test `git show` format                | open     | low priority          |
+| 14  | Test `git log -p` format              | open     | low priority          |
+| 15  | Visual verification in web UI         | open     | TODO_LIST             |
+| 16  | `hg diff` support                     | deferred | low priority          |
+| 17  | Benchmark regex on large diffs        | open     | low priority          |
+| 18  | Dedup `extractPaths` + `gitDiffPaths` | open     | low priority          |
+| 19  | `git diff` in search/read programs    | dedup    | of #3                 |
+| 20  | Document touch promotion semantics    | open     | low priority          |

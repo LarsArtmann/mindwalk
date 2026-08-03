@@ -188,50 +188,50 @@ and is the most important gap.
 
 ### P0 — before push (all resolved except agents.go)
 
-| # | Item | Status | Where |
-|---|------|--------|-------|
-| 1 | Fix `agents.go` → `openDBForPath` | **OPEN (P0)** | TODO_LIST "Fix `agents.go` multi-DB routing" |
-| 2 | gofmt | done | build clean |
-| 3 | go vet | done | tests pass |
-| 4 | go build | done | `go build ./...` ok |
-| 5 | go test | done | 11 packages green |
-| 6 | Fix server test isolation | open | TODO_LIST |
-| 7 | `.gitignore` pnpm artifacts | open | TODO_LIST-adjacent (verify) |
-| 8 | Commit `--host` flag | done | bundled into `72f91e2` |
-| 9 | Commit multi-DB discovery | done | bundled into `72f91e2` |
-| 10 | Push to origin | done | 1 commit ahead |
+| #   | Item                              | Status        | Where                                        |
+| --- | --------------------------------- | ------------- | -------------------------------------------- |
+| 1   | Fix `agents.go` → `openDBForPath` | **OPEN (P0)** | TODO_LIST "Fix `agents.go` multi-DB routing" |
+| 2   | gofmt                             | done          | build clean                                  |
+| 3   | go vet                            | done          | tests pass                                   |
+| 4   | go build                          | done          | `go build ./...` ok                          |
+| 5   | go test                           | done          | 11 packages green                            |
+| 6   | Fix server test isolation         | open          | TODO_LIST                                    |
+| 7   | `.gitignore` pnpm artifacts       | open          | TODO_LIST-adjacent (verify)                  |
+| 8   | Commit `--host` flag              | done          | bundled into `72f91e2`                       |
+| 9   | Commit multi-DB discovery         | done          | bundled into `72f91e2`                       |
+| 10  | Push to origin                    | done          | 1 commit ahead                               |
 
 ### P1–P4
 
-| # | Item | Status | Where |
-|---|------|--------|-------|
-| 11–13 | Tests for `loadProjectDBs` / `listAllProjectSessions` / `openDBForPath` | open | TODO_LIST "Add tests for multi-DB discovery" |
-| 14–15 | `--host` on `open` / `map` | open | TODO_LIST |
-| 16–18 | Browser verification (graphs/traces/citymaps) | open | TODO_LIST "Verify the web UI" |
-| 19 | `--host` usage text | done | `serve` usage |
-| 20 | README `--host` | open | TODO_LIST |
-| 21 | `sessionDBIndex` field on Adapter | open | TODO_LIST |
-| 22 | Fallback filesystem search | deferred | low priority |
-| 23 | Log project DB count | open | low priority |
-| 24 | Handle locked/corrupt DB | open | low priority |
-| 25 | Cache `projects.json` TTL | deferred | low priority |
-| 26 | `--crush-projects-dir` flag | won't-do | multi-DB always-on |
-| 27 | `Summarize` populates index | open | low priority |
-| 28–30 | Integration tests (multi-DB listing/Parse/agent graph) | open | TODO_LIST (dedup of #11–13) |
-| 31 | gitignore `web/node_modules`/`dist` | verify | VERIFY phase |
-| 32 | `docs/crush.md` multi-DB | open | low priority |
-| 33 | CHANGELOG multi-DB + `--host` | **gap** | CHANGELOG `[Unreleased]` omits these — TODO |
-| 34 | AGENTS.md multi-DB | open | low priority |
-| 35 | Session project name in meta | deferred | ROADMAP-adjacent |
-| 36 | Group sessions by project | open | ROADMAP "Frontend observability" |
-| 37 | Project path subtitle | deferred | low priority |
-| 38 | `--no-scan-crush` shortcut | won't-do | `--no-crush` exists |
-| 39 | trace/analyze multi-DB | verify | uses `traceSources` |
-| 40 | Benchmark multi-DB listing | open | ROADMAP |
-| 41 | PR upstream | open | ROADMAP question |
-| 42 | Modular adapter registration | deferred | low priority |
-| 43 | `crush projects` CLI | deferred | low priority |
-| 44–47 | WAL-safe reads / pool / lazy-load | open | ROADMAP "Performance at scale" |
-| 48 | Session search by project | deferred | low priority |
-| 49 | Dedup global+local sessions | open | low priority |
-| 50 | Health check DB count | open | low priority |
+| #     | Item                                                                    | Status   | Where                                        |
+| ----- | ----------------------------------------------------------------------- | -------- | -------------------------------------------- |
+| 11–13 | Tests for `loadProjectDBs` / `listAllProjectSessions` / `openDBForPath` | open     | TODO_LIST "Add tests for multi-DB discovery" |
+| 14–15 | `--host` on `open` / `map`                                              | open     | TODO_LIST                                    |
+| 16–18 | Browser verification (graphs/traces/citymaps)                           | open     | TODO_LIST "Verify the web UI"                |
+| 19    | `--host` usage text                                                     | done     | `serve` usage                                |
+| 20    | README `--host`                                                         | open     | TODO_LIST                                    |
+| 21    | `sessionDBIndex` field on Adapter                                       | open     | TODO_LIST                                    |
+| 22    | Fallback filesystem search                                              | deferred | low priority                                 |
+| 23    | Log project DB count                                                    | open     | low priority                                 |
+| 24    | Handle locked/corrupt DB                                                | open     | low priority                                 |
+| 25    | Cache `projects.json` TTL                                               | deferred | low priority                                 |
+| 26    | `--crush-projects-dir` flag                                             | won't-do | multi-DB always-on                           |
+| 27    | `Summarize` populates index                                             | open     | low priority                                 |
+| 28–30 | Integration tests (multi-DB listing/Parse/agent graph)                  | open     | TODO_LIST (dedup of #11–13)                  |
+| 31    | gitignore `web/node_modules`/`dist`                                     | verify   | VERIFY phase                                 |
+| 32    | `docs/crush.md` multi-DB                                                | open     | low priority                                 |
+| 33    | CHANGELOG multi-DB + `--host`                                           | **gap**  | CHANGELOG `[Unreleased]` omits these — TODO  |
+| 34    | AGENTS.md multi-DB                                                      | open     | low priority                                 |
+| 35    | Session project name in meta                                            | deferred | ROADMAP-adjacent                             |
+| 36    | Group sessions by project                                               | open     | ROADMAP "Frontend observability"             |
+| 37    | Project path subtitle                                                   | deferred | low priority                                 |
+| 38    | `--no-scan-crush` shortcut                                              | won't-do | `--no-crush` exists                          |
+| 39    | trace/analyze multi-DB                                                  | verify   | uses `traceSources`                          |
+| 40    | Benchmark multi-DB listing                                              | open     | ROADMAP                                      |
+| 41    | PR upstream                                                             | open     | ROADMAP question                             |
+| 42    | Modular adapter registration                                            | deferred | low priority                                 |
+| 43    | `crush projects` CLI                                                    | deferred | low priority                                 |
+| 44–47 | WAL-safe reads / pool / lazy-load                                       | open     | ROADMAP "Performance at scale"               |
+| 48    | Session search by project                                               | deferred | low priority                                 |
+| 49    | Dedup global+local sessions                                             | open     | low priority                                 |
+| 50    | Health check DB count                                                   | open     | low priority                                 |

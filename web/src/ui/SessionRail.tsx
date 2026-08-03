@@ -46,7 +46,7 @@ export const SessionRail = memo(function SessionRail({
   onOpenMap,
   activeRepo,
   locked = false,
-  activeReportState
+  activeReportState,
 }: SessionRailProps) {
   const [query, setQuery] = useState("");
   const [repoPath, setRepoPath] = useState("");
@@ -73,11 +73,13 @@ export const SessionRail = memo(function SessionRail({
   const emptyCount = useMemo(() => sessions.filter((s) => s.eventCount === 0).length, [sessions]);
   // a persisted filter can name a harness with no sessions this scan; treating
   // it as "all" avoids an empty list with no visible chip to clear it
-  const effectiveHarness = harnessFilter && harnesses.includes(harnessFilter) ? harnessFilter : undefined;
+  const effectiveHarness =
+    harnessFilter && harnesses.includes(harnessFilter) ? harnessFilter : undefined;
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return sessions.filter((session) => {
-      if (!sessionVisible(session, { hideEmpty, harness: effectiveHarness }, activeKey)) return false;
+      if (!sessionVisible(session, { hideEmpty, harness: effectiveHarness }, activeKey))
+        return false;
       if (!q) return true;
       return `${session.title ?? ""} ${session.id} ${session.gitBranch ?? ""} ${session.harness}`
         .toLowerCase()
@@ -215,10 +217,14 @@ export const SessionRail = memo(function SessionRail({
                 onClick={() => onHideEmptyChange(!hideEmpty)}
                 aria-pressed={!hideEmpty}
                 title={
-                  hideEmpty ? `Show ${emptyCount} empty sessions` : `Hide ${emptyCount} empty sessions`
+                  hideEmpty
+                    ? `Show ${emptyCount} empty sessions`
+                    : `Hide ${emptyCount} empty sessions`
                 }
                 aria-label={
-                  hideEmpty ? `Show ${emptyCount} empty sessions` : `Hide ${emptyCount} empty sessions`
+                  hideEmpty
+                    ? `Show ${emptyCount} empty sessions`
+                    : `Hide ${emptyCount} empty sessions`
                 }
               >
                 {hideEmpty ? <EyeOff size={13} aria-hidden /> : <Eye size={13} aria-hidden />}

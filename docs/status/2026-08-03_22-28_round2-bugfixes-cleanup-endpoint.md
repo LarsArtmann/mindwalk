@@ -19,60 +19,60 @@
 
 ## a) Fully done
 
-| # | Item | Evidence |
-|---|------|----------|
-| 1 | **Ran gofmt on 11 unformatted files.** The previous session never ran gofmt after editing. Struct field alignment, comment indentation, trailing newlines, and a missing final newline in `agents.go` were all fixed. | `gofmt -l` now clean across all packages |
-| 2 | **Added WAL files to `.gitignore`.** `testdata/crush/*.db-shm` and `testdata/crush/*.db-wal` are SQLite WAL artifacts that regenerate on every test run. They were untracked since the fixture was committed. | `.gitignore` lines 21-22, `git status` now clean |
-| 3 | **Full test suite verified green.** 283 tests across 11 packages (67 in crush, 41 in server, 61 in adapter). | `go test ./... -count=1` |
-| 4 | **Added `adapter.ToolResult.ToolCallID` field** and removed the fragile parallel-slice design (`finishResult.resultIDs`). The crush parts parser now sets `ToolCallID` directly on each `ToolResult`, and `readAgentLaunches` reads `result.ToolCallID` instead of indexing into a parallel slice with bounds checks. Three layers of bookkeeping eliminated: `resultOrder` append in `add()`, `resultIDs` appends in `finish()`, and the index-bounds dance in the consumer. | `adapter.go:47`, `parts.go:186`, `agents.go:308` |
-| 5 | **Fixed `fingerprintAgentGraphInputs` bug.** The function called `os.Stat(path)` on every input path, but Crush sessions use `crush://session/<id>` synthetic paths that are not real files. `os.Stat` always returned `os.IsNotExist`, so every Crush session was permanently recorded as `"missing"` in the fingerprint material. This meant the agent-graph cache could serve a stale graph indefinitely if the Crush session's messages changed. Now guards with `crush.IsSessionPath` and writes a `"synthetic"` marker. | `server.go:842-845` |
-| 6 | **Fixed `loadTraceAndMap` garbage-repo-root bug.** When no repo root was configured (the default for `mindwalk serve` without `--repo`), the fallback `filepath.Dir(meta.Path)` produced `"crush://session"` from a synthetic path. That garbage string then flowed into `buildCityMap` / `emptyCityMap`, which called `filepath.Abs("crush://session")` → `"<cwd>/crush://session"`. No crash, but a wrong/empty citymap for every Crush session. Now skips the fallback for synthetic paths. | `server.go:931` |
-| 7 | **Audited all server code for `crush://` path assumptions.** Searched every filesystem operation (`os.Stat`, `os.Open`, `filepath.*`), every cache key, every route handler. Found the two bugs above. Verified 12 other call sites are safe (either guarded by `crush.IsSessionPath`, behind a `sourceUsesFilesystem` check, or using `meta.Key` as cache key instead of raw path). | Audit in conversation, documented in diff |
-| 8 | **Investigated `findSession` bare-id routing.** Determined that session keys are SHA-256 hashes (`crush-<hex>`), already URL-safe. Bare session IDs match via the existing `basename == selector` fallback. `crush://session/<id>` paths can never arrive as a `findSession` selector because URL path splitting breaks on their `/` characters. No change needed — the existing routing handles Crush correctly. | Empirical URL-parsing test in conversation |
-| 9 | **Added `/api/adapters` endpoint.** Returns harness name, session directory, live session count, and agent-graph capability for each registered adapter. Registered at `mux.HandleFunc("/api/adapters", ...)`. Added `adapter.IsAgentGraphSource` helper in the adapter package. Test verifies all three adapters (claude-code, codex, crush) with correct counts and capability flags. | `server.go:155,212-241`, `adapter.go:33-37`, `server_test.go:1464-1513` |
-| 10 | **Added SQLite parse benchmarks.** `BenchmarkFixtureListSessions` (~220μs/op, 99 allocs) and `BenchmarkFixtureParse` (~280μs/op, 270 allocs) against the committed fixture. Cold-open + query and full trace-parse paths covered. | `fixture_test.go:163-191` |
-| 11 | **Updated CHANGELOG.md** with all new entries: ToolCallID refactor, two bug fixes, adapters endpoint, benchmarks. | `CHANGELOG.md` |
-| 12 | **Decided NOT to generalise synthetic-path scheme** into `model.SyntheticPath(scheme, id)`. YAGNI — one consumer, four guarded call sites, clean local helpers. Will extract when a second DB-backed adapter provides a second concrete example. | Documented in conversation |
+| #   | Item                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Evidence                                                                |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| 1   | **Ran gofmt on 11 unformatted files.** The previous session never ran gofmt after editing. Struct field alignment, comment indentation, trailing newlines, and a missing final newline in `agents.go` were all fixed.                                                                                                                                                                                                                                                                                                         | `gofmt -l` now clean across all packages                                |
+| 2   | **Added WAL files to `.gitignore`.** `testdata/crush/*.db-shm` and `testdata/crush/*.db-wal` are SQLite WAL artifacts that regenerate on every test run. They were untracked since the fixture was committed.                                                                                                                                                                                                                                                                                                                 | `.gitignore` lines 21-22, `git status` now clean                        |
+| 3   | **Full test suite verified green.** 283 tests across 11 packages (67 in crush, 41 in server, 61 in adapter).                                                                                                                                                                                                                                                                                                                                                                                                                  | `go test ./... -count=1`                                                |
+| 4   | **Added `adapter.ToolResult.ToolCallID` field** and removed the fragile parallel-slice design (`finishResult.resultIDs`). The crush parts parser now sets `ToolCallID` directly on each `ToolResult`, and `readAgentLaunches` reads `result.ToolCallID` instead of indexing into a parallel slice with bounds checks. Three layers of bookkeeping eliminated: `resultOrder` append in `add()`, `resultIDs` appends in `finish()`, and the index-bounds dance in the consumer.                                                 | `adapter.go:47`, `parts.go:186`, `agents.go:308`                        |
+| 5   | **Fixed `fingerprintAgentGraphInputs` bug.** The function called `os.Stat(path)` on every input path, but Crush sessions use `crush://session/<id>` synthetic paths that are not real files. `os.Stat` always returned `os.IsNotExist`, so every Crush session was permanently recorded as `"missing"` in the fingerprint material. This meant the agent-graph cache could serve a stale graph indefinitely if the Crush session's messages changed. Now guards with `crush.IsSessionPath` and writes a `"synthetic"` marker. | `server.go:842-845`                                                     |
+| 6   | **Fixed `loadTraceAndMap` garbage-repo-root bug.** When no repo root was configured (the default for `mindwalk serve` without `--repo`), the fallback `filepath.Dir(meta.Path)` produced `"crush://session"` from a synthetic path. That garbage string then flowed into `buildCityMap` / `emptyCityMap`, which called `filepath.Abs("crush://session")` → `"<cwd>/crush://session"`. No crash, but a wrong/empty citymap for every Crush session. Now skips the fallback for synthetic paths.                                | `server.go:931`                                                         |
+| 7   | **Audited all server code for `crush://` path assumptions.** Searched every filesystem operation (`os.Stat`, `os.Open`, `filepath.*`), every cache key, every route handler. Found the two bugs above. Verified 12 other call sites are safe (either guarded by `crush.IsSessionPath`, behind a `sourceUsesFilesystem` check, or using `meta.Key` as cache key instead of raw path).                                                                                                                                          | Audit in conversation, documented in diff                               |
+| 8   | **Investigated `findSession` bare-id routing.** Determined that session keys are SHA-256 hashes (`crush-<hex>`), already URL-safe. Bare session IDs match via the existing `basename == selector` fallback. `crush://session/<id>` paths can never arrive as a `findSession` selector because URL path splitting breaks on their `/` characters. No change needed — the existing routing handles Crush correctly.                                                                                                             | Empirical URL-parsing test in conversation                              |
+| 9   | **Added `/api/adapters` endpoint.** Returns harness name, session directory, live session count, and agent-graph capability for each registered adapter. Registered at `mux.HandleFunc("/api/adapters", ...)`. Added `adapter.IsAgentGraphSource` helper in the adapter package. Test verifies all three adapters (claude-code, codex, crush) with correct counts and capability flags.                                                                                                                                       | `server.go:155,212-241`, `adapter.go:33-37`, `server_test.go:1464-1513` |
+| 10  | **Added SQLite parse benchmarks.** `BenchmarkFixtureListSessions` (~220μs/op, 99 allocs) and `BenchmarkFixtureParse` (~280μs/op, 270 allocs) against the committed fixture. Cold-open + query and full trace-parse paths covered.                                                                                                                                                                                                                                                                                             | `fixture_test.go:163-191`                                               |
+| 11  | **Updated CHANGELOG.md** with all new entries: ToolCallID refactor, two bug fixes, adapters endpoint, benchmarks.                                                                                                                                                                                                                                                                                                                                                                                                             | `CHANGELOG.md`                                                          |
+| 12  | **Decided NOT to generalise synthetic-path scheme** into `model.SyntheticPath(scheme, id)`. YAGNI — one consumer, four guarded call sites, clean local helpers. Will extract when a second DB-backed adapter provides a second concrete example.                                                                                                                                                                                                                                                                              | Documented in conversation                                              |
 
 ---
 
 ## b) Partially done
 
-| # | Item | Gap |
-|---|------|-----|
-| 1 | **Server audit for `crush://` assumptions** | I audited `internal/server/` thoroughly but did NOT audit `internal/judge/`, `internal/citymap/`, or `cmd/mindwalk/` for the same class of bug. The judge reads traces (already normalized), so it should be safe, but I didn't verify. The CLI's `parseTrace` calls `source.Parse(path)` which handles synthetic paths internally — but I didn't check every CLI code path. |
-| 2 | **`/api/adapters` endpoint** | The endpoint works and is tested for the enabled case. But I did NOT add a test for the disabled-crush case (`DisableCrush: true` should mean crush doesn't appear in the adapter list). The existing `TestServerSkipsCrushWhenDisabled` only checks `/api/sessions`, not `/api/adapters`. |
-| 3 | **Bug fix tests** | I fixed two bugs but added regression tests for neither. The `fingerprintAgentGraphInputs` fix has no test that verifies a Crush session's fingerprint isn't "missing". The `loadTraceAndMap` fix has no test that verifies a Crush session gets a non-garbage citymap root. The existing tests pass because they don't exercise the specific code paths that were broken. |
+| #   | Item                                        | Gap                                                                                                                                                                                                                                                                                                                                                                          |
+| --- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Server audit for `crush://` assumptions** | I audited `internal/server/` thoroughly but did NOT audit `internal/judge/`, `internal/citymap/`, or `cmd/mindwalk/` for the same class of bug. The judge reads traces (already normalized), so it should be safe, but I didn't verify. The CLI's `parseTrace` calls `source.Parse(path)` which handles synthetic paths internally — but I didn't check every CLI code path. |
+| 2   | **`/api/adapters` endpoint**                | The endpoint works and is tested for the enabled case. But I did NOT add a test for the disabled-crush case (`DisableCrush: true` should mean crush doesn't appear in the adapter list). The existing `TestServerSkipsCrushWhenDisabled` only checks `/api/sessions`, not `/api/adapters`.                                                                                   |
+| 3   | **Bug fix tests**                           | I fixed two bugs but added regression tests for neither. The `fingerprintAgentGraphInputs` fix has no test that verifies a Crush session's fingerprint isn't "missing". The `loadTraceAndMap` fix has no test that verifies a Crush session gets a non-garbage citymap root. The existing tests pass because they don't exercise the specific code paths that were broken.   |
 
 ---
 
 ## c) Not started
 
-| # | Item |
-|---|------|
-| 1 | `mindwalk doctor` subcommand (P2 from previous report) |
-| 2 | Cache `crush.db` reads across requests via `sync.Map` (P1 #12) |
-| 3 | Persist agent-graph cache to disk (P2 #17) |
-| 4 | Stress test with 100k-message Crush session (P1 #15) |
-| 5 | Schema coverage warning at startup (P2 #20) |
-| 6 | `mindwalk sessions` CLI subcommand (P2 #19) |
-| 7 | Frontend (Three.js) browser verification (P1 #6) |
-| 8 | `mindwalk analyze` end-to-end with a judge CLI (P1 #5) |
-| 9 | CI workflow for `go test ./...` on push (P2 #27) |
-| 10 | Cross-check Crush parts parser against latest upstream source (P1 #14) |
+| #   | Item                                                                   |
+| --- | ---------------------------------------------------------------------- |
+| 1   | `mindwalk doctor` subcommand (P2 from previous report)                 |
+| 2   | Cache `crush.db` reads across requests via `sync.Map` (P1 #12)         |
+| 3   | Persist agent-graph cache to disk (P2 #17)                             |
+| 4   | Stress test with 100k-message Crush session (P1 #15)                   |
+| 5   | Schema coverage warning at startup (P2 #20)                            |
+| 6   | `mindwalk sessions` CLI subcommand (P2 #19)                            |
+| 7   | Frontend (Three.js) browser verification (P1 #6)                       |
+| 8   | `mindwalk analyze` end-to-end with a judge CLI (P1 #5)                 |
+| 9   | CI workflow for `go test ./...` on push (P2 #27)                       |
+| 10  | Cross-check Crush parts parser against latest upstream source (P1 #14) |
 
 ---
 
 ## d) Totally fucked up
 
-| # | Item | Cost |
-|---|------|------|
-| 1 | **Committed everything as one commit.** The AGENTS.md says "commit more granularly during the debugging phase." The previous session's status report explicitly called this out as a process improvement item ("Commit more granularly during the debugging phase"). I repeated the mistake: gofmt cleanup, a type-level design refactor, two bug fixes, a new endpoint, benchmarks, and CHANGELOG are all in `1087624`. Six logical changes should have been 3-4 commits. | Makes `git bisect` harder, makes the history less readable. |
-| 2 | **Didn't run gofmt until prompted.** The user's "READ, UNDERSTAND, RESEARCH, REFLECT" prompt was the trigger. I should have checked gofmt as the very first action of the session — it's a basic hygiene step. 11 files were unformatted. | The gofmt changes are now mixed into the same commit as real logic changes, making the diff noisier. |
-| 3 | **Fixed two bugs without adding regression tests.** I found real correctness bugs (stale graph cache, garbage citymap root), fixed them, ran the existing test suite (which passed both before and after the fix — because the tests don't exercise the broken paths), and moved on. I should have written a failing test first, then fixed the code, then verified the test passes. This is Testing 101. | The bugs could silently regress. The fingerprint fix in particular is subtle — a future contributor could remove the `crush.IsSessionPath` guard thinking it's redundant. |
-| 4 | **Didn't investigate the uncommitted `main.go` change.** The git status at session start showed `M cmd/mindwalk/main.go` — an uncommitted modification from the previous session. I formatted it and committed it without understanding what it was or whether it was intentional. It turned out to be a single blank line, but I didn't verify that. The AGENTS.md says "NEVER revert changes you didn't author" — I didn't revert it, but I also didn't READ it before absorbing it into my commit. | Low cost this time (it was a blank line), but the pattern is dangerous. |
-| 5 | **Wasted time on URL routing investigation.** I spent 4 tool calls building standalone Go programs to test URL path parsing behavior before realising that session keys are SHA-256 hashes (which I could have discovered by reading `adapter.SessionKey` — 10 lines of code). I went down a rabbit hole investigating whether `findSession` needs a `crush://` branch when the answer was obvious from the key format. | ~5 minutes of unnecessary investigation. |
-| 6 | **The `/api/adapters` endpoint doesn't handle the disabled-crush case in tests.** `TestAdaptersEndpoint` only tests with crush enabled. When `DisableCrush: true`, the endpoint should return only 2 adapters, but I didn't verify that. The code is probably correct (the adapter list is built from `s.adapters` which doesn't include crush when disabled), but unverified. | Gap in test coverage. |
+| #   | Item                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Cost                                                                                                                                                                      |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Committed everything as one commit.** The AGENTS.md says "commit more granularly during the debugging phase." The previous session's status report explicitly called this out as a process improvement item ("Commit more granularly during the debugging phase"). I repeated the mistake: gofmt cleanup, a type-level design refactor, two bug fixes, a new endpoint, benchmarks, and CHANGELOG are all in `1087624`. Six logical changes should have been 3-4 commits.                            | Makes `git bisect` harder, makes the history less readable.                                                                                                               |
+| 2   | **Didn't run gofmt until prompted.** The user's "READ, UNDERSTAND, RESEARCH, REFLECT" prompt was the trigger. I should have checked gofmt as the very first action of the session — it's a basic hygiene step. 11 files were unformatted.                                                                                                                                                                                                                                                             | The gofmt changes are now mixed into the same commit as real logic changes, making the diff noisier.                                                                      |
+| 3   | **Fixed two bugs without adding regression tests.** I found real correctness bugs (stale graph cache, garbage citymap root), fixed them, ran the existing test suite (which passed both before and after the fix — because the tests don't exercise the broken paths), and moved on. I should have written a failing test first, then fixed the code, then verified the test passes. This is Testing 101.                                                                                             | The bugs could silently regress. The fingerprint fix in particular is subtle — a future contributor could remove the `crush.IsSessionPath` guard thinking it's redundant. |
+| 4   | **Didn't investigate the uncommitted `main.go` change.** The git status at session start showed `M cmd/mindwalk/main.go` — an uncommitted modification from the previous session. I formatted it and committed it without understanding what it was or whether it was intentional. It turned out to be a single blank line, but I didn't verify that. The AGENTS.md says "NEVER revert changes you didn't author" — I didn't revert it, but I also didn't READ it before absorbing it into my commit. | Low cost this time (it was a blank line), but the pattern is dangerous.                                                                                                   |
+| 5   | **Wasted time on URL routing investigation.** I spent 4 tool calls building standalone Go programs to test URL path parsing behavior before realising that session keys are SHA-256 hashes (which I could have discovered by reading `adapter.SessionKey` — 10 lines of code). I went down a rabbit hole investigating whether `findSession` needs a `crush://` branch when the answer was obvious from the key format.                                                                               | ~5 minutes of unnecessary investigation.                                                                                                                                  |
+| 6   | **The `/api/adapters` endpoint doesn't handle the disabled-crush case in tests.** `TestAdaptersEndpoint` only tests with crush enabled. When `DisableCrush: true`, the endpoint should return only 2 adapters, but I didn't verify that. The code is probably correct (the adapter list is built from `s.adapters` which doesn't include crush when disabled), but unverified.                                                                                                                        | Gap in test coverage.                                                                                                                                                     |
 
 ---
 
@@ -168,60 +168,60 @@ Section (f) next-steps resolved. The commit is now `6c986d3` (rebased).
 
 ### P0 — still open (regression tests)
 
-| # | Item | Status | Where |
-|---|------|--------|-------|
-| 1 | Regression test: `fingerprintAgentGraphInputs` crush:// | **open** | TODO_LIST "Add regression tests for the two round-2 server bugs" |
-| 2 | Regression test: `loadTraceAndMap` garbage root | **open** | TODO_LIST (same) |
-| 3 | `/api/adapters` test with `DisableCrush: true` | **open** | TODO_LIST |
+| #   | Item                                                    | Status   | Where                                                            |
+| --- | ------------------------------------------------------- | -------- | ---------------------------------------------------------------- |
+| 1   | Regression test: `fingerprintAgentGraphInputs` crush:// | **open** | TODO_LIST "Add regression tests for the two round-2 server bugs" |
+| 2   | Regression test: `loadTraceAndMap` garbage root         | **open** | TODO_LIST (same)                                                 |
+| 3   | `/api/adapters` test with `DisableCrush: true`          | **open** | TODO_LIST                                                        |
 
 ### Shipped or otherwise resolved
 
-| # | Item | Status | Commit / where |
-|---|------|--------|----------------|
-| 4 | Push to origin | done | pushed |
-| 5 | Audit judge/citymap `crush://` | partial | server audited; judge/citymap deferred |
-| 6 | `mindwalk analyze` end-to-end | open | TODO_LIST |
-| 7 | Boot web UI | open | TODO_LIST |
-| 8 | Live sub-agent session | open | TODO_LIST |
-| 9 | `crushDirFor` magic string | open | TODO_LIST-adjacent |
-| 10 | Cache `crush.db` reads | open | TODO_LIST |
-| 11 | 100k-message stress test | open | ROADMAP |
-| 12 | Cross-check parser vs upstream | open | ROADMAP |
-| 13 | `provider_executed` flag | open | ROADMAP |
-| 14 | Cross-message collision test | open | same-message covered (`639cb7d`) |
-| 15 | Generalise synthetic path | deferred | ROADMAP non-goal |
-| 16 | Persist agent-graph cache | open | TODO_LIST |
-| 17 | `mindwalk doctor` | open | TODO_LIST |
-| 18 | `mindwalk sessions` CLI | open | TODO_LIST |
-| 19 | Schema-coverage warning | open | TODO_LIST |
-| 20 | `title-<sessionID>` support | won't-do | ROADMAP non-goal |
-| 21 | CI workflow | open | TODO_LIST |
-| 22 | README mention | open | TODO_LIST (`--host` in Quick Start) |
-| 23 | `docs/crush.md` adapters section | deferred | low priority |
-| 24 | Reduce test runtime | open | TODO_LIST "Fix server test isolation" |
-| 25 | `--crush-projects-file` flag | won't-do | multi-DB shipped at `72f91e2` |
-| 26 | Fix errcheck warnings | open | TODO_LIST |
-| 27 | Frontend `/api/adapters` component | open | ROADMAP "Frontend observability" |
-| 28 | Cwd extraction | done | `72f91e2` |
-| 29 | Benchmark `BuildAgentGraph` | open | low priority |
-| 30 | Agent-graph cache invalidation test | open | low priority |
-| 31 | Audit `lookupProjectDataDir` | deferred | low priority |
-| 32 | `crush sessions` CLI | dedup | of #18 |
-| 33 | Verify codex adapter after ToolCallID | open | low priority |
-| 34 | `/api/adapters` SessionDir test | open | low priority |
-| 35 | Document synthetic fingerprint marker | deferred | low priority |
-| 36 | `loadTraceAndMap` RepoRoot discussion | deferred | low priority |
-| 37 | `/api/adapters` `--no-crush` e2e | dedup | of #3 |
-| 38 | Benchmark agent-graph build | dedup | of #29 |
-| 39 | Property test `SessionPath` round-trip | open | ROADMAP (property tests) |
-| 40 | Fingerprint by message count | open | low priority |
-| 41 | Update previous status report | done | this annotation pass |
-| 42 | flake.nix gofmt check | open | low priority |
-| 43 | `sync.Once` crush adapter init | dedup | of #24 (test isolation) |
-| 44 | Stable adapter order test | open | low priority |
-| 45 | Document `adapterInfo` shape | deferred | low priority |
-| 46 | `/api/adapters` caching | deferred | low priority |
-| 47 | `/api/health` endpoint | open | low priority |
-| 48 | `SessionDir` returns resolved path | open | low priority |
-| 49 | Benchmark fixture valid test | deferred | low priority |
-| 50 | Review `resultOrder` field | deferred | low priority |
+| #   | Item                                   | Status   | Commit / where                         |
+| --- | -------------------------------------- | -------- | -------------------------------------- |
+| 4   | Push to origin                         | done     | pushed                                 |
+| 5   | Audit judge/citymap `crush://`         | partial  | server audited; judge/citymap deferred |
+| 6   | `mindwalk analyze` end-to-end          | open     | TODO_LIST                              |
+| 7   | Boot web UI                            | open     | TODO_LIST                              |
+| 8   | Live sub-agent session                 | open     | TODO_LIST                              |
+| 9   | `crushDirFor` magic string             | open     | TODO_LIST-adjacent                     |
+| 10  | Cache `crush.db` reads                 | open     | TODO_LIST                              |
+| 11  | 100k-message stress test               | open     | ROADMAP                                |
+| 12  | Cross-check parser vs upstream         | open     | ROADMAP                                |
+| 13  | `provider_executed` flag               | open     | ROADMAP                                |
+| 14  | Cross-message collision test           | open     | same-message covered (`639cb7d`)       |
+| 15  | Generalise synthetic path              | deferred | ROADMAP non-goal                       |
+| 16  | Persist agent-graph cache              | open     | TODO_LIST                              |
+| 17  | `mindwalk doctor`                      | open     | TODO_LIST                              |
+| 18  | `mindwalk sessions` CLI                | open     | TODO_LIST                              |
+| 19  | Schema-coverage warning                | open     | TODO_LIST                              |
+| 20  | `title-<sessionID>` support            | won't-do | ROADMAP non-goal                       |
+| 21  | CI workflow                            | open     | TODO_LIST                              |
+| 22  | README mention                         | open     | TODO_LIST (`--host` in Quick Start)    |
+| 23  | `docs/crush.md` adapters section       | deferred | low priority                           |
+| 24  | Reduce test runtime                    | open     | TODO_LIST "Fix server test isolation"  |
+| 25  | `--crush-projects-file` flag           | won't-do | multi-DB shipped at `72f91e2`          |
+| 26  | Fix errcheck warnings                  | open     | TODO_LIST                              |
+| 27  | Frontend `/api/adapters` component     | open     | ROADMAP "Frontend observability"       |
+| 28  | Cwd extraction                         | done     | `72f91e2`                              |
+| 29  | Benchmark `BuildAgentGraph`            | open     | low priority                           |
+| 30  | Agent-graph cache invalidation test    | open     | low priority                           |
+| 31  | Audit `lookupProjectDataDir`           | deferred | low priority                           |
+| 32  | `crush sessions` CLI                   | dedup    | of #18                                 |
+| 33  | Verify codex adapter after ToolCallID  | open     | low priority                           |
+| 34  | `/api/adapters` SessionDir test        | open     | low priority                           |
+| 35  | Document synthetic fingerprint marker  | deferred | low priority                           |
+| 36  | `loadTraceAndMap` RepoRoot discussion  | deferred | low priority                           |
+| 37  | `/api/adapters` `--no-crush` e2e       | dedup    | of #3                                  |
+| 38  | Benchmark agent-graph build            | dedup    | of #29                                 |
+| 39  | Property test `SessionPath` round-trip | open     | ROADMAP (property tests)               |
+| 40  | Fingerprint by message count           | open     | low priority                           |
+| 41  | Update previous status report          | done     | this annotation pass                   |
+| 42  | flake.nix gofmt check                  | open     | low priority                           |
+| 43  | `sync.Once` crush adapter init         | dedup    | of #24 (test isolation)                |
+| 44  | Stable adapter order test              | open     | low priority                           |
+| 45  | Document `adapterInfo` shape           | deferred | low priority                           |
+| 46  | `/api/adapters` caching                | deferred | low priority                           |
+| 47  | `/api/health` endpoint                 | open     | low priority                           |
+| 48  | `SessionDir` returns resolved path     | open     | low priority                           |
+| 49  | Benchmark fixture valid test           | deferred | low priority                           |
+| 50  | Review `resultOrder` field             | deferred | low priority                           |

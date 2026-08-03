@@ -7,17 +7,17 @@
 
 ## a) FULLY DONE (9 of 20 tasks, verified green)
 
-| #  | Task                              | What was done                                                                                                                                  | Evidence                                                                                  |
-|----|-----------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------|
-| 1  | Fix `agents.go` multi-DB routing  | Extracted `allProjectDBs()` and `enumerateDBPaths()` helpers. All three methods in `agents.go` (`AgentGraphInputs`, `loadAgentChildren`, `readAgentLaunches`) now iterate every project database instead of calling `openReadOnly()` (single-DB). | `go test ./internal/adapter/crush/` passes; `go build ./...` clean                        |
-| 2  | Commit uncommitted judge-CLI docs | Working tree was already clean; commit `c9fe352` already landed the doc/UI mention.                                                            | `git status` clean                                                                        |
-| 3  | Regression tests for round-2 bugs | Added `TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths` and `TestLoadTraceAndMapDoesNotGarbageRootCrushPaths` to `server_test.go`.  | Both pass; covers the `crush://` path fingerprint and garbage-root bugs from `6c986d3`    |
-| 4  | Fix server test isolation         | Added `TestMain` in `main_test.go` that redirects `CRUSH_GLOBAL_DATA` and `XDG_DATA_HOME` to a temp dir. Fixed 6 analyze-test `Config{}` calls that were missing `CrushDir`/`PiDir`/`DisableCrush`. | `go test ./internal/server/` went from **79.8s → 0.28s** (280x speedup)                   |
-| 7  | `--host` flag for `open`/`map`    | Both commands now accept `--host` and pass it to `server.Config`. Usage strings updated.                                                        | `go build ./cmd/mindwalk` clean                                                           |
-| 9  | Fix errcheck warnings             | Fixed all errcheck warnings across `adapter.go` (`fmt.Sscanf`), `builder.go` (2x `f.Close`), `adapter_test.go` (2x `handle.Close`), `main.go` (`f.Close`). | LSP diagnostics show 0 errcheck warnings on changed files                                 |
-| 10 | Modernize Go idioms              | `b.Loop()` in fixture benchmarks, `slices.ContainsFunc` in sessions dedup, `min()` in server scan, `WaitGroup.Go` in server workers, `strings.Cut` in `summaryPath`, `range N` in test loop. | All tests pass                                                                            |
-| 15 | CI workflow                       | Already existed at `.github/workflows/ci.yml` — runs `go test ./...` + embedded frontend verification.                                          | File present, no changes needed                                                           |
-| 20 | `--host 0.0.0.0` in README        | Updated Quick Start command block and added a sentence about LAN access.                                                                       | README updated                                                                            |
+| #   | Task                              | What was done                                                                                                                                                                                                                                     | Evidence                                                                               |
+| --- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1   | Fix `agents.go` multi-DB routing  | Extracted `allProjectDBs()` and `enumerateDBPaths()` helpers. All three methods in `agents.go` (`AgentGraphInputs`, `loadAgentChildren`, `readAgentLaunches`) now iterate every project database instead of calling `openReadOnly()` (single-DB). | `go test ./internal/adapter/crush/` passes; `go build ./...` clean                     |
+| 2   | Commit uncommitted judge-CLI docs | Working tree was already clean; commit `c9fe352` already landed the doc/UI mention.                                                                                                                                                               | `git status` clean                                                                     |
+| 3   | Regression tests for round-2 bugs | Added `TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths` and `TestLoadTraceAndMapDoesNotGarbageRootCrushPaths` to `server_test.go`.                                                                                                      | Both pass; covers the `crush://` path fingerprint and garbage-root bugs from `6c986d3` |
+| 4   | Fix server test isolation         | Added `TestMain` in `main_test.go` that redirects `CRUSH_GLOBAL_DATA` and `XDG_DATA_HOME` to a temp dir. Fixed 6 analyze-test `Config{}` calls that were missing `CrushDir`/`PiDir`/`DisableCrush`.                                               | `go test ./internal/server/` went from **79.8s → 0.28s** (280x speedup)                |
+| 7   | `--host` flag for `open`/`map`    | Both commands now accept `--host` and pass it to `server.Config`. Usage strings updated.                                                                                                                                                          | `go build ./cmd/mindwalk` clean                                                        |
+| 9   | Fix errcheck warnings             | Fixed all errcheck warnings across `adapter.go` (`fmt.Sscanf`), `builder.go` (2x `f.Close`), `adapter_test.go` (2x `handle.Close`), `main.go` (`f.Close`).                                                                                        | LSP diagnostics show 0 errcheck warnings on changed files                              |
+| 10  | Modernize Go idioms               | `b.Loop()` in fixture benchmarks, `slices.ContainsFunc` in sessions dedup, `min()` in server scan, `WaitGroup.Go` in server workers, `strings.Cut` in `summaryPath`, `range N` in test loop.                                                      | All tests pass                                                                         |
+| 15  | CI workflow                       | Already existed at `.github/workflows/ci.yml` — runs `go test ./...` + embedded frontend verification.                                                                                                                                            | File present, no changes needed                                                        |
+| 20  | `--host 0.0.0.0` in README        | Updated Quick Start command block and added a sentence about LAN access.                                                                                                                                                                          | README updated                                                                         |
 
 ---
 
@@ -26,12 +26,14 @@
 ### Task 17: Make `sessionDBIndex` a field on `Adapter`
 
 **What's done:**
+
 - Added `dbIndex *sync.Map` field to `Adapter` struct in `adapter.go`
 - Added `NewAdapter(dir string) Adapter` constructor
 - Added `"sync"` import to `adapter.go`
 - Updated `sessions.go`: removed package-level `sessionDBIndex sync.Map`, updated `listAllProjectSessions` to use `a.dbIndex.Store()`, updated `openDBForPath` to use `a.dbIndex.Load()`
 
 **What's NOT done (CRITICAL):**
+
 - **`go build` has NOT been run since the last edit** — the code may not compile
 - `server.go:1227` `crushAdapter()` still constructs `crush.Adapter{}` / `crush.Adapter{Dir: explicit}` instead of `crush.NewAdapter(dir)` — so the server creates adapters with a nil `dbIndex`, which means multi-DB routing silently degrades to single-DB fallback in auto-discover mode
 - No test verifies that two `Adapter` instances have isolated indexes
@@ -44,18 +46,18 @@
 
 ## c) NOT STARTED (10 tasks)
 
-| #  | Task                                        | Notes                                                                 |
-|----|---------------------------------------------|-----------------------------------------------------------------------|
-| 5  | Add tests for multi-DB discovery            | `loadProjectDBs`, `listAllProjectSessions`, `openDBForPath`, `projectPathForDB` — 0 test coverage |
-| 6  | Verify web UI renders Crush sessions        | Requires browser; the `verify` skill exists but was not loaded        |
-| 8  | Enrich test fixture with file-touching calls | `testdata/crush/crush.db` has only an `agent` call; cannot exercise path normalization |
-| 11 | Cache `crush.db` reads across requests       | A long-lived server re-opens the DB per call                          |
-| 12 | Persist agent-graph cache to disk            | Keyed by `(session_key, fingerprint)`                                 |
-| 13 | `mindwalk doctor` subcommand                 | Print adapter status, session counts, data-dir paths                  |
-| 14 | `mindwalk sessions` CLI subcommand           | Print the rail without starting the server                            |
-| 16 | Schema coverage warning at startup           | Warn if Crush DB predates the read-files migration                    |
-| 18 | Frontend: warn on 0 targets + non-zero events | Surfaces misconfigured adapters in the UI                             |
-| 19 | Show session Cwd in HUD/inspector            | Lets users verify the adapter resolved the right root                 |
+| #   | Task                                          | Notes                                                                                             |
+| --- | --------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 5   | Add tests for multi-DB discovery              | `loadProjectDBs`, `listAllProjectSessions`, `openDBForPath`, `projectPathForDB` — 0 test coverage |
+| 6   | Verify web UI renders Crush sessions          | Requires browser; the `verify` skill exists but was not loaded                                    |
+| 8   | Enrich test fixture with file-touching calls  | `testdata/crush/crush.db` has only an `agent` call; cannot exercise path normalization            |
+| 11  | Cache `crush.db` reads across requests        | A long-lived server re-opens the DB per call                                                      |
+| 12  | Persist agent-graph cache to disk             | Keyed by `(session_key, fingerprint)`                                                             |
+| 13  | `mindwalk doctor` subcommand                  | Print adapter status, session counts, data-dir paths                                              |
+| 14  | `mindwalk sessions` CLI subcommand            | Print the rail without starting the server                                                        |
+| 16  | Schema coverage warning at startup            | Warn if Crush DB predates the read-files migration                                                |
+| 18  | Frontend: warn on 0 targets + non-zero events | Surfaces misconfigured adapters in the UI                                                         |
+| 19  | Show session Cwd in HUD/inspector             | Lets users verify the adapter resolved the right root                                             |
 
 ---
 

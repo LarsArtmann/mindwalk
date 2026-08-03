@@ -246,7 +246,7 @@ func TestRubricTaskEvidenceContract(t *testing.T) {
 	// covered by the task digest.
 	longMarks := func(text3 string) []model.Mark {
 		var marks []model.Mark
-		for i := 0; i < maxUserMessages+5; i++ {
+		for i := range maxUserMessages + 5 {
 			note := fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)
 			if i == 2 {
 				note = text3
@@ -290,7 +290,7 @@ func TestRubricTaskEvidenceContract(t *testing.T) {
 
 	// Past the task budget the message is truly absent — anchoring it fails.
 	var many []model.Mark
-	for i := 0; i < maxTaskMessages+3; i++ {
+	for i := range maxTaskMessages + 3 {
 		many = append(many, model.Mark{Seq: i, Type: "user-message", Note: fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)})
 	}
 	beyond := `{"tasks":[{"title":"锚到被裁掉的消息","type":"other","anchor_user_messages":[2],"criteria":[
@@ -452,14 +452,14 @@ func TestParseRubricBounds(t *testing.T) {
 
 	// Too many tasks / criteria in total.
 	var tasks []string
-	for i := 0; i < maxRubricTasks+1; i++ {
+	for i := range maxRubricTasks + 1 {
 		tasks = append(tasks, task(fmt.Sprintf("t%d", i), i+1, fmt.Sprintf("c-%d", i)))
 	}
 	if _, err := parseRubric(wrap(tasks...), rendered); err == nil {
 		t.Fatal("too many tasks: expected error")
 	}
 	var ids []string
-	for i := 0; i < maxCriteriaPerTask+1; i++ {
+	for i := range maxCriteriaPerTask + 1 {
 		ids = append(ids, fmt.Sprintf("c-%d", i))
 	}
 	if _, err := parseRubric(wrap(task("t", 1, ids...)), rendered); err == nil {
@@ -534,7 +534,7 @@ func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
 	longTrace := func(text3 string) *model.Trace {
 		trace := sampleTrace()
 		trace.Marks = nil
-		for i := 0; i < maxUserMessages+5; i++ {
+		for i := range maxUserMessages + 5 {
 			note := fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)
 			if i == 2 {
 				note = text3
@@ -574,7 +574,7 @@ func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
 	weakTrace := func(text3 string) *model.Trace {
 		trace := sampleTrace()
 		trace.Marks = nil
-		for i := 0; i < maxUserMessages+5; i++ {
+		for i := range maxUserMessages + 5 {
 			note := "好"
 			if i == 2 {
 				note = text3

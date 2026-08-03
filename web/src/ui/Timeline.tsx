@@ -1,4 +1,13 @@
-import { Ellipsis, Loader, Pause, Play, RotateCcw, StepBack, StepForward, Video } from "lucide-react";
+import {
+  Ellipsis,
+  Loader,
+  Pause,
+  Play,
+  RotateCcw,
+  StepBack,
+  StepForward,
+  Video,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Action, Mark, Trace, TraceEvent } from "../types";
 
@@ -36,7 +45,7 @@ const MARK_SLOTS = 220;
 const MARK_LABEL: Record<Mark["type"], string> = {
   compaction: "context compaction",
   "user-message": "user message",
-  subagent: "subagent"
+  subagent: "subagent",
 };
 
 const STRIP_ACTIONS: Action[] = ["search", "read", "edit", "verify", "exec"];
@@ -47,7 +56,7 @@ export function Timeline({
   onChange,
   onSubagentMark,
   onExport,
-  exporting = false
+  exporting = false,
 }: TimelineProps) {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<Speed>(1);
@@ -104,7 +113,7 @@ export function Timeline({
     (delta: number) => {
       onChange(Math.min(maxRef.current, Math.max(0, seqRef.current + delta)));
     },
-    [onChange]
+    [onChange],
   );
 
   const jumpEvent = useCallback(
@@ -117,21 +126,24 @@ export function Timeline({
         }
       }
     },
-    [trace, onChange]
+    [trace, onChange],
   );
 
   const markSeqs = useMemo(() => {
-    const clamped = (trace?.marks ?? []).map((mark) => Math.min(mark.seq, Math.max(0, (trace?.events.length ?? 1) - 1)));
+    const clamped = (trace?.marks ?? []).map((mark) =>
+      Math.min(mark.seq, Math.max(0, (trace?.events.length ?? 1) - 1)),
+    );
     return [...new Set(clamped)].sort((a, b) => a - b);
   }, [trace]);
 
   const jumpMark = useCallback(
     (dir: 1 | -1) => {
       const cur = seqRef.current;
-      const next = dir === 1 ? markSeqs.find((s) => s > cur) : [...markSeqs].reverse().find((s) => s < cur);
+      const next =
+        dir === 1 ? markSeqs.find((s) => s > cur) : [...markSeqs].reverse().find((s) => s < cur);
       if (next !== undefined) onChange(next);
     },
-    [markSeqs, onChange]
+    [markSeqs, onChange],
   );
 
   // playback shortcuts; scene and rail keep their own (⌘B lives in App).
@@ -287,7 +299,11 @@ export function Timeline({
             ))}
           </div>
           {total > 0 ? (
-            <div className="strip-playhead" style={{ left: `${(seq / Math.max(max, 1)) * 100}%` }} aria-hidden />
+            <div
+              className="strip-playhead"
+              style={{ left: `${(seq / Math.max(max, 1)) * 100}%` }}
+              aria-hidden
+            />
           ) : null}
           <input
             className="strip-input"
@@ -305,7 +321,10 @@ export function Timeline({
         <div className="deck-pos">
           {/* reserve the widest count for this session ("599 / 599") so the
               ticking digits never resize the strip beside them */}
-          <span className="deck-pos-count" style={{ minWidth: `${String(Math.max(total, 1)).length * 2 + 3}ch` }}>
+          <span
+            className="deck-pos-count"
+            style={{ minWidth: `${String(Math.max(total, 1)).length * 2 + 3}ch` }}
+          >
             {total > 0 ? `${seq + 1} / ${total}` : "0 / 0"}
           </span>
           <span className="deck-pos-clock">{event?.ts ? clock(event.ts) : "—"}</span>
@@ -418,7 +437,9 @@ export function Timeline({
             </>
           ) : (
             <span className="readout-summary">
-              {trace ? "No recorded activity for this agent." : "Select a session to start the walk."}
+              {trace
+                ? "No recorded activity for this agent."
+                : "Select a session to start the walk."}
             </span>
           )}
         </div>
@@ -454,5 +475,7 @@ export function Timeline({
 function clock(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
 }

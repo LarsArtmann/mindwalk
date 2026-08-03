@@ -41,7 +41,15 @@ interface Node {
 }
 
 export function computeTreeLayout(files: CityFile[]): TreeLayout {
-  const root: Node = { name: "", path: "", depth: 0, children: new Map(), files: [], leafCount: 0, angle: 0 };
+  const root: Node = {
+    name: "",
+    path: "",
+    depth: 0,
+    children: new Map(),
+    files: [],
+    leafCount: 0,
+    angle: 0,
+  };
   const sorted = [...files].sort((a, b) => (a.path < b.path ? -1 : 1));
   for (const file of sorted) {
     const parts = file.path.split("/").filter(Boolean);
@@ -56,7 +64,7 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
           children: new Map(),
           files: [],
           leafCount: 0,
-          angle: 0
+          angle: 0,
         };
         node.children.set(part, next);
       }
@@ -84,7 +92,12 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
   const layout: TreeLayout = { radius, leaf: new Map(), dirs: [], edges: [] };
   const polar = (r: number, angle: number) => ({ x: r * Math.cos(angle), z: r * Math.sin(angle) });
 
-  const sampleEdge = (r1: number, a1: number, r2: number, a2: number): { x: number; z: number }[] => {
+  const sampleEdge = (
+    r1: number,
+    a1: number,
+    r2: number,
+    a2: number,
+  ): { x: number; z: number }[] => {
     // straight spokes out of the root, eased sweeps between rings
     const from = r1 < 1e-6 ? a2 : a1;
     let delta = a2 - from;
@@ -115,7 +128,7 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
       layout.leaf.set(file.id, pos);
       layout.edges.push({
         childFileId: file.id,
-        points: sampleEdge(node.depth * step, node.angle, (node.depth + 1) * step, angle)
+        points: sampleEdge(node.depth * step, node.angle, (node.depth + 1) * step, angle),
       });
     }
     if (node.path !== "") {
@@ -127,7 +140,7 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
         z: pos.z,
         depth: node.depth,
         fileCount: node.leafCount,
-        radius: 0
+        radius: 0,
       });
     }
   };
@@ -146,7 +159,7 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
     const parent = nodeByPath.get(parentPath)!;
     layout.edges.push({
       childPath: dir.path,
-      points: sampleEdge(parent.depth * step, parent.angle, node.depth * step, node.angle)
+      points: sampleEdge(parent.depth * step, parent.angle, node.depth * step, node.angle),
     });
   }
 

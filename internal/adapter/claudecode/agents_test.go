@@ -51,7 +51,7 @@ func TestClaudeAgentGraphExactUsesToolUseIDForImmediateParent(t *testing.T) {
 		Label:              "Child",
 		Role:               "Explore",
 		InstructionPreview: "inspect the code",
-		LaunchSeq:          intPointer(1),
+		LaunchSeq:          new(1),
 		LaunchCallID:       "call-child",
 		Status:             model.AgentStatusLaunched,
 		TraceAvailability:  model.TraceAvailabilityAvailable,
@@ -68,7 +68,7 @@ func TestClaudeAgentGraphExactUsesToolUseIDForImmediateParent(t *testing.T) {
 		Label:              "Grandchild",
 		Role:               "Plan",
 		InstructionPreview: "plan the fix",
-		LaunchSeq:          intPointer(0),
+		LaunchSeq:          new(0),
 		LaunchCallID:       "call-grand",
 		Status:             model.AgentStatusLaunched,
 		TraceAvailability:  model.TraceAvailabilityAvailable,
@@ -148,7 +148,7 @@ func TestClaudeAgentGraphMetadataOnlyChildIsMissing(t *testing.T) {
 		Label:              "Missing",
 		Role:               "Explore",
 		InstructionPreview: "find the missing trace",
-		LaunchSeq:          intPointer(0),
+		LaunchSeq:          new(0),
 		LaunchCallID:       "call-missing",
 		Status:             model.AgentStatusLaunched,
 		TraceAvailability:  model.TraceAvailabilityMissing,
@@ -189,7 +189,7 @@ func TestClaudeAgentGraphErrorResultIsFailed(t *testing.T) {
 		Label:              "Failed launch",
 		Role:               "Plan",
 		InstructionPreview: "try it",
-		LaunchSeq:          intPointer(0),
+		LaunchSeq:          new(0),
 		LaunchCallID:       "call-failed",
 		Status:             model.AgentStatusFailed,
 		TraceAvailability:  model.TraceAvailabilityUnavailable,
@@ -475,6 +475,7 @@ func claudeAgentID(root model.SessionMeta, identity string) string {
 	return baseadapter.AgentNodeID((Adapter{}).Harness(), root.Key, identity)
 }
 
+//go:fix inline
 func intPointer(value int) *int {
-	return &value
+	return new(value)
 }

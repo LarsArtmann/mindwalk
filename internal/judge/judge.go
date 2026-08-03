@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -66,7 +67,7 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 	}
 
 	var lastErr error
-	for attempt := 0; attempt < 2; attempt++ {
+	for range 2 {
 		result, err := runner.Run(ctx, sysPrompt, scoringInput)
 		if err != nil {
 			return nil, err
@@ -335,12 +336,7 @@ func rollupSeverities(findings []model.ReportFinding) string {
 }
 
 func knownDimension(name string) bool {
-	for _, known := range model.DimensionNames {
-		if name == known {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(model.DimensionNames, name)
 }
 
 // normalizeSeverity forgives casing and whitespace but nothing else: an

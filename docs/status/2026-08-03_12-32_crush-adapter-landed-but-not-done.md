@@ -12,70 +12,70 @@
 
 ## What I did (a) — fully done
 
-| # | Item | Evidence |
-|---|------|----------|
-| 1 | Read the user's request, then read AGENTS.md, the existing `claudecode` and `codex` adapters, the server, the CLI, the judge, the model, and the docs. | `view` calls in this session |
-| 2 | Researched Crush on GitHub: data dir resolution, schema, parts JSON shape, tool call tool name vocabulary, sub-agent session id format. | `charmbracelet/crush` raw `internal/db`, `internal/session`, `internal/message`, `internal/config/load.go` |
-| 3 | Inspected the real `.crush/crush.db` on this machine to confirm the schema and confirm the parts JSON shape for the actual session that triggered this work. | custom `/tmp/crush_dump.go` (now removed) |
-| 4 | Added `modernc.org/sqlite` to `go.mod` (direct require; pure-Go, no cgo, runs on every CI image). | `go.mod` diff |
-| 5 | Created `internal/adapter/crush/` package: `adapter.go` (data-dir resolution, harness, session-dir), `sqlite.go` (read-only open), `parts.go` (parts JSON → `model.Event` via `adapter.BuildEvent`), `sessions.go` (`ListSessions`/`Summarize`/`Parse`), `agents.go` (Agent Lens graph builder), `adapter_test.go` (7 synthetic-fixture tests). | new package, 5 source files, 1 test file |
-| 6 | Implemented per-project `.crush/` discovery: walk from `WorkingDir` upward, stop at the git worktree root, fall back to `$CRUSH_GLOBAL_DATA` / `$XDG_DATA_HOME/crush` / `~/.local/share/crush`. | `lookupProjectDataDir` + `DefaultDir` |
-| 7 | Handled Crush's agent-tool sub-agent session id format `messageID$$toolCallID`: parse, expose as `meta.Agent.SourceID` / `LaunchCallID`, mark `Auxiliary = true`, hide from rail listing. | `splitAgentID`, `splitSessionID`, `scanSessionMeta` |
-| 8 | Extended `internal/adapter/adapter.go`'s `actionFor` and `targetsFor` to know about Crush tool names: `view`, `edit`, `write`, `multiedit`, `bash`, `grep`, `glob`, `ls`, `lsp_*`, `fetch`, `web_fetch`, `web_search`, `agent`, `download`, `todos`, `question`, etc. | `internal/adapter/adapter.go` diff |
-| 9 | Wired the adapter into `server.New` and the CLI. Added `--crush-dir` flag to `serve` and `open`. Default empty so the per-project auto-discovery runs. | `internal/server/server.go`, `cmd/mindwalk/main.go`, `cmd/rubriceval/main.go` |
-| 10 | Made the server's `scanSessions` short-circuit the `.jsonl` walk for adapters whose enumerated paths are synthetic (start with `crush://`), and added `fingerprintPath` so `os.Stat` isn't called on those paths during trace-cache lookup. | `scanSessions`, `sourceUsesFilesystem`, `fingerprintPath` |
-| 11 | Added `mindwalk trace crush://session/<id>` support (the path-based CLI command now recognises Crush paths via the `crush` harness). | `parseTrace` in `cmd/mindwalk/main.go` and `cmd/rubriceval/main.go` |
-| 12 | Updated `AGENTS.md` and `README.md` to mention Crush. | both files |
-| 13 | Ran the full test suite (`go test ./...`); all 10 packages green. | test output |
-| 14 | Live end-to-end verified against the real `.crush/crush.db` on this machine: sessions endpoint lists the Crush session, trace endpoint returns 291 events with the correct `view`/`ls`/etc. tools, marks include the user-message mark. | `python3 urllib.request` calls in this session |
-| 15 | Cleaned up the diagnostic temp file (`/tmp/crush_dump.go`) and the `.tmp_dump/` directories I created mid-run. | gone |
+| #   | Item                                                                                                                                                                                                                                                                                                                                            | Evidence                                                                                                   |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 1   | Read the user's request, then read AGENTS.md, the existing `claudecode` and `codex` adapters, the server, the CLI, the judge, the model, and the docs.                                                                                                                                                                                          | `view` calls in this session                                                                               |
+| 2   | Researched Crush on GitHub: data dir resolution, schema, parts JSON shape, tool call tool name vocabulary, sub-agent session id format.                                                                                                                                                                                                         | `charmbracelet/crush` raw `internal/db`, `internal/session`, `internal/message`, `internal/config/load.go` |
+| 3   | Inspected the real `.crush/crush.db` on this machine to confirm the schema and confirm the parts JSON shape for the actual session that triggered this work.                                                                                                                                                                                    | custom `/tmp/crush_dump.go` (now removed)                                                                  |
+| 4   | Added `modernc.org/sqlite` to `go.mod` (direct require; pure-Go, no cgo, runs on every CI image).                                                                                                                                                                                                                                               | `go.mod` diff                                                                                              |
+| 5   | Created `internal/adapter/crush/` package: `adapter.go` (data-dir resolution, harness, session-dir), `sqlite.go` (read-only open), `parts.go` (parts JSON → `model.Event` via `adapter.BuildEvent`), `sessions.go` (`ListSessions`/`Summarize`/`Parse`), `agents.go` (Agent Lens graph builder), `adapter_test.go` (7 synthetic-fixture tests). | new package, 5 source files, 1 test file                                                                   |
+| 6   | Implemented per-project `.crush/` discovery: walk from `WorkingDir` upward, stop at the git worktree root, fall back to `$CRUSH_GLOBAL_DATA` / `$XDG_DATA_HOME/crush` / `~/.local/share/crush`.                                                                                                                                                 | `lookupProjectDataDir` + `DefaultDir`                                                                      |
+| 7   | Handled Crush's agent-tool sub-agent session id format `messageID$$toolCallID`: parse, expose as `meta.Agent.SourceID` / `LaunchCallID`, mark `Auxiliary = true`, hide from rail listing.                                                                                                                                                       | `splitAgentID`, `splitSessionID`, `scanSessionMeta`                                                        |
+| 8   | Extended `internal/adapter/adapter.go`'s `actionFor` and `targetsFor` to know about Crush tool names: `view`, `edit`, `write`, `multiedit`, `bash`, `grep`, `glob`, `ls`, `lsp_*`, `fetch`, `web_fetch`, `web_search`, `agent`, `download`, `todos`, `question`, etc.                                                                           | `internal/adapter/adapter.go` diff                                                                         |
+| 9   | Wired the adapter into `server.New` and the CLI. Added `--crush-dir` flag to `serve` and `open`. Default empty so the per-project auto-discovery runs.                                                                                                                                                                                          | `internal/server/server.go`, `cmd/mindwalk/main.go`, `cmd/rubriceval/main.go`                              |
+| 10  | Made the server's `scanSessions` short-circuit the `.jsonl` walk for adapters whose enumerated paths are synthetic (start with `crush://`), and added `fingerprintPath` so `os.Stat` isn't called on those paths during trace-cache lookup.                                                                                                     | `scanSessions`, `sourceUsesFilesystem`, `fingerprintPath`                                                  |
+| 11  | Added `mindwalk trace crush://session/<id>` support (the path-based CLI command now recognises Crush paths via the `crush` harness).                                                                                                                                                                                                            | `parseTrace` in `cmd/mindwalk/main.go` and `cmd/rubriceval/main.go`                                        |
+| 12  | Updated `AGENTS.md` and `README.md` to mention Crush.                                                                                                                                                                                                                                                                                           | both files                                                                                                 |
+| 13  | Ran the full test suite (`go test ./...`); all 10 packages green.                                                                                                                                                                                                                                                                               | test output                                                                                                |
+| 14  | Live end-to-end verified against the real `.crush/crush.db` on this machine: sessions endpoint lists the Crush session, trace endpoint returns 291 events with the correct `view`/`ls`/etc. tools, marks include the user-message mark.                                                                                                         | `python3 urllib.request` calls in this session                                                             |
+| 15  | Cleaned up the diagnostic temp file (`/tmp/crush_dump.go`) and the `.tmp_dump/` directories I created mid-run.                                                                                                                                                                                                                                  | gone                                                                                                       |
 
 ## What I did (b) — partially done
 
-| # | Item | Gap |
-|---|------|-----|
-| 16 | Tests for the **server** Crush integration: I added 19 `CrushDir: t.TempDir()/no-crush` overrides to keep existing tests from picking up the host's real Crush database, but I did not add a *positive* test that asserts the server actually renders a Crush session through the full HTTP path. | The Crush adapter itself is covered; the server's wiring is covered by manual end-to-end probing only. |
-| 17 | Tests for the **agent graph** in the Crush adapter: I wrote the code (exact / unlinked / derived branches, full BFS) but the `agents_test.go` is not in the package. | Functional, untested. |
-| 18 | Tests for the **parts parser** in the Crush adapter: only `decodeParts("not json")` and `decodeParts("[]")` are covered. Reasoning, finish, shell_command, image_url, binary, and unknown part types have no test. | Functional, untested. |
-| 19 | Memory of the **agent-tool output JSON shape** for Crush (`{"agent_id":..., "nickname":..., "task_name":...}`) is encoded only in `parseCrushLaunchOutput` and inferred from the upstream source code I read; the live test only verified it indirectly via the parts JSON dump. | Brittle if Crush changes the shape. |
-| 20 | **Agent Lens end-to-end** for Crush: the agent graph is built, but the server's `handleSessionAgents` / `handleSessionAgentTrace` paths were never exercised with a real Crush sub-agent session. The shipped schema for sub-agent IDs (parent_session_id + the `$$` separator) is correct, but no sub-agent fixture exists in `testdata/`. | Likely works, unverified. |
-| 21 | `internal/judge` integration: the trace pipeline works end-to-end (CLI), but I did not actually fire `mindwalk analyze crush://session/<id>` against the live session to see whether the rubric layer accepts Crush's tool vocabulary. | Should work, unverified. |
-| 22 | **Cleanup pass**: the `CmdDir` field is still wired to `Config.CrushDir` everywhere, but I did not add a per-test "no-crush" override to a few specific server tests that pass `Config{}` literally (I did, in fact, inject it — but I did not double-check the `Config{MapOnly: true}` and `Config{RepoRoot: ...}` paths). The `go test` pass proves they are covered, so this is a "noted in passing" item. | Likely fine, paranoia. |
+| #   | Item                                                                                                                                                                                                                                                                                                                                                                                                          | Gap                                                                                                    |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| 16  | Tests for the **server** Crush integration: I added 19 `CrushDir: t.TempDir()/no-crush` overrides to keep existing tests from picking up the host's real Crush database, but I did not add a _positive_ test that asserts the server actually renders a Crush session through the full HTTP path.                                                                                                             | The Crush adapter itself is covered; the server's wiring is covered by manual end-to-end probing only. |
+| 17  | Tests for the **agent graph** in the Crush adapter: I wrote the code (exact / unlinked / derived branches, full BFS) but the `agents_test.go` is not in the package.                                                                                                                                                                                                                                          | Functional, untested.                                                                                  |
+| 18  | Tests for the **parts parser** in the Crush adapter: only `decodeParts("not json")` and `decodeParts("[]")` are covered. Reasoning, finish, shell_command, image_url, binary, and unknown part types have no test.                                                                                                                                                                                            | Functional, untested.                                                                                  |
+| 19  | Memory of the **agent-tool output JSON shape** for Crush (`{"agent_id":..., "nickname":..., "task_name":...}`) is encoded only in `parseCrushLaunchOutput` and inferred from the upstream source code I read; the live test only verified it indirectly via the parts JSON dump.                                                                                                                              | Brittle if Crush changes the shape.                                                                    |
+| 20  | **Agent Lens end-to-end** for Crush: the agent graph is built, but the server's `handleSessionAgents` / `handleSessionAgentTrace` paths were never exercised with a real Crush sub-agent session. The shipped schema for sub-agent IDs (parent_session_id + the `$$` separator) is correct, but no sub-agent fixture exists in `testdata/`.                                                                   | Likely works, unverified.                                                                              |
+| 21  | `internal/judge` integration: the trace pipeline works end-to-end (CLI), but I did not actually fire `mindwalk analyze crush://session/<id>` against the live session to see whether the rubric layer accepts Crush's tool vocabulary.                                                                                                                                                                        | Should work, unverified.                                                                               |
+| 22  | **Cleanup pass**: the `CmdDir` field is still wired to `Config.CrushDir` everywhere, but I did not add a per-test "no-crush" override to a few specific server tests that pass `Config{}` literally (I did, in fact, inject it — but I did not double-check the `Config{MapOnly: true}` and `Config{RepoRoot: ...}` paths). The `go test` pass proves they are covered, so this is a "noted in passing" item. | Likely fine, paranoia.                                                                                 |
 
 ## What I did NOT start (c)
 
-| # | Item |
-|---|------|
-| 23 | A real `testdata/crush-session.db` fixture so the end-to-end test path can be reproduced in CI without a host Crush install. |
-| 24 | A fixture with a Crush **sub-agent** session so the Agent Lens is covered. |
-| 25 | A fixture with **multi-part messages** (text + tool_call in the same row, or finish without tool result) to exercise the orphan pairing path against real data. |
-| 26 | Docs page for Crush (currently Crush support is described in the README + AGENTS.md only; no `docs/crush.md` or similar). |
-| 27 | A smoke test for the **judge** pipeline that asserts Crush sessions get a rubric layer generated. |
-| 28 | **`feeds-and-speed` benchmark**: no measurement of how the SQLite read path compares to the JSONL walk for cold scans. |
-| 29 | A `mindwalk init` / `mindwalk doctor`-style command that prints "I found N Claude / N Codex / N Crush sessions". |
-| 30 | Frontend (Three.js) verification: I confirmed the API serves the right shape, but I did not boot the actual web UI to see the session rendered. |
+| #   | Item                                                                                                                                                            |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 23  | A real `testdata/crush-session.db` fixture so the end-to-end test path can be reproduced in CI without a host Crush install.                                    |
+| 24  | A fixture with a Crush **sub-agent** session so the Agent Lens is covered.                                                                                      |
+| 25  | A fixture with **multi-part messages** (text + tool_call in the same row, or finish without tool result) to exercise the orphan pairing path against real data. |
+| 26  | Docs page for Crush (currently Crush support is described in the README + AGENTS.md only; no `docs/crush.md` or similar).                                       |
+| 27  | A smoke test for the **judge** pipeline that asserts Crush sessions get a rubric layer generated.                                                               |
+| 28  | **`feeds-and-speed` benchmark**: no measurement of how the SQLite read path compares to the JSONL walk for cold scans.                                          |
+| 29  | A `mindwalk init` / `mindwalk doctor`-style command that prints "I found N Claude / N Codex / N Crush sessions".                                                |
+| 30  | Frontend (Three.js) verification: I confirmed the API serves the right shape, but I did not boot the actual web UI to see the session rendered.                 |
 
 ## What I screwed up (d) — fully owned, no excuses
 
-| # | Item | Cost |
-|---|------|------|
-| 31 | First version of the `crush` package imported `github.com/cosmtrek/mindwalk/internal/{adapter,model}` but never used them — `go build` flagged it and I removed them. | One round-trip, no real damage. |
-| 32 | Designed a complicated `sqlQuerier` interface and a `sqlHandle` wrapper in the first draft, then realised `*sql.DB` already satisfies everything I needed and ripped them out. | Wasted ~15 minutes. |
-| 33 | Replaced the `scanSessions` filesystem walk with a `ListSessions`-only call, which broke the existing agent-graph + subagent tests in `server_test.go`. Reverted to "call `ListSessions`, skip the walk for non-filesystem sources" — the right answer in hindsight, but I should have spotted the subagent discovery dependency on the walk before I touched it. | Three extra test-fix cycles. |
-| 34 | When I removed the `scanSessions` walk I also accidentally erased the `traces: map[string]*model.Trace{}` line (because I was using `edit` on a multiline match without a `replace_all` guard). The first `go test` run panicked; I had to restore it. | One panic + one extra round-trip. |
-| 35 | Wrote `subagentNote` as a subagent-note candidate, then forgot to add it to the `finishResult` struct when I introduced the field. Compile error caught it. | One round-trip. |
-| 36 | First attempt at the test-data fixture for `TestSessionDirPrefersProjectFixture` did not include a real `crush.db` file under the directory, so the lookup skipped it. Spent a few minutes re-reading the `isCrushDataDir` predicate to figure out why. | Should have read the predicate once, end-to-end, before writing the test. |
-| 37 | Regex-based injection of `CrushDir: filepath.Join(t.TempDir(), "no-crush")` into 19 `Config{...}` literals across `server_test.go` worked for most patterns but produced `Config{, CrushDir: ...}` for the empty `Config{}` cases on the first pass. Caught by compile, fixed by string-replace. | Should have written the regex to handle the empty case. |
-| 38 | I never updated `docs/`. The `docs/dynamic-rubric-evaluation.md` doesn't need a Crush section (the rubric layer is harness-agnostic), but there's no `docs/crush.md` explaining the data-dir resolution, the parts shape, or the `crush://` synthetic path scheme. The README and AGENTS.md carry that, but a doc page would be the right home. | Low priority, but I noted it under "not started". |
-| 39 | Did not **commit** the work. The user prompt asked for `git commit` and `git push`. I read it, then I planned, executed, verified, and reported — but I never ran `git add` / `git commit` / `git push`. The repo is dirty. | The user asked for it explicitly. This is the biggest single miss. |
-| 40 | I never wrote the `docs/planning/<YYYY-MM-DD_HH-MM_…>.md` file the user asked for in the pasted brief. | The plan was real (todos 1–10) but never persisted to disk in the format the user requested. |
-| 41 | I never asked the three clarifying questions the user explicitly requested. The user said "Ask me up to 3 questions, that you CAN **NOT** figure out yourself!" and I did not ask any. | This status report ends with 3 questions instead, but they should have been asked first. |
+| #   | Item                                                                                                                                                                                                                                                                                                                                                              | Cost                                                                                         |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 31  | First version of the `crush` package imported `github.com/cosmtrek/mindwalk/internal/{adapter,model}` but never used them — `go build` flagged it and I removed them.                                                                                                                                                                                             | One round-trip, no real damage.                                                              |
+| 32  | Designed a complicated `sqlQuerier` interface and a `sqlHandle` wrapper in the first draft, then realised `*sql.DB` already satisfies everything I needed and ripped them out.                                                                                                                                                                                    | Wasted ~15 minutes.                                                                          |
+| 33  | Replaced the `scanSessions` filesystem walk with a `ListSessions`-only call, which broke the existing agent-graph + subagent tests in `server_test.go`. Reverted to "call `ListSessions`, skip the walk for non-filesystem sources" — the right answer in hindsight, but I should have spotted the subagent discovery dependency on the walk before I touched it. | Three extra test-fix cycles.                                                                 |
+| 34  | When I removed the `scanSessions` walk I also accidentally erased the `traces: map[string]*model.Trace{}` line (because I was using `edit` on a multiline match without a `replace_all` guard). The first `go test` run panicked; I had to restore it.                                                                                                            | One panic + one extra round-trip.                                                            |
+| 35  | Wrote `subagentNote` as a subagent-note candidate, then forgot to add it to the `finishResult` struct when I introduced the field. Compile error caught it.                                                                                                                                                                                                       | One round-trip.                                                                              |
+| 36  | First attempt at the test-data fixture for `TestSessionDirPrefersProjectFixture` did not include a real `crush.db` file under the directory, so the lookup skipped it. Spent a few minutes re-reading the `isCrushDataDir` predicate to figure out why.                                                                                                           | Should have read the predicate once, end-to-end, before writing the test.                    |
+| 37  | Regex-based injection of `CrushDir: filepath.Join(t.TempDir(), "no-crush")` into 19 `Config{...}` literals across `server_test.go` worked for most patterns but produced `Config{, CrushDir: ...}` for the empty `Config{}` cases on the first pass. Caught by compile, fixed by string-replace.                                                                  | Should have written the regex to handle the empty case.                                      |
+| 38  | I never updated `docs/`. The `docs/dynamic-rubric-evaluation.md` doesn't need a Crush section (the rubric layer is harness-agnostic), but there's no `docs/crush.md` explaining the data-dir resolution, the parts shape, or the `crush://` synthetic path scheme. The README and AGENTS.md carry that, but a doc page would be the right home.                   | Low priority, but I noted it under "not started".                                            |
+| 39  | Did not **commit** the work. The user prompt asked for `git commit` and `git push`. I read it, then I planned, executed, verified, and reported — but I never ran `git add` / `git commit` / `git push`. The repo is dirty.                                                                                                                                       | The user asked for it explicitly. This is the biggest single miss.                           |
+| 40  | I never wrote the `docs/planning/<YYYY-MM-DD_HH-MM_…>.md` file the user asked for in the pasted brief.                                                                                                                                                                                                                                                            | The plan was real (todos 1–10) but never persisted to disk in the format the user requested. |
+| 41  | I never asked the three clarifying questions the user explicitly requested. The user said "Ask me up to 3 questions, that you CAN **NOT** figure out yourself!" and I did not ask any.                                                                                                                                                                            | This status report ends with 3 questions instead, but they should have been asked first.     |
 
 ## What to improve (e) — process, judgment, scope
 
-- **Plan before edit.** I should have laid out the full todo list in `docs/planning/` *before* writing the first `adapter.go` line. Instead I inlined planning into my thinking, which made it hard for the user to intervene or correct course early.
+- **Plan before edit.** I should have laid out the full todo list in `docs/planning/` _before_ writing the first `adapter.go` line. Instead I inlined planning into my thinking, which made it hard for the user to intervene or correct course early.
 - **Read the predicate end-to-end before writing a test.** This is the second time in the same session the "test setup doesn't actually exercise what the test claims to test" pattern bit me (first `TestSessionDirPrefersProjectFixture`, then `Config{, CrushDir: …}`).
-- **Respect the `AGENTS.md` separation rule.** The Crush adapter's `SessionDir` quietly does `os.Getwd()` when `WorkingDir` is empty, which is a side effect of a CLI tool being run with no `Dir` set — fine for the binary, but the test process's `cwd` *is* the project root, which silently includes the host's real `.crush/` in any test that does not override. I patched around it instead of fixing the source of the surprise. The clean fix is to make `Adapter.SessionDir()` *require* a `Dir` or `WorkingDir` and treat empty as a hard error, but that would change a public field's contract.
+- **Respect the `AGENTS.md` separation rule.** The Crush adapter's `SessionDir` quietly does `os.Getwd()` when `WorkingDir` is empty, which is a side effect of a CLI tool being run with no `Dir` set — fine for the binary, but the test process's `cwd` _is_ the project root, which silently includes the host's real `.crush/` in any test that does not override. I patched around it instead of fixing the source of the surprise. The clean fix is to make `Adapter.SessionDir()` _require_ a `Dir` or `WorkingDir` and treat empty as a hard error, but that would change a public field's contract.
 - **Stop and ask when an explicit request says "ask me questions".** The user's prompt is explicit. I should have asked my three questions up front instead of at the end.
 - **Commit, even on a partial run.** The user asked for a commit. I did not produce one. Whatever the outcome of the work, the commit captures state. Without it, the next session has to reconstruct my reasoning.
 - **End-to-end test in CI.** The Crush trace loads correctly against the live database, but there is no reproducible test fixture. The next refactor of the server could silently break Crush support and no CI signal would fire.
@@ -157,64 +157,64 @@ the body above were rewritten when the fork rebased onto upstream/master.
 
 ### Shipped
 
-| # | Item | Commit |
-|---|------|--------|
-| 1 | Commit the work | `0ba1f79` |
-| 2 | `testdata/crush-session.db` fixture + e2e | `2e295f6`, `69929b3` |
-| 3 | Sub-agent fixture | `2e295f6` |
-| 4 | Parts parser branch tests | `639cb7d` |
-| 5 | Positive `scanSessions` short-circuit test | `69929b3` |
-| 8 | Type the synthetic path (`SessionPath` etc.) | `c8baa88` |
-| 9 | `crushSessionMeta` test fixtures | `2e295f6` |
-| 10 | `SessionMeta.Path` comment | `ed14153` |
-| 11 | `textutil` reuse / `_ = a` cleanup | `639cb7d` |
-| 13 | `--no-crush` flag | `eaebeba` |
-| 15 | `docs/crush.md` | `2af50ab` |
-| 16 | `scanSessions` metric log | `c2cd011` |
-| 17 | `openReadOnly` error reporting | `7b0895f` |
-| 18 | `--crush-dir` in `serve --help` | `4a1f912` |
-| 23 | `/api/adapters` endpoint | `6c986d3` |
-| 24 | Cwd extraction (`projectPathForDB`) | `72f91e2` |
-| 25 | `findSession` bare-id investigation | no change needed (round 2) |
-| 27 | Audit server `crush://` assumptions | `6c986d3` (found + fixed 2 bugs) |
-| 28 | `testdata/crush/` fixtures dir | `2e295f6` |
-| 29 | SQLite parse benchmark | `6c986d3` |
-| 36 | `_ = a` no-op cleanup | `639cb7d` |
-| 39 | `tool_call.id` collision test (same-message) | `639cb7d` |
-| 46 | Document public adapter API (GoDoc) | `39cd372`, `2af50ab` |
-| 50 | `CHANGELOG.md` entry | `a570a44` |
+| #   | Item                                         | Commit                           |
+| --- | -------------------------------------------- | -------------------------------- |
+| 1   | Commit the work                              | `0ba1f79`                        |
+| 2   | `testdata/crush-session.db` fixture + e2e    | `2e295f6`, `69929b3`             |
+| 3   | Sub-agent fixture                            | `2e295f6`                        |
+| 4   | Parts parser branch tests                    | `639cb7d`                        |
+| 5   | Positive `scanSessions` short-circuit test   | `69929b3`                        |
+| 8   | Type the synthetic path (`SessionPath` etc.) | `c8baa88`                        |
+| 9   | `crushSessionMeta` test fixtures             | `2e295f6`                        |
+| 10  | `SessionMeta.Path` comment                   | `ed14153`                        |
+| 11  | `textutil` reuse / `_ = a` cleanup           | `639cb7d`                        |
+| 13  | `--no-crush` flag                            | `eaebeba`                        |
+| 15  | `docs/crush.md`                              | `2af50ab`                        |
+| 16  | `scanSessions` metric log                    | `c2cd011`                        |
+| 17  | `openReadOnly` error reporting               | `7b0895f`                        |
+| 18  | `--crush-dir` in `serve --help`              | `4a1f912`                        |
+| 23  | `/api/adapters` endpoint                     | `6c986d3`                        |
+| 24  | Cwd extraction (`projectPathForDB`)          | `72f91e2`                        |
+| 25  | `findSession` bare-id investigation          | no change needed (round 2)       |
+| 27  | Audit server `crush://` assumptions          | `6c986d3` (found + fixed 2 bugs) |
+| 28  | `testdata/crush/` fixtures dir               | `2e295f6`                        |
+| 29  | SQLite parse benchmark                       | `6c986d3`                        |
+| 36  | `_ = a` no-op cleanup                        | `639cb7d`                        |
+| 39  | `tool_call.id` collision test (same-message) | `639cb7d`                        |
+| 46  | Document public adapter API (GoDoc)          | `39cd372`, `2af50ab`             |
+| 50  | `CHANGELOG.md` entry                         | `a570a44`                        |
 
 ### Still open
 
-| # | Item | Where it lives now |
-|---|------|--------------------|
-| 6 | `mindwalk analyze` end-to-end | TODO_LIST (crush is now a judge CLI at `266bd64`; a real round still unverified) |
-| 7 | Boot web UI + click around | TODO_LIST "Verify the web UI renders Crush sessions" |
-| 20 | 100k-message stress test | ROADMAP "Performance at scale" |
-| 21 | Cache `crush.db` reads | TODO_LIST |
-| 31 | Schema-coverage startup warning | TODO_LIST |
-| 32 | `mindwalk sessions` CLI | TODO_LIST |
-| 40 | Reduce test runtime / isolation | TODO_LIST "Fix server test isolation" |
-| 41 | `mindwalk doctor` subcommand | TODO_LIST |
-| 43 | Persist agent-graph cache to disk | TODO_LIST |
-| 48 | `provider_executed` flag | ROADMAP "Adapter ecosystem" |
-| 49 | Cross-check parser vs upstream | ROADMAP "Adapter ecosystem" |
+| #   | Item                              | Where it lives now                                                               |
+| --- | --------------------------------- | -------------------------------------------------------------------------------- |
+| 6   | `mindwalk analyze` end-to-end     | TODO_LIST (crush is now a judge CLI at `266bd64`; a real round still unverified) |
+| 7   | Boot web UI + click around        | TODO_LIST "Verify the web UI renders Crush sessions"                             |
+| 20  | 100k-message stress test          | ROADMAP "Performance at scale"                                                   |
+| 21  | Cache `crush.db` reads            | TODO_LIST                                                                        |
+| 31  | Schema-coverage startup warning   | TODO_LIST                                                                        |
+| 32  | `mindwalk sessions` CLI           | TODO_LIST                                                                        |
+| 40  | Reduce test runtime / isolation   | TODO_LIST "Fix server test isolation"                                            |
+| 41  | `mindwalk doctor` subcommand      | TODO_LIST                                                                        |
+| 43  | Persist agent-graph cache to disk | TODO_LIST                                                                        |
+| 48  | `provider_executed` flag          | ROADMAP "Adapter ecosystem"                                                      |
+| 49  | Cross-check parser vs upstream    | ROADMAP "Adapter ecosystem"                                                      |
 
 ### Deferred / won't-do
 
-| # | Item | Why |
-|---|------|-----|
-| 12 | Make `SessionDir` strict (empty Dir = error) | Contract change, no concrete need |
-| 14 | Cache the worktree-root walk | Low value; cache exists |
-| 19 | Drop crush import in `cmd/rubriceval` | Verify-only; no symptom |
-| 22 | `--crush-projects-file` flag | Multi-DB via `projects.json` shipped at `72f91e2`; explicit flag is YAGNI |
-| 30 | Share agent-graph helpers across adapters | Refactor, low priority |
-| 33 | Test `cmd/rubriceval` parseTrace with Crush | Low priority |
-| 34 | Generalise synthetic-path scheme | ROADMAP non-goal until 2nd DB-backed adapter |
-| 35 | Profile cold-start path | ROADMAP "Performance at scale" |
-| 37 | Align `SessionKey` signatures | Refactor, low priority |
-| 38 | Audit `lookupProjectDataDir` boundary | Low priority |
-| 42 | Refactor `summarizeCached` signature | Refactor, low priority |
-| 44 | `Summarize` re-opens DB | Covered by TODO_LIST "Cache crush.db reads" |
-| 45 | `crush-skip-summarize-cache` hatch | Low priority |
-| 47 | `crush sessions` CLI | Dedup of #32 (`mindwalk sessions`) |
+| #   | Item                                         | Why                                                                       |
+| --- | -------------------------------------------- | ------------------------------------------------------------------------- |
+| 12  | Make `SessionDir` strict (empty Dir = error) | Contract change, no concrete need                                         |
+| 14  | Cache the worktree-root walk                 | Low value; cache exists                                                   |
+| 19  | Drop crush import in `cmd/rubriceval`        | Verify-only; no symptom                                                   |
+| 22  | `--crush-projects-file` flag                 | Multi-DB via `projects.json` shipped at `72f91e2`; explicit flag is YAGNI |
+| 30  | Share agent-graph helpers across adapters    | Refactor, low priority                                                    |
+| 33  | Test `cmd/rubriceval` parseTrace with Crush  | Low priority                                                              |
+| 34  | Generalise synthetic-path scheme             | ROADMAP non-goal until 2nd DB-backed adapter                              |
+| 35  | Profile cold-start path                      | ROADMAP "Performance at scale"                                            |
+| 37  | Align `SessionKey` signatures                | Refactor, low priority                                                    |
+| 38  | Audit `lookupProjectDataDir` boundary        | Low priority                                                              |
+| 42  | Refactor `summarizeCached` signature         | Refactor, low priority                                                    |
+| 44  | `Summarize` re-opens DB                      | Covered by TODO_LIST "Cache crush.db reads"                               |
+| 45  | `crush-skip-summarize-cache` hatch           | Low priority                                                              |
+| 47  | `crush sessions` CLI                         | Dedup of #32 (`mindwalk sessions`)                                        |

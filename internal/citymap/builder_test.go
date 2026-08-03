@@ -64,8 +64,8 @@ func TestBuildIncludesUntrackedFiles(t *testing.T) {
 
 func TestBuildIsDeterministicAcrossNestedDirectories(t *testing.T) {
 	root := t.TempDir()
-	for d := 0; d < 12; d++ {
-		for f := 0; f < 8; f++ {
+	for d := range 12 {
+		for f := range 8 {
 			rel := filepath.Join("pkg", string(rune('a'+d)), "sub", string(rune('a'+f))+".go")
 			writeFile(t, root, rel, strings.Repeat("package pkg\n", 1+d*f+f))
 		}
@@ -74,7 +74,7 @@ func TestBuildIsDeterministicAcrossNestedDirectories(t *testing.T) {
 	runGit(t, root, "add", ".")
 
 	var first []byte
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		city, err := (Builder{}).Build(root, nil)
 		if err != nil {
 			t.Fatal(err)
@@ -121,7 +121,7 @@ func TestBuildSkipsWeakMissingTargetsButKeepsStrongGhosts(t *testing.T) {
 
 func TestSquarifiedLayoutAvoidsExtremeAspectRatios(t *testing.T) {
 	root := t.TempDir()
-	for i := 0; i < 80; i++ {
+	for i := range 80 {
 		writeFile(t, root, filepath.Join("pkg", "file"+string(rune('a'+i%26))+string(rune('a'+i/26))+".go"), "package pkg\nfunc X() {}\n")
 	}
 	runGit(t, root, "init")

@@ -1,0 +1,5 @@
+# Binary files should not be diffed or merged
+*.png binary
+*.woff2 binary
+# Enforce consistent line endings across all platforms
+* text=auto eol=lf

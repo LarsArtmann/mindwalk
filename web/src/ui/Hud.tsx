@@ -34,7 +34,7 @@ export const Hud = memo(function Hud({
   churn,
   onSelectFile,
   onOpenAgents,
-  locked = false
+  locked = false,
 }: HudProps) {
   const stats = trace?.stats;
   const readFinal = stats ? stats.fovea - stats.edited : 0;
@@ -42,7 +42,9 @@ export const Hud = memo(function Hud({
   const unvisitedFinal = stats ? Math.max(0, stats.filesInRepo - stats.fovea - stats.parafovea) : 0;
   const ghostCount = city ? city.files.reduce((n, file) => n + (file.ghost ? 1 : 0), 0) : 0;
   const errorCount = stats ? countActions(stats.errors) : 0;
-  const showReview = stats ? errorCount > 0 || stats.churnFiles > 0 || stats.actions.edit > 0 : false;
+  const showReview = stats
+    ? errorCount > 0 || stats.churnFiles > 0 || stats.actions.edit > 0
+    : false;
 
   const [churnOpen, setChurnOpen] = useState(false);
   const churnPanelRef = useRef<HTMLDivElement | null>(null);
@@ -55,7 +57,8 @@ export const Hud = memo(function Hud({
     if (!churnOpen) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (churnPanelRef.current?.contains(target) || churnToggleRef.current?.contains(target)) return;
+      if (churnPanelRef.current?.contains(target) || churnToggleRef.current?.contains(target))
+        return;
       setChurnOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
@@ -212,8 +215,8 @@ export const Hud = memo(function Hud({
                       className="warn"
                       data-hint={`Edit events after the session's last build or test run — ${verifyRuns(stats.actions.verify)} total; pass/fail is not tracked`}
                     >
-                      {stats.editsAfterLastVerify} edit{stats.editsAfterLastVerify === 1 ? "" : "s"} after
-                      last verify
+                      {stats.editsAfterLastVerify} edit{stats.editsAfterLastVerify === 1 ? "" : "s"}{" "}
+                      after last verify
                     </span>
                   ) : (
                     <span
@@ -260,7 +263,7 @@ function SpectrumStat({
   label,
   now,
   final,
-  hint
+  hint,
 }: {
   kind: "edit" | "read" | "hit" | "unvisited" | "ghost";
   label: string;

@@ -56,10 +56,17 @@ export const useAppStore = create<AppState>((set, get) => ({
   setView: (view) => set({ view }),
   setSessions: (sessions) => set({ sessions }),
   setActiveSession: (activeSessionKey) =>
-    set({ activeSessionKey, trace: undefined, city: undefined, currentSeq: 0, selectedPath: undefined }),
+    set({
+      activeSessionKey,
+      trace: undefined,
+      city: undefined,
+      currentSeq: 0,
+      selectedPath: undefined,
+    }),
   setData: (trace, city) => set({ trace, city, currentSeq: Math.max(0, trace.events.length - 1) }),
   // static full-repo map: render the city with no session/trace attached
-  setCityOnly: (city) => set({ city, trace: undefined, currentSeq: 0, selectedPath: undefined, mapOnly: true }),
+  setCityOnly: (city) =>
+    set({ city, trace: undefined, currentSeq: 0, selectedPath: undefined, mapOnly: true }),
   setCurrentSeq: (currentSeq) => set({ currentSeq }),
   setSelectedPath: (selectedPath) => set({ selectedPath }),
   setLoading: (loading) => set({ loading }),
@@ -79,5 +86,5 @@ export const useAppStore = create<AppState>((set, get) => ({
     } catch {
       // storage unavailable: preference resets on next load
     }
-  }
+  },
 }));

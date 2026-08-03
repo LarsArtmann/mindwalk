@@ -2,7 +2,7 @@
 
 When you evaluate a session, mindwalk does not only grade the four fixed
 process dimensions. It first asks the judge to derive criteria from your own
-request — what would count as done for *this* task — and then scores the
+request — what would count as done for _this_ task — and then scores the
 session against both. This document explains how that works and why it is
 built the way it is; for day-to-day usage see the README's
 [Session evaluation](../README.md#session-evaluation) section.

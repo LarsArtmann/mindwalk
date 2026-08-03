@@ -11,7 +11,7 @@ import {
   prefersReducedMotion,
   SceneTip,
   SKY,
-  touchColors
+  touchColors,
 } from "./sceneUtils";
 import { computeTreeLayout, type TreeLayout } from "./treeLayout";
 import { fireflyTexture, haloTexture } from "./textures";
@@ -35,7 +35,7 @@ interface TreeSceneProps {
 const colors: Record<Touch | "unvisited" | "ghost" | "selected", THREE.Color> = {
   unvisited: new THREE.Color("#5a6375"),
   ghost: new THREE.Color("#4d5464"),
-  ...touchColors
+  ...touchColors,
 };
 const EDGE_BASE = new THREE.Color("#3c424f");
 // branches leading to visited leaves brighten, but stay neutral: the branch
@@ -61,7 +61,13 @@ const LABEL_Y = 1.8;
 // the inspector docks on the right; selection pans the camera clear of it
 const INSPECTOR_RESERVED_PX = 348;
 
-export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasReady }: TreeSceneProps) {
+export function TreeScene({
+  city,
+  playback,
+  selectedPath,
+  onSelect,
+  onCanvasReady,
+}: TreeSceneProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const leafMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const ghostMeshRef = useRef<THREE.InstancedMesh | null>(null);
@@ -69,7 +75,9 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
   const selectionRef = useRef<{ ring: THREE.Mesh; beam: THREE.Mesh } | null>(null);
   const haloMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const edgesRef = useRef<THREE.LineSegments | null>(null);
-  const edgeMetaRef = useRef<{ childPath?: string; childFileId?: number; vertexCount: number }[]>([]);
+  const edgeMetaRef = useRef<{ childPath?: string; childFileId?: number; vertexCount: number }[]>(
+    [],
+  );
   const filesRef = useRef<CityFile[]>([]);
   const layoutRef = useRef<TreeLayout | null>(null);
   const slotsRef = useRef<HaloSlot[]>([]);
@@ -91,7 +99,10 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
   // background tab); resize retries it instead of leaving the camera at NaN
   const fitPendingRef = useRef<(() => boolean) | null>(null);
 
-  const layout = useMemo(() => (city && city.files.length > 0 ? computeTreeLayout(city.files) : null), [city]);
+  const layout = useMemo(
+    () => (city && city.files.length > 0 ? computeTreeLayout(city.files) : null),
+    [city],
+  );
 
   useEffect(() => {
     const host = hostRef.current;
@@ -103,7 +114,12 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
     scene.background = SKY;
     sceneRef.current = scene;
 
-    const camera = new THREE.PerspectiveCamera(38, host.clientWidth / host.clientHeight || 1, 0.1, 2400);
+    const camera = new THREE.PerspectiveCamera(
+      38,
+      host.clientWidth / host.clientHeight || 1,
+      0.1,
+      2400,
+    );
     camera.position.set(60, 110, 90);
     cameraRef.current = camera;
 
@@ -224,7 +240,11 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
     const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
     const render = () => {
       controls.update();
-      labelSetRef.current?.updateTargets(camera, renderer.domElement.clientWidth, renderer.domElement.clientHeight);
+      labelSetRef.current?.updateTargets(
+        camera,
+        renderer.domElement.clientWidth,
+        renderer.domElement.clientHeight,
+      );
       labelSetRef.current?.ease(reducedRef.current);
 
       // pools of light grow toward their attention radius
@@ -252,7 +272,7 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
           matrix.compose(
             new THREE.Vector3(pos.x, 0.06, pos.z),
             quaternion,
-            new THREE.Vector3(Math.max(cur, 0.01) * 2, Math.max(cur, 0.01) * 2, 1)
+            new THREE.Vector3(Math.max(cur, 0.01) * 2, Math.max(cur, 0.01) * 2, 1),
           );
           halos.setMatrixAt(i, matrix);
         }
@@ -305,7 +325,7 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
 
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(size * 6, size * 6),
-      new THREE.MeshStandardMaterial({ color: "#14171e", roughness: 1 })
+      new THREE.MeshStandardMaterial({ color: "#14171e", roughness: 1 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.25;
@@ -327,7 +347,11 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
         positions.push(edge.points[i + 1].x, 0.12, edge.points[i + 1].z);
         count += 2;
       }
-      edgeMeta.push({ childPath: edge.childPath, childFileId: edge.childFileId, vertexCount: count });
+      edgeMeta.push({
+        childPath: edge.childPath,
+        childFileId: edge.childFileId,
+        vertexCount: count,
+      });
     }
     const edgeGeo = new THREE.BufferGeometry();
     edgeGeo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
@@ -335,7 +359,7 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
     edgeGeo.setAttribute("color", new THREE.BufferAttribute(edgeColors, 3));
     const edges = new THREE.LineSegments(
       edgeGeo,
-      new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 })
+      new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 }),
     );
     edgesRef.current = edges;
     edgeMetaRef.current = edgeMeta;
@@ -349,7 +373,10 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
     const leafGeo = new THREE.SphereGeometry(0.5, 10, 8);
     const leafMat = new THREE.MeshBasicMaterial({ toneMapped: false, fog: false });
     const leaves = new THREE.InstancedMesh(leafGeo, leafMat, city.files.length);
-    leaves.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(city.files.length * 3), 3);
+    leaves.instanceColor = new THREE.InstancedBufferAttribute(
+      new Float32Array(city.files.length * 3),
+      3,
+    );
     const ghostFiles = city.files.filter((file) => file.ghost);
     const ghostIndex = new Map<number, number>();
     ghostFiles.forEach((file, i) => ghostIndex.set(file.id, i));
@@ -364,7 +391,11 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
         continue;
       }
       const scale = Math.min(0.24 + Math.sqrt(Math.max(file.lines, 1)) * 0.045, 1.05);
-      matrix.compose(new THREE.Vector3(pos.x, LEAF_Y, pos.z), new THREE.Quaternion(), new THREE.Vector3(scale, scale, scale));
+      matrix.compose(
+        new THREE.Vector3(pos.x, LEAF_Y, pos.z),
+        new THREE.Quaternion(),
+        new THREE.Vector3(scale, scale, scale),
+      );
       leaves.setMatrixAt(file.id, matrix);
       leaves.setColorAt(file.id, colors.unvisited);
     }
@@ -377,10 +408,19 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
     if (ghostFiles.length > 0) {
       ghosts = new THREE.InstancedMesh(
         new THREE.SphereGeometry(0.55, 8, 5),
-        new THREE.MeshBasicMaterial({ wireframe: true, transparent: true, opacity: 0.85, toneMapped: false, fog: false }),
-        ghostFiles.length
+        new THREE.MeshBasicMaterial({
+          wireframe: true,
+          transparent: true,
+          opacity: 0.85,
+          toneMapped: false,
+          fog: false,
+        }),
+        ghostFiles.length,
       );
-      ghosts.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(ghostFiles.length * 3), 3);
+      ghosts.instanceColor = new THREE.InstancedBufferAttribute(
+        new Float32Array(ghostFiles.length * 3),
+        3,
+      );
       for (const file of ghostFiles) {
         const pos = layout.leaf.get(file.id);
         const i = ghostIndex.get(file.id)!;
@@ -389,7 +429,11 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
           continue;
         }
         const scale = Math.min(0.24 + Math.sqrt(Math.max(file.lines, 1)) * 0.045, 1.05) * 0.8;
-        matrix.compose(new THREE.Vector3(pos.x, LEAF_Y, pos.z), new THREE.Quaternion(), new THREE.Vector3(scale, scale, scale));
+        matrix.compose(
+          new THREE.Vector3(pos.x, LEAF_Y, pos.z),
+          new THREE.Quaternion(),
+          new THREE.Vector3(scale, scale, scale),
+        );
         ghosts.setMatrixAt(i, matrix);
         ghosts.setColorAt(i, colors.ghost);
       }
@@ -411,11 +455,14 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
         opacity: 0.55,
         depthWrite: false,
         toneMapped: false,
-        fog: false
+        fog: false,
       }),
-      city.files.length
+      city.files.length,
     );
-    halos.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(city.files.length * 3), 3);
+    halos.instanceColor = new THREE.InstancedBufferAttribute(
+      new Float32Array(city.files.length * 3),
+      3,
+    );
     halos.count = 0;
     halos.frustumCulled = false;
     halos.raycast = () => undefined;
@@ -433,8 +480,8 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         transparent: true,
-        fog: false
-      })
+        fog: false,
+      }),
     );
     firefly.userData.baseScale = Math.max(size * 0.026, 2.2);
     firefly.visible = false;
@@ -450,7 +497,7 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
       side: THREE.DoubleSide,
       depthWrite: false,
       toneMapped: false,
-      fog: false
+      fog: false,
     });
     const ring = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.5, 48), selectionMat);
     ring.rotation.x = -Math.PI / 2;
@@ -466,8 +513,8 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         toneMapped: false,
-        fog: false
-      })
+        fog: false,
+      }),
     );
     beam.visible = false;
     beam.raycast = () => undefined;
@@ -489,7 +536,9 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
       const controls = controlsRef.current;
       if (!camera || !controls) return true;
       const dir = new THREE.Vector3(0.3, 0.66, 0.47).normalize();
-      const points = [...layout.leaf.values()].map((pos) => new THREE.Vector3(pos.x, LEAF_Y, pos.z));
+      const points = [...layout.leaf.values()].map(
+        (pos) => new THREE.Vector3(pos.x, LEAF_Y, pos.z),
+      );
       const fitted = fitDistance(camera, dir, points);
       if (fitted === null) return false;
       // breathing room so edge leaves clear the HUD overlays
@@ -612,7 +661,7 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
           new THREE.Vector3(pos.x, LEAF_Y, pos.z),
           canvas.clientWidth,
           canvas.clientHeight,
-          INSPECTOR_RESERVED_PX
+          INSPECTOR_RESERVED_PX,
         );
       }
     } else {
@@ -648,7 +697,7 @@ export function TreeScene({ city, playback, selectedPath, onSelect, onCanvasRead
       targetFiles.map((file) => {
         const pos = layout.leaf.get(file.id)!;
         return new THREE.Vector3(pos.x, LEAF_Y + 0.3, pos.z);
-      })
+      }),
     );
   }, [city, layout, playback]);
 

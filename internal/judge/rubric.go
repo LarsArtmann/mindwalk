@@ -75,7 +75,7 @@ func acquireRubric(ctx context.Context, runner Runner, trace *model.Trace, cache
 		return reused, nil
 	}
 	input := BuildRubricInput(trace)
-	for attempt := 0; attempt < 2; attempt++ {
+	for range 2 {
 		result, err := runner.Run(ctx, rubricPrompt, input)
 		if err != nil {
 			return nil, err
