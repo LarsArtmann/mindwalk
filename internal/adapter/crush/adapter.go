@@ -51,14 +51,20 @@ type Adapter struct {
 	// NewAdapter (e.g. Adapter{Dir: dir}); in that case routing falls
 	// back to the single resolved database.
 	dbIndex *sync.Map
+
+	// dbCache caches open *sql.DB handles by file path so a long-lived
+	// server does not re-open the SQLite file on every Parse/Summarize
+	// call. Nil when the adapter was constructed without NewAdapter;
+	// in that case every call opens and closes its own handle.
+	dbCache *sync.Map
 }
 
-// NewAdapter creates an Adapter with its own session-to-DB index,
-// isolating it from other Adapter instances. Use this in the server
-// and in tests that need to control multi-database routing without
-// sharing global state.
+// NewAdapter creates an Adapter with its own session-to-DB index and
+// database connection cache, isolating it from other Adapter instances.
+// Use this in the server and in tests that need to control multi-database
+// routing without sharing global state.
 func NewAdapter(dir string) Adapter {
-	return Adapter{Dir: dir, dbIndex: &sync.Map{}}
+	return Adapter{Dir: dir, dbIndex: &sync.Map{}, dbCache: &sync.Map{}}
 }
 
 // DefaultDir returns the platform-specific global Crush data directory:

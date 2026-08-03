@@ -681,6 +681,16 @@ dd {
   color: var(--pine);
 }
 
+.hud-warning {
+  margin-top: 6px;
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  color: var(--ember);
+  background: oklch(0.3 0.06 52 / 0.25);
+  border-radius: 4px;
+  pointer-events: auto;
+}
+
 .churn-toggle {
   font-size: inherit;
   letter-spacing: inherit;

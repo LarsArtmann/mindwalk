@@ -43,6 +43,10 @@ func run(args []string) error {
 		return trace(args[1:])
 	case "analyze":
 		return analyze(args[1:])
+	case "sessions":
+		return listSessions(args[1:])
+	case "doctor":
+		return doctor(args[1:])
 	case "-h", "--help", "help":
 		usage()
 		return nil
@@ -232,6 +236,102 @@ func analyze(args []string) error {
 	return writeJSON(*out, report)
 }
 
+// adapterFlags holds the common adapter-discovery flags shared by
+// serve, open, sessions, and doctor.
+type adapterFlags struct {
+	claudeDir string
+	codexDir  string
+	piDir     string
+	crushDir  string
+	noCrush   bool
+}
+
+func parseAdapterFlags(fs *flag.FlagSet) adapterFlags {
+	return adapterFlags{
+		claudeDir: *fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory"),
+		codexDir:  *fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory"),
+		piDir:     *fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory"),
+		crushDir:  *fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover"),
+		noCrush:   *fs.Bool("no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)"),
+	}
+}
+
+func (f adapterFlags) sources() []adapter.Source {
+	sources := []adapter.Source{
+		claudecode.Adapter{Dir: f.claudeDir},
+		codex.Adapter{Dir: f.codexDir},
+		pi.Adapter{Dir: f.piDir},
+	}
+	if f.noCrush {
+		return sources
+	}
+	if f.crushDir == "" {
+		return append(sources, crush.NewAdapter(""))
+	}
+	return append(sources, crush.NewAdapter(f.crushDir))
+}
+
+// listSessions prints every discovered session across all adapters
+// without starting the server.
+func listSessions(args []string) error {
+	fs := flag.NewFlagSet("sessions", flag.ExitOnError)
+	af := parseAdapterFlags(fs)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	_ = af
+	for _, src := range af.sources() {
+		metas, err := src.ListSessions()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "mindwalk: %s: %v\n", src.Harness(), err)
+			continue
+		}
+		for _, m := range metas {
+			cwd := ""
+			if m.Cwd != "" {
+				cwd = "  cwd=" + m.Cwd
+			}
+			fmt.Printf("%-8s  %s  %4d events  %s%s\n", src.Harness(), m.StartedAt, m.EventCount, m.Title, cwd)
+		}
+	}
+	return nil
+}
+
+// doctor prints adapter status, data-directory paths, and session
+// counts so users can verify their configuration.
+func doctor(args []string) error {
+	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
+	af := parseAdapterFlags(fs)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	for _, src := range af.sources() {
+		h := src.Harness()
+		metas, err := src.ListSessions()
+		status := "ok"
+		count := 0
+		if err != nil {
+			status = "error: " + err.Error()
+		} else {
+			count = len(metas)
+		}
+		fmt.Printf("%-8s  sessions=%-4d  %s\n", h, count, status)
+	}
+	fmt.Println()
+	fmt.Println("Data directories:")
+	fmt.Printf("  claude-dir  %s\n", af.claudeDir)
+	fmt.Printf("  codex-dir   %s\n", af.codexDir)
+	fmt.Printf("  pi-dir      %s\n", af.piDir)
+	if af.noCrush {
+		fmt.Printf("  crush       disabled\n")
+	} else if af.crushDir != "" {
+		fmt.Printf("  crush-dir   %s\n", af.crushDir)
+	} else {
+		fmt.Printf("  crush       auto-discover\n")
+	}
+	return nil
+}
+
 func parseTrace(path string, crushDir string) (*model.Trace, error) {
 	var lastErr error
 	for _, source := range traceSources(crushDir) {
@@ -314,6 +414,8 @@ Usage:
   mindwalk build <repo> [-o out]  write citymap.json
   mindwalk trace <session> [-o out] write trace.json
   mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] [--no-rubric] evaluate a session with a local agent CLI
+  mindwalk sessions [--no-crush] [--crush-dir DIR]  list all discovered sessions without starting the server
+  mindwalk doctor [--no-crush] [--crush-dir DIR]    print adapter status, session counts, and data-dir paths
 
 Examples:
   mindwalk serve --crush-dir ~/.local/share/crush   # point at a specific Crush install

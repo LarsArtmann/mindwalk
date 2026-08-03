@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -571,7 +572,7 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	if workers > 1 {
 		jobs := make(chan int)
 		var wg sync.WaitGroup
-		for w := 0; w < workers; w++ {
+		for range workers {
 			wg.Go(func() {
 				for i := range jobs {
 					if meta, err := s.summarizeCached(files[i].source, files[i].path, files[i].info); err == nil {
@@ -845,16 +846,42 @@ func (s *Server) agentGraph(root model.SessionMeta) (*model.AgentGraph, error) {
 		s.agentGraphLoads[root.Key] = load
 		s.mu.Unlock()
 
+		// On a memory miss, try the disk cache before paying for
+		// a fresh BuildAgentGraph call. The digest is stable across
+		// restarts so this warms cold starts.
+		if graph, ok := loadAgentGraphFromDisk(fingerprint.digest); ok {
+			s.mu.Lock()
+			s.agentGraphs[root.Key] = agentGraphCacheEntry{fingerprint: fingerprint, graph: graph}
+			if s.agentGraphLoads[root.Key] == load {
+				delete(s.agentGraphLoads, root.Key)
+			}
+			close(load.done)
+			s.mu.Unlock()
+			return graph, nil
+		}
+
 		s.runAgentGraphInflight(root.Key, load, graphSource, root, catalog)
 		return load.graph, load.err
 	}
 }
 
 func fingerprintAgentGraphInputs(paths []string, freshGen uint64) (agentGraphFingerprint, error) {
+	diskDigest, err := agentGraphDiskDigest(paths)
+	if err != nil {
+		return agentGraphFingerprint{}, err
+	}
+	return agentGraphFingerprint{digest: diskDigest, freshGen: freshGen}, nil
+}
+
+// agentGraphDiskDigest hashes the database file paths, sizes, and
+// modification times into a stable key that survives server restarts.
+// Synthetic crush:// paths are hashed by their string form. The
+// returned digest is the disk cache key for a graph built from the
+// given inputs.
+func agentGraphDiskDigest(paths []string) ([sha256.Size]byte, error) {
 	paths = append([]string(nil), paths...)
 	sort.Strings(paths)
 	var material strings.Builder
-	fmt.Fprintf(&material, "fresh:%d\n", freshGen)
 	previous := ""
 	for _, path := range paths {
 		path = filepath.Clean(path)
@@ -872,11 +899,11 @@ func fingerprintAgentGraphInputs(paths []string, freshGen uint64) (agentGraphFin
 			continue
 		}
 		if err != nil {
-			return agentGraphFingerprint{}, err
+			return [sha256.Size]byte{}, err
 		}
 		fmt.Fprintf(&material, "%s\x00%d\x00%d\n", path, info.Size(), info.ModTime().UnixNano())
 	}
-	return agentGraphFingerprint{digest: sha256.Sum256([]byte(material.String())), freshGen: freshGen}, nil
+	return sha256.Sum256([]byte(material.String())), nil
 }
 
 func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, source adapter.AgentGraphSource, root model.SessionMeta, catalog []model.SessionMeta) {
@@ -889,6 +916,7 @@ func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, sou
 		s.mu.Lock()
 		if load.err == nil {
 			s.agentGraphs[key] = agentGraphCacheEntry{fingerprint: load.fingerprint, graph: load.graph}
+			storeAgentGraphToDisk(load.fingerprint.digest, load.graph)
 		}
 		if s.agentGraphLoads[key] == load {
 			delete(s.agentGraphLoads, key)
@@ -897,6 +925,58 @@ func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, sou
 		s.mu.Unlock()
 	}()
 	load.graph, load.err = source.BuildAgentGraph(root, catalog)
+}
+
+// agentGraphCacheDir returns the disk directory for persisted agent
+// graphs. Created lazily on first store. When MINDWALK_HOME is set
+// (e.g. to /dev/null in tests), the cache lives there instead.
+func agentGraphCacheDir() string {
+	if override := os.Getenv("MINDWALK_HOME"); override != "" {
+		return filepath.Join(override, "agent-graphs")
+	}
+	dir, err := os.UserHomeDir()
+	if err != nil || dir == "" {
+		return ""
+	}
+	return filepath.Join(dir, ".mindwalk", "agent-graphs")
+}
+
+// loadAgentGraphFromDisk tries to read a previously persisted agent
+// graph for the given digest. Returns (nil, false) on any miss.
+func loadAgentGraphFromDisk(digest [sha256.Size]byte) (*model.AgentGraph, bool) {
+	dir := agentGraphCacheDir()
+	if dir == "" {
+		return nil, false
+	}
+	path := filepath.Join(dir, hex.EncodeToString(digest[:])+".json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, false
+	}
+	var graph model.AgentGraph
+	if err := json.Unmarshal(data, &graph); err != nil {
+		return nil, false
+	}
+	return &graph, true
+}
+
+// storeAgentGraphToDisk writes the graph to disk keyed by digest so
+// the next cold start can skip rebuilding it. Errors are silent —
+// the disk cache is best-effort.
+func storeAgentGraphToDisk(digest [sha256.Size]byte, graph *model.AgentGraph) {
+	dir := agentGraphCacheDir()
+	if dir == "" {
+		return
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return
+	}
+	data, err := json.Marshal(graph)
+	if err != nil {
+		return
+	}
+	path := filepath.Join(dir, hex.EncodeToString(digest[:])+".json")
+	_ = os.WriteFile(path, data, 0o644)
 }
 
 func (s *Server) findCatalogSession(key string) (model.SessionMeta, error) {
@@ -1220,10 +1300,7 @@ func buildAdapters(cfg Config) []adapter.Source {
 // available via the --crush-dir CLI flag, where the default value
 // is an empty string so the adapter's project walk runs.
 func crushAdapter(explicit string) adapter.Source {
-	if explicit == "" {
-		return crush.Adapter{}
-	}
-	return crush.Adapter{Dir: explicit}
+	return crush.NewAdapter(explicit)
 }
 
 func openURL(url string) error {

@@ -16,6 +16,7 @@ func TestMain(m *testing.M) {
 	isolated, _ := os.MkdirTemp("", "mindwalk-test-*")
 	_ = os.Setenv("CRUSH_GLOBAL_DATA", filepath.Join(isolated, "crush"))
 	_ = os.Setenv("XDG_DATA_HOME", filepath.Join(isolated, "xdg"))
+	_ = os.Setenv("MINDWALK_HOME", filepath.Join(isolated, "mindwalk"))
 	code := m.Run()
 	_ = os.RemoveAll(isolated)
 	os.Exit(code)

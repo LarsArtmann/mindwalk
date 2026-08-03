@@ -45,6 +45,9 @@ export const Hud = memo(function Hud({
   const showReview = stats
     ? errorCount > 0 || stats.churnFiles > 0 || stats.actions.edit > 0
     : false;
+  const hasEvents = !!trace && trace.events.length > 0;
+  const hasTargets = !!trace && trace.events.some((e) => e.targets.length > 0);
+  const showNoTargetsWarning = hasEvents && !hasTargets;
 
   const [churnOpen, setChurnOpen] = useState(false);
   const churnPanelRef = useRef<HTMLDivElement | null>(null);
@@ -94,11 +97,21 @@ export const Hud = memo(function Hud({
             <span>{city.repo.commit || "worktree"}</span>
             {city.repo.dirty ? <span className="dirty">● dirty</span> : null}
             {trace?.session.model ? <span>{trace.session.model}</span> : null}
+            {trace?.session.cwd ? (
+              <span data-hint="Working directory the adapter resolved for this session">
+                {trace.session.cwd}
+              </span>
+            ) : null}
             {stats ? (
               <span data-hint="Files in the repository map — the denominator of the coverage spectrum below">
                 {stats.filesInRepo} files
               </span>
             ) : null}
+          </div>
+        ) : null}
+        {showNoTargetsWarning ? (
+          <div className="hud-warning" data-hint="The adapter found tool calls but could not map any to repository files — check that the session's working directory matches the loaded repository">
+            no file targets resolved — adapter may be misconfigured
           </div>
         ) : null}
         {stats ? (

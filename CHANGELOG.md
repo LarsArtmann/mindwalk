@@ -60,6 +60,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     `SupportedCLIs`, so a session can be evaluated without installing
     a second agent. `crush run --quiet --verbose` reads the prompt
     from stdin and reports the answering model on stderr.
+  - **`--host` flag on `open` and `map`** — both commands now accept
+    `--host` and pass it to `server.Config`, matching `serve`.
+  - **`mindwalk sessions`** — CLI subcommand that lists every
+    discovered session across all adapters without starting the server.
+  - **`mindwalk doctor`** — CLI subcommand that prints adapter status,
+    session counts, and data-directory paths for configuration verification.
+  - **Crush DB connection cache** — `Adapter.dbCache` (`*sync.Map`)
+    keeps `*sql.DB` handles open across requests so a long-lived server
+    does not re-open the SQLite file on every `Parse`/`Summarize` call.
+  - **Agent-graph disk cache** — computed agent graphs are persisted to
+    `~/.mindwalk/agent-graphs/<digest>.json` keyed by a stable digest
+    (file paths + sizes + modtimes, excluding the server-local
+    `freshGen` counter) so cold starts warm instantly.
+  - **Schema coverage warning** — the Crush adapter warns on stderr
+    when a database is missing the `model` column (pre-2025-06-27
+    schema), so users know to upgrade Crush for full trace coverage.
+  - **Frontend: 0-target warning** — the HUD shows a warning banner
+    when a trace has events but none resolved to repository file
+    targets, surfacing misconfigured adapters visually.
+  - **Frontend: session Cwd in HUD** — the HUD now displays the
+    adapter-resolved working directory so users can verify the root.
+  - **Multi-DB discovery tests** — 11 tests in `sessions_test.go`
+    covering `enumerateDBPaths`, `listAllProjectSessions`,
+    `openDBForPath`, and `projectPathForDB` across single-DB and
+    multi-DB (auto-discover) modes.
+  - **Enriched test fixture** — `testdata/crush/crush.db` now includes
+    `read`, `write`, and `bash` tool calls with `file_path` inputs,
+    exercising the full event/target extraction path.
 
 ### Fixed
 
@@ -94,6 +122,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   (`sourceUsesFilesystem`, `fingerprintPath`,
   `fingerprintAgentGraphInputs`, `loadTraceAndMap`) call
   `crush.IsSessionPath` instead of hardcoding the prefix.
+- `sessionDBIndex` is now a per-Adapter `dbIndex *sync.Map` field
+  instead of a package global, isolating test state and enabling
+  concurrent adapter instances. `NewAdapter(dir)` is the constructor;
+  `crushAdapter()` in `server.go` uses it.
+- `fingerprintAgentGraphInputs` digest no longer includes `freshGen`
+  in the hash material; `freshGen` remains a separate field for
+  in-memory cache invalidation. This allows the disk cache to reuse
+  graphs across server restarts.
+- CI workflow bumped from Go 1.25 to Go 1.26.5 to match `go.mod`.
+- Go idioms modernized for 1.26: `b.Loop()`, `slices.ContainsFunc`,
+  `min()`, `WaitGroup.Go`, `strings.Cut`, `maps.Copy`,
+  `strings.SplitSeq`, `range int`, `new(value)`.
+- All errcheck warnings resolved; LSP shows 0 project warnings.
 
 ## [0.0.0] - initial
 

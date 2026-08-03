@@ -10,7 +10,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
@@ -66,10 +65,11 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 	}
 	var all []model.SessionMeta
 	for _, pdb := range projectDBs {
-		h, err := openReadOnlyAt(pdb.DBPath)
+		h, err := a.openCached(pdb.DBPath)
 		if err != nil || h == nil {
 			continue
 		}
+		a.warnIfOldSchema(h)
 		rows, err := h.db.QueryContext(context.Background(), listSessionsQuery)
 		if err != nil {
 			_ = h.close()
@@ -111,6 +111,7 @@ func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 	}
 	defer func() { _ = db.close() }()
 
+	a.warnIfOldSchema(db)
 	cwd := projectPathForDB(db.path)
 	rows, err := db.db.QueryContext(context.Background(), listSessionsQuery)
 	if err != nil {
@@ -343,7 +344,7 @@ func (a Adapter) openReadOnly() (*sqlHandle, error) {
 	if path == "" {
 		return nil, nil
 	}
-	return openReadOnlyAt(path)
+	return a.openCached(path)
 }
 
 // openReadOnlyAt opens a specific crush.db path in read-only mode.
@@ -368,18 +369,66 @@ func openReadOnlyAt(path string) (*sqlHandle, error) {
 	return &sqlHandle{path: path, db: db}, nil
 }
 
+// openCached opens a database at path, using the adapter's dbCache
+// when available. Cached handles are kept open for reuse across
+// requests; their close() is a no-op so the connection pool survives.
+func (a Adapter) openCached(path string) (*sqlHandle, error) {
+	if a.dbCache != nil {
+		if v, ok := a.dbCache.Load(path); ok {
+			if db, ok := v.(*sql.DB); ok && db != nil {
+				return &sqlHandle{path: path, db: db, cached: true}, nil
+			}
+		}
+	}
+	h, err := openReadOnlyAt(path)
+	if err != nil || h == nil {
+		return h, err
+	}
+	if a.dbCache != nil {
+		a.dbCache.Store(path, h.db)
+		h.cached = true
+	}
+	return h, nil
+}
+
 // sqlHandle bundles a *sql.DB with its source path so tests can
-// inspect where the connection came from.
+// inspect where the connection came from. When cached is true the
+// handle came from the adapter's dbCache and close() is a no-op so
+// the connection pool survives across requests.
 type sqlHandle struct {
-	path string
-	db   *sql.DB
+	path   string
+	db     *sql.DB
+	cached bool
 }
 
 func (h *sqlHandle) close() error {
-	if h == nil || h.db == nil {
+	if h == nil || h.db == nil || h.cached {
 		return nil
 	}
 	return h.db.Close()
+}
+
+// warnIfOldSchema checks whether the database has the columns the
+// adapter expects (model, provider — added in Crush's 2025-06-27
+// migration). If the columns are missing the database predates the
+// file-read coverage era and traces will lack model metadata. The
+// warning is printed once per database path so repeated scans stay
+// quiet.
+func (a Adapter) warnIfOldSchema(h *sqlHandle) {
+	if h == nil || h.path == "" {
+		return
+	}
+	row := h.db.QueryRowContext(context.Background(), "SELECT name FROM pragma_table_info('messages') WHERE name IN ('model','provider') ORDER BY name")
+	var col string
+	hasModel := false
+	for row.Scan(&col) == nil {
+		if col == "model" {
+			hasModel = true
+		}
+	}
+	if !hasModel {
+		fmt.Fprintf(os.Stderr, "mindwalk: warning: %s has an old schema (missing 'model' column); upgrade Crush to get full trace coverage\n", h.path)
+	}
 }
 
 // enumerateDBPaths returns every database path the adapter should
@@ -415,7 +464,7 @@ func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
 	if ok && a.dbIndex != nil {
 		if cached, hit := a.dbIndex.Load(id); hit {
 			if dbPath, ok := cached.(string); ok && dbPath != "" {
-				return openReadOnlyAt(dbPath)
+				return a.openCached(dbPath)
 			}
 		}
 	}

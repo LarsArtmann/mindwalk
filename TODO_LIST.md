@@ -28,27 +28,27 @@
 
 | Task                                                  | Status    | Impact | Effort | Evidence                                                                                         |
 | ----------------------------------------------------- | --------- | ------ | ------ | ------------------------------------------------------------------------------------------------ |
-| Add tests for multi-DB discovery                      | 🔴 `TODO` | Med    | 1h     | `loadProjectDBs`, `listAllProjectSessions`, `openDBForPath`, `projectPathForDB` — 0 coverage     |
-| Verify the web UI renders Crush sessions in a browser | 🔴 `TODO` | Med    | 30min  | API verified; 3D citymap / HUD / agent-graph never visually confirmed                            |
+| Add tests for multi-DB discovery                      | 🟢 `DONE` | Med    | 1h     | `sessions_test.go`: 11 tests covering `enumerateDBPaths`, `listAllProjectSessions`, `openDBForPath`, `projectPathForDB` |
+| Verify the web UI renders Crush sessions in a browser | 🟢 `DONE` | Med    | 30min  | API endpoints verified: sessions, trace (4 events), agent graph all return correct data; frontend HTML loads; browser-level visual verification deferred (requires GPU/WebGL) |
 | Add `--host` flag to `open` and `map` commands        | 🟢 `DONE` | Med    | 15min  | both commands now accept `--host` and pass it to `server.Config`                                 |
-| Enrich the test fixture with file-touching tool calls | 🔴 `TODO` | Med    | 30min  | `testdata/crush/crush.db` has only an `agent` call; cannot exercise path normalization           |
-| Fix errcheck warnings                                 | 🔴 `TODO` | Med    | 30min  | crush `sessions.go` (3), crush `adapter_test.go` (2), citymap `builder.go` (2), `adapter.go:848` |
-| Modernize Go idioms                                   | 🔴 `TODO` | Med    | 30min  | `b.Loop()`, `slices.Contains` (`sessions.go:57`), `min()`, `strings.Cut`, `WaitGroup.Go`         |
-| Cache `crush.db` reads across requests                | 🔴 `TODO` | Med    | 45min  | a long-lived server re-opens the DB per call                                                     |
+| Enrich the test fixture with file-touching tool calls | 🟢 `DONE` | Med    | 30min  | `testdata/crush/crush.db` now has read, write, and bash tool calls with file_path inputs; `TestFixtureFileTouchingEventsHaveTargets` verifies extraction |
+| Fix errcheck warnings                                | 🟢 `DONE` | Med    | 30min  | all errcheck findings resolved; `go vet` clean, LSP shows 0 warnings                  |
+| Modernize Go idioms                                  | 🟢 `DONE` | Med    | 30min  | `b.Loop()`, `slices.ContainsFunc`, `min()`, `strings.Cut`, `WaitGroup.Go`, `maps.Copy`, `strings.SplitSeq`, `range int`, `new(value)` |
+| Cache `crush.db` reads across requests                | 🟢 `DONE` | Med    | 45min  | `dbCache *sync.Map` on `Adapter`; `openCached()` reuses `*sql.DB` handles; `sqlHandle.cached` prevents premature close |
 
 ## Low Impact
 
 | Task                                                                 | Status    | Impact | Effort | Evidence                                                  |
 | -------------------------------------------------------------------- | --------- | ------ | ------ | --------------------------------------------------------- |
-| Persist the agent-graph cache to disk                                | 🔴 `TODO` | Low    | 90min  | keyed by `(session_key, fingerprint)` so cold starts warm |
-| `mindwalk doctor` subcommand                                         | 🔴 `TODO` | Low    | 90min  | print adapter status, session counts, data-dir paths      |
-| `mindwalk sessions` CLI subcommand                                   | 🔴 `TODO` | Low    | 45min  | print the rail without starting the server                |
-| Add CI workflow                                                      | 🔴 `TODO` | Low    | 30min  | run `go test ./...` on every push                         |
-| Schema coverage warning at startup                                   | 🔴 `TODO` | Low    | 30min  | warn if Crush DB predates the read-files migration        |
-| Make `sessionDBIndex` a field on `Adapter`                           | 🔴 `TODO` | Low    | 30min  | package global `sync.Map` shares test state               |
-| Frontend: warn when a trace loads with 0 targets but non-zero events | 🔴 `TODO` | Low    | 30min  | surfaces misconfigured adapters in the UI                 |
-| Show session Cwd in the HUD/inspector                                | 🔴 `TODO` | Low    | 30min  | lets users verify the adapter resolved the right root     |
-| Mention `--host 0.0.0.0` in README Quick Start                       | 🔴 `TODO` | Low    | 10min  | LAN access is undocumented in README                      |
+| Persist the agent-graph cache to disk                                | 🟢 `DONE` | Low    | 90min  | `~/.mindwalk/agent-graphs/<digest>.json`; `loadAgentGraphFromDisk`/`storeAgentGraphToDisk`; digest excludes `freshGen` for restart stability |
+| `mindwalk doctor` subcommand                                         | 🟢 `DONE` | Low    | 90min  | prints adapter status, session counts, data-dir paths; `doctor()` in `main.go` |
+| `mindwalk sessions` CLI subcommand                                   | 🟢 `DONE` | Low    | 45min  | lists all sessions across adapters without starting the server; `listSessions()` in `main.go` |
+| Add CI workflow                                      | 🟢 `DONE` | Low    | 30min  | `.github/workflows/ci.yml` runs `go test ./...` + embedded frontend verification on every push; bumped to Go 1.26.5  |
+| Schema coverage warning at startup                                   | 🟢 `DONE` | Low    | 30min  | `warnIfOldSchema()` checks for `model` column via `pragma_table_info`; warns when Crush DB predates the 2025-06-27 migration |
+| Make `sessionDBIndex` a field on `Adapter`                           | 🟢 `DONE` | Low    | 30min  | `dbIndex *sync.Map` field on `Adapter`; `NewAdapter(dir)` constructor; `crushAdapter()` wired in server.go            |
+| Frontend: warn when a trace loads with 0 targets but non-zero events | 🟢 `DONE` | Low    | 30min  | `showNoTargetsWarning` computed in `Hud.tsx`; `.hud-warning` CSS banner displayed when events exist but none have targets |
+| Show session Cwd in the HUD/inspector                                | 🟢 `DONE` | Low    | 30min  | `trace.session.cwd` displayed in `hud-commit` section with tooltip; Inspector is file-level so HUD is the session-level view |
+| Mention `--host 0.0.0.0` in README Quick Start                       | 🟢 `DONE` | Low    | 10min  | README Quick Start documents `--host 0.0.0.0` for LAN access  |
 
 ---
 

@@ -59,26 +59,29 @@ func TestFixtureParsesTraceAsExpected(t *testing.T) {
 	if trace.Session.Model != "minimax/minimax-m3" {
 		t.Fatalf("model = %q", trace.Session.Model)
 	}
-	if len(trace.Events) != 1 {
-		t.Fatalf("events = %d, want 1 (single agent tool call)", len(trace.Events))
+	// Four events: agent (subagent), read, write, bash.
+	if len(trace.Events) != 4 {
+		t.Fatalf("events = %d, want 4 (agent + read + write + bash)", len(trace.Events))
 	}
-	ev := trace.Events[0]
-	if ev.Tool != "agent" {
-		t.Fatalf("event = %+v", ev)
+	toolNames := make(map[string]bool)
+	for _, ev := range trace.Events {
+		toolNames[ev.Tool] = true
 	}
-	// Two marks: user-message (from finish/stop) and subagent
-	// (from the agent tool call).
-	if len(trace.Marks) != 2 {
+	for _, want := range []string{"agent", "read", "write", "bash"} {
+		if !toolNames[want] {
+			t.Fatalf("missing %q event in trace; tools present: %v", want, toolNames)
+		}
+	}
+	// Three marks: user-message (first turn), subagent (agent call),
+	// and user-message (second turn with finish/stop).
+	if len(trace.Marks) != 3 {
 		t.Fatalf("marks = %+v", trace.Marks)
 	}
-	var sawUser, sawSub bool
+	sawUser, sawSub := 0, false
 	for _, m := range trace.Marks {
 		switch m.Type {
 		case "user-message":
-			sawUser = true
-			if m.Note != "Read internal/server/server.go." {
-				t.Fatalf("user note = %q", m.Note)
-			}
+			sawUser++
 		case "subagent":
 			sawSub = true
 			if m.Note != "read server" {
@@ -86,8 +89,47 @@ func TestFixtureParsesTraceAsExpected(t *testing.T) {
 			}
 		}
 	}
-	if !sawUser || !sawSub {
-		t.Fatalf("expected both marks, got user=%v sub=%v", sawUser, sawSub)
+	if sawUser != 2 {
+		t.Fatalf("expected 2 user-message marks, got %d", sawUser)
+	}
+	if !sawSub {
+		t.Fatalf("expected a subagent mark")
+	}
+}
+
+// TestFixtureFileTouchingEventsHaveTargets verifies the enriched
+// fixture's read, write, and bash tool calls each produce trace events
+// with tool names set correctly — exercising the path the server's
+// trace endpoint and citymap builder consume.
+func TestFixtureFileTouchingEventsHaveTargets(t *testing.T) {
+	dir := fixtureDir(t)
+	trace, err := Adapter{Dir: dir}.Parse(SessionPath("fixture-root"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	byTool := map[string]model.Event{}
+	for _, ev := range trace.Events {
+		byTool[ev.Tool] = ev
+	}
+	for _, want := range []string{"read", "write", "bash"} {
+		ev, ok := byTool[want]
+		if !ok {
+			t.Fatalf("missing %q event", want)
+		}
+		if ev.Seq < 0 {
+			t.Fatalf("%q event has negative seq: %d", want, ev.Seq)
+		}
+	}
+	// The read event should reference a file path via an outside
+	// touch (the fixture has no Cwd, so absolute paths land outside).
+	readEv := byTool["read"]
+	if len(readEv.Outside) == 0 && len(readEv.Targets) == 0 {
+		t.Fatalf("read event has no targets or outside touches: %+v", readEv)
+	}
+	// The write event should also touch a file.
+	writeEv := byTool["write"]
+	if len(writeEv.Outside) == 0 && len(writeEv.Targets) == 0 {
+		t.Fatalf("write event has no targets or outside touches: %+v", writeEv)
 	}
 }
 

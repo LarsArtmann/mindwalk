@@ -829,6 +829,9 @@ func TestFreshScanInvalidatesAgentGraphCache(t *testing.T) {
 	if _, err := s.agentGraph(root); err != nil {
 		t.Fatal(err)
 	}
+	// Clear disk cache so the fresh-scan invalidation test isolates
+	// the in-memory cache path.
+	_ = os.RemoveAll(agentGraphCacheDir())
 	requestSessions(t, s, "/api/sessions?fresh=1")
 	if _, err := s.agentGraph(root); err != nil {
 		t.Fatal(err)
@@ -1430,22 +1433,27 @@ func TestServerLoadsCrushFixtureSession(t *testing.T) {
 	if trace.Session.Harness != "crush" {
 		t.Fatalf("harness = %q", trace.Session.Harness)
 	}
-	if len(trace.Events) != 1 || trace.Events[0].Tool != "agent" {
-		t.Fatalf("events = %+v", trace.Events)
+	// Four events: agent (subagent), read, write, bash.
+	if len(trace.Events) != 4 {
+		t.Fatalf("events = %d, want 4 (agent + read + write + bash)", len(trace.Events))
 	}
-	if len(trace.Marks) != 2 {
+	if trace.Events[0].Tool != "agent" {
+		t.Fatalf("first event tool = %q, want agent", trace.Events[0].Tool)
+	}
+	// Three marks: two user-message + one subagent.
+	if len(trace.Marks) != 3 {
 		t.Fatalf("marks = %+v", trace.Marks)
 	}
-	var sawUser, sawSub bool
+	sawUser, sawSub := 0, false
 	for _, m := range trace.Marks {
 		if m.Type == "user-message" {
-			sawUser = true
+			sawUser++
 		}
 		if m.Type == "subagent" {
 			sawSub = true
 		}
 	}
-	if !sawUser || !sawSub {
+	if sawUser != 2 || !sawSub {
 		t.Fatalf("marks missing user/sub: %+v", trace.Marks)
 	}
 
@@ -1581,8 +1589,13 @@ func TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths(t *testing.T) {
 	if err != nil {
 		t.Fatalf("fingerprint with different freshGen failed: %v", err)
 	}
-	if fp1.digest == fp3.digest {
-		t.Fatal("different freshGen produced same fingerprint (stale cache)")
+	// The digest excludes freshGen so disk cache keys survive restarts.
+	// The full fingerprint still differs because freshGen is a field.
+	if fp1.digest != fp3.digest {
+		t.Fatalf("different freshGen produced different digest (disk cache would not survive restart)")
+	}
+	if fp1 == fp3 {
+		t.Fatal("different freshGen produced identical fingerprint (stale in-memory cache)")
 	}
 }
 
