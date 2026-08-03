@@ -54,13 +54,13 @@ func newFixtureDB(t *testing.T, seed func(*sql.DB)) (dir string, db *sql.DB) {
 		);
 	`
 	if _, err := handle.Exec(schema); err != nil {
-		handle.Close()
+			_ = handle.Close()
 		t.Fatal(err)
 	}
 	if seed != nil {
 		seed(handle)
 	}
-	t.Cleanup(func() { handle.Close() })
+	t.Cleanup(func() { _ = handle.Close() })
 	return data, handle
 }
 

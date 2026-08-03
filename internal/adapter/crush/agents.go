@@ -266,13 +266,13 @@ func (a Adapter) readAgentLaunches(path string) ([]agentLaunch, error) {
 	if db == nil {
 		return nil, nil
 	}
-	defer db.close()
+	defer func() { _ = db.close() }()
 
 	rows, err := db.db.Query(messagesBySessionQuery, sessionID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	launches := []agentLaunch{}
 	launchByCallID := make(map[string]int)

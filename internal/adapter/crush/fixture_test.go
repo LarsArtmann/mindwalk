@@ -166,7 +166,7 @@ func BenchmarkFixtureListSessions(b *testing.B) {
 	dir := filepath.Join("..", "..", "..", "testdata", "crush")
 	a := Adapter{Dir: dir}
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if _, err := a.ListSessions(); err != nil {
 			b.Fatal(err)
 		}
@@ -181,7 +181,7 @@ func BenchmarkFixtureParse(b *testing.B) {
 	a := Adapter{Dir: dir}
 	path := SessionPath("fixture-root")
 	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		if _, err := a.Parse(path); err != nil {
 			b.Fatal(err)
 		}

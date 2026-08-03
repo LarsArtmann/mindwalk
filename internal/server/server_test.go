@@ -1032,7 +1032,7 @@ func TestRepoMapCacheExpiresWhenRepoChanges(t *testing.T) {
 
 func TestRepoMapCacheIsBounded(t *testing.T) {
 	s := New(Config{CrushDir: filepath.Join(t.TempDir(), "no-crush")})
-	for i := 0; i < repoMapMaxEntries+5; i++ {
+	for range repoMapMaxEntries + 5 {
 		repo := t.TempDir()
 		if err := os.WriteFile(filepath.Join(repo, "a.go"), []byte("package demo\n"), 0o644); err != nil {
 			t.Fatal(err)

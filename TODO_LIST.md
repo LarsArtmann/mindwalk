@@ -19,10 +19,10 @@
 
 | Task                                                                 | Status    | Impact | Effort | Evidence                                                                                       |
 | -------------------------------------------------------------------- | --------- | ------ | ------ | ---------------------------------------------------------------------------------------------- |
-| Fix `agents.go` multi-DB routing                                     | 🔴 `TODO` | High   | 30min  | `agents.go:56,197,259` call `openReadOnly()`; `openDBForPath()` exists at `sessions.go:392`    |
-| Commit the uncommitted judge-CLI docs (AGENTS.md + ReportPanel.tsx)  | 🔴 `TODO` | High   | 5min   | `git status` shows both modified; tail of commit `266bd64` that didn't land the doc/UI mention |
-| Add regression tests for the two round-2 server bugs                 | 🔴 `TODO` | High   | 40min  | `grep fingerprintAgentGraphInputs\|loadTraceAndMap *_test.go` returns nothing; fixes in `6c986d3` |
-| Fix server test isolation                                            | 🔴 `TODO` | High   | 45min  | `go test ./internal/server/` takes 217s scanning the host's real `projects.json`               |
+| Fix `agents.go` multi-DB routing                                     | 🟢 `DONE` | High   | 30min  | `agents.go` now uses `enumerateDBPaths()` / `openDBForPath()` instead of single-DB `openReadOnly()` |
+| Commit the uncommitted judge-CLI docs (AGENTS.md + ReportPanel.tsx)  | 🟢 `DONE` | High   | 5min   | already committed in `c9fe352` (working tree was clean)                                        |
+| Add regression tests for the two round-2 server bugs                 | 🟢 `DONE` | High   | 40min  | `TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths` + `TestLoadTraceAndMapDoesNotGarbageRootCrushPaths` |
+| Fix server test isolation                                            | 🟢 `DONE` | High   | 45min  | `go test ./internal/server/` 79s → 0.28s; `TestMain` redirects `CRUSH_GLOBAL_DATA`/`XDG_DATA_HOME`; analyze tests now set `DisableCrush` |
 
 ## Medium Impact
 
@@ -30,7 +30,7 @@
 | -------------------------------------------------------------------- | --------- | ------ | ------ | ------------------------------------------------------------------------------------- |
 | Add tests for multi-DB discovery                                      | 🔴 `TODO` | Med    | 1h     | `loadProjectDBs`, `listAllProjectSessions`, `openDBForPath`, `projectPathForDB` — 0 coverage |
 | Verify the web UI renders Crush sessions in a browser                 | 🔴 `TODO` | Med    | 30min  | API verified; 3D citymap / HUD / agent-graph never visually confirmed                 |
-| Add `--host` flag to `open` and `map` commands                        | 🔴 `TODO` | Med    | 15min  | only `serve` has it (`main.go:57`); `open` (`:72`) and `map` (`:94`) do not           |
+| Add `--host` flag to `open` and `map` commands                        | 🟢 `DONE` | Med    | 15min  | both commands now accept `--host` and pass it to `server.Config` |
 | Enrich the test fixture with file-touching tool calls                 | 🔴 `TODO` | Med    | 30min  | `testdata/crush/crush.db` has only an `agent` call; cannot exercise path normalization |
 | Fix errcheck warnings                                                | 🔴 `TODO` | Med    | 30min  | crush `sessions.go` (3), crush `adapter_test.go` (2), citymap `builder.go` (2), `adapter.go:848` |
 | Modernize Go idioms                                                  | 🔴 `TODO` | Med    | 30min  | `b.Loop()`, `slices.Contains` (`sessions.go:57`), `min()`, `strings.Cut`, `WaitGroup.Go` |

@@ -168,7 +168,7 @@ func isBinaryLike(abs, path string) bool {
 	if err != nil {
 		return false
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	buf := make([]byte, 8192)
 	n, err := f.Read(buf)
 	if err != nil && n == 0 {
@@ -182,7 +182,7 @@ func countLines(path string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	lines := 0
 	hasBytes := false

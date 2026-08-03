@@ -567,23 +567,18 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	// summarizing reads every uncached session file; spread the parsing
 	// across cores so a cold scan doesn't serialize gigabytes of JSONL
 	results := make([]*model.SessionMeta, len(files))
-	workers := runtime.NumCPU()
-	if workers > len(files) {
-		workers = len(files)
-	}
+	workers := min(runtime.NumCPU(), len(files))
 	if workers > 1 {
 		jobs := make(chan int)
 		var wg sync.WaitGroup
 		for w := 0; w < workers; w++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				for i := range jobs {
 					if meta, err := s.summarizeCached(files[i].source, files[i].path, files[i].info); err == nil {
 						results[i] = &meta
 					}
 				}
-			}()
+			})
 		}
 		for i := range files {
 			jobs <- i
@@ -1118,8 +1113,8 @@ func summaryKey(source adapter.Source, path string) string {
 }
 
 func summaryPath(key string) string {
-	if idx := strings.IndexByte(key, 0); idx >= 0 {
-		return key[idx+1:]
+	if _, rest, ok := strings.Cut(key, "\x00"); ok {
+		return rest
 	}
 	return key
 }

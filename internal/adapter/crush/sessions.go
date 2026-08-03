@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -52,14 +53,7 @@ func allProjectDBs() []projectDB {
 	// projects registry, e.g. the global config session).
 	globalDB := filepath.Join(DefaultDir(), dataDirName, dbName)
 	if _, err := os.Stat(globalDB); err == nil {
-		already := false
-		for _, p := range dbs {
-			if p.DBPath == globalDB {
-				already = true
-				break
-			}
-		}
-		if !already {
+		if !slices.ContainsFunc(dbs, func(p projectDB) bool { return p.DBPath == globalDB }) {
 			dbs = append(dbs, projectDB{DBPath: globalDB})
 		}
 	}
@@ -118,14 +112,14 @@ func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 	if db == nil {
 		return nil, nil
 	}
-	defer db.close()
+	defer func() { _ = db.close() }()
 
 	cwd := projectPathForDB(db.path)
 	rows, err := db.db.QueryContext(context.Background(), listSessionsQuery)
 	if err != nil {
 		return nil, fmt.Errorf("list crush sessions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var metas []model.SessionMeta
 	for rows.Next() {
@@ -157,7 +151,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	if db == nil {
 		return model.SessionMeta{}, errDBUnavailable
 	}
-	defer db.close()
+	defer func() { _ = db.close() }()
 
 	id, isAgent, ok := splitSessionID(path)
 	if !ok {
@@ -218,7 +212,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	if db == nil {
 		return nil, errDBUnavailable
 	}
-	defer db.close()
+	defer func() { _ = db.close() }()
 
 	id, _, ok := splitSessionID(path)
 	if !ok {
@@ -251,7 +245,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read crush messages: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	recognized := meta.ID != ""
 	pending := map[string]adapter.ToolCall{}
