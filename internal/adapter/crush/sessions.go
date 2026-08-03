@@ -367,7 +367,7 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 			Key:               SessionKey(sr.ID),
 			ID:                sr.ID,
 			Harness:           harnessName,
-			Path:              sessionPath(sr.ID),
+			Path:              SessionPath(sr.ID),
 			Title:             sr.Title,
 			StartedAt:         millisToRFC3339(sr.CreatedAt),
 			EndedAt:           millisToRFC3339(sr.UpdatedAt),
@@ -381,7 +381,7 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 		Key:        SessionKey(sr.ID),
 		ID:         sr.ID,
 		Harness:    harnessName,
-		Path:       sessionPath(sr.ID),
+		Path:       SessionPath(sr.ID),
 		Title:      sr.Title,
 		StartedAt:  millisToRFC3339(sr.CreatedAt),
 		EndedAt:    millisToRFC3339(sr.UpdatedAt),
@@ -432,26 +432,50 @@ func millisToRFC3339(ms int64) string {
 	return time.UnixMilli(ms).UTC().Format(time.RFC3339Nano)
 }
 
-// sessionPath is the synthetic handle the server uses to deep-link
-// into a Crush session. The actual storage lives inside the SQLite
-// database; the path encodes the harness + id so adapter.Summarize
-// can recover the row and the Agent Lens can route to child sessions
-// via the same id format Crush uses internally.
-func sessionPath(id string) string {
-	return "crush://session/" + id
+// sessionPathScheme is the synthetic-path prefix the server uses to
+// deep-link into a Crush session. The actual storage lives inside
+// the SQLite database; the path encodes the harness + id so
+// adapter.Summarize can recover the row and the Agent Lens can
+// route to child sessions via the same id format Crush uses
+// internally. Kept as a constant so a future rename is one line.
+const sessionPathScheme = "crush://session/"
+
+// SessionPath returns the synthetic handle the server uses to
+// deep-link into a Crush session. Callers should treat the returned
+// value as opaque and use IsSessionPath / SessionIDFromPath to
+// recover the underlying id.
+func SessionPath(id string) string {
+	return sessionPathScheme + id
 }
 
-// splitSessionID takes a path produced by sessionPath (or the bare
+// IsSessionPath reports whether path is a Crush session handle.
+// Useful for adapter-agnostic code in the server that needs to
+// distinguish a Crush synthetic path from a real on-disk file.
+func IsSessionPath(path string) bool {
+	return strings.HasPrefix(path, sessionPathScheme)
+}
+
+// SessionIDFromPath extracts the bare session id from a path
+// produced by SessionPath. The returned id preserves Crush's
+// "messageID$$toolCallID" agent-tool format verbatim — callers
+// that need to detect that shape should pass the result through
+// splitAgentID.
+func SessionIDFromPath(path string) string {
+	id, ok := strings.CutPrefix(path, sessionPathScheme)
+	if !ok {
+		return path
+	}
+	return id
+}
+
+// splitSessionID takes a path produced by SessionPath (or the bare
 // session id) and returns the id plus a flag for the agent-tool
 // "messageID$$toolCallID" shape.
 func splitSessionID(path string) (string, bool, bool) {
 	if path == "" {
 		return "", false, false
 	}
-	id := path
-	if strings.HasPrefix(id, "crush://session/") {
-		id = strings.TrimPrefix(id, "crush://session/")
-	}
+	id := SessionIDFromPath(path)
 	if id == "" {
 		return "", false, false
 	}
@@ -479,5 +503,5 @@ const agentIDSeparator = "$$"
 // id. We re-export adapter.SessionKey with a fixed harness name so
 // downstream code reads the same key the server uses in its catalog.
 func SessionKey(id string) string {
-	return adapter.SessionKey(harnessName, sessionPath(id))
+	return adapter.SessionKey(harnessName, SessionPath(id))
 }

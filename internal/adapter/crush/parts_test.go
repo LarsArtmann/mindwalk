@@ -307,3 +307,27 @@ func TestSplitSessionIDAcceptsBothFormats(t *testing.T) {
 		t.Fatalf("empty input should fail")
 	}
 }
+
+// TestSessionPathRoundTrip verifies the typed synthetic-path
+// helpers in the adapter package. The scheme is shared with the
+// server (which calls IsSessionPath), so the constant must stay
+// stable.
+func TestSessionPathRoundTrip(t *testing.T) {
+	for _, id := range []string{"abc-123", "msg-1$$toolcall-1", "with/slash"} {
+		got := SessionPath(id)
+		if !IsSessionPath(got) {
+			t.Fatalf("IsSessionPath(%q) = false", got)
+		}
+		if extracted := SessionIDFromPath(got); extracted != id {
+			t.Fatalf("SessionIDFromPath(%q) = %q, want %q", got, extracted, id)
+		}
+	}
+	if IsSessionPath("not a crush path") {
+		t.Fatalf("non-crush path should fail IsSessionPath")
+	}
+	// SessionIDFromPath returns the input unchanged when the scheme
+	// does not match — useful for callers that pass bare ids.
+	if got := SessionIDFromPath("bare-id"); got != "bare-id" {
+		t.Fatalf("SessionIDFromPath without scheme = %q, want bare-id", got)
+	}
+}

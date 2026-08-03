@@ -574,12 +574,13 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 
 // sourceUsesFilesystem reports whether a list of metas came from a
 // filesystem walk rather than an explicit adapter enumeration. The
-// Crush adapter returns synthetic paths rooted at "crush://" so the
-// presence of a single such path is a strong signal the adapter is
-// database-backed and the legacy directory walk should be skipped.
+// Crush adapter returns synthetic paths rooted at
+// "crush://session/" so the presence of a single such path is a
+// strong signal the adapter is database-backed and the legacy
+// directory walk should be skipped.
 func sourceUsesFilesystem(metas []model.SessionMeta) bool {
 	for _, meta := range metas {
-		if strings.HasPrefix(meta.Path, "crush://") {
+		if crush.IsSessionPath(meta.Path) {
 			return false
 		}
 	}
@@ -995,13 +996,14 @@ func fingerprintFile(path string) (fileFingerprint, error) {
 
 // fingerprintPath handles paths that are not real on-disk files.
 // Adapters that surface sessions via a database (Crush) hand the
-// rest of the server a synthetic "crush://..." handle; os.Stat
-// rejects those, but the per-call result still needs a fingerprint
-// to drive the trace cache. We synthesise a stable zero fingerprint
-// for those cases — the cache always misses, so each request goes
-// back to the adapter, which is fine for a DB-backed source.
+// rest of the server a synthetic "crush://session/<id>" handle;
+// os.Stat rejects those, but the per-call result still needs a
+// fingerprint to drive the trace cache. We synthesise a stable zero
+// fingerprint for those cases — the cache always misses, so each
+// request goes back to the adapter, which is fine for a DB-backed
+// source.
 func fingerprintPath(path string) (fileFingerprint, error) {
-	if strings.HasPrefix(path, "crush://") {
+	if crush.IsSessionPath(path) {
 		return fileFingerprint{}, nil
 	}
 	return fingerprintFile(path)
