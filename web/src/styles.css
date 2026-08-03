@@ -2232,15 +2232,16 @@ dd {
   padding-bottom: 10px;
 }
 
-.report-stale {
+/* one controls block at the top owns judge choice, re-evaluation, and the
+   staleness note — the report below it is pure content */
+.report-controls {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-  margin: 10px 16px 0;
-  padding: 7px 10px;
-  border: 1px solid var(--hairline-strong);
-  border-radius: 4px;
+  gap: 7px;
+  padding: 10px 16px 0;
+}
+
+.report-stale-note {
   color: var(--amber);
   font-size: var(--text-xs);
   line-height: 1.4;
@@ -2265,16 +2266,14 @@ dd {
 }
 
 .report-task {
-  padding: 12px 16px 10px;
-  border-bottom: 1px solid var(--hairline);
+  padding: 12px 16px 2px;
   color: var(--ink);
   font-size: var(--text-sm);
   line-height: 1.55;
 }
 
 .report-dimension {
-  padding: 10px 16px 8px;
-  border-bottom: 1px solid var(--hairline);
+  padding: 12px 16px 2px;
 }
 
 .report-dimension-head {
@@ -2370,6 +2369,122 @@ dd {
   overflow-wrap: anywhere;
 }
 
+/* task-accounting layer: criteria reuse the dimension pattern; only the
+   task grouping chrome and coverage metadata are new. Coverage is metadata,
+   not state — it stays on neutral tokens, no new status colors. */
+
+/* chapter heads split the report into its two layers — Tasks (accounting)
+   and Process (dimensions) — one rank above plain section eyebrows: their
+   own ruled row, generous space above, tight below. */
+/* chapter heads are the panel's top type rank: ink, tracked wide, no rule —
+   the report separates by type and spacing, not by lines */
+.report-chapter {
+  margin: 0;
+  padding: 20px 16px 4px;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 620;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.report-rubric-note {
+  padding: 8px 16px;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+/* CJK sentences never drop below --text-sm; --text-xs is reserved for latin
+   labels, badges, and eyebrows */
+.report-rubric-hint {
+  padding: 8px 16px 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* spacing ranks the boundaries: chapter > task > criterion > finding.
+   Criteria inside a task sit tighter than free-standing dimensions. */
+.report-criterion {
+  padding: 8px 16px 6px;
+}
+
+.report-criterion .report-dimension-head {
+  margin-bottom: 4px;
+}
+
+.rubric-task-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 16px 0;
+  text-align: left;
+}
+
+.rubric-task-head:not(:disabled):hover .rubric-task-title {
+  text-decoration: underline;
+  text-decoration-color: var(--hairline-strong);
+  text-underline-offset: 3px;
+}
+
+.rubric-task-head:disabled {
+  cursor: default;
+}
+
+.rubric-task-title {
+  color: var(--ink);
+  font-size: var(--text-sm);
+  font-weight: 560;
+}
+
+/* the type tag trails the title's last character so a wrapped title keeps
+   its tag attached; severity dots on findings stay the panel's only dots */
+.rubric-task-type {
+  margin-left: 8px;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+}
+
+.report-criterion-name {
+  color: var(--muted);
+  font-size: var(--text-sm);
+  font-weight: 560;
+  overflow-wrap: anywhere;
+}
+
+.report-criterion-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.coverage-badge {
+  padding: 1px 7px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--faint);
+  font-size: var(--text-xs);
+}
+
+/* the scorer's note closes the rubric block: labeled so it reads as rubric
+   metadata, hairlined so it does not run into the Process chapter below.
+   The label stays an xs eyebrow; the note body is CJK prose and holds sm. */
+.report-rubric-footnote {
+  padding: 14px 16px 2px;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.report-rubric-footnote .eyebrow {
+  margin-bottom: 4px;
+}
+
 .report-moment {
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -2393,7 +2508,10 @@ dd {
   font-variant-numeric: tabular-nums;
 }
 
+/* the judge's overview joins the lede right under the task summary — the
+   report reads summary-first, itemized layers after */
 .report-narrative {
+  padding: 0 16px 12px;
   color: var(--muted);
   font-size: var(--text-sm);
   line-height: 1.6;
@@ -2405,11 +2523,6 @@ dd {
   padding: 10px 16px 6px;
 }
 
-.report-again {
-  margin-top: 4px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--hairline);
-}
 
 /* rail evaluation badges: the list mirrors judge state without extra clicks */
 

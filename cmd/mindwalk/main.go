@@ -150,6 +150,7 @@ func analyze(args []string) error {
 	judgeCLI := fs.String("judge", "", "judge CLI to use: claude or codex (default: auto-detect)")
 	judgeModel := fs.String("model", "", "judge model override, e.g. sonnet or gpt-5.6-sol (default: the CLI's default)")
 	noCache := fs.Bool("no-cache", false, "re-run the judge even when a fresh cached report exists")
+	noRubric := fs.Bool("no-rubric", false, "skip the task rubric layer: one dimensions-only judge call, bypassing the report cache")
 	timeout := fs.Duration("timeout", judge.DefaultTimeout, "judge subprocess timeout")
 	// Accept flags after the positional argument, matching trace/build.
 	var positional []string
@@ -164,7 +165,7 @@ func analyze(args []string) error {
 		args = fs.Args()[1:]
 	}
 	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache]")
+		return fmt.Errorf("usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache] [--no-rubric]")
 	}
 	session, err := filepath.Abs(positional[0])
 	if err != nil {
@@ -177,8 +178,19 @@ func analyze(args []string) error {
 
 	cache := judge.Cache{Dir: judge.DefaultCacheDir()}
 	key := adapter.SessionKey(tr.Session.Harness, session)
-	if !*noCache {
-		if cached := cache.Load(key); judge.Fresh(cached, tr) && judgeMatches(cached, *judgeCLI, *judgeModel) {
+	// --no-cache means a fully fresh run: the cached report is neither
+	// returned nor mined for a reusable rubric. --no-rubric bypasses the
+	// cache in both directions — returning a cached rubric-ful report would
+	// contradict the flag, and storing a rubric-less one would downgrade a
+	// richer cache entry — so the flag always costs one fresh call.
+	var cached *model.Report
+	if !*noCache && !*noRubric {
+		cached = cache.Load(key)
+		// A rubric-enabled request is only answered from cache when the report
+		// already settles the rubric question; a rubric-less fresh report gets
+		// re-run rather than silently returned without the layer.
+		if judge.Fresh(cached, tr) && judgeMatches(cached, *judgeCLI, *judgeModel) &&
+			judge.RubricSatisfied(cached) {
 			fmt.Fprintln(os.Stderr, "mindwalk: using cached report (pass --no-cache to re-run)")
 			return writeJSON(*out, cached)
 		}
@@ -186,13 +198,15 @@ func analyze(args []string) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
-	fmt.Fprintf(os.Stderr, "mindwalk: judging %d events, this can take a minute…\n", tr.Session.EventCount)
-	report, err := judge.Analyze(ctx, tr, judge.Options{CLI: *judgeCLI, Model: *judgeModel})
+	fmt.Fprintf(os.Stderr, "mindwalk: judging %d events, this can take a minute or two…\n", tr.Session.EventCount)
+	report, err := judge.Analyze(ctx, tr, judge.Options{CLI: *judgeCLI, Model: *judgeModel, NoRubric: *noRubric, CachedReport: cached})
 	if err != nil {
 		return err
 	}
-	if err := cache.Store(key, report); err != nil {
-		fmt.Fprintln(os.Stderr, "mindwalk: report cache write failed:", err)
+	if !*noRubric {
+		if err := cache.Store(key, report); err != nil {
+			fmt.Fprintln(os.Stderr, "mindwalk: report cache write failed:", err)
+		}
 	}
 	return writeJSON(*out, report)
 }
@@ -257,5 +271,5 @@ Usage:
   mindwalk map [--no-open] <repo>  open the repository citymap with no session
   mindwalk build <repo> [-o out]  write citymap.json
   mindwalk trace <session> [-o out] write trace.json
-  mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] evaluate a session with a local agent CLI`)
+  mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] [--no-rubric] evaluate a session with a local agent CLI`)
 }

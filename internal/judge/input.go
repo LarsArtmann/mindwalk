@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
@@ -18,12 +19,32 @@ const (
 	maxUserMessageLen  = 600
 	maxSummaryLen      = 160
 	maxNarrativeEvents = 2000
+	// maxTaskMessages bounds the rubric phase's task-evidence section — much
+	// wider than the scoring budget because the rubric must see every task
+	// the user raised. Anchors, the task digest, and the weak-text gate all
+	// read exactly this set; nothing rubric-related may consult a different
+	// message list.
+	maxTaskMessages = 48
 )
 
-// BuildInput renders one trace as the judge's evidence document: session
-// meta, user task wording, precomputed stats, and a one-line-per-event
-// narrative. The judge reads only this — never the raw session log.
+// BuildInput renders one trace as the scoring judge's evidence document:
+// session meta, budgeted user task wording, precomputed stats, and a
+// one-line-per-event narrative. The judge reads only this — never the raw
+// session log.
 func BuildInput(trace *model.Trace) string {
+	return buildDocument(trace, renderedUserMessages(trace.Marks))
+}
+
+// BuildRubricInput renders the rubric generator's evidence document: same
+// stats and narrative, but the user-message section is the full task
+// evidence (taskMessages) rather than the scoring budget — a task raised in
+// the middle of a long session must be visible to the generator that is
+// asked to enumerate tasks.
+func BuildRubricInput(trace *model.Trace) string {
+	return buildDocument(trace, taskMessages(trace.Marks))
+}
+
+func buildDocument(trace *model.Trace, keep []userMessage) string {
 	var b strings.Builder
 	sess := trace.Session
 	b.WriteString("# Session under evaluation\n\n")
@@ -31,7 +52,7 @@ func BuildInput(trace *model.Trace) string {
 	fmt.Fprintf(&b, "- cwd: %s  events: %d\n", sess.Cwd, sess.EventCount)
 	fmt.Fprintf(&b, "- started: %s  ended: %s\n\n", sess.StartedAt, sess.EndedAt)
 
-	writeUserMessages(&b, trace.Marks)
+	writeMessages(&b, keep)
 	writeStats(&b, trace.Stats)
 	writeNarrative(&b, trace)
 	return b.String()
@@ -45,16 +66,18 @@ func InputDigest(trace *model.Trace) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// writeUserMessages renders the user's own words: the first message states
-// the task, later ones are follow-ups and corrections. When the budget
-// overflows, the first message and the newest ones win — a late correction
-// outweighs mid-session chatter.
-func writeUserMessages(b *strings.Builder, marks []model.Mark) {
-	b.WriteString("## User messages (the task; later ones are follow-ups/corrections)\n\n")
-	type userMessage struct {
-		ordinal int
-		text    string
-	}
+// userMessage is one user-message mark after injected-wrapper filtering.
+// Ordinal is 1-based over the filtered list and is what the evidence document
+// renders as [user #N]; seq is the mark seq it resolves to.
+type userMessage struct {
+	ordinal int
+	seq     int
+	text    string
+}
+
+// filteredUserMessages returns every user message that may appear in the
+// evidence document, before the rendering budget is applied.
+func filteredUserMessages(marks []model.Mark) []userMessage {
 	var messages []userMessage
 	for _, mark := range marks {
 		if mark.Type != "user-message" {
@@ -67,15 +90,37 @@ func writeUserMessages(b *strings.Builder, marks []model.Mark) {
 		if text == "" || adapter.InjectedUserMessage(text) {
 			continue
 		}
-		messages = append(messages, userMessage{ordinal: len(messages) + 1, text: text})
+		messages = append(messages, userMessage{ordinal: len(messages) + 1, seq: mark.Seq, text: text})
 	}
-	if len(messages) == 0 {
+	return messages
+}
+
+// budgetMessages keeps the first message (it states the task) plus the
+// newest budget-1 (they carry corrections); mid-session chatter gives way.
+func budgetMessages(messages []userMessage, budget int) []userMessage {
+	if len(messages) > budget {
+		messages = append([]userMessage{messages[0]}, messages[len(messages)-(budget-1):]...)
+	}
+	return messages
+}
+
+// renderedUserMessages is the scoring document's message budget.
+func renderedUserMessages(marks []model.Mark) []userMessage {
+	return budgetMessages(filteredUserMessages(marks), maxUserMessages)
+}
+
+// taskMessages is the single task-evidence set of the rubric phase: what the
+// generator reads, what anchors may reference, what the digest fingerprints,
+// and what the weak-text gate measures.
+func taskMessages(marks []model.Mark) []userMessage {
+	return budgetMessages(filteredUserMessages(marks), maxTaskMessages)
+}
+
+func writeMessages(b *strings.Builder, keep []userMessage) {
+	b.WriteString("## User messages (the task; later ones are follow-ups/corrections)\n\n")
+	if len(keep) == 0 {
 		b.WriteString("(no user message text available)\n\n")
 		return
-	}
-	keep := messages
-	if len(messages) > maxUserMessages {
-		keep = append([]userMessage{messages[0]}, messages[len(messages)-(maxUserMessages-1):]...)
 	}
 	previous := 0
 	for _, message := range keep {
@@ -85,6 +130,37 @@ func writeUserMessages(b *strings.Builder, marks []model.Mark) {
 		previous = message.ordinal
 		fmt.Fprintf(b, "[user #%d] %s\n\n", message.ordinal, truncateRunes(message.text, maxUserMessageLen))
 	}
+}
+
+// taskTextRunes measures the task signal available to a rubric — over the
+// same set the generator will actually see.
+func taskTextRunes(marks []model.Mark) int {
+	total := 0
+	for _, message := range taskMessages(marks) {
+		total += len([]rune(message.text))
+	}
+	return total
+}
+
+// taskSection renders the rubric phase's user-message section.
+func taskSection(marks []model.Mark) string {
+	var b strings.Builder
+	writeMessages(&b, taskMessages(marks))
+	return b.String()
+}
+
+// TaskDigest fingerprints the exact task section the rubric generator reads.
+// Unlike InputDigest it ignores events and stats: a session that only grew
+// in activity keeps its rubric, while any change to the task wording, the
+// generation source mode, or the rubric prompt forces regeneration.
+func TaskDigest(trace *model.Trace, source string) string {
+	sum := sha256.Sum256([]byte(strings.Join([]string{
+		trace.Session.Harness,
+		taskSection(trace.Marks),
+		source,
+		strconv.Itoa(RubricPromptVersion),
+	}, "\n")))
+	return hex.EncodeToString(sum[:])
 }
 
 func writeStats(b *strings.Builder, stats model.Stats) {

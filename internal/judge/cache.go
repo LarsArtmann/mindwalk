@@ -49,10 +49,20 @@ func (c Cache) Load(sessionKey string) *model.Report {
 		return nil
 	}
 	// A dimension's nil findings serializes as JSON null, which the panel
-	// maps over unconditionally; normalize rather than reject.
+	// maps over unconditionally; normalize rather than reject. Rubric
+	// criteria get the same treatment.
 	for i := range report.Dimensions {
 		if report.Dimensions[i].Findings == nil {
 			report.Dimensions[i].Findings = []model.ReportFinding{}
+		}
+	}
+	if report.Rubric != nil {
+		for i := range report.Rubric.Tasks {
+			for j := range report.Rubric.Tasks[i].Criteria {
+				if report.Rubric.Tasks[i].Criteria[j].Findings == nil {
+					report.Rubric.Tasks[i].Criteria[j].Findings = []model.ReportFinding{}
+				}
+			}
 		}
 	}
 	return &report
@@ -61,12 +71,55 @@ func (c Cache) Load(sessionKey string) *model.Report {
 // Fresh reports whether a cached report still matches the trace it would be
 // regenerated from: same prompt version and the same judge input digest —
 // event counts alone miss user messages (stored as marks) and content edits.
-// The judge CLI is deliberately not part of freshness — a valid report stays
-// valid. Reports from before the digest existed are stale by construction.
+// The rubric layer is checked against the current task evidence separately,
+// because its input window is wider than the scoring document's. The judge
+// CLI is deliberately not part of freshness — a valid report stays valid.
+// Reports from before the digest existed are stale by construction.
 func Fresh(report *model.Report, trace *model.Trace) bool {
-	return report != nil &&
-		report.Judge.PromptVersion == PromptVersion &&
-		report.Judge.InputDigest == InputDigest(trace)
+	if report == nil ||
+		report.Judge.PromptVersion != PromptVersion ||
+		report.Judge.InputDigest != InputDigest(trace) {
+		return false
+	}
+	return rubricFresh(report, trace)
+}
+
+// rubricFresh verifies the rubric layer against the CURRENT task evidence.
+// InputDigest reads the scoring document, whose message window is tighter
+// than the rubric phase's: a mid-window message revision can leave the
+// scoring digest untouched while the task evidence — and therefore the
+// rubric that would be regenerated — has changed.
+func rubricFresh(report *model.Report, trace *model.Trace) bool {
+	rubric := report.Rubric
+	if rubric == nil {
+		return true
+	}
+	switch rubric.Status {
+	case model.RubricStatusScored:
+		if report.Judge.RubricPromptVersion != RubricPromptVersion {
+			return false
+		}
+		// A scored rubric must name a valid source and still fingerprint the
+		// task evidence it would be regenerated from.
+		if rubric.Source != model.RubricSourceFull && rubric.Source != model.RubricSourceTask {
+			return false
+		}
+		return rubric.TaskDigest == TaskDigest(trace, rubric.Source)
+	case model.RubricStatusUnavailable:
+		// Deterministic skips stay fresh only while their condition still
+		// holds for the current task evidence. no-events needs no recheck
+		// (events appearing changes the narrative, which InputDigest covers),
+		// and generation-failed deliberately stays fresh — re-running it is
+		// the user's explicit call, and RubricSatisfied already refuses to
+		// treat it as settled.
+		switch rubric.Reason {
+		case model.RubricReasonNoTaskText:
+			return len(taskMessages(trace.Marks)) == 0
+		case model.RubricReasonWeakTaskText:
+			return len(taskMessages(trace.Marks)) > 0 && taskTextRunes(trace.Marks) < weakTaskTextRunes
+		}
+	}
+	return true
 }
 
 func (c Cache) Store(sessionKey string, report *model.Report) error {

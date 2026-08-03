@@ -10,6 +10,7 @@ type Report struct {
 	Judge          ReportJudge       `json:"judge"`
 	TaskSummary    string            `json:"taskSummary"`
 	Dimensions     []ReportDimension `json:"dimensions"`
+	Rubric         *Rubric           `json:"rubric,omitempty"`
 	NotableMoments []ReportMoment    `json:"notableMoments,omitempty"`
 	Narrative      string            `json:"narrative"`
 }
@@ -36,7 +37,11 @@ type ReportJudge struct {
 	// so a repeated aliased request can recognize its own cached report.
 	RequestedModel string `json:"requestedModel,omitempty"`
 	PromptVersion  int    `json:"promptVersion"`
-	GeneratedAt    string `json:"generatedAt"`
+	// RubricPromptVersion is set only when the report carries a scored rubric;
+	// deterministic skips (no/weak task text) stay fresh across rubric prompt
+	// revisions because no generation happened.
+	RubricPromptVersion int    `json:"rubricPromptVersion,omitempty"`
+	GeneratedAt         string `json:"generatedAt"`
 	// InputDigest fingerprints the exact evidence document the judge read;
 	// the report is fresh only while the trace still renders to this digest.
 	InputDigest string `json:"inputDigest,omitempty"`
@@ -84,4 +89,78 @@ type ReportFinding struct {
 type ReportMoment struct {
 	Seq  int    `json:"seq"`
 	Note string `json:"note"`
+}
+
+// Rubric statuses and skip/degrade reasons.
+const (
+	RubricStatusScored      = "scored"
+	RubricStatusUnavailable = "unavailable"
+
+	RubricReasonGenerationFailed = "generation-failed"
+	RubricReasonNoTaskText       = "no-task-text"
+	RubricReasonWeakTaskText     = "weak-task-text"
+	// RubricReasonNoEvents skips traces with no tool events: with nothing to
+	// cite, every finding would be dropped and criteria would default to
+	// good verdicts on zero evidence.
+	RubricReasonNoEvents = "no-events"
+)
+
+// Rubric generation input modes. A rubric generated with the full evidence
+// document may absorb this attempt's implementation choices into its anchors;
+// comparison across agents must only ever reuse task-sourced rubrics.
+const (
+	RubricSourceFull = "full"
+	RubricSourceTask = "task"
+)
+
+// Criterion evidence coverage. Unlike severities these never feed warnings:
+// a criterion the log cannot evidence rolls up to insufficient-data instead
+// of counting against the agent.
+const (
+	CoverageSufficient = "sufficient"
+	CoveragePartial    = "partial"
+	CoverageNone       = "none"
+)
+
+// Rubric is the task-accounting layer of a report: session-specific criteria
+// generated before scoring, grouped by the independent tasks the judge
+// enumerated from the user's messages. The fixed dimensions never depend on
+// it — a rubric failure degrades to a dimensions-only report.
+type Rubric struct {
+	Status string `json:"status"`
+	// Reason qualifies an unavailable rubric: generation-failed after retry,
+	// or a deterministic skip (no-task-text, weak-task-text).
+	Reason string `json:"reason,omitempty"`
+	Source string `json:"source,omitempty"`
+	// TaskDigest fingerprints the task wording the rubric was derived from;
+	// a re-evaluation whose digest still matches reuses the rubric unchanged.
+	TaskDigest string       `json:"taskDigest,omitempty"`
+	Tasks      []RubricTask `json:"tasks,omitempty"`
+	// Note carries what the scorer felt the rubric did not let it express.
+	Note string `json:"note,omitempty"`
+}
+
+type RubricTask struct {
+	Title string `json:"title"`
+	Type  string `json:"type,omitempty"`
+	// AnchorUserMessages are [user #N] ordinals from the evidence document,
+	// validated against the ordinals actually rendered there.
+	AnchorUserMessages []int `json:"anchorUserMessages"`
+	// AnchorSeqs are the mark seqs those ordinals resolve to — derived in Go,
+	// never taken from the judge — so the UI can jump to a task's start.
+	AnchorSeqs []int             `json:"anchorSeqs,omitempty"`
+	Criteria   []RubricCriterion `json:"criteria"`
+}
+
+type RubricCriterion struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+	Why   string `json:"why,omitempty"`
+	Good  string `json:"good,omitempty"`
+	Bad   string `json:"bad,omitempty"`
+	// Coverage and findings come from the scoring pass; verdict is rolled up
+	// mechanically (coverage none forces insufficient-data).
+	Coverage string          `json:"coverage,omitempty"`
+	Verdict  string          `json:"verdict"`
+	Findings []ReportFinding `json:"findings"`
 }
