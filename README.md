@@ -109,7 +109,9 @@ report records who actually judged.
 The scorecard steps aside rather than getting in the way: sessions with no
 tool events or too little task text skip it, and a failed criteria draft
 degrades to a dimensions-only report. `--no-rubric` (or `"rubric": false` on
-the analyze API) skips it explicitly, in a single judge call.
+the analyze API) skips it explicitly, in a single judge call. How the
+scorecard is built — and why it is shaped the way it is — is covered in
+[docs/dynamic-rubric-evaluation.md](docs/dynamic-rubric-evaluation.md).
 
 **What leaves your machine, and only when you ask:** evaluation runs your own
 `claude` or `codex` CLI — up to two sealed calls, one drafting criteria and
