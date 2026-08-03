@@ -1,5 +1,7 @@
 # <img src="assets/logo.svg" alt="" width="30" /> mindwalk
 
+> **Fork notice:** This is a fork of [cosmtrek/mindwalk](https://github.com/cosmtrek/mindwalk) that adds support for [Crush](https://github.com/charmbracelet/crush) sessions. Changes include a database-backed Crush adapter (`internal/adapter/crush`), agent-graph linking for subagent sessions, `--crush-dir` / `--no-crush` CLI flags, and the `/api/adapters` endpoint.
+
 A visualization tool that replays coding-agent sessions on a 3D map of your codebase.
 
 https://github.com/user-attachments/assets/5153481b-3805-45e6-a61f-372250a969eb
