@@ -97,7 +97,13 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			}
 			meta.Agent.SourceID = parts[0]
 			meta.Agent.LaunchCallID = parts[1]
-			meta.Agent.RootSessionID = parts[0]
+			// RootSessionID is the parent session id, not the
+			// parent message id. scanSessionMeta already populated
+			// it from parent_session_id; only fall back to the
+			// source-id split when the row had no parent row.
+			if meta.Agent.RootSessionID == "" {
+				meta.Agent.RootSessionID = parts[0]
+			}
 		}
 	}
 	// Sessions whose cwd matches the mindwalk judge workdir are mindwalk
