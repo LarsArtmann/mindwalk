@@ -45,7 +45,7 @@ mindwalk open [--no-open] <session.jsonl>   open one specific session
 mindwalk map [--no-open] <repo>             open a repository map, no session needed
 mindwalk build <repo> [-o out]              write the repository citymap JSON
 mindwalk trace <session> [-o out]           write the normalized trace JSON
-mindwalk analyze <session> [--judge claude|codex] [--model name]
+mindwalk analyze <session> [--judge claude|codex] [--model name] [--no-rubric]
                                             evaluate one session (see below)
 ```
 
@@ -70,8 +70,9 @@ mindwalk analyze <session> [--judge claude|codex] [--model name]
   trace on the same map, then step back out to the main trace.
 - **Inspector** — click a file to pin its visit history; click a visit row to
   jump the playhead to that moment.
-- **Evaluate** — ask a local agent CLI to judge the session's trajectory;
-  session rows carry the evaluation state as a quiet badge. See
+- **Evaluate** — ask a local agent CLI to judge the session's trajectory,
+  scored against criteria drafted from your own request; session rows carry
+  the evaluation state as a quiet badge. See
   [Session evaluation](#session-evaluation).
 - **Repo map** — `mindwalk map <repo>` (or the folder icon in the session
   rail) renders any repository's citymap with no session attached; height
@@ -88,20 +89,40 @@ Keyboard: `Space` play/pause · `←`/`→` step (`⇧` ×10) · `Home`/`End` en
 ## Session evaluation
 
 The evaluate panel (and `mindwalk analyze`) asks a local agent CLI to judge
-how the session went — exploration, scope, wandering, verification — with
-every finding anchored to timeline events you can click through to. Pick the
-judge (any installed CLI) and its model in the panel; the report records who
-actually judged.
+how the session went. A report has two layers:
+
+- **Process dimensions** — exploration, scope, wandering, verification: four
+  fixed lenses, the same for every session, so reports stay comparable.
+- **Task scorecard** — before scoring, the judge drafts criteria from your
+  own request wording: what would count as done for *this* task, grouped per
+  task when the session carried several. Each criterion is then scored
+  against the session, alongside the dimensions, in one pass.
+
+Every finding in either layer must cite timeline events you can click
+through to, and no verdict is the model's to decide: dimension and criterion
+verdicts are rolled up mechanically from finding severities. When the log
+simply can't show whether a criterion was met, its coverage drops and the
+verdict reads "no signal" — an unverifiable criterion is a blind spot, not a
+failure. Pick the judge (any installed CLI) and its model in the panel; the
+report records who actually judged.
+
+The scorecard steps aside rather than getting in the way: sessions with no
+tool events or too little task text skip it, and a failed criteria draft
+degrades to a dimensions-only report. `--no-rubric` (or `"rubric": false` on
+the analyze API) skips it explicitly, in a single judge call.
 
 **What leaves your machine, and only when you ask:** evaluation runs your own
-`claude` or `codex` CLI, which sends that session's summary — the user
-messages' wording, file paths, and one-line event digests — to the model
-behind your account. Nothing is sent while viewing sessions, and no other
-session is included. The judge subprocess runs sealed: no tools, no MCP
-servers, no user or project settings, and no session persistence.
+`claude` or `codex` CLI — up to two sealed calls, one drafting criteria and
+one scoring. Both send only that session's summary — the user messages'
+wording, file paths, and one-line event digests — to the model behind your
+account. Nothing is sent while viewing sessions, and no other session is
+included. The judge subprocess runs sealed: no tools, no MCP servers, no user
+or project settings, and no session persistence.
 
 Reports are cached in `~/.mindwalk/reports`, one per session; a report goes
-stale (never auto-reruns) when the session's content changes.
+stale (never auto-reruns) when the session's content changes. Re-evaluating
+a session whose task wording hasn't changed reuses the drafted criteria —
+scores can move, the yardstick doesn't.
 
 ## Under the hood
 
@@ -115,7 +136,8 @@ Three artifacts, kept deliberately separate:
    (`internal/citymap`); the same tree always produces the same map, so
    replays are comparable across sessions;
 3. a **report** — an LLM judge's evidence-anchored findings about one
-   session (`internal/judge`); the judge only contributes findings, verdicts
+   session (`internal/judge`): four fixed process dimensions plus a
+   task-specific scorecard; the judge only contributes findings, verdicts
    are always rolled up mechanically, so reports stay comparable too.
 
 A local Go server (`internal/server`) joins them and serves the
