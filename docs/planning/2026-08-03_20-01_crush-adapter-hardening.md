@@ -1,8 +1,10 @@
 # Plan: Crush adapter hardening
 
 **Date:** 2026-08-03 20:01
-**Status:** In progress
-**Driver:** Crush adapter landed in commit `2f4a12a` with end-to-end
+**Status:** ~~In progress~~ Executed. Tier 1 and Tier 2 shipped; most of
+Tier 3 followed. See the [Resolution](#resolution-2026-08-03) appendix for
+per-item status; remaining work is in `TODO_LIST.md`.
+**Driver:** Crush adapter landed in commit `0ba1f79` with end-to-end
 live verification but thin test coverage and several TODO items in the
 status report `docs/status/2026-08-03_12-32_crush-adapter-landed-but-not-done.md`.
 This plan ranks the remaining work so a future session can resume

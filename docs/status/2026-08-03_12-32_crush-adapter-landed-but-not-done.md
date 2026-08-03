@@ -1,5 +1,11 @@
 # Status: Crush adapter landed — but the job is not done
 
+> **Update 2026-08-03 (commit `0ba1f79` → `266bd64`):** the adapter shipped,
+> was hardened (tests, fixture, multi-DB discovery, Cwd fix), and Crush is now
+> a supported judge CLI. The "not done" framing below was accurate at the time;
+> most of the 50 follow-ups are resolved — see the [Resolution](#resolution-2026-08-03)
+> appendix. Open work now lives in `TODO_LIST.md`.
+
 **Date:** 2026-08-03 12:32
 **Author:** Crush (with user prompt as scope)
 **Scope of this run:** Add a `crush` (charmbracelet/crush) session adapter so Crush users can visualise their sessions alongside Claude Code and Codex.
@@ -139,3 +145,76 @@ I can answer the first two myself; the third I genuinely cannot.
 1. **Sub-agent session id format** — the upstream `internal/session/session.go` uses `messageID$$toolCallID` as the id. I matched that exactly. Should we also support the older `title-<sessionID>` format that the same file shows? (I'll match whatever upstream Crush writes to disk today; if a future schema bump changes the id shape, the `splitAgentID` predicate catches it.)
 2. **Path scheme** — I used `crush://session/<id>` as the synthetic path. A future DB-backed adapter (e.g. Aider, Goose) would need its own scheme. Should I pull the scheme into a `model.SyntheticPath(scheme, id)` helper now, or wait for the second adapter?
 3. **Should I commit and push** before any further work, even though the test coverage is incomplete? (I don't know whether you want to land a thin slice or a complete feature.)
+
+---
+
+## Resolution (2026-08-03)
+
+The adapter landed in `0ba1f79` and shipped through a fork
+(`LarsArtmann/mindwalk`). Section (f)'s 50 follow-ups resolve as follows.
+Commit hashes below are **post-rebase** current values; the hashes cited in
+the body above were rewritten when the fork rebased onto upstream/master.
+
+### Shipped
+
+| # | Item | Commit |
+|---|------|--------|
+| 1 | Commit the work | `0ba1f79` |
+| 2 | `testdata/crush-session.db` fixture + e2e | `2e295f6`, `69929b3` |
+| 3 | Sub-agent fixture | `2e295f6` |
+| 4 | Parts parser branch tests | `639cb7d` |
+| 5 | Positive `scanSessions` short-circuit test | `69929b3` |
+| 8 | Type the synthetic path (`SessionPath` etc.) | `c8baa88` |
+| 9 | `crushSessionMeta` test fixtures | `2e295f6` |
+| 10 | `SessionMeta.Path` comment | `ed14153` |
+| 11 | `textutil` reuse / `_ = a` cleanup | `639cb7d` |
+| 13 | `--no-crush` flag | `eaebeba` |
+| 15 | `docs/crush.md` | `2af50ab` |
+| 16 | `scanSessions` metric log | `c2cd011` |
+| 17 | `openReadOnly` error reporting | `7b0895f` |
+| 18 | `--crush-dir` in `serve --help` | `4a1f912` |
+| 23 | `/api/adapters` endpoint | `6c986d3` |
+| 24 | Cwd extraction (`projectPathForDB`) | `72f91e2` |
+| 25 | `findSession` bare-id investigation | no change needed (round 2) |
+| 27 | Audit server `crush://` assumptions | `6c986d3` (found + fixed 2 bugs) |
+| 28 | `testdata/crush/` fixtures dir | `2e295f6` |
+| 29 | SQLite parse benchmark | `6c986d3` |
+| 36 | `_ = a` no-op cleanup | `639cb7d` |
+| 39 | `tool_call.id` collision test (same-message) | `639cb7d` |
+| 46 | Document public adapter API (GoDoc) | `39cd372`, `2af50ab` |
+| 50 | `CHANGELOG.md` entry | `a570a44` |
+
+### Still open
+
+| # | Item | Where it lives now |
+|---|------|--------------------|
+| 6 | `mindwalk analyze` end-to-end | TODO_LIST (crush is now a judge CLI at `266bd64`; a real round still unverified) |
+| 7 | Boot web UI + click around | TODO_LIST "Verify the web UI renders Crush sessions" |
+| 20 | 100k-message stress test | ROADMAP "Performance at scale" |
+| 21 | Cache `crush.db` reads | TODO_LIST |
+| 31 | Schema-coverage startup warning | TODO_LIST |
+| 32 | `mindwalk sessions` CLI | TODO_LIST |
+| 40 | Reduce test runtime / isolation | TODO_LIST "Fix server test isolation" |
+| 41 | `mindwalk doctor` subcommand | TODO_LIST |
+| 43 | Persist agent-graph cache to disk | TODO_LIST |
+| 48 | `provider_executed` flag | ROADMAP "Adapter ecosystem" |
+| 49 | Cross-check parser vs upstream | ROADMAP "Adapter ecosystem" |
+
+### Deferred / won't-do
+
+| # | Item | Why |
+|---|------|-----|
+| 12 | Make `SessionDir` strict (empty Dir = error) | Contract change, no concrete need |
+| 14 | Cache the worktree-root walk | Low value; cache exists |
+| 19 | Drop crush import in `cmd/rubriceval` | Verify-only; no symptom |
+| 22 | `--crush-projects-file` flag | Multi-DB via `projects.json` shipped at `72f91e2`; explicit flag is YAGNI |
+| 30 | Share agent-graph helpers across adapters | Refactor, low priority |
+| 33 | Test `cmd/rubriceval` parseTrace with Crush | Low priority |
+| 34 | Generalise synthetic-path scheme | ROADMAP non-goal until 2nd DB-backed adapter |
+| 35 | Profile cold-start path | ROADMAP "Performance at scale" |
+| 37 | Align `SessionKey` signatures | Refactor, low priority |
+| 38 | Audit `lookupProjectDataDir` boundary | Low priority |
+| 42 | Refactor `summarizeCached` signature | Refactor, low priority |
+| 44 | `Summarize` re-opens DB | Covered by TODO_LIST "Cache crush.db reads" |
+| 45 | `crush-skip-summarize-cache` hatch | Low priority |
+| 47 | `crush sessions` CLI | Dedup of #32 (`mindwalk sessions`) |

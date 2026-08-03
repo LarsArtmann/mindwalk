@@ -1,7 +1,8 @@
 # Plan: Crush as a Judge CLI
 
 **Date:** 2026-08-03 23:15
-**Status:** Ready to execute
+**Status:** ~~Ready to execute~~ Executed in `266bd64`. The UI/AGENTS doc
+mentions (tasks 4–5) landed in the working tree on top of that commit.
 **Goal:** Add `crush` alongside `claude` and `codex` as a supported judge CLI so a session can be evaluated without installing a second agent.
 
 ## Context
@@ -83,3 +84,23 @@ flowchart TD
 
 - Adding CLI-level tool-stripping flags to Crush (upstream concern; not needed for this integration per the user).
 - Changing the verdict model or report JSON shape (crush is just another runner; `RunResult` is unchanged).
+
+---
+
+## Resolution (2026-08-03)
+
+All 7 tasks shipped. The plan is fully executed.
+
+| # | Task | Status | Evidence |
+|---|------|--------|----------|
+| 1 | `crush` case in `CLIRunner.Run` (`run --quiet --verbose`, stdin prompt) | done at `266bd64` | `internal/judge/cli.go:142` |
+| 2 | `"crush"` in `SupportedCLIs` | done at `266bd64` | `internal/judge/cli.go:32` |
+| 3 | `crushModel` regex helper + test | done at `266bd64` | `cli.go` + `TestCrushModelReadsVerboseLog` in `cli_test.go:43` |
+| 4 | ReportPanel.tsx install hint mentions crush | done (uncommitted) | `web/src/ui/ReportPanel.tsx` working-tree change |
+| 5 | AGENTS.md judge CLI list mentions crush | done (uncommitted) | `AGENTS.md` working-tree change |
+| 6 | Tests: model parser + args shape | done at `266bd64` | `cli_test.go:43` |
+| 7 | `make test` green | done | 11 packages green (judge `ok`) |
+
+Tasks 4–5 are the only unfinished thread: the doc/UI mentions exist as
+uncommitted working-tree edits on top of `266bd64`. Committing them closes
+the plan (see TODO_LIST "Commit the uncommitted judge-CLI docs").
