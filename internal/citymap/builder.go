@@ -161,7 +161,23 @@ func inspectFile(root, rel string) (model.CityFile, error) {
 func isBinaryLike(abs, path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	switch ext {
-	case ".pdf", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".zip", ".gz", ".tgz", ".mp4", ".mov", ".mp3", ".woff", ".woff2", ".ttf", ".otf":
+	case ".pdf",
+		".png",
+		".jpg",
+		".jpeg",
+		".gif",
+		".webp",
+		".ico",
+		".zip",
+		".gz",
+		".tgz",
+		".mp4",
+		".mov",
+		".mp3",
+		".woff",
+		".woff2",
+		".ttf",
+		".otf":
 		return true
 	}
 	f, err := os.Open(abs)
@@ -340,7 +356,10 @@ func layoutNode(n *node, rect model.Rect, files *[]model.CityFile, dirs *[]model
 		items = append(items, layoutItem{name: child.name, kind: "dir", node: child, weight: child.weight})
 	}
 	for _, idx := range n.files {
-		items = append(items, layoutItem{name: (*files)[idx].Path, kind: "file", idx: idx, weight: fileWeight((*files)[idx])})
+		items = append(
+			items,
+			layoutItem{name: (*files)[idx].Path, kind: "file", idx: idx, weight: fileWeight((*files)[idx])},
+		)
 	}
 	sort.Slice(items, func(i, j int) bool {
 		if items[i].weight == items[j].weight {

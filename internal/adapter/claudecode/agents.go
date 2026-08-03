@@ -47,7 +47,8 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, _ []model.SessionMeta)
 		return nil, err
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || (!strings.HasSuffix(entry.Name(), ".jsonl") && !strings.HasSuffix(entry.Name(), ".meta.json")) {
+		if entry.IsDir() ||
+			(!strings.HasSuffix(entry.Name(), ".jsonl") && !strings.HasSuffix(entry.Name(), ".meta.json")) {
 			continue
 		}
 		inputs = append(inputs, filepath.Join(subagentsDir, entry.Name()))
@@ -146,7 +147,8 @@ func discoverClaudeAgentArtifacts(subagentsDir string, catalog []model.SessionMe
 	byBasename := make(map[string]*claudeAgentArtifact)
 	for i := range catalog {
 		session := &catalog[i]
-		if filepath.Clean(filepath.Dir(session.Path)) != filepath.Clean(subagentsDir) || filepath.Ext(session.Path) != ".jsonl" {
+		if filepath.Clean(filepath.Dir(session.Path)) != filepath.Clean(subagentsDir) ||
+			filepath.Ext(session.Path) != ".jsonl" {
 			continue
 		}
 		basename := strings.TrimSuffix(filepath.Base(session.Path), ".jsonl")
@@ -243,7 +245,11 @@ func readClaudeAgentLaunches(path string) ([]*claudeAgentLaunch, error) {
 	return launches, err
 }
 
-func claudeArtifactNode(rootKey, mainID string, artifact *claudeAgentArtifact, launchByCallID map[string]*claudeAgentLaunch) (model.AgentNode, *claudeAgentLaunch) {
+func claudeArtifactNode(
+	rootKey, mainID string,
+	artifact *claudeAgentArtifact,
+	launchByCallID map[string]*claudeAgentLaunch,
+) (model.AgentNode, *claudeAgentLaunch) {
 	var launch *claudeAgentLaunch
 	if artifact.sidecar != nil && artifact.sidecar.ToolUseID != "" {
 		launch = launchByCallID[artifact.sidecar.ToolUseID]
@@ -323,7 +329,11 @@ func unlinkedClaudeLaunchNode(harness, rootKey, mainID string, launch *claudeAge
 	}
 }
 
-func resolveClaudeArtifactDepth(artifact *claudeAgentArtifact, launchByCallID map[string]*claudeAgentLaunch, visiting map[*claudeAgentArtifact]bool) int {
+func resolveClaudeArtifactDepth(
+	artifact *claudeAgentArtifact,
+	launchByCallID map[string]*claudeAgentLaunch,
+	visiting map[*claudeAgentArtifact]bool,
+) int {
 	if artifact.depth > 0 {
 		return artifact.depth
 	}
@@ -337,7 +347,8 @@ func resolveClaudeArtifactDepth(artifact *claudeAgentArtifact, launchByCallID ma
 	visiting[artifact] = true
 	parentDepth := 0
 	if artifact.sidecar != nil {
-		if launch := launchByCallID[artifact.sidecar.ToolUseID]; launch != nil && launch.owner != nil && launch.owner != artifact {
+		if launch := launchByCallID[artifact.sidecar.ToolUseID]; launch != nil && launch.owner != nil &&
+			launch.owner != artifact {
 			parentDepth = resolveClaudeArtifactDepth(launch.owner, launchByCallID, visiting)
 		}
 	}

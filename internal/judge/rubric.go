@@ -53,7 +53,12 @@ type llmRubric struct {
 // Generation failure degrades (status unavailable) rather than erroring —
 // the fixed dimensions must never be blocked by the rubric layer. Only a
 // subprocess failure is a hard error, since scoring would hit it too.
-func acquireRubric(ctx context.Context, runner Runner, trace *model.Trace, cached *model.Report) (*model.Rubric, error) {
+func acquireRubric(
+	ctx context.Context,
+	runner Runner,
+	trace *model.Trace,
+	cached *model.Report,
+) (*model.Rubric, error) {
 	// Conversation-only sessions (no tool events) leave nothing to cite:
 	// scoring would drop every finding and hand out good verdicts on zero
 	// evidence — the M1.5 bench caught exactly that.
@@ -183,7 +188,12 @@ func parseRubric(raw string, messages []userMessage) ([]model.RubricTask, error)
 			}
 		}
 		if len(task.Criteria) == 0 || len(task.Criteria) > maxCriteriaPerTask {
-			return nil, fmt.Errorf("rubric: task %q has %d criteria, want 1-%d", title, len(task.Criteria), maxCriteriaPerTask)
+			return nil, fmt.Errorf(
+				"rubric: task %q has %d criteria, want 1-%d",
+				title,
+				len(task.Criteria),
+				maxCriteriaPerTask,
+			)
 		}
 		criteria := make([]model.RubricCriterion, 0, len(task.Criteria))
 		for _, criterion := range task.Criteria {
@@ -222,7 +232,12 @@ func parseRubric(raw string, messages []userMessage) ([]model.RubricTask, error)
 		})
 	}
 	if totalCriteria < minRubricCriteria || totalCriteria > maxRubricCriteria {
-		return nil, fmt.Errorf("rubric: %d criteria total, want %d-%d", totalCriteria, minRubricCriteria, maxRubricCriteria)
+		return nil, fmt.Errorf(
+			"rubric: %d criteria total, want %d-%d",
+			totalCriteria,
+			minRubricCriteria,
+			maxRubricCriteria,
+		)
 	}
 	return tasks, nil
 }
@@ -247,7 +262,10 @@ func scoringRubricJSON(rubric *model.Rubric) string {
 	for _, t := range rubric.Tasks {
 		out := task{Title: t.Title, Type: t.Type}
 		for _, c := range t.Criteria {
-			out.Criteria = append(out.Criteria, criterion{ID: c.ID, Title: c.Title, Why: c.Why, Good: c.Good, Bad: c.Bad})
+			out.Criteria = append(
+				out.Criteria,
+				criterion{ID: c.ID, Title: c.Title, Why: c.Why, Good: c.Good, Bad: c.Bad},
+			)
 		}
 		tasks = append(tasks, out)
 	}

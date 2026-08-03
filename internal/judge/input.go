@@ -209,7 +209,15 @@ func writeNarrative(b *strings.Builder, trace *model.Trace) {
 		if event.IsError {
 			errFlag = " ERR"
 		}
-		fmt.Fprintf(b, "%d | %s%s | %s | %s\n", event.Seq, event.Action, errFlag, pathList, truncateRunes(event.Summary, maxSummaryLen))
+		fmt.Fprintf(
+			b,
+			"%d | %s%s | %s | %s\n",
+			event.Seq,
+			event.Action,
+			errFlag,
+			pathList,
+			truncateRunes(event.Summary, maxSummaryLen),
+		)
 	}
 	// Marks that point past the last event (e.g. a closing user message).
 	for _, seq := range seqs {

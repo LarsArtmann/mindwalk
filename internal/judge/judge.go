@@ -142,7 +142,7 @@ func parseOutput(raw string, trace *model.Trace, rubric *model.Rubric) (*model.R
 
 	byName := map[string]*model.ReportDimension{}
 	for _, dim := range out.Dimensions {
-		if !knownDimension(dim.Name) {
+		if !slices.Contains(model.DimensionNames, dim.Name) {
 			continue
 		}
 		target, ok := byName[dim.Name]
@@ -197,7 +197,10 @@ func parseOutput(raw string, trace *model.Trace, rubric *model.Rubric) (*model.R
 	}
 	for _, moment := range out.NotableMoments {
 		if validSeqs[moment.Seq] && moment.Note != "" {
-			report.NotableMoments = append(report.NotableMoments, model.ReportMoment{Seq: moment.Seq, Note: moment.Note})
+			report.NotableMoments = append(
+				report.NotableMoments,
+				model.ReportMoment{Seq: moment.Seq, Note: moment.Note},
+			)
 		}
 	}
 	return report, nil
@@ -303,7 +306,8 @@ func scoreRubric(rubric *model.Rubric, out *llmOutput, validSeqs map[int]bool) (
 // judge never decides verdicts. Blind spots recorded by the deterministic
 // layer force insufficient-data regardless of what the judge observed.
 func rollupVerdict(name string, findings []model.ReportFinding, obs model.Observability) string {
-	if obs.Reads == model.ObservabilityUnavailable && (name == model.DimensionExploration || name == model.DimensionWandering) {
+	if obs.Reads == model.ObservabilityUnavailable &&
+		(name == model.DimensionExploration || name == model.DimensionWandering) {
 		return model.VerdictInsufficientData
 	}
 	if obs.Errors == model.ObservabilityUnavailable && name == model.DimensionVerification {
@@ -333,10 +337,6 @@ func rollupSeverities(findings []model.ReportFinding) string {
 		}
 	}
 	return verdict
-}
-
-func knownDimension(name string) bool {
-	return slices.Contains(model.DimensionNames, name)
 }
 
 // normalizeSeverity forgives casing and whitespace but nothing else: an

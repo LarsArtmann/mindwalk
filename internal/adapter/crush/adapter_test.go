@@ -54,7 +54,7 @@ func newFixtureDB(t *testing.T, seed func(*sql.DB)) (dir string, db *sql.DB) {
 		);
 	`
 	if _, err := handle.Exec(schema); err != nil {
-			_ = handle.Close()
+		_ = handle.Close()
 		t.Fatal(err)
 	}
 	if seed != nil {
@@ -83,7 +83,15 @@ func writeParts(t *testing.T, parts ...map[string]any) string {
 
 // insertSession writes a row to the sessions table. createdAt is
 // captured in milliseconds like Crush does internally.
-func insertSession(t *testing.T, db *sql.DB, id string, parent string, title string, createdAt time.Time, messages int64) {
+func insertSession(
+	t *testing.T,
+	db *sql.DB,
+	id string,
+	parent string,
+	title string,
+	createdAt time.Time,
+	messages int64,
+) {
 	t.Helper()
 	if _, err := db.Exec(`INSERT INTO sessions (id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at) VALUES (?, ?, ?, ?, 0, 0, 0.0, ?, ?)`,
 		id, nullableString(parent), title, messages, createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
@@ -93,7 +101,16 @@ func insertSession(t *testing.T, db *sql.DB, id string, parent string, title str
 
 // insertMessage writes one row to the messages table. createdAt is
 // recorded in milliseconds to match Crush's convention.
-func insertMessage(t *testing.T, db *sql.DB, sessionID string, id string, role string, parts string, model string, createdAt time.Time) {
+func insertMessage(
+	t *testing.T,
+	db *sql.DB,
+	sessionID string,
+	id string,
+	role string,
+	parts string,
+	model string,
+	createdAt time.Time,
+) {
 	t.Helper()
 	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		id, sessionID, role, parts, nullableString(model), createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
@@ -171,14 +188,33 @@ func TestParseBuildsEventsAndMarks(t *testing.T) {
 	), "", base)
 
 	// Assistant message with a view tool call.
-	insertMessage(t, db, "demo", "m2", "assistant", writeParts(t,
+	insertMessage(t, db, "demo", "m2", "assistant", writeParts(
+		t,
 		map[string]any{"type": "text", "data": map[string]any{"text": "Looking at the adapter."}},
-		map[string]any{"type": "tool_call", "data": map[string]any{"id": "call_view_1", "name": "view", "input": `{"file_path":"internal/adapter/adapter.go"}`, "finished": true, "provider_executed": false}},
+		map[string]any{
+			"type": "tool_call",
+			"data": map[string]any{
+				"id":                "call_view_1",
+				"name":              "view",
+				"input":             `{"file_path":"internal/adapter/adapter.go"}`,
+				"finished":          true,
+				"provider_executed": false,
+			},
+		},
 	), "minimax/minimax-m3", base.Add(time.Second))
 
 	// Tool result message.
-	insertMessage(t, db, "demo", "m3", "tool", writeParts(t,
-		map[string]any{"type": "tool_result", "data": map[string]any{"tool_call_id": "call_view_1", "name": "view", "content": "package adapter\n", "is_error": false}},
+	insertMessage(t, db, "demo", "m3", "tool", writeParts(
+		t,
+		map[string]any{
+			"type": "tool_result",
+			"data": map[string]any{
+				"tool_call_id": "call_view_1",
+				"name":         "view",
+				"content":      "package adapter\n",
+				"is_error":     false,
+			},
+		},
 	), "", base.Add(2*time.Second))
 
 	adapter := Adapter{Dir: data}
@@ -214,8 +250,18 @@ func TestParseOrphanToolCallStillEmitsEvent(t *testing.T) {
 	data, db := newFixtureDB(t, nil)
 	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
 	insertSession(t, db, "demo", "", "Orphan", base, 1)
-	insertMessage(t, db, "demo", "m1", "assistant", writeParts(t,
-		map[string]any{"type": "tool_call", "data": map[string]any{"id": "missing", "name": "bash", "input": `{"command":"go test"}`, "finished": true, "provider_executed": false}},
+	insertMessage(t, db, "demo", "m1", "assistant", writeParts(
+		t,
+		map[string]any{
+			"type": "tool_call",
+			"data": map[string]any{
+				"id":                "missing",
+				"name":              "bash",
+				"input":             `{"command":"go test"}`,
+				"finished":          true,
+				"provider_executed": false,
+			},
+		},
 	), "", base)
 
 	trace, err := Adapter{Dir: data}.Parse(SessionPath("demo"))
@@ -236,8 +282,18 @@ func TestParseMarksSubagentLaunches(t *testing.T) {
 	data, db := newFixtureDB(t, nil)
 	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
 	insertSession(t, db, "root", "", "Root", base, 1)
-	insertMessage(t, db, "root", "m1", "assistant", writeParts(t,
-		map[string]any{"type": "tool_call", "data": map[string]any{"id": "agent_1", "name": "agent", "input": `{"task_title":"explore schema","agent_type":"explore","message":"read the migrations"}`, "finished": true, "provider_executed": false}},
+	insertMessage(t, db, "root", "m1", "assistant", writeParts(
+		t,
+		map[string]any{
+			"type": "tool_call",
+			"data": map[string]any{
+				"id":                "agent_1",
+				"name":              "agent",
+				"input":             `{"task_title":"explore schema","agent_type":"explore","message":"read the migrations"}`,
+				"finished":          true,
+				"provider_executed": false,
+			},
+		},
 	), "", base)
 
 	trace, err := Adapter{Dir: data}.Parse(SessionPath("root"))
@@ -264,8 +320,18 @@ func TestParseHandlesNestedJSONInput(t *testing.T) {
 	insertSession(t, db, "demo", "", "Nested", base, 1)
 	// inner JSON literal — what Crush often writes for tool inputs.
 	nested := `{"file_path":"internal/server/server.go","limit":50}`
-	insertMessage(t, db, "demo", "m1", "assistant", writeParts(t,
-		map[string]any{"type": "tool_call", "data": map[string]any{"id": "call_view_1", "name": "view", "input": nested, "finished": true, "provider_executed": false}},
+	insertMessage(t, db, "demo", "m1", "assistant", writeParts(
+		t,
+		map[string]any{
+			"type": "tool_call",
+			"data": map[string]any{
+				"id":                "call_view_1",
+				"name":              "view",
+				"input":             nested,
+				"finished":          true,
+				"provider_executed": false,
+			},
+		},
 	), "", base)
 
 	trace, err := Adapter{Dir: data}.Parse(SessionPath("demo"))
@@ -295,8 +361,18 @@ func TestParseRelativizesAbsolutePathsFromCwd(t *testing.T) {
 	insertSession(t, db, "demo", "", "Demo", base, 1)
 
 	absPath := filepath.Join(wantCwd, "internal", "server", "server.go")
-	insertMessage(t, db, "demo", "m1", "assistant", writeParts(t,
-		map[string]any{"type": "tool_call", "data": map[string]any{"id": "call_view_1", "name": "view", "input": `{"file_path":"` + absPath + `"}`, "finished": true, "provider_executed": false}},
+	insertMessage(t, db, "demo", "m1", "assistant", writeParts(
+		t,
+		map[string]any{
+			"type": "tool_call",
+			"data": map[string]any{
+				"id":                "call_view_1",
+				"name":              "view",
+				"input":             `{"file_path":"` + absPath + `"}`,
+				"finished":          true,
+				"provider_executed": false,
+			},
+		},
 	), "", base)
 
 	trace, err := Adapter{Dir: data}.Parse(SessionPath("demo"))

@@ -418,7 +418,10 @@ func (a Adapter) warnIfOldSchema(h *sqlHandle) {
 	if h == nil || h.path == "" {
 		return
 	}
-	row := h.db.QueryRowContext(context.Background(), "SELECT name FROM pragma_table_info('messages') WHERE name IN ('model','provider') ORDER BY name")
+	row := h.db.QueryRowContext(
+		context.Background(),
+		"SELECT name FROM pragma_table_info('messages') WHERE name IN ('model','provider') ORDER BY name",
+	)
 	var col string
 	hasModel := false
 	for row.Scan(&col) == nil {
@@ -427,7 +430,11 @@ func (a Adapter) warnIfOldSchema(h *sqlHandle) {
 		}
 	}
 	if !hasModel {
-		fmt.Fprintf(os.Stderr, "mindwalk: warning: %s has an old schema (missing 'model' column); upgrade Crush to get full trace coverage\n", h.path)
+		fmt.Fprintf(
+			os.Stderr,
+			"mindwalk: warning: %s has an old schema (missing 'model' column); upgrade Crush to get full trace coverage\n",
+			h.path,
+		)
 	}
 }
 

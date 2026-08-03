@@ -283,10 +283,8 @@ func linearize(entries []rawEntry) []rawEntry {
 	var path []int
 	visited := map[int]bool{}
 	cur := leaf
-	for {
-		if visited[cur] {
-			break
-		}
+	for !visited[cur] {
+
 		visited[cur] = true
 		path = append(path, cur)
 		parent := entries[cur].ParentID

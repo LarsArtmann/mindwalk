@@ -297,7 +297,14 @@ func actionFor(tool string, input map[string]any, result string) string {
 			return "read"
 		}
 		return "exec"
-	case "view", "lsp_definition", "lsp_references", "lsp_symbols", "lsp_call_hierarchy", "fetch", "agentic_fetch", "web_fetch":
+	case "view",
+		"lsp_definition",
+		"lsp_references",
+		"lsp_symbols",
+		"lsp_call_hierarchy",
+		"fetch",
+		"agentic_fetch",
+		"web_fetch":
 		return "read"
 	case "download":
 		return "read"
@@ -488,8 +495,13 @@ type execCommand struct {
 // execStringFieldRe recognizes only JSON-compatible double-quoted string
 // literals assigned to cmd or workdir. It intentionally does not attempt to
 // parse arbitrary JavaScript expressions.
-var execStringFieldRe = regexp.MustCompile(`(?:^|[[:space:],{])(?:"(cmd|workdir)"|(cmd|workdir))\s*:\s*("(?:\\.|[^"\\])*")`)
-var execPatchAssignmentRe = regexp.MustCompile(`(?m)^[\t ]*(?:const|let|var)[\t ]+patch[\t ]*=[\t ]*("(?:\\.|[^"\\])*")[\t ]*;`)
+var execStringFieldRe = regexp.MustCompile(
+	`(?:^|[[:space:],{])(?:"(cmd|workdir)"|(cmd|workdir))\s*:\s*("(?:\\.|[^"\\])*")`,
+)
+
+var execPatchAssignmentRe = regexp.MustCompile(
+	`(?m)^[\t ]*(?:const|let|var)[\t ]+patch[\t ]*=[\t ]*("(?:\\.|[^"\\])*")[\t ]*;`,
+)
 
 func execSource(input map[string]any) string {
 	for _, key := range []string{"_raw", "code", "script"} {
@@ -795,9 +807,17 @@ type pathHit struct {
 	lines [][2]int
 }
 
-var pathLineRe = regexp.MustCompile(`(?:^|[\s"'([])([A-Za-z0-9_./@+-]*[A-Za-z0-9_/@+-]\.[A-Za-z0-9][A-Za-z0-9._-]*):([0-9]+)`)
-var pathOnlyRe = regexp.MustCompile(`(?:^|[\s"'([])([./~A-Za-z0-9_@+-]*[/][A-Za-z0-9_./~@+-]*\.[A-Za-z0-9][A-Za-z0-9._-]*)(?:$|[\s"',)\]:;])`)
-var commandPathRe = regexp.MustCompile(`(?:^|[\s"'=])([./~A-Za-z0-9_@+-]+\.[A-Za-z0-9][A-Za-z0-9._-]*)(?:$|[\s"',)\]:;])`)
+var pathLineRe = regexp.MustCompile(
+	`(?:^|[\s"'([])([A-Za-z0-9_./@+-]*[A-Za-z0-9_/@+-]\.[A-Za-z0-9][A-Za-z0-9._-]*):([0-9]+)`,
+)
+
+var pathOnlyRe = regexp.MustCompile(
+	`(?:^|[\s"'([])([./~A-Za-z0-9_@+-]*[/][A-Za-z0-9_./~@+-]*\.[A-Za-z0-9][A-Za-z0-9._-]*)(?:$|[\s"',)\]:;])`,
+)
+
+var commandPathRe = regexp.MustCompile(
+	`(?:^|[\s"'=])([./~A-Za-z0-9_@+-]+\.[A-Za-z0-9][A-Za-z0-9._-]*)(?:$|[\s"',)\]:;])`,
+)
 var patchFileRe = regexp.MustCompile(`(?m)^\*\*\* (?:Add|Update|Delete) File: (.+)$|^\*\*\* Move to: (.+)$`)
 var gitDiffHeaderRe = regexp.MustCompile(`(?m)^diff --git a/.+? b/(.+)$`)
 
@@ -937,7 +957,8 @@ var readOnlyPrograms = map[string]bool{
 // at least one segment actually searches or lists. Conservative by design —
 // anything unrecognized stays "exec".
 func searchCommand(command string) bool {
-	cleaned := strings.NewReplacer("2>&1", " ", "2>/dev/null", " ", ">/dev/null", " ", "> /dev/null", " ").Replace(command)
+	cleaned := strings.NewReplacer("2>&1", " ", "2>/dev/null", " ", ">/dev/null", " ", "> /dev/null", " ").
+		Replace(command)
 	searched := false
 	segments := strings.FieldsFunc(cleaned, func(r rune) bool {
 		return r == '|' || r == ';' || r == '&' || r == '\n'
@@ -985,7 +1006,8 @@ func readCommand(command string) bool {
 	if len(commandReadPaths(command)) == 0 {
 		return false
 	}
-	cleaned := strings.NewReplacer("2>&1", " ", "2>/dev/null", " ", ">/dev/null", " ", "> /dev/null", " ").Replace(command)
+	cleaned := strings.NewReplacer("2>&1", " ", "2>/dev/null", " ", ">/dev/null", " ", "> /dev/null", " ").
+		Replace(command)
 	segments := strings.FieldsFunc(cleaned, func(r rune) bool {
 		return r == '|' || r == ';' || r == '&' || r == '\n'
 	})
@@ -1099,7 +1121,18 @@ func flagTakesValue(program, flag string) bool {
 
 func verifyCommand(command string) bool {
 	c := strings.ToLower(command)
-	patterns := []string{"go test", "go vet", "npm test", "npm run build", "pnpm test", "pnpm build", "pytest", "make test", "cargo test", "swift test"}
+	patterns := []string{
+		"go test",
+		"go vet",
+		"npm test",
+		"npm run build",
+		"pnpm test",
+		"pnpm build",
+		"pytest",
+		"make test",
+		"cargo test",
+		"swift test",
+	}
 	for _, pattern := range patterns {
 		if strings.Contains(c, pattern) {
 			return true
@@ -1142,7 +1175,13 @@ func summarizeExecWrapper(input map[string]any) string {
 	return textutil.TruncateRunes(primary, commandLimit, "...") + suffix
 }
 
-func SummarizeTool(tool string, input map[string]any, targets []model.Target, outside []model.OutsideTouch, isError bool) string {
+func SummarizeTool(
+	tool string,
+	input map[string]any,
+	targets []model.Target,
+	outside []model.OutsideTouch,
+	isError bool,
+) string {
 	verb := tool
 	if desc, ok := input["description"].(string); ok && desc != "" {
 		verb = desc

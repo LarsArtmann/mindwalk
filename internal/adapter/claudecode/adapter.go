@@ -123,7 +123,8 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 				meta.EventCount += countToolUses(msg.Content)
 				// mirrors Parse's user-message mark filter so the badge's
 				// staleness check counts the same turns the report will
-				if line.Type == "user" && hasUserMessage(msg.Content) && !adapter.InjectedUserMessage(userMessageText(msg.Content)) {
+				if line.Type == "user" && hasUserMessage(msg.Content) &&
+					!adapter.InjectedUserMessage(userMessageText(msg.Content)) {
 					meta.UserTurns++
 				}
 			}
@@ -221,7 +222,10 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 					Timestamp: line.Timestamp,
 				}
 				if call.Name == "Task" || call.Name == "Agent" {
-					trace.Marks = append(trace.Marks, model.Mark{Seq: len(trace.Events), Type: "subagent", Note: call.Name})
+					trace.Marks = append(
+						trace.Marks,
+						model.Mark{Seq: len(trace.Events), Type: "subagent", Note: call.Name},
+					)
 				}
 				if _, exists := pending[call.ID]; !exists {
 					pendingOrder = append(pendingOrder, call.ID)

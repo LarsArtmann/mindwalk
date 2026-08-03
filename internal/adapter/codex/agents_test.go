@@ -94,7 +94,10 @@ func TestCodexAgentGraphFixtures(t *testing.T) {
 				return fixture, []model.AgentNode{
 					mainAgentNode(fixture.root),
 					{
-						ID:                 codexAgentID(fixture.root, "launch:"+codexMainID(fixture.root)+":call-failed"),
+						ID: codexAgentID(
+							fixture.root,
+							"launch:"+codexMainID(fixture.root)+":call-failed",
+						),
 						ParentID:           codexMainID(fixture.root),
 						Depth:              1,
 						Kind:               model.AgentKindSubagent,
@@ -318,7 +321,10 @@ func TestCodexAgentGraphFixtures(t *testing.T) {
 				return fixture, []model.AgentNode{
 					mainAgentNode(fixture.root),
 					{
-						ID:                 codexAgentID(fixture.root, "launch:"+codexMainID(fixture.root)+":call-unknown"),
+						ID: codexAgentID(
+							fixture.root,
+							"launch:"+codexMainID(fixture.root)+":call-unknown",
+						),
 						ParentID:           codexMainID(fixture.root),
 						Depth:              1,
 						Kind:               model.AgentKindSubagent,
@@ -354,7 +360,14 @@ func TestCodexAgentGraphFixtures(t *testing.T) {
 				return fixture, []model.AgentNode{
 					mainAgentNode(fixture.root),
 					availableCodexLaunch(fixture.root, fixture.catalog[2], "agent-zulu", "call-zulu", "zulu", zuluSeq),
-					availableCodexLaunch(fixture.root, fixture.catalog[1], "agent-alpha", "call-alpha", "alpha", alphaSeq),
+					availableCodexLaunch(
+						fixture.root,
+						fixture.catalog[1],
+						"agent-alpha",
+						"call-alpha",
+						"alpha",
+						alphaSeq,
+					),
 					{
 						ID:                codexAgentID(fixture.root, "session:"+fixture.catalog[0].Key),
 						ParentID:          codexMainID(fixture.root),
@@ -582,7 +595,12 @@ func mainAgentNode(root model.SessionMeta) model.AgentNode {
 	}
 }
 
-func availableCodexLaunch(root model.SessionMeta, child model.SessionMeta, agentID, callID, message string, seq int) model.AgentNode {
+func availableCodexLaunch(
+	root model.SessionMeta,
+	child model.SessionMeta,
+	agentID, callID, message string,
+	seq int,
+) model.AgentNode {
 	return model.AgentNode{
 		ID:                 codexAgentID(root, "codex-agent:"+agentID),
 		ParentID:           codexMainID(root),

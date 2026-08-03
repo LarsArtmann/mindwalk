@@ -130,7 +130,8 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			recognized = true
 			var payload responseItemHeader
 			if json.Unmarshal(line.Payload, &payload) == nil {
-				if callID, ok := canonicalCallID(payload.Type, payload.ID, payload.CallID, payload.Name); ok && !seenCalls[callID] {
+				if callID, ok := canonicalCallID(payload.Type, payload.ID, payload.CallID, payload.Name); ok &&
+					!seenCalls[callID] {
 					seenCalls[callID] = true
 					meta.EventCount++
 				}
@@ -248,7 +249,10 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 					return
 				}
 				if call.Name == "spawn_agent" {
-					trace.Marks = append(trace.Marks, model.Mark{Seq: len(callOrder), Type: "subagent", Note: call.Name})
+					trace.Marks = append(
+						trace.Marks,
+						model.Mark{Seq: len(callOrder), Type: "subagent", Note: call.Name},
+					)
 				}
 				calls[call.ID] = call
 				callOrder = append(callOrder, call.ID)
@@ -776,7 +780,8 @@ func loadTitleIndex(path string) map[string]string {
 	}
 	titleIndexCache.mu.Lock()
 	defer titleIndexCache.mu.Unlock()
-	if titleIndexCache.path == path && titleIndexCache.size == info.Size() && titleIndexCache.modTime.Equal(info.ModTime()) {
+	if titleIndexCache.path == path && titleIndexCache.size == info.Size() &&
+		titleIndexCache.modTime.Equal(info.ModTime()) {
 		return titleIndexCache.titles
 	}
 	f, err := os.Open(path)

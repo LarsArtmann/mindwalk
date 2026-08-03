@@ -11,8 +11,12 @@ import (
 // visualizer does not have a thinking lane today, but the schema
 // coverage keeps a future bump loud.
 func TestDecodePartsReasoning(t *testing.T) {
-	raw := writeParts(t,
-		map[string]any{"type": "reasoning", "data": map[string]any{"thinking": "the user asked for X, I should do Y first"}},
+	raw := writeParts(
+		t,
+		map[string]any{
+			"type": "reasoning",
+			"data": map[string]any{"thinking": "the user asked for X, I should do Y first"},
+		},
 		map[string]any{"type": "text", "data": map[string]any{"text": "Doing the thing."}},
 	)
 	result, err := decodeParts(raw, "")
@@ -94,9 +98,13 @@ func TestDecodePartsShellCommandAcceptsPayload(t *testing.T) {
 // binary parts decode without error but produce no events or text.
 // The visualizer renders file edits, not base64 previews.
 func TestDecodePartsImageAndBinaryAreDropped(t *testing.T) {
-	raw := writeParts(t,
+	raw := writeParts(
+		t,
 		map[string]any{"type": "image_url", "data": map[string]any{"url": "data:image/png;base64,iVBORw0K"}},
-		map[string]any{"type": "binary", "data": map[string]any{"data": "AAA=", "mime_type": "application/octet-stream"}},
+		map[string]any{
+			"type": "binary",
+			"data": map[string]any{"data": "AAA=", "mime_type": "application/octet-stream"},
+		},
 	)
 	result, err := decodeParts(raw, "")
 	if err != nil {

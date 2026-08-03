@@ -13,7 +13,13 @@ import (
 func sampleTrace() *model.Trace {
 	return &model.Trace{
 		Version: 1,
-		Session: model.TraceSession{ID: "s1", Harness: "claude-code", Model: "claude-test", Cwd: "/repo", EventCount: 3},
+		Session: model.TraceSession{
+			ID:         "s1",
+			Harness:    "claude-code",
+			Model:      "claude-test",
+			Cwd:        "/repo",
+			EventCount: 3,
+		},
 		Events: []model.Event{
 			{Seq: 0, Action: "read", Targets: []model.Target{{Path: "a.go", Touch: "read"}}, Summary: "Read a.go"},
 			{Seq: 1, Action: "edit", Targets: []model.Target{{Path: "a.go", Touch: "edit"}}, Summary: "Edit a.go"},
@@ -23,7 +29,9 @@ func sampleTrace() *model.Trace {
 			{Seq: 0, Type: "user-message", Note: "fix the login bug"},
 			{Seq: 0, Type: "user-message", Note: "<system-reminder>ignore</system-reminder>"},
 		},
-		Stats: model.Stats{Observability: model.Observability{Reads: model.ObservabilityExact, Errors: model.ObservabilityExact}},
+		Stats: model.Stats{
+			Observability: model.Observability{Reads: model.ObservabilityExact, Errors: model.ObservabilityExact},
+		},
 	}
 }
 
@@ -117,7 +125,11 @@ func TestAnalyzeDropsFindingsWithoutValidEvidence(t *testing.T) {
 
 func TestAnalyzeSeverityStrictButCaseInsensitive(t *testing.T) {
 	capitalized := strings.Replace(validOutput, `"severity":"problem"`, `"severity":"Problem"`, 1)
-	report, err := Analyze(context.Background(), sampleTrace(), Options{Runner: &stubRunner{outputs: []string{capitalized}}})
+	report, err := Analyze(
+		context.Background(),
+		sampleTrace(),
+		Options{Runner: &stubRunner{outputs: []string{capitalized}}},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +165,10 @@ func TestAnalyzeFailsAfterRetry(t *testing.T) {
 
 func TestRollupHonorsObservabilityBlindSpots(t *testing.T) {
 	trace := sampleTrace()
-	trace.Stats.Observability = model.Observability{Reads: model.ObservabilityUnavailable, Errors: model.ObservabilityUnavailable}
+	trace.Stats.Observability = model.Observability{
+		Reads:  model.ObservabilityUnavailable,
+		Errors: model.ObservabilityUnavailable,
+	}
 	runner := &stubRunner{outputs: []string{validOutput}}
 	report, err := Analyze(context.Background(), trace, Options{Runner: runner})
 	if err != nil {
@@ -238,10 +253,12 @@ func TestCacheRoundTripAndFreshness(t *testing.T) {
 	cache := Cache{Dir: t.TempDir()}
 	trace := sampleTrace()
 	report := &model.Report{
-		Version:    1,
-		Session:    model.ReportSession{ID: "s1", EventCount: 3},
-		Judge:      model.ReportJudge{CLI: "claude", PromptVersion: PromptVersion, InputDigest: InputDigest(trace)},
-		Dimensions: []model.ReportDimension{{Name: "exploration", Verdict: model.VerdictGood, Findings: []model.ReportFinding{}}},
+		Version: 1,
+		Session: model.ReportSession{ID: "s1", EventCount: 3},
+		Judge:   model.ReportJudge{CLI: "claude", PromptVersion: PromptVersion, InputDigest: InputDigest(trace)},
+		Dimensions: []model.ReportDimension{
+			{Name: "exploration", Verdict: model.VerdictGood, Findings: []model.ReportFinding{}},
+		},
 	}
 	if err := cache.Store("key-1", report); err != nil {
 		t.Fatal(err)

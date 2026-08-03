@@ -39,7 +39,10 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 		if session.Agent == nil || session.Agent.ParentSessionID == "" || session.Harness != a.Harness() {
 			continue
 		}
-		childrenByParent[session.Agent.ParentSessionID] = append(childrenByParent[session.Agent.ParentSessionID], session)
+		childrenByParent[session.Agent.ParentSessionID] = append(
+			childrenByParent[session.Agent.ParentSessionID],
+			session,
+		)
 	}
 
 	visitedSessions := map[string]bool{root.Key: true}
@@ -89,7 +92,8 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 	childrenByParent := make(map[string][]model.SessionMeta)
 	ambiguousRootID := false
 	for _, session := range catalog {
-		if session.Key != root.Key && session.Harness == a.Harness() && !session.Auxiliary && session.Agent == nil && session.ID == root.ID {
+		if session.Key != root.Key && session.Harness == a.Harness() && !session.Auxiliary && session.Agent == nil &&
+			session.ID == root.ID {
 			ambiguousRootID = true
 		}
 		if session.Agent == nil || session.Agent.ParentSessionID == "" {
@@ -254,7 +258,13 @@ func readAgentLaunches(path string) ([]agentLaunch, error) {
 	return launches, err
 }
 
-func exactCodexAgentNode(harness, rootKey string, actor codexGraphActor, launch agentLaunch, output agentLaunchOutput, child *model.SessionMeta) model.AgentNode {
+func exactCodexAgentNode(
+	harness, rootKey string,
+	actor codexGraphActor,
+	launch agentLaunch,
+	output agentLaunchOutput,
+	child *model.SessionMeta,
+) model.AgentNode {
 	seq := launch.seq
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "codex-agent:"+output.AgentID),
@@ -314,7 +324,13 @@ func unlinkedCodexLaunchNode(harness, rootKey string, actor codexGraphActor, lau
 	}
 }
 
-func legacyCodexAgentNode(harness, rootKey string, actor codexGraphActor, launch agentLaunch, output agentLaunchOutput, child *model.SessionMeta) model.AgentNode {
+func legacyCodexAgentNode(
+	harness, rootKey string,
+	actor codexGraphActor,
+	launch agentLaunch,
+	output agentLaunchOutput,
+	child *model.SessionMeta,
+) model.AgentNode {
 	seq := launch.seq
 	label := filepath.Base(output.TaskName)
 	if label == "." || label == "/" || label == "" {
@@ -375,7 +391,8 @@ func derivedCodexAgentNode(harness, rootKey string, actor codexGraphActor, child
 
 func parseAgentLaunchOutput(output string) (agentLaunchOutput, bool) {
 	var parsed agentLaunchOutput
-	if json.Unmarshal([]byte(strings.TrimSpace(output)), &parsed) != nil || (parsed.AgentID == "" && parsed.TaskName == "") {
+	if json.Unmarshal([]byte(strings.TrimSpace(output)), &parsed) != nil ||
+		(parsed.AgentID == "" && parsed.TaskName == "") {
 		return agentLaunchOutput{}, false
 	}
 	return parsed, true

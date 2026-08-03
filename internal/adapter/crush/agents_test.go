@@ -38,7 +38,13 @@ func TestBuildAgentGraphExactMatch(t *testing.T) {
 	childID := childMsgID + "$$" + launchID
 	insertSession(t, db, childID, "root", "Agent: explore", base.Add(time.Second), 2)
 
-	root := model.SessionMeta{Key: SessionKey("root"), ID: "root", Harness: "crush", Path: SessionPath("root"), EventCount: 1}
+	root := model.SessionMeta{
+		Key:        SessionKey("root"),
+		ID:         "root",
+		Harness:    "crush",
+		Path:       SessionPath("root"),
+		EventCount: 1,
+	}
 	childMeta, err := Adapter{Dir: data}.Summarize(SessionPath(childID))
 	if err != nil {
 		t.Fatalf("summarize child: %v", err)

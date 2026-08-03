@@ -167,7 +167,8 @@ func TestClaudeAgentGraphZeroEventChildIsAvailable(t *testing.T) {
 	}, claudeChildMeta{Description: "Zero", ToolUseID: "call-zero", SpawnDepth: 1})
 
 	node := findClaudeAgent(t, fixture.build(t), "Zero")
-	if node.TraceAvailability != model.TraceAvailabilityAvailable || node.TraceSessionKey != child.Key || node.TraceEventCount != 0 {
+	if node.TraceAvailability != model.TraceAvailabilityAvailable || node.TraceSessionKey != child.Key ||
+		node.TraceEventCount != 0 {
 		t.Fatalf("zero-event node = %#v", node)
 	}
 }
@@ -328,7 +329,12 @@ func newClaudeAgentFixture(t *testing.T, rootLines []any) *claudeAgentFixture {
 	return &claudeAgentFixture{adapter: a, root: root, subagentsDir: subagentsDir}
 }
 
-func (f *claudeAgentFixture) addChild(t *testing.T, basename string, lines []any, meta claudeChildMeta) model.SessionMeta {
+func (f *claudeAgentFixture) addChild(
+	t *testing.T,
+	basename string,
+	lines []any,
+	meta claudeChildMeta,
+) model.SessionMeta {
 	t.Helper()
 	path := filepath.Join(f.subagentsDir, basename+".jsonl")
 	writeClaudeAgentJSONL(t, path, lines...)

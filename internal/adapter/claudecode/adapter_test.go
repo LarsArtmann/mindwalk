@@ -49,10 +49,18 @@ func TestParseSkipsBashNoiseAndKeepsExistingWeakPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	session := filepath.Join(t.TempDir(), "session.jsonl")
-	writeSession(t, session,
-		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","cwd":`+quote(root)+`,"sessionId":"noise","message":{"role":"user","content":"x"}}`,
-		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","cwd":`+quote(root)+`,"sessionId":"noise","message":{"role":"assistant","content":[{"type":"tool_use","id":"bash","name":"Bash","input":{"command":"printf 'please check the main.go file\nupdated to v1.5\n+ cs.fontSize = 27.2px\nsrc/main.go\n'"}}]}}`,
-		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","cwd":`+quote(root)+`,"sessionId":"noise","message":{"role":"user","content":[{"tool_use_id":"bash","type":"tool_result","content":"please check the main.go file\nupdated to v1.5\n+ cs.fontSize = 27.2px\nsrc/main.go\n","is_error":false}]}}`,
+	writeSession(
+		t,
+		session,
+		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","cwd":`+quote(
+			root,
+		)+`,"sessionId":"noise","message":{"role":"user","content":"x"}}`,
+		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","cwd":`+quote(
+			root,
+		)+`,"sessionId":"noise","message":{"role":"assistant","content":[{"type":"tool_use","id":"bash","name":"Bash","input":{"command":"printf 'please check the main.go file\nupdated to v1.5\n+ cs.fontSize = 27.2px\nsrc/main.go\n'"}}]}}`,
+		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","cwd":`+quote(
+			root,
+		)+`,"sessionId":"noise","message":{"role":"user","content":[{"tool_use_id":"bash","type":"tool_result","content":"please check the main.go file\nupdated to v1.5\n+ cs.fontSize = 27.2px\nsrc/main.go\n","is_error":false}]}}`,
 	)
 	trace, err := (Adapter{}).Parse(session)
 	if err != nil {
@@ -72,7 +80,9 @@ func TestParseSkipsBashNoiseAndKeepsExistingWeakPaths(t *testing.T) {
 
 func TestParsePendingToolUsesRemainDeterministic(t *testing.T) {
 	session := filepath.Join(t.TempDir(), "pending.jsonl")
-	writeSession(t, session,
+	writeSession(
+		t,
+		session,
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","cwd":"/tmp","sessionId":"pending","message":{"role":"user","content":"x"}}`,
 		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","cwd":"/tmp","sessionId":"pending","message":{"role":"assistant","content":[{"type":"tool_use","id":"a","name":"Read","input":{"file_path":"/tmp/a.go"}},{"type":"tool_use","id":"b","name":"Read","input":{"file_path":"/tmp/b.go"}},{"type":"tool_use","id":"c","name":"Read","input":{"file_path":"/tmp/c.go"}}]}}`,
 	)
@@ -81,7 +91,11 @@ func TestParsePendingToolUsesRemainDeterministic(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		got := []string{trace.Events[0].Targets[0].Path, trace.Events[1].Targets[0].Path, trace.Events[2].Targets[0].Path}
+		got := []string{
+			trace.Events[0].Targets[0].Path,
+			trace.Events[1].Targets[0].Path,
+			trace.Events[2].Targets[0].Path,
+		}
 		want := []string{"a.go", "b.go", "c.go"}
 		for j := range want {
 			if got[j] != want[j] {
@@ -93,7 +107,9 @@ func TestParsePendingToolUsesRemainDeterministic(t *testing.T) {
 
 func TestCompactionUsesSubtypeOnly(t *testing.T) {
 	session := filepath.Join(t.TempDir(), "compact.jsonl")
-	writeSession(t, session,
+	writeSession(
+		t,
+		session,
 		`{"type":"system","subtype":"local_command","content":"compact but not a boundary","timestamp":"2026-07-09T00:00:00Z","sessionId":"compact"}`,
 		`{"type":"system","subtype":"compact_boundary","content":"","timestamp":"2026-07-09T00:00:01Z","sessionId":"compact"}`,
 	)
@@ -109,7 +125,9 @@ func TestCompactionUsesSubtypeOnly(t *testing.T) {
 func TestUserMessageMarkCarriesNote(t *testing.T) {
 	long := strings.Repeat("字", 2100)
 	session := filepath.Join(t.TempDir(), "notes.jsonl")
-	writeSession(t, session,
+	writeSession(
+		t,
+		session,
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","cwd":"/tmp","sessionId":"notes","message":{"role":"user","content":"fix the login bug"}}`,
 		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","cwd":"/tmp","sessionId":"notes","message":{"role":"assistant","content":[{"type":"tool_use","id":"a","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
 		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","cwd":"/tmp","sessionId":"notes","message":{"role":"user","content":[{"tool_use_id":"a","type":"tool_result","content":"ok","is_error":false}]}}`,
@@ -161,7 +179,9 @@ func TestSummarizePopulatesSidechainMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	session := filepath.Join(rootDir, "agent-child.jsonl")
-	writeSession(t, session,
+	writeSession(
+		t,
+		session,
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"root-session","agentId":"child","isSidechain":true,"cwd":"/tmp","message":{"role":"user","content":"hello"}}`,
 	)
 	if err := os.WriteFile(strings.TrimSuffix(session, ".jsonl")+".meta.json", []byte(`{"agentType":"Explore","description":"Inspect child","toolUseId":"call-child","spawnDepth":2}`), 0o644); err != nil {
@@ -188,7 +208,9 @@ func TestSummarizeHandlesLargeJSONLines(t *testing.T) {
 	dir := t.TempDir()
 	session := filepath.Join(dir, "large.jsonl")
 	largeText := strings.Repeat("x", 21*1024*1024)
-	writeSession(t, session,
+	writeSession(
+		t,
+		session,
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","cwd":"/tmp","sessionId":"large","message":{"role":"user","content":"`+largeText+`"}}`,
 	)
 

@@ -110,7 +110,10 @@ export const Hud = memo(function Hud({
           </div>
         ) : null}
         {showNoTargetsWarning ? (
-          <div className="hud-warning" data-hint="The adapter found tool calls but could not map any to repository files — check that the session's working directory matches the loaded repository">
+          <div
+            className="hud-warning"
+            data-hint="The adapter found tool calls but could not map any to repository files — check that the session's working directory matches the loaded repository"
+          >
             no file targets resolved — adapter may be misconfigured
           </div>
         ) : null}

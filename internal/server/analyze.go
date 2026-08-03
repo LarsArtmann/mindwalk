@@ -204,7 +204,11 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		}
 	}
 	if req.CLI != "" && !slices.Contains(clis, req.CLI) {
-		http.Error(w, fmt.Sprintf("judge CLI %q is not available (installed: %v)", req.CLI, clis), http.StatusBadRequest)
+		http.Error(
+			w,
+			fmt.Sprintf("judge CLI %q is not available (installed: %v)", req.CLI, clis),
+			http.StatusBadRequest,
+		)
 		return
 	}
 
@@ -217,7 +221,11 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		if !sameConfig {
 			// The API must not pretend to accept a configuration it will not
 			// run: the in-flight job was asked for something else.
-			http.Error(w, "an evaluation with a different judge configuration is already running for this session; wait for it to finish", http.StatusConflict)
+			http.Error(
+				w,
+				"an evaluation with a different judge configuration is already running for this session; wait for it to finish",
+				http.StatusConflict,
+			)
 			return
 		}
 		w.WriteHeader(http.StatusAccepted)
@@ -226,7 +234,11 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 	}
 	if s.analyze.active >= maxConcurrentJudges {
 		s.analyze.mu.Unlock()
-		http.Error(w, fmt.Sprintf("%d evaluations already running; wait for one to finish", maxConcurrentJudges), http.StatusTooManyRequests)
+		http.Error(
+			w,
+			fmt.Sprintf("%d evaluations already running; wait for one to finish", maxConcurrentJudges),
+			http.StatusTooManyRequests,
+		)
 		return
 	}
 	job := &analyzeJob{config: config}

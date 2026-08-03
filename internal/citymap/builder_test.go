@@ -122,7 +122,12 @@ func TestBuildSkipsWeakMissingTargetsButKeepsStrongGhosts(t *testing.T) {
 func TestSquarifiedLayoutAvoidsExtremeAspectRatios(t *testing.T) {
 	root := t.TempDir()
 	for i := range 80 {
-		writeFile(t, root, filepath.Join("pkg", "file"+string(rune('a'+i%26))+string(rune('a'+i/26))+".go"), "package pkg\nfunc X() {}\n")
+		writeFile(
+			t,
+			root,
+			filepath.Join("pkg", "file"+string(rune('a'+i%26))+string(rune('a'+i/26))+".go"),
+			"package pkg\nfunc X() {}\n",
+		)
 	}
 	runGit(t, root, "init")
 	runGit(t, root, "add", ".")

@@ -34,12 +34,21 @@ const stubJudgeOutput = `{"task_summary":"demo","dimensions":[
 
 func TestAnalyzeEndpointRunsJudgeAndServesReport(t *testing.T) {
 	claudeDir := t.TempDir()
-	writeServerSession(t, filepath.Join(claudeDir, "eval.jsonl"),
+	writeServerSession(
+		t,
+		filepath.Join(claudeDir, "eval.jsonl"),
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
 		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
 		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
 	)
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "no-pi"), DisableCrush: true})
+	s := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
 	s.analyze.runner = stubJudge{output: stubJudgeOutput}
 	s.reportCache.Dir = t.TempDir()
 
@@ -90,7 +99,14 @@ func TestAnalyzeEndpointRunsJudgeAndServesReport(t *testing.T) {
 	}
 
 	// the report must survive a server restart via the disk cache
-	restarted := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "no-pi"), DisableCrush: true})
+	restarted := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
 	restarted.analyze.runner = stubJudge{output: stubJudgeOutput}
 	restarted.reportCache.Dir = s.reportCache.Dir
 	resp := httptest.NewRecorder()
@@ -105,12 +121,21 @@ func TestAnalyzeEndpointRunsJudgeAndServesReport(t *testing.T) {
 
 func TestAnalyzeEndpointReportsJudgeFailure(t *testing.T) {
 	claudeDir := t.TempDir()
-	writeServerSession(t, filepath.Join(claudeDir, "fail.jsonl"),
+	writeServerSession(
+		t,
+		filepath.Join(claudeDir, "fail.jsonl"),
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"fail","cwd":"/tmp","message":{"role":"user","content":"x"}}`,
 		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"fail","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
 		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"fail","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
 	)
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "no-pi"), DisableCrush: true})
+	s := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
 	s.analyze.runner = stubJudge{output: "garbage, not json"}
 	s.reportCache.Dir = t.TempDir()
 
@@ -160,12 +185,21 @@ func (g gateJudge) Name() string { return "stub" }
 
 func TestAnalyzeRubricFalseBypassesReportCache(t *testing.T) {
 	claudeDir := t.TempDir()
-	writeServerSession(t, filepath.Join(claudeDir, "eval.jsonl"),
+	writeServerSession(
+		t,
+		filepath.Join(claudeDir, "eval.jsonl"),
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
 		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
 		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
 	)
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "no-pi"), DisableCrush: true})
+	s := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
 	s.analyze.runner = stubJudge{output: stubJudgeOutput}
 	s.reportCache.Dir = t.TempDir()
 
@@ -176,18 +210,27 @@ func TestAnalyzeRubricFalseBypassesReportCache(t *testing.T) {
 	// A richer, rubric-ful report already sits in the cache; a rubric:false
 	// run must not downgrade it.
 	rich := &model.Report{
-		Version:    1,
-		Session:    model.ReportSession{ID: "eval", EventCount: 1},
-		Judge:      model.ReportJudge{CLI: "stub", PromptVersion: judge.PromptVersion, RubricPromptVersion: judge.RubricPromptVersion},
-		Dimensions: []model.ReportDimension{{Name: "exploration", Verdict: model.VerdictGood, Findings: []model.ReportFinding{}}},
-		Rubric:     &model.Rubric{Status: model.RubricStatusScored},
+		Version: 1,
+		Session: model.ReportSession{ID: "eval", EventCount: 1},
+		Judge: model.ReportJudge{
+			CLI:                 "stub",
+			PromptVersion:       judge.PromptVersion,
+			RubricPromptVersion: judge.RubricPromptVersion,
+		},
+		Dimensions: []model.ReportDimension{
+			{Name: "exploration", Verdict: model.VerdictGood, Findings: []model.ReportFinding{}},
+		},
+		Rubric: &model.Rubric{Status: model.RubricStatusScored},
 	}
 	if err := s.reportCache.Store(meta.Key, rich); err != nil {
 		t.Fatal(err)
 	}
 
 	postResp := httptest.NewRecorder()
-	s.handleSessionResource(postResp, httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", strings.NewReader(`{"rubric":false}`)))
+	s.handleSessionResource(
+		postResp,
+		httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", strings.NewReader(`{"rubric":false}`)),
+	)
 	if postResp.Code != http.StatusAccepted {
 		t.Fatalf("analyze status = %d body=%s", postResp.Code, postResp.Body.String())
 	}
@@ -219,12 +262,21 @@ func TestAnalyzeRubricFalseBypassesReportCache(t *testing.T) {
 
 func TestAnalyzeConflictingConfigRejected(t *testing.T) {
 	claudeDir := t.TempDir()
-	writeServerSession(t, filepath.Join(claudeDir, "eval.jsonl"),
+	writeServerSession(
+		t,
+		filepath.Join(claudeDir, "eval.jsonl"),
 		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
 		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
 		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
 	)
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "no-pi"), DisableCrush: true})
+	s := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
 	gate := gateJudge{release: make(chan struct{}), output: stubJudgeOutput}
 	s.analyze.runner = gate
 	s.reportCache.Dir = t.TempDir()
@@ -237,7 +289,10 @@ func TestAnalyzeConflictingConfigRejected(t *testing.T) {
 	// Same session, different configuration: the API must refuse rather than
 	// pretend the in-flight run covers it.
 	conflict := httptest.NewRecorder()
-	s.handleSessionResource(conflict, httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", strings.NewReader(`{"rubric":false}`)))
+	s.handleSessionResource(
+		conflict,
+		httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", strings.NewReader(`{"rubric":false}`)),
+	)
 	if conflict.Code != http.StatusConflict {
 		t.Fatalf("conflicting config = %d, want 409", conflict.Code)
 	}
@@ -268,12 +323,21 @@ func TestAnalyzeConflictingConfigRejected(t *testing.T) {
 
 func TestAnalyzeEndpointRejectsBadBodies(t *testing.T) {
 	claudeDir := t.TempDir()
-	writeServerSession(t, filepath.Join(claudeDir, "eval.jsonl"),
+	writeServerSession(
+		t,
+		filepath.Join(claudeDir, "eval.jsonl"),
 		`{"type":"user","timestamp":"2026-07-14T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
 		`{"type":"assistant","timestamp":"2026-07-14T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
 		`{"type":"user","timestamp":"2026-07-14T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
 	)
-	s := New(Config{ClaudeDir: claudeDir, CodexDir: filepath.Join(t.TempDir(), "codex"), PiDir: filepath.Join(t.TempDir(), "no-pi"), DisableCrush: true})
+	s := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
 	s.analyze.runner = stubJudge{output: stubJudgeOutput}
 	s.reportCache.Dir = t.TempDir()
 

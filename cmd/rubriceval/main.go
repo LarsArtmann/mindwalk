@@ -158,7 +158,10 @@ func evalSession(path, cliName, modelName, outDir string, dumpRaw bool) sessionR
 	result.Events = trace.Session.EventCount
 	result.TaskRunes = taskRunes(trace)
 
-	runner := &timingRunner{inner: judge.CLIRunner{CLI: cliName, Model: modelName}, session: strings.TrimSuffix(result.Session, ".jsonl")}
+	runner := &timingRunner{
+		inner:   judge.CLIRunner{CLI: cliName, Model: modelName},
+		session: strings.TrimSuffix(result.Session, ".jsonl"),
+	}
 	if dumpRaw {
 		runner.dumpDir = outDir
 	}

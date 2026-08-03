@@ -168,13 +168,17 @@ func TestInjectedUserMessageShape(t *testing.T) {
 func TestBuildEventKeepsExecAggregatedAndFindsSingleCommandTarget(t *testing.T) {
 	root := t.TempDir()
 	writeAdapterTestFile(t, root, "README.md")
-	source := `const r = await tools.exec_command({cmd:"sed -n '1,20p' README.md",workdir:` + jsonString(t, root) + `});`
+	source := `const r = await tools.exec_command({cmd:"sed -n '1,20p' README.md",workdir:` + jsonString(
+		t,
+		root,
+	) + `});`
 
 	event := buildExecEvent(root, map[string]any{"_raw": source})
 	if event.Tool != "exec" || event.Action != "read" {
 		t.Fatalf("event = %#v", event)
 	}
-	if len(event.Targets) != 1 || event.Targets[0].Path != "README.md" || !event.Targets[0].Weak || event.Targets[0].Touch != "read" {
+	if len(event.Targets) != 1 || event.Targets[0].Path != "README.md" || !event.Targets[0].Weak ||
+		event.Targets[0].Touch != "read" {
 		t.Fatalf("targets = %#v", event.Targets)
 	}
 }
@@ -189,7 +193,8 @@ func TestBuildEventExtractsApplyPatchFromExec(t *testing.T) {
 	if event.Tool != "exec" || event.Action != "edit" {
 		t.Fatalf("event = %#v", event)
 	}
-	if len(event.Targets) != 1 || event.Targets[0].Path != "src/main.go" || event.Targets[0].Touch != "edit" || event.Targets[0].Weak {
+	if len(event.Targets) != 1 || event.Targets[0].Path != "src/main.go" || event.Targets[0].Touch != "edit" ||
+		event.Targets[0].Weak {
 		t.Fatalf("targets = %#v", event.Targets)
 	}
 }
@@ -315,7 +320,11 @@ func TestBuildEventClassifiesBashSearchCommands(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.command, func(t *testing.T) {
 			trace := &model.Trace{Session: model.TraceSession{Cwd: t.TempDir()}}
-			event := BuildEvent(trace, ToolCall{Name: "Bash", Input: map[string]any{"command": tt.command}}, ToolResult{})
+			event := BuildEvent(
+				trace,
+				ToolCall{Name: "Bash", Input: map[string]any{"command": tt.command}},
+				ToolResult{},
+			)
 			if event.Action != tt.want {
 				t.Fatalf("action(%q) = %q, want %q", tt.command, event.Action, tt.want)
 			}
@@ -482,7 +491,8 @@ func TestBuildEventExtractsJSReplTargets(t *testing.T) {
 			if event.Tool != "js_repl" || event.Action != "exec" {
 				t.Fatalf("event = %#v", event)
 			}
-			if len(event.Targets) != 1 || event.Targets[0].Path != "packages/db/src/index.ts" || !event.Targets[0].Weak {
+			if len(event.Targets) != 1 || event.Targets[0].Path != "packages/db/src/index.ts" ||
+				!event.Targets[0].Weak {
 				t.Fatalf("targets = %#v", event.Targets)
 			}
 		})
@@ -527,8 +537,22 @@ func TestBuildEventClassifiesPiCoreTools(t *testing.T) {
 		touch  string
 		weak   bool
 	}{
-		{"read", map[string]any{"path": abs, "offset": float64(10), "limit": float64(5)}, "read", "src/main.go", "read", false},
-		{"edit", map[string]any{"path": abs, "edits": []any{map[string]any{"oldText": "a", "newText": "b"}}}, "edit", "src/main.go", "edit", false},
+		{
+			"read",
+			map[string]any{"path": abs, "offset": float64(10), "limit": float64(5)},
+			"read",
+			"src/main.go",
+			"read",
+			false,
+		},
+		{
+			"edit",
+			map[string]any{"path": abs, "edits": []any{map[string]any{"oldText": "a", "newText": "b"}}},
+			"edit",
+			"src/main.go",
+			"edit",
+			false,
+		},
 		{"write", map[string]any{"path": abs, "content": "x"}, "edit", "src/main.go", "edit", false},
 		{"grep", map[string]any{"pattern": "TODO", "path": abs}, "search", "src/main.go", "hit", true},
 		{"find", map[string]any{"pattern": "*.go", "path": abs}, "search", "src/main.go", "hit", true},

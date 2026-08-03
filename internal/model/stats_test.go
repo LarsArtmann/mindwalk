@@ -69,16 +69,39 @@ func TestComputeStatsObservability(t *testing.T) {
 		wantErrors  string
 	}{
 		{"strong reads are exact", []Event{strongRead}, ObservabilityExact, ObservabilityExact, ObservabilityExact},
-		{"any weak read downgrades", []Event{strongRead, weakRead}, ObservabilityExact, ObservabilityEstimated, ObservabilityExact},
-		{"no reads is unavailable", []Event{hitOnly}, ObservabilityEstimated, ObservabilityUnavailable, ObservabilityEstimated},
-		{"empty error signal falls back to estimated", []Event{strongRead}, "", ObservabilityExact, ObservabilityEstimated},
+		{
+			"any weak read downgrades",
+			[]Event{strongRead, weakRead},
+			ObservabilityExact,
+			ObservabilityEstimated,
+			ObservabilityExact,
+		},
+		{
+			"no reads is unavailable",
+			[]Event{hitOnly},
+			ObservabilityEstimated,
+			ObservabilityUnavailable,
+			ObservabilityEstimated,
+		},
+		{
+			"empty error signal falls back to estimated",
+			[]Event{strongRead},
+			"",
+			ObservabilityExact,
+			ObservabilityEstimated,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			stats := ComputeStats(&Trace{Events: tt.events}, 0, tt.errorSignal)
 			if stats.Observability.Reads != tt.wantReads || stats.Observability.Errors != tt.wantErrors {
-				t.Fatalf("observability = %#v, want reads %q errors %q", stats.Observability, tt.wantReads, tt.wantErrors)
+				t.Fatalf(
+					"observability = %#v, want reads %q errors %q",
+					stats.Observability,
+					tt.wantReads,
+					tt.wantErrors,
+				)
 			}
 		})
 	}

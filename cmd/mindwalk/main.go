@@ -69,7 +69,8 @@ func serve(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, Host: *host, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, Dev: *dev}).Start(!*noOpen)
+	return server.New(server.Config{Port: *port, Host: *host, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, Dev: *dev}).
+		Start(!*noOpen)
 }
 
 func open(args []string) error {
@@ -92,7 +93,8 @@ func open(args []string) error {
 	if err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, Host: *host, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, OpenSession: session}).Start(!*noOpen)
+	return server.New(server.Config{Port: *port, Host: *host, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, OpenSession: session}).
+		Start(!*noOpen)
 }
 
 func openMap(args []string) error {
@@ -171,9 +173,17 @@ func analyze(args []string) error {
 	fs := flag.NewFlagSet("analyze", flag.ExitOnError)
 	out := fs.String("o", "", "write the report to this file instead of stdout")
 	judgeCLI := fs.String("judge", "", "judge CLI to use: claude or codex (default: auto-detect)")
-	judgeModel := fs.String("model", "", "judge model override, e.g. sonnet or gpt-5.6-sol (default: the CLI's default)")
+	judgeModel := fs.String(
+		"model",
+		"",
+		"judge model override, e.g. sonnet or gpt-5.6-sol (default: the CLI's default)",
+	)
 	noCache := fs.Bool("no-cache", false, "re-run the judge even when a fresh cached report exists")
-	noRubric := fs.Bool("no-rubric", false, "skip the task rubric layer: one dimensions-only judge call, bypassing the report cache")
+	noRubric := fs.Bool(
+		"no-rubric",
+		false,
+		"skip the task rubric layer: one dimensions-only judge call, bypassing the report cache",
+	)
 	crushDir := fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
 	noCrush := fs.Bool("no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
 	timeout := fs.Duration("timeout", judge.DefaultTimeout, "judge subprocess timeout")
@@ -190,7 +200,9 @@ func analyze(args []string) error {
 		args = fs.Args()[1:]
 	}
 	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache] [--no-rubric]")
+		return fmt.Errorf(
+			"usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache] [--no-rubric]",
+		)
 	}
 	session, err := filepath.Abs(positional[0])
 	if err != nil {
@@ -224,7 +236,11 @@ func analyze(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	fmt.Fprintf(os.Stderr, "mindwalk: judging %d events, this can take a minute or two…\n", tr.Session.EventCount)
-	report, err := judge.Analyze(ctx, tr, judge.Options{CLI: *judgeCLI, Model: *judgeModel, NoRubric: *noRubric, CachedReport: cached})
+	report, err := judge.Analyze(
+		ctx,
+		tr,
+		judge.Options{CLI: *judgeCLI, Model: *judgeModel, NoRubric: *noRubric, CachedReport: cached},
+	)
 	if err != nil {
 		return err
 	}

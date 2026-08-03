@@ -65,7 +65,7 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 					paths[meta.Path] = true
 				}
 			}
-			rows.Close()
+			_ = rows.Close()
 		}
 		_ = db.close()
 	}
@@ -132,7 +132,8 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 				var child *model.SessionMeta
 				for i := range childrenByParent[actor.sourceID] {
 					candidate := &childrenByParent[actor.sourceID][i]
-					if candidate.Agent != nil && candidate.Agent.SourceID == output.AgentID && !visitedSessions[candidate.Key] {
+					if candidate.Agent != nil && candidate.Agent.SourceID == output.AgentID &&
+						!visitedSessions[candidate.Key] {
 						child = candidate
 						break
 					}
@@ -217,7 +218,7 @@ func (a Adapter) loadAgentChildren() ([]model.SessionMeta, error) {
 				children = append(children, meta)
 			}
 		}
-		rows.Close()
+		_ = rows.Close()
 		_ = db.close()
 	}
 	return children, nil
@@ -342,7 +343,13 @@ func parseCrushLaunchOutput(raw string) (agentLaunchOutput, bool) {
 	return output, output.AgentID != "" || output.Nickname != "" || output.TaskName != ""
 }
 
-func exactCrushAgentNode(harness, rootKey string, actor crushGraphActor, launch agentLaunch, output agentLaunchOutput, child *model.SessionMeta) model.AgentNode {
+func exactCrushAgentNode(
+	harness, rootKey string,
+	actor crushGraphActor,
+	launch agentLaunch,
+	output agentLaunchOutput,
+	child *model.SessionMeta,
+) model.AgentNode {
 	seq := launch.seq
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+output.AgentID),

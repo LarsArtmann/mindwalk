@@ -459,7 +459,8 @@ func (s *Server) listSessionsObserved(fresh bool, observedFreshGen uint64) ([]mo
 	s.scanMu.Lock()
 	defer s.scanMu.Unlock()
 	s.mu.Lock()
-	if s.sessions != nil && ((!fresh && time.Since(s.sessionAt) < sessionListTTL) || (fresh && s.freshGen != observedFreshGen)) {
+	if s.sessions != nil &&
+		((!fresh && time.Since(s.sessionAt) < sessionListTTL) || (fresh && s.freshGen != observedFreshGen)) {
 		sessions := append([]model.SessionMeta(nil), s.sessions...)
 		s.mu.Unlock()
 		return sessions, nil
@@ -906,7 +907,13 @@ func agentGraphDiskDigest(paths []string) ([sha256.Size]byte, error) {
 	return sha256.Sum256([]byte(material.String())), nil
 }
 
-func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, source adapter.AgentGraphSource, root model.SessionMeta, catalog []model.SessionMeta) {
+func (s *Server) runAgentGraphInflight(
+	key string,
+	load *inflightAgentGraph,
+	source adapter.AgentGraphSource,
+	root model.SessionMeta,
+	catalog []model.SessionMeta,
+) {
 	defer func() {
 		if r := recover(); r != nil {
 			load.graph = nil
@@ -1286,7 +1293,11 @@ func writeJSON(w http.ResponseWriter, v any) {
 // adapter can be disabled via a Config flag; the Crush adapter is
 // off by default when the user passes --no-crush.
 func buildAdapters(cfg Config) []adapter.Source {
-	sources := []adapter.Source{claudecode.Adapter{Dir: cfg.ClaudeDir}, codex.Adapter{Dir: cfg.CodexDir}, pi.Adapter{Dir: cfg.PiDir}}
+	sources := []adapter.Source{
+		claudecode.Adapter{Dir: cfg.ClaudeDir},
+		codex.Adapter{Dir: cfg.CodexDir},
+		pi.Adapter{Dir: cfg.PiDir},
+	}
 	if cfg.DisableCrush {
 		return sources
 	}
