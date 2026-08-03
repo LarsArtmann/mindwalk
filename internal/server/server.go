@@ -41,10 +41,15 @@ type Config struct {
 	CodexDir    string
 	CrushDir    string
 	PiDir       string
-	OpenSession string
-	Dev         bool
-	RepoRoot    string
-	MapOnly     bool
+	// DisableCrush skips registering the Crush adapter entirely.
+	// Useful for projects where the .crush directory does not
+	// belong to the user (e.g. vendored test fixtures) or for
+	// users who never want the Crush scan to run.
+	DisableCrush bool
+	OpenSession  string
+	Dev          bool
+	RepoRoot     string
+	MapOnly      bool
 }
 
 type Server struct {
@@ -129,7 +134,7 @@ const (
 func New(cfg Config) *Server {
 	return &Server{
 		cfg:             cfg,
-		adapters:        []adapter.Source{claudecode.Adapter{Dir: cfg.ClaudeDir}, codex.Adapter{Dir: cfg.CodexDir}, pi.Adapter{Dir: cfg.PiDir}, crushAdapter(cfg.CrushDir)},
+		adapters:        buildAdapters(cfg),
 		traces:          map[string]*model.Trace{},
 		maps:            map[string]*model.CityMap{},
 		cacheAt:         map[string]time.Time{},
@@ -1140,6 +1145,17 @@ func writeJSON(w http.ResponseWriter, v any) {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	_ = enc.Encode(v)
+}
+
+// buildAdapters assembles the registered adapter sources. Each
+// adapter can be disabled via a Config flag; the Crush adapter is
+// off by default when the user passes --no-crush.
+func buildAdapters(cfg Config) []adapter.Source {
+	sources := []adapter.Source{claudecode.Adapter{Dir: cfg.ClaudeDir}, codex.Adapter{Dir: cfg.CodexDir}, pi.Adapter{Dir: cfg.PiDir}}
+	if cfg.DisableCrush {
+		return sources
+	}
+	return append(sources, crushAdapter(cfg.CrushDir))
 }
 
 // crushAdapter builds a Crush adapter. An empty explicit override

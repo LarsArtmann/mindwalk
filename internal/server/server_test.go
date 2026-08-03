@@ -1478,3 +1478,26 @@ func TestServerLoadsCrushFixtureSession(t *testing.T) {
 		t.Fatalf("trace availability = %q", sub.TraceAvailability)
 	}
 }
+
+// TestServerSkipsCrushWhenDisabled verifies the --no-crush flag
+// disables the Crush adapter so a vendored or hostile .crush
+// directory does not bleed into the session list.
+func TestServerSkipsCrushWhenDisabled(t *testing.T) {
+	crushDir := filepath.Join("..", "..", "testdata", "crush")
+	s := New(Config{ClaudeDir: filepath.Join(t.TempDir(), "no-claude"), CodexDir: filepath.Join(t.TempDir(), "no-codex"), CrushDir: crushDir, DisableCrush: true})
+
+	sessionsResp := httptest.NewRecorder()
+	s.handleSessions(sessionsResp, httptest.NewRequest(http.MethodGet, "/api/sessions", nil))
+	if sessionsResp.Code != http.StatusOK {
+		t.Fatalf("sessions status = %d", sessionsResp.Code)
+	}
+	var sessions []model.SessionMeta
+	if err := json.Unmarshal(sessionsResp.Body.Bytes(), &sessions); err != nil {
+		t.Fatal(err)
+	}
+	for _, session := range sessions {
+		if session.Harness == "crush" {
+			t.Fatalf("found Crush session %+v with DisableCrush=true", session)
+		}
+	}
+}
