@@ -149,10 +149,17 @@ type ActionCounts struct {
 }
 
 type SessionMeta struct {
-	Key       string `json:"key"`
-	ID        string `json:"id"`
-	Harness   string `json:"harness"`
-	Title     string `json:"title,omitempty"`
+	Key     string `json:"key"`
+	ID      string `json:"id"`
+	Harness string `json:"harness"`
+	Title   string `json:"title,omitempty"`
+	// Path is the deep-link handle the server uses to recover the
+	// session. For filesystem-backed harnesses (Claude Code,
+	// Codex) it is the on-disk JSONL file path. For database-
+	// backed harnesses (Crush, future Aider/Goose) it is a
+	// synthetic URI like "crush://session/<id>" that the adapter
+	// resolves to a row in its storage. Callers that need to
+	// os.Stat the path must check for the synthetic scheme first.
 	Path      string `json:"path"`
 	Cwd       string `json:"cwd,omitempty"`
 	Model     string `json:"model,omitempty"`
