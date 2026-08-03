@@ -273,10 +273,15 @@ func usage() {
 
 Usage:
   mindwalk                        serve on a random local port and open the UI
-  mindwalk serve [--port N] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR]
-  mindwalk open [--no-open] <session.jsonl> open a specific Claude Code, Codex, or pi session
+  mindwalk serve [--port N] [--no-open] [--no-crush] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR] [--crush-dir DIR]
+  mindwalk open [--no-open] [--no-crush] [--crush-dir DIR] <session> open a specific Claude Code, Codex, pi, or Crush session
   mindwalk map [--no-open] <repo>  open the repository citymap with no session
   mindwalk build <repo> [-o out]  write citymap.json
   mindwalk trace <session> [-o out] write trace.json
-  mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] [--no-rubric] evaluate a session with a local agent CLI`)
+  mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] [--no-rubric] evaluate a session with a local agent CLI
+
+Examples:
+  mindwalk serve --crush-dir ~/.local/share/crush   # point at a specific Crush install
+  mindwalk serve --no-crush                         # skip the Crush scan entirely
+  mindwalk trace crush://session/<id>              # export a Crush session as trace.json`)
 }
