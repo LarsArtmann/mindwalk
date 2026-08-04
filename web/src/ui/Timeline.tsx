@@ -279,6 +279,13 @@ export function Timeline({
     return [...groups.values()];
   }, [trace, max]);
 
+  const errorPositions = useMemo(() => {
+    if (!trace || total === 0) return [];
+    return trace.events
+      .filter((e) => e.isError)
+      .map((e) => ({ seq: e.seq, pos: max > 0 ? Math.min(e.seq, max) / max : 0, summary: e.summary }));
+  }, [trace, total, max]);
+
   return (
     <footer className="deck">
       <div className="deck-main">
@@ -301,6 +308,18 @@ export function Timeline({
               />
             ))}
           </div>
+          {errorPositions.length > 0 ? (
+            <div className="strip-errors" aria-hidden>
+              {errorPositions.map((err, i) => (
+                <span
+                  key={`err-${err.seq}-${i}`}
+                  className="strip-error"
+                  style={{ left: `${err.pos * 100}%` }}
+                  title={`Error at step ${err.seq + 1} — ${err.summary}`}
+                />
+              ))}
+            </div>
+          ) : null}
           <div className="strip-bars" aria-hidden>
             {buckets.map((bucket, i) => (
               <span
@@ -439,17 +458,17 @@ export function Timeline({
       </div>
 
       <div className="deck-foot">
-      {event ? (
-      <EventSummary event={event} total={total} />
-      ) : (
-      <div className="readout-now">
-      <span className="readout-summary">
-        {trace
-        ? "No recorded activity for this agent."
-        : "Select a session to start the walk."}
-      </span>
-      </div>
-      )}
+        {event ? (
+          <EventSummary event={event} total={total} />
+        ) : (
+          <div className="readout-now">
+            <span className="readout-summary">
+              {trace
+                ? "No recorded activity for this agent."
+                : "Select a session to start the walk."}
+            </span>
+          </div>
+        )}
         <div className="deck-legend" aria-hidden>
           <span className="legend-group">
             {STRIP_ACTIONS.map((action) => (
@@ -486,6 +505,9 @@ export function Timeline({
             </span>
           </span>
         </div>
+      </div>
+      <div className="sr-live" aria-live="polite" role="status">
+        {event ? `Event ${seq + 1} of ${total}: ${event.action} — ${event.tool}${event.summary ? `, ${event.summary}` : ""}` : ""}
       </div>
     </footer>
   );

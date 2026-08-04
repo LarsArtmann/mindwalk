@@ -122,6 +122,13 @@ export function CityScene({
   // camera fit deferred while the viewport reports no size (hidden pane,
   // background tab); resize retries it instead of leaving the camera at NaN
   const fitPendingRef = useRef<(() => boolean) | null>(null);
+  const fitViewRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    const handler = () => fitViewRef.current?.();
+    window.addEventListener("mindwalk:zoom-to-fit", handler);
+    return () => window.removeEventListener("mindwalk:zoom-to-fit", handler);
+  }, []);
 
   const bounds = useMemo(() => {
     if (!city || city.files.length === 0) return { cx: 0, cz: 0, size: 120, halfW: 60, halfD: 60 };
@@ -513,9 +520,11 @@ export function CityScene({
       return true;
     };
     fitPendingRef.current = fitView() ? null : fitView;
+    fitViewRef.current = () => { fitView(); };
 
     return () => {
       fitPendingRef.current = null;
+      fitViewRef.current = null;
       disposeGroup(group);
       scene.remove(group);
       cityGroupRef.current = null;

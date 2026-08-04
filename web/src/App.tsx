@@ -11,12 +11,14 @@ import {
   openAnalyzeStream,
   startSessionAnalyze,
 } from "./api/client";
-import { Crosshair, Sparkles, Mountain, TreePine, Users } from "lucide-react";
+import { Crosshair, Maximize2, Mountain, Sparkles, TreePine, Users } from "lucide-react";
 import type { AgentGraph, CityMap, JudgeChoice, JudgeProgress, ReportStatus, Trace } from "./types";
+import { getDemoData } from "./api/demo";
 import { Dock, type PanelDescriptor } from "./ui/Dock";
 import { AgentsPanel } from "./ui/AgentsPanel";
 import { CheatSheet } from "./ui/CheatSheet";
 import { CommandPalette } from "./ui/CommandPalette";
+import { GuidedTour, resetTour, tourNeeded } from "./ui/GuidedTour";
 import { ReportPanel } from "./ui/ReportPanel";
 import { ViewPanel } from "./ui/ViewPanel";
 import { PlaybackEngine } from "./playback/reducer";
@@ -64,6 +66,7 @@ export default function App() {
     harnessFilter,
     railCollapsed,
     mapOnly,
+    hudHidden,
     setView,
     setSessions,
     setActiveSession,
@@ -76,6 +79,7 @@ export default function App() {
     setHideEmpty,
     setHarnessFilter,
     setRailCollapsed,
+    setHudHidden,
   } = useAppStore();
   const urlSessionConsumed = useRef(false);
   const scanGeneration = useRef(0);
@@ -93,6 +97,7 @@ export default function App() {
   const [openPop, setOpenPop] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [cheatOpen, setCheatOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(() => !mapOnly && tourNeeded());
   const [reportStatus, setReportStatus] = useState<ReportStatus | undefined>();
   const [judgeProgress, setJudgeProgress] = useState<JudgeProgress[]>([]);
   const [agentGraph, setAgentGraph] = useState<AgentGraph | undefined>();
@@ -615,6 +620,14 @@ export default function App() {
 
   const closeSheet = useCallback(() => setOpenSheet(null), []);
   const closePop = useCallback(() => setOpenPop(null), []);
+  const zoomToFit = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("mindwalk:zoom-to-fit"));
+  }, []);
+  const loadDemo = useCallback(() => {
+    const { trace, city } = getDemoData();
+    setData(trace, city);
+    setActiveSession(undefined);
+  }, [setData, setActiveSession]);
   const openAgents = useCallback(() => {
     if (!exportingRef.current) setOpenSheet("agents");
   }, []);
@@ -701,6 +714,40 @@ export default function App() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Cmd+P / Ctrl+P opens the file command palette; ? opens the cheat sheet;
+  // H toggles the HUD overlay. All skip when typing in inputs.
+  useEffect(() => {
+    const isTyping = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    };
+    const onPalette = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "p" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      e.preventDefault();
+      setPaletteOpen(true);
+    };
+    const onCheat = (e: KeyboardEvent) => {
+      if (e.key !== "?" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTyping(e.target)) return;
+      e.preventDefault();
+      setCheatOpen((v) => !v);
+    };
+    const onHud = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "h" || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      if (isTyping(e.target)) return;
+      const store = useAppStore.getState();
+      store.setHudHidden(!store.hudHidden);
+    };
+    window.addEventListener("keydown", onPalette);
+    window.addEventListener("keydown", onCheat);
+    window.addEventListener("keydown", onHud);
+    return () => {
+      window.removeEventListener("keydown", onPalette);
+      window.removeEventListener("keydown", onCheat);
+      window.removeEventListener("keydown", onHud);
+    };
   }, []);
 
   useEffect(() => {
@@ -811,6 +858,16 @@ export default function App() {
               <PanelLeftOpen size={15} />
             </button>
           ) : null}
+          {city ? (
+            <button
+              className="zoom-fit-btn"
+              onClick={zoomToFit}
+              title="Recenter the map (zoom to fit)"
+              aria-label="Recenter the map"
+            >
+              <Maximize2 size={15} />
+            </button>
+          ) : null}
           {view === "tree" ? (
             <TreeScene
               city={city}
@@ -829,18 +886,20 @@ export default function App() {
               locHeights={mapOnly}
             />
           )}
-          <Hud
-            trace={trace}
-            city={city}
-            agentLabel={agentLabel}
-            editedNow={touchCounts.edited}
-            readNow={touchCounts.read}
-            seenNow={touchCounts.seen}
-            churn={churn}
-            onSelectFile={selectFile}
-            onOpenAgents={!mapOnly && trace ? openAgents : undefined}
-            locked={exporting}
-          />
+          {!hudHidden ? (
+            <Hud
+              trace={trace}
+              city={city}
+              agentLabel={agentLabel}
+              editedNow={touchCounts.edited}
+              readNow={touchCounts.read}
+              seenNow={touchCounts.seen}
+              churn={churn}
+              onSelectFile={selectFile}
+              onOpenAgents={!mapOnly && trace ? openAgents : undefined}
+              locked={exporting}
+            />
+          ) : null}
           {city ? (
             <Dock
               panels={[
@@ -933,7 +992,7 @@ export default function App() {
               onClosePop={closePop}
             />
           ) : null}
-          {!mapOnly && !loading && sessions.length === 0 ? (
+          {!mapOnly && !loading && sessions.length === 0 && !trace ? (
             <div className="empty-stage">
               <div className="card">
                 <h2>No sessions found</h2>
@@ -942,6 +1001,9 @@ export default function App() {
                   and <code>~/.pi/agent/sessions</code> for agent traces. Run a session there, then
                   refresh.
                 </p>
+                <button className="demo-btn" onClick={loadDemo}>
+                  Try a demo session →
+                </button>
               </div>
             </div>
           ) : null}
@@ -965,6 +1027,25 @@ export default function App() {
           onSubagentMark={openAgentsAtMark}
         />
       </section>
+      {paletteOpen && city ? (
+        <CommandPalette
+          files={city.files}
+          touchByPath={playback.touchByPath}
+          onSelect={selectFile}
+          onClose={() => setPaletteOpen(false)}
+        />
+      ) : null}
+      {cheatOpen ? (
+        <CheatSheet
+          onClose={() => setCheatOpen(false)}
+          onReplayTour={() => {
+            resetTour();
+            setCheatOpen(false);
+            setTourOpen(true);
+          }}
+        />
+      ) : null}
+      {tourOpen ? <GuidedTour onClose={() => setTourOpen(false)} /> : null}
     </main>
   );
 }

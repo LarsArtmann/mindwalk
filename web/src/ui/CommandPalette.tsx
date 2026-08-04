@@ -48,12 +48,7 @@ function scorePath(query: string, path: string): number {
   return score;
 }
 
-export function CommandPalette({
-  files,
-  touchByPath,
-  onSelect,
-  onClose,
-}: CommandPaletteProps) {
+export function CommandPalette({ files, touchByPath, onSelect, onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);

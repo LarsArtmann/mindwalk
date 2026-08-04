@@ -187,6 +187,7 @@ export const Hud = memo(function Hud({
             {/* session scale: quiet background numbers, final totals only —
                 unlike the playhead-live spectrum above */}
             <div className="hud-quiet">
+              <CoverageGauge edited={editedNow} read={readNow} seen={seenNow} total={stats.filesInRepo} />
               <span data-hint={`Tool calls — ${mixHint(stats.actions)}`}>
                 {countActions(stats.actions)} calls
               </span>
@@ -298,6 +299,47 @@ export const Hud = memo(function Hud({
     </div>
   );
 });
+
+function CoverageGauge({
+  edited,
+  read,
+  seen,
+  total,
+}: {
+  edited: number;
+  read: number;
+  seen: number;
+  total: number;
+}) {
+  const touched = edited + read + seen;
+  const pct = total > 0 ? Math.min(100, (touched / total) * 100) : 0;
+  const R = 8;
+  const C = 2 * Math.PI * R;
+  const dash = (pct / 100) * C;
+  return (
+    <span
+      className="coverage-gauge"
+      data-hint={`Coverage: ${touched} of ${total} files touched (${pct.toFixed(0)}%)`}
+    >
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+        <circle cx="10" cy="10" r={R} fill="none" stroke="var(--hairline)" strokeWidth="2.5" />
+        <circle
+          cx="10"
+          cy="10"
+          r={R}
+          fill="none"
+          stroke="var(--moss)"
+          strokeWidth="2.5"
+          strokeDasharray={`${dash} ${C}`}
+          strokeLinecap="round"
+          transform="rotate(-90 10 10)"
+          style={{ transition: "stroke-dasharray 0.3s ease" }}
+        />
+      </svg>
+      <span className="coverage-gauge-pct">{pct.toFixed(0)}%</span>
+    </span>
+  );
+}
 
 function SpectrumStat({
   kind,

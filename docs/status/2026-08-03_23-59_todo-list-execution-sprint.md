@@ -190,3 +190,14 @@
 2. **Should I commit the work done so far as one commit, or split into logical chunks?** The auto-git daemon may commit everything as one blob. If you want clean history (one commit per task, or at least one per impact tier), I should commit now before continuing. The working tree has changes across: `agents.go`, `sessions.go`, `adapter.go`, `server.go`, `server_test.go`, `main_test.go`, `analyze_test.go`, `main.go`, `builder.go`, `fixture_test.go`, `README.md`, `AGENTS.md`, `adapter_test.go`.
 
 3. **Should the `verify` skill (browser verification) be attempted in this session?** It requires building the frontend (`make setup && make build`), starting the server, and driving a browser. It's the only TODO item that needs external tooling I haven't verified is installed. I don't know if `pnpm`/`node` are available in this environment.
+
+---
+
+## Resolution (2026-08-03 → 2026-08-04)
+
+9 of 20 tasks shipped this session; the remaining 11 shipped across the
+subsequent hardening and superb sprints. Task 17 (`sessionDBIndex` →
+per-Adapter `dbIndex`) was completed and verified in the next session
+(`NewAdapter` wired into `server.go`). All CLI subcommands, the disk cache,
+and the schema warning landed (CHANGELOG `[Unreleased] > Added`). Open
+bounded items are in `TODO_LIST.md`.

@@ -126,3 +126,13 @@
 ---
 
 _Report generated from this session only. Uncommitted changes present in the working tree were noted but not authored in this session._
+
+---
+
+## Resolution (2026-08-04)
+
+The `--host` usage text shipped (`serve`/`open`/`map`). The CHANGELOG
+formatting regression was fixed. The section F brainstorm: the
+`make test`-requires-npm observation is real (Go tests pass independently);
+open bounded items are in `TODO_LIST.md`; LAN/security hardening ideas are
+deferred to `ROADMAP.md`.

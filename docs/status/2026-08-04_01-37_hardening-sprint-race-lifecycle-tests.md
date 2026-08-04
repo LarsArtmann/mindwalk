@@ -200,3 +200,15 @@ Two approaches:
 - **B:** Each command calls `fs.StringVar(&target, ...)` inline (no shared helper)
 
 Option A keeps the DRY pattern but requires discipline. Option B is more verbose but eliminates the bug class entirely. The previous session chose A and got it wrong. Which do you prefer?
+
+---
+
+## Resolution (2026-08-04)
+
+The critical `parseAdapterFlags` bug (section D1) was fixed in the next
+session (`2026-08-04_02-08`) and logged in CHANGELOG `[Unreleased] > Fixed`.
+The `TestMain` CLI isolation (D2) shipped. The race fixes (worktreeRootCache,
+`Close()`, projectPathStore) all shipped. The section F brainstorm: shipped
+items are in CHANGELOG `[Unreleased]`; open bounded items are in
+`TODO_LIST.md`; long-term items (stress test, connection-pool limits) are in
+`ROADMAP.md`.

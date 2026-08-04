@@ -1,5 +1,5 @@
 import { Eye, EyeOff, FolderOpen, PanelLeftClose, RefreshCw, Search } from "lucide-react";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sessionVisible } from "../state/filters";
 import { LogoMark } from "./LogoMark";
 import { toggleRailShortcut } from "./shortcuts";
@@ -51,6 +51,7 @@ export const SessionRail = memo(function SessionRail({
   const [query, setQuery] = useState("");
   const [repoPath, setRepoPath] = useState("");
   const [mapOpen, setMapOpen] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const mapPopRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -86,6 +87,16 @@ export const SessionRail = memo(function SessionRail({
         .includes(q);
     });
   }, [sessions, query, hideEmpty, effectiveHarness, activeKey]);
+
+  const grouped = useMemo(() => groupSessionsByDate(shown), [shown]);
+  const toggleGroup = useCallback((label: string) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }, []);
 
   return (
     <aside className={collapsed ? "session-rail collapsed" : "session-rail"}>
@@ -234,51 +245,75 @@ export const SessionRail = memo(function SessionRail({
         ) : null}
       </div>
       <div className="session-list" aria-busy={loading}>
-        {shown.map((session) => (
-          <button
-            key={session.key}
-            className={session.key === activeKey ? "session-row active" : "session-row"}
-            onClick={() => onSelect(session.key)}
-            disabled={locked}
-          >
-            <span className="session-title">{session.title || session.id}</span>
-            <span className="session-meta">
-              <span className="session-meta-text">
-                {harnessLabel(session.harness)} · {session.eventCount}{" "}
-                {session.eventCount === 1 ? "call" : "calls"}
-                {session.provider ? ` · ${session.provider}` : ""}
-                {session.promptTokens || session.completionTokens
-                  ? ` · ${formatTokens(session.promptTokens || 0)}/${formatTokens(session.completionTokens || 0)} tok`
-                  : ""}
-                {session.cost && session.cost > 0 ? ` · $${session.cost.toFixed(2)}` : ""}
-                {session.gitBranch ? ` · ${session.gitBranch}` : ""}
-                {session.endedAt ? ` · ${shortDate(session.endedAt)}` : ""}
-              </span>
-              {(() => {
-                // the panel's digest-based status outranks the list's cheap
-                // event-count grading for the active session
-                const evalState =
-                  session.key === activeKey && activeReportState !== undefined
-                    ? activeReportState
-                    : session.reportState;
-                return evalState ? (
-                  <span
-                    className={`rail-eval rail-eval-${evalState}`}
-                    title={evalHint(evalState)}
-                    aria-label={evalHint(evalState)}
-                  >
-                    {evalState === "running" ? "evaluating" : ""}
-                  </span>
-                ) : null;
-              })()}
-            </span>
-          </button>
-        ))}
-        {shown.length === 0 ? (
+        {grouped.length === 0 ? (
           <p className="muted" style={{ padding: "10px 8px" }}>
             {loading && sessions.length === 0 ? "Scanning sessions…" : "No matching sessions."}
           </p>
         ) : null}
+        {grouped.map((group) => {
+          const collapsed = collapsedGroups.has(group.label);
+          return (
+            <div key={group.label} className="session-group">
+              <button
+                className="session-group-head"
+                onClick={() => toggleGroup(group.label)}
+                aria-expanded={!collapsed}
+              >
+                <span className="session-group-label">{group.label}</span>
+                <span className="session-group-count">{group.sessions.length}</span>
+              </button>
+              {!collapsed
+                ? group.sessions.map((session) => (
+                    <button
+                      key={session.key}
+                      className={
+                        session.key === activeKey ? "session-row active" : "session-row"
+                      }
+                      onClick={() => onSelect(session.key)}
+                      disabled={locked}
+                    >
+                      <span className="session-title">
+                        <span className={`harness-dot harness-${session.harness}`} aria-hidden />
+                        {session.title || session.id}
+                      </span>
+                      <span className="session-meta">
+                        <span className="session-meta-text">
+                          {harnessLabel(session.harness)} · {session.eventCount}{" "}
+                          {session.eventCount === 1 ? "call" : "calls"}
+                          {session.provider ? ` · ${session.provider}` : ""}
+                          {session.promptTokens || session.completionTokens
+                            ? ` · ${formatTokens(session.promptTokens || 0)}/${formatTokens(session.completionTokens || 0)} tok`
+                            : ""}
+                          {session.cost && session.cost > 0
+                            ? ` · $${session.cost.toFixed(2)}`
+                            : ""}
+                          {session.gitBranch ? ` · ${session.gitBranch}` : ""}
+                          {session.endedAt ? ` · ${relativeTime(session.endedAt)}` : ""}
+                        </span>
+                        {(() => {
+                          const evalState =
+                            session.key === activeKey && activeReportState !== undefined
+                              ? activeReportState
+                              : session.reportState;
+                          return evalState
+                            ? (
+                                <span
+                                  className={`rail-eval rail-eval-${evalState}`}
+                                  title={evalHint(evalState)}
+                                  aria-label={evalHint(evalState)}
+                                >
+                                  {evalState === "running" ? "evaluating" : ""}
+                                </span>
+                              )
+                            : null;
+                        })()}
+                      </span>
+                    </button>
+                  ))
+                : null}
+            </div>
+          );
+        })}
       </div>
       <div className="rail-foot">
         {shown.length === sessions.length
@@ -329,4 +364,65 @@ function shortDate(iso: string): string {
 function formatTokens(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
   return String(n);
+}
+
+function relativeTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const now = Date.now();
+  const diff = now - d.getTime();
+  if (diff < 0) return "just now";
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day === 1) return "yesterday";
+  if (day < 7) return `${day}d ago`;
+  const week = Math.floor(day / 7);
+  if (week < 5) return `${week}w ago`;
+  return shortDate(iso);
+}
+
+interface SessionGroup {
+  label: string;
+  sessions: SessionMeta[];
+}
+
+function groupSessionsByDate(sessions: SessionMeta[]): SessionGroup[] {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterdayStart = new Date(todayStart.getTime() - 86400000);
+  const weekStart = new Date(todayStart.getTime() - 6 * 86400000);
+  const monthStart = new Date(todayStart.getTime() - 29 * 86400000);
+
+  const groups: Record<string, SessionMeta[]> = {
+    Today: [],
+    Yesterday: [],
+    "This Week": [],
+    Older: [],
+  };
+
+  for (const session of sessions) {
+    const d = session.endedAt ? new Date(session.endedAt) : null;
+    if (!d || Number.isNaN(d.getTime())) {
+      groups.Older.push(session);
+    } else if (d >= todayStart) {
+      groups.Today.push(session);
+    } else if (d >= yesterdayStart) {
+      groups.Yesterday.push(session);
+    } else if (d >= weekStart) {
+      groups["This Week"].push(session);
+    } else if (d >= monthStart) {
+      groups.Older.push(session);
+    } else {
+      groups.Older.push(session);
+    }
+  }
+
+  return (Object.entries(groups) as [string, SessionMeta[]][])
+    .filter(([, sessions]) => sessions.length > 0)
+    .map(([label, sessions]) => ({ label, sessions }));
 }

@@ -1,4 +1,4 @@
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, Copy, X } from "lucide-react";
 import { touchWord, type CityFile, type Touch, type TraceEvent } from "../types";
 
 interface InspectorProps {
@@ -48,6 +48,14 @@ export function Inspector({
           <div className="inspector-path">
             <span className="dir">{dir}</span>
             {name}
+            <button
+              className="icon-btn copy-path-btn"
+              onClick={() => copyToClipboard(file.path)}
+              title="Copy file path"
+              aria-label="Copy file path"
+            >
+              <Copy size={13} />
+            </button>
           </div>
           {file.ghost ? <span className="ghost-badge">ghost — not in this tree</span> : null}
         </div>
@@ -70,7 +78,7 @@ export function Inspector({
         </div>
         <div>
           <dt>Bytes</dt>
-          <dd>{file.bytes.toLocaleString()}</dd>
+          <dd>{formatBytes(file.bytes)}</dd>
         </div>
       </dl>
       <section className="inspector-history">
@@ -111,4 +119,16 @@ function clock(iso: string): string {
   return [d.getHours(), d.getMinutes(), d.getSeconds()]
     .map((n) => String(n).padStart(2, "0"))
     .join(":");
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(1)} KB`;
+  const mb = kb / 1024;
+  return `${mb.toFixed(1)} MB`;
+}
+
+function copyToClipboard(text: string) {
+  void navigator.clipboard?.writeText(text);
 }

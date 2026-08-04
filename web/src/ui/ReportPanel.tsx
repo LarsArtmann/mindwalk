@@ -322,6 +322,7 @@ function PanelBody({
           </button>
         </div>
       </div>
+      <ReportVerdict dimensions={report.dimensions} />
       {/* the lede: one line of what was asked, then the judge's overview —
           the report reads summary-first, details after */}
       <p className="report-task">{report.taskSummary}</p>
@@ -577,6 +578,44 @@ function verdictWord(verdict: Verdict): string {
 
 function severityClass(severity: Severity): string {
   return `sev-${severity}`;
+}
+
+function ReportVerdict({ dimensions }: { dimensions: ReportDimension[] }) {
+  const counts = dimensions.reduce(
+    (acc, dim) => {
+      acc[dim.verdict] = (acc[dim.verdict] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<Verdict, number>,
+  );
+  const problems = counts.problem ?? 0;
+  const warnings = counts.warning ?? 0;
+  const goods = counts.good ?? 0;
+  const insuff = counts["insufficient-data"] ?? 0;
+
+  let label: string;
+  let cls: string;
+  if (problems > 0) {
+    label = `${problems} problem${problems > 1 ? "s" : ""}${warnings > 0 ? `, ${warnings} warning${warnings > 1 ? "s" : ""}` : ""}`;
+    cls = "verdict-problem";
+  } else if (warnings > 0) {
+    label = `${warnings} warning${warnings > 1 ? "s" : ""}${goods > 0 ? `, ${goods} passing` : ""}`;
+    cls = "verdict-warning";
+  } else if (goods === dimensions.length) {
+    label = "All dimensions passing";
+    cls = "verdict-good";
+  } else if (insuff > 0) {
+    label = `${insuff} dimension${insuff > 1 ? "s" : ""} lack signal`;
+    cls = "verdict-insufficient";
+  } else {
+    label = `${dimensions.length} dimensions evaluated`;
+    cls = "verdict-neutral";
+  }
+  return (
+    <div className={`report-verdict ${cls}`}>
+      <span className="verdict-label">{label}</span>
+    </div>
+  );
 }
 
 function day(iso: string): string {

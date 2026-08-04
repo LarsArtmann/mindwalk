@@ -197,3 +197,15 @@ They share all the adapter discovery logic with the server but have no HTTP depe
 ### 3. Should the enriched test fixture be regenerated from real Crush sessions or kept hand-crafted?
 
 The current fixture is hand-crafted (via an uncommitted script) with synthetic timestamps and messages. It tests the adapter's parsing path but doesn't represent real-world session complexity (nested subagents, compaction marks, large message bodies, non-ASCII text). A real exported session would be more representative but harder to maintain and potentially contains sensitive data. Which tradeoff do you prefer?
+
+---
+
+## Resolution (2026-08-04)
+
+This was the first sprint through the TODO list. Most section F items shipped
+in subsequent sessions: `mindwalk sessions`/`doctor`/`version`/`cache` CLI
+commands, the DB connection cache, the agent-graph disk cache with eviction,
+and the schema-coverage warning all landed (CHANGELOG `[Unreleased] > Added`).
+The `projectPathCache`/`worktreeRootCache` globals were moved per-Adapter and
+behind `sync.Map`. Open bounded items are in `TODO_LIST.md`; the 100k-message
+stress test is in `ROADMAP.md`.
