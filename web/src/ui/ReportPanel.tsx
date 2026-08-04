@@ -2,6 +2,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Sparkles, X } from "lucide-react";
 import type {
 	JudgeChoice,
+	JudgeProgress,
 	ReportDimension,
 	ReportFinding,
 	ReportStatus,
@@ -15,6 +16,8 @@ import type {
 interface ReportPanelProps {
 	status?: ReportStatus;
 	analyzing: boolean;
+	/** live progress events from the SSE stream; empty when not running */
+	progress: JudgeProgress[];
 	locked: boolean;
 	onAnalyze: (choice: JudgeChoice) => void;
 	onClose: () => void;
@@ -89,6 +92,7 @@ function resolveChoice(choice: JudgeChoice, clis: string[]): JudgeChoice {
 export function ReportPanel({
 	status,
 	analyzing,
+	progress,
 	locked,
 	onAnalyze,
 	onClose,
@@ -137,6 +141,7 @@ export function ReportPanel({
 			<PanelBody
 				status={status}
 				analyzing={analyzing}
+				progress={progress}
 				locked={locked}
 				analyze={analyze}
 				onJumpTo={onJumpTo}
@@ -195,6 +200,7 @@ function JudgePicker({
 function PanelBody({
 	status,
 	analyzing,
+	progress,
 	locked,
 	analyze,
 	onJumpTo,
@@ -202,6 +208,7 @@ function PanelBody({
 }: {
 	status?: ReportStatus;
 	analyzing: boolean;
+	progress: JudgeProgress[];
 	locked: boolean;
 	analyze: () => void;
 	onJumpTo: (seq: number) => void;
@@ -211,17 +218,8 @@ function PanelBody({
 		return <p className="report-note">Checking for an existing report…</p>;
 	}
 	if (status.state === "running" || analyzing) {
-		return (
-			<div className="report-note">
-				<p className="report-running">Judging the trajectory…</p>
-				<p>
-					The judge first drafts task-specific criteria from your request, then
-					scores the session against them plus four process dimensions. Usually
-					a minute or two; you can keep exploring meanwhile.
-				</p>
-			</div>
-		);
-	}
+				return <RunningPanel progress={progress} />;
+			}
 	if (status.state === "failed") {
 		return (
 			<div className="report-note">
