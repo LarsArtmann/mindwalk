@@ -28,7 +28,7 @@
           ...
         }:
         let
-          goPkg = pkgs.go_1_25;
+          goPkg = pkgs.go_1_26;
           buildGoModule = pkgs.buildGoModule.override { go = goPkg; };
 
           version = self.rev or self.dirtyRev or "dev";
@@ -75,7 +75,7 @@
               ./internal/server/static;
           };
 
-          vendorHash = lib.fakeHash;
+          vendorHash = "sha256-WTD17flwo+M8rNAZ3/v9xHJ58dA3Iq+BpoUpR2JWkq8=";
 
           # Shared buildGoModule attributes for both binaries.
           commonGoArgs = {
