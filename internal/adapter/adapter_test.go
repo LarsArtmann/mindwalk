@@ -844,6 +844,7 @@ func TestFilesystemDiagnostics(t *testing.T) {
 
 	t.Run("nested directories counted", func(t *testing.T) {
 		dir := t.TempDir()
+
 		nested := filepath.Join(dir, "sub")
 		if err := os.Mkdir(nested, 0o755); err != nil {
 			t.Fatal(err)

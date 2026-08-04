@@ -112,9 +112,10 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 
 			all = append(all, meta)
 		}
+
 		_ = rows.Err()
 
-		_ = rows.Close() //nolint:sqlclosecheck // loop-scoped, can't defer
+		_ = rows.Close()
 		_ = h.close()
 	}
 

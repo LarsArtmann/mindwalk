@@ -14,34 +14,117 @@ run:
 output:
   formats: {}
 linters:
-  default: standard
   enable:
+    - asasalint
+    - asciicheck
+    - bidichk
     - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
     - copyloopvar
+    - cyclop
+    - decorder
+    - dogsled
+    - dupl
+    - dupword
     - durationcheck
+    - embeddedstructfieldcheck
+    - err113
     - errcheck
+    - errchkjson
+    - errname
     - errorlint
+    - exhaustive
+    - exptostd
     - fatcontext
+    - forbidigo
     - forcetypeassert
+    - funlen
+    - ginkgolinter
     - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
     - gochecksumtype
+    - gocognit
+    - goconst
     - gocritic
+    - gocyclo
+    - godoclint
+    - godot
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard_v2
+    - goprintffuncname
     - gosec
+    - gosmopolitan
     - govet
+    - grouper
+    - iface
+    - importas
+    - inamedparam
     - ineffassign
+    - interfacebloat
     - intrange
+    - iotamixing
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
     - misspell
+    - mnd
+    - modernize
+    - musttag
+    - nakedret
+    - nestif
     - nilerr
     - nilnesserr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - perfsprint
+    - prealloc
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - recvcheck
+    - revive
     - rowserrcheck
+    - sloglint
+    - spancheck
     - sqlclosecheck
     - staticcheck
+    - tagalign
+    - tagliatelle
+    - testableexamples
     - testifylint
+    - testpackage
+    - thelper
+    - tparallel
     - unconvert
+    - unparam
+    - unqueryvet
     - unused
     - usestdlibvars
+    - usetesting
+    - varnamelen
     - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl_v5
+    - zerologlint
+  default: standard
   settings:
+    cyclop:
+      max-complexity: 12
     errcheck:
       exclude-functions:
         - (*os.File).Close
@@ -60,6 +143,12 @@ linters:
         - fmt.Println
         - (*strings.Builder).WriteString
         - (*bytes.Buffer).WriteString
+    funlen:
+      lines: 200
+      statements: 100
+    ginkgolinter:
+      forbid-focus-container: true
+      forbid-spec-pollution: true
     gocritic:
       disabled-checks:
         - ifElseChain
@@ -67,20 +156,67 @@ linters:
       replace-local: true
     gosec:
       excludes:
-        - G104 # unchecked errors (errcheck handles this)
-        - G114 # http.Serve without timeout (local dev server)
-        - G115 # integer overflow (false positives)
-        - G204 # subprocess with variable (local tool, intentional)
-        - G301 # directory permissions 0755 (standard for local tool)
-        - G304 # file path from variable (local tool, user-controlled)
-        - G306 # file write permissions 0o644 (user-readable output files)
-        - G602 # slice index out of range (false positives, bounds-checked)
-        - G703 # path traversal (local tool, user controls output)
-        - G705 # XSS via taint (SSE data is JSON-marshaled)
+        - G104
+        - G114
+        - G115
+        - G204
+        - G301
+        - G304
+        - G306
+        - G602
+        - G703
+        - G705
+    ireturn:
+      allow:
+        - error
+        - empty
+        - anon
+        - stdlib
+        - generic
+    makezero:
+      always: true
+    mnd:
+      ignored-numbers:
+        - "0"
+        - "1"
+        - "2"
+        - "100"
+    revive:
+      rules:
+        - disabled: true
+          name: exported
+        - disabled: true
+          name: package-comments
     testifylint:
       disable:
         - go-require
       enable-all: true
+    varnamelen:
+      ignore-map-index-ok: true
+      ignore-names:
+        - err
+        - ok
+        - tt
+        - fn
+        - t
+        - i
+        - m
+        - g
+        - a
+        - b
+        - v
+      ignore-type-assert-ok: true
+    wrapcheck:
+      ignore-sigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - errors.Join(
+        - .Wrap(
+        - .Wrapf(
+        - .WithMessage(
+        - .WithMessagef(
+        - .WithStack(
   exclusions:
     generated: lax
     rules:
@@ -93,15 +229,16 @@ linters:
           - rowserrcheck
           - sqlclosecheck
           - forcetypeassert
-      # WalkDir callbacks intentionally swallow walk errors to continue traversal.
-      - text: "error is not nil"
+      - text: error is not nil
         linters:
           - nilerr
-      # ListSessions returns (nil, nil) when the session directory is missing —
-      # callers treat an empty slice the same as an error.
-      - text: "return both a `nil` error"
+      - text: return both a `nil` error
         linters:
           - nilnil
+      - path: _test\.go
+        text: unused
+        linters:
+          - unused
     paths:
       - \.gen\.go$
       - _templ\.go$
@@ -111,6 +248,10 @@ formatters:
     - gci
     - goimports
     - gofumpt
+    - golines
+  settings:
+    golines:
+      max-len: 120
   exclusions:
     generated: lax
     paths:

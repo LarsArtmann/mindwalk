@@ -49,6 +49,7 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 					paths[meta.Path] = true
 				}
 			}
+
 			_ = rows.Err()
 			_ = rows.Close() //nolint:sqlclosecheck // loop-scoped, can't defer
 		}
@@ -225,6 +226,7 @@ func (a Adapter) loadAgentChildren() ([]model.SessionMeta, error) {
 				children = append(children, meta)
 			}
 		}
+
 		_ = rows.Err()
 
 		_ = rows.Err()
