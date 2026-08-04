@@ -63,16 +63,14 @@
           # so the build is fully reproducible from source.
           goSrc = lib.fileset.toSource {
             root = ./.;
-            fileset = lib.fileset.difference
-              (lib.fileset.unions [
-                ./go.mod
-                ./go.sum
-                ./cmd
-                ./internal
-                ./schema
-                ./testdata
-              ])
-              ./internal/server/static;
+            fileset = lib.fileset.difference (lib.fileset.unions [
+              ./go.mod
+              ./go.sum
+              ./cmd
+              ./internal
+              ./schema
+              ./testdata
+            ]) ./internal/server/static;
           };
 
           vendorHash = "sha256-WTD17flwo+M8rNAZ3/v9xHJ58dA3Iq+BpoUpR2JWkq8=";
@@ -96,38 +94,44 @@
           };
         in
         {
-          formatter = pkgs.nixfmt-classic;
+          formatter = pkgs.nixfmt;
 
           treefmt = {
-            programs.nixfmt-classic.enable = true;
+            programs.nixfmt.enable = true;
             programs.gofmt.enable = true;
           };
 
           packages = {
-            default = buildGoModule (commonGoArgs // {
-              pname = "mindwalk";
-              subPackages = [ "cmd/mindwalk" ];
-              meta = with lib; {
-                description = "Local visualizer for coding-agent sessions";
-                homepage = "https://github.com/cosmtrek/mindwalk";
-                license = licenses.mit;
-                mainProgram = "mindwalk";
-                platforms = platforms.unix ++ platforms.windows;
-              };
-            });
+            default = buildGoModule (
+              commonGoArgs
+              // {
+                pname = "mindwalk";
+                subPackages = [ "cmd/mindwalk" ];
+                meta = with lib; {
+                  description = "Local visualizer for coding-agent sessions";
+                  homepage = "https://github.com/cosmtrek/mindwalk";
+                  license = licenses.mit;
+                  mainProgram = "mindwalk";
+                  platforms = platforms.unix ++ platforms.windows;
+                };
+              }
+            );
 
-            rubriceval = buildGoModule (commonGoArgs // {
-              pname = "rubriceval";
-              subPackages = [ "cmd/rubriceval" ];
-              doCheck = false;
-              meta = with lib; {
-                description = "Offline evaluation bench for the rubric judge pipeline";
-                homepage = "https://github.com/cosmtrek/mindwalk";
-                license = licenses.mit;
-                mainProgram = "rubriceval";
-                platforms = platforms.unix ++ platforms.windows;
-              };
-            });
+            rubriceval = buildGoModule (
+              commonGoArgs
+              // {
+                pname = "rubriceval";
+                subPackages = [ "cmd/rubriceval" ];
+                doCheck = false;
+                meta = with lib; {
+                  description = "Offline evaluation bench for the rubric judge pipeline";
+                  homepage = "https://github.com/cosmtrek/mindwalk";
+                  license = licenses.mit;
+                  mainProgram = "rubriceval";
+                  platforms = platforms.unix ++ platforms.windows;
+                };
+              }
+            );
 
             inherit frontend;
           };
@@ -148,9 +152,8 @@
 
           apps.serve = {
             type = "app";
-            program = pkgs.writeShellScriptBin "serve" ''
-              exec ${config.packages.default}/bin/mindwalk serve "$@"
-            '';
+            program = pkgs.writeShellScriptBin "serve" ''exec ${config.packages.default}/bin/mindwalk serve "$@"'';
+            meta.description = "Serve the mindwalk UI locally";
           };
         };
     };

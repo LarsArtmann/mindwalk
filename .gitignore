@@ -71,6 +71,8 @@ vendor/
 go.work
 go.work.sum
 /mindwalk
+result
+result-*
 
 ## Javascript and typescript
 node_modules/
