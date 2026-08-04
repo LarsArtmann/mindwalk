@@ -212,6 +212,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - **Timestamp regression test** — `TestTimestampsAreSecondsNotMillis` and
     `TestTimestampsSecondsEndToEnd` guard against reverting the seconds-vs-millis
     fix (`3f547fc`).
+  - **Vitest frontend test infrastructure** — `web/vitest.config.ts` with jsdom
+    environment, `test:unit` script in `web/package.json`, wired into CI as a
+    dedicated step. 44 tests across 3 suites.
+  - **`PlaybackEngine` unit tests** — `web/src/playback/reducer.test.ts` covers
+    initial state, touch-state transitions (hit→read→edit, non-regression),
+    visit counting, history accumulation, recent-targets windowing (max 12,
+    weak-target preference), backward-scrub reset, and edge cases (empty events,
+    out-of-range seq, incremental-vs-jump equivalence).
+  - **Session filter unit tests** — `web/src/state/filters.test.ts` covers
+    `sessionVisible` predicates (hideEmpty, harness, active-key override, both-
+    filter combinations) and `loadFilters`/`saveFilters` round-trip, corrupted
+    JSON fallback, and type coercion.
+  - **Tree layout unit tests** — `web/src/scene/treeLayout.test.ts` covers
+    determinism (identical output regardless of input order), empty/single/deep
+    nesting, radius scaling, unique leaf positions, origin symmetry, and edge
+    counts.
 
 ### Fixed
 

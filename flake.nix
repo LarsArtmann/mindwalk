@@ -48,7 +48,7 @@
                 ./web/src
               ];
             };
-            npmDepsHash = "sha256-LUaQQR/tXKZ/Ti3LwNqP4BvbAkYvP/g+0uIDN3s6D+A=";
+            npmDepsHash = "sha256-WbLUFBIGkPuGd+2UYMbkxtLPpQf2wtpxAy0taIFYrTA=";
             dontNpmBuild = false;
             installPhase = ''
               runHook preInstall

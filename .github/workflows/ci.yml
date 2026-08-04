@@ -42,6 +42,10 @@ jobs:
         run: ./node_modules/.bin/tsc --noEmit
         working-directory: web
 
+      - name: Frontend unit tests
+        run: npm run test:unit
+        working-directory: web
+
       - name: Verify embedded frontend
         run: |
           make embed-static

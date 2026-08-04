@@ -17,11 +17,9 @@
 
 ## Blocked
 
-| Task                                            | Status       | Impact | Effort | Evidence                                                                                                                                                   |
-| ----------------------------------------------- | ------------ | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Set up Vitest frontend unit-test infrastructure | 🔵 `BLOCKED` | Med    | 2h     | `web/` has zero unit tests and no runner. npm not available in current environment. Install vitest + @testing-library/react + jsdom when npm is available. |
-| Write `filters.ts` + `treeLayout.ts` unit tests | 🔵 `BLOCKED` | Low    | 1h     | Depends on Vitest setup. Two pure-logic modules with zero coverage.                                                                                        |
-| Guided tour system (T16)                        | 🔵 `BLOCKED` | Low    | 1h30m  | `CheatSheet.tsx:6` has an `onReplayTour` stub; `GuidedTour.tsx` does not exist yet. Requires frontend build to test.                                       |
+| Task              | Status       | Impact | Effort | Evidence                                                                                                                                  |
+| ----------------- | ------------ | ------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Guided tour (T16) | 🔵 `BLOCKED` | Low    | 1h30m  | `CheatSheet.tsx:6` has an `onReplayTour` stub; `GuidedTour.tsx` does not exist yet. Requires frontend development iteration to build and test. |
 
 ## Low Impact
 
@@ -33,5 +31,5 @@
 
 ## Notes
 
-- **SUPERB Sprint completed.** All Go-side tasks from the plan at `docs/planning/2026-08-04_10-22_SUPERB-close-every-gap-sprint.md` are done. The 3 remaining items are blocked on npm availability.
+- **SUPERB Sprint completed.** All 20 of 21 tasks from the plan at `docs/planning/2026-08-04_10-22_SUPERB-close-every-gap-sprint.md` are done (M11 guided tour remains blocked on design work). Frontend unit-test infrastructure (Vitest + jsdom) is live with 44 tests across 3 suites, wired into CI.
 - Completed work is recorded in [CHANGELOG.md](CHANGELOG.md), never here.

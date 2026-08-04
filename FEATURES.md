@@ -124,4 +124,4 @@
 | Fuzz tests           | 🟢 `FULLY_FUNCTIONAL` | `testing.F` for `gitDiffTargets`, `decodeParts`, `splitAgentID`                           |
 | Fixture builder      | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/build.go`; regenerates `crush.db` from scratch                            |
 | E2E browser tests    | ⚪ `PLANNED`          | Playwright config exists (`web/playwright.config.ts`); agent-lens spec only               |
-| Frontend unit tests  | ⚪ `PLANNED`          | Vitest not yet installed (npm unavailable); reducer/filters/treeLayout uncovered          |
+| Frontend unit tests  | 🟢 `FULLY_FUNCTIONAL` | Vitest + jsdom; 44 tests across reducer, filters, treeLayout; wired into CI               |
