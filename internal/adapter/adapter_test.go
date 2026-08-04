@@ -755,9 +755,7 @@ func TestOpenFileSuccess(t *testing.T) {
 		t.Fatalf("read = %q, want hello", buf[:n])
 	}
 
-	if err := close(); err != nil {
-		t.Fatalf("close error: %v", err)
-	}
+	close()
 }
 
 func TestOpenFileNotFound(t *testing.T) {

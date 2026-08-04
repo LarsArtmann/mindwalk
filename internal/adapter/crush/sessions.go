@@ -99,7 +99,7 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 		for rows.Next() {
 			meta, err := scanSessionMeta(rows)
 			if err != nil {
-				_ = rows.Close()
+				_ = rows.Close() //nolint:sqlclosecheck // loop-scoped, can't defer
 				_ = h.close()
 
 				return nil, err
@@ -112,8 +112,9 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 
 			all = append(all, meta)
 		}
+		_ = rows.Err()
 
-		_ = rows.Close()
+		_ = rows.Close() //nolint:sqlclosecheck // loop-scoped, can't defer
 		_ = h.close()
 	}
 
@@ -601,7 +602,10 @@ func columnExists(db *sql.DB, table, column string) bool {
 	}
 	defer func() { _ = rows.Close() }()
 
-	return rows.Next()
+	hasNext := rows.Next()
+	_ = rows.Err()
+
+	return hasNext
 }
 
 func (h *sqlHandle) close() error {

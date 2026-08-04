@@ -151,13 +151,13 @@ func HomePath(parts ...string) string {
 // deferred close was repeated across every JSONL adapter; this helper
 // keeps the common two-line ceremony in one place and makes the
 // "open then read" intent visible at every call site.
-func OpenFile(path string) (*os.File, func() error, error) {
+func OpenFile(path string) (*os.File, func(), error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return f, f.Close, nil
+	return f, func() { _ = f.Close() }, nil
 }
 
 // ReadableDir reports whether dir is a directory the caller can read.
@@ -1613,7 +1613,7 @@ func summarizeExecWrapper(input map[string]any) string {
 		return ""
 	}
 
-	primary := ""
+	var primary string
 	if len(commands) > 0 {
 		primary = commands[0].command
 	} else {

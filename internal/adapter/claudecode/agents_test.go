@@ -511,8 +511,3 @@ func claudeMainID(root model.SessionMeta) string {
 func claudeAgentID(root model.SessionMeta, identity string) string {
 	return baseadapter.AgentNodeID((Adapter{}).Harness(), root.Key, identity)
 }
-
-//go:fix inline
-func intPointer(value int) *int {
-	return new(value)
-}
