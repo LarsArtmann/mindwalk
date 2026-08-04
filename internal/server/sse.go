@@ -74,8 +74,9 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 
 	// Tail the progress log until the job finishes. If the client sent a
 	// Last-Event-ID header (reconnect after a dropped connection), resume
-	// from that offset instead of replaying from the start.
-	offset := parseLastEventID(r.Header.Get("Last-Event-ID"))
+	// AFTER that event: the browser already has it, so re-sending it would
+	// duplicate a milestone in the progress panel.
+	offset := resumeOffset(r.Header.Get("Last-Event-ID"))
 	lastWrite := time.Now()
 
 	for {
@@ -169,9 +170,11 @@ func writeSSEWithID(w http.ResponseWriter, flusher http.Flusher, eventType strin
 	flusher.Flush()
 }
 
-// parseLastEventID extracts the integer offset from the Last-Event-ID
-// request header. Returns 0 when the header is missing or unparseable.
-func parseLastEventID(header string) int {
+// resumeOffset converts a Last-Event-ID header value into the index to start
+// reading from in the progress log. A missing or unparseable header means a
+// fresh connection (start at 0). A valid id N means "the browser already has
+// event N", so we resume at N+1 — re-sending N would duplicate a milestone.
+func resumeOffset(header string) int {
 	if header == "" {
 		return 0
 	}
@@ -181,5 +184,5 @@ func parseLastEventID(header string) int {
 		return 0
 	}
 
-	return id
+	return id + 1
 }

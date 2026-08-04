@@ -17,11 +17,7 @@ function makeFile(id: number, path: string): CityFile {
 describe("computeTreeLayout", () => {
   describe("determinism", () => {
     it("produces identical output for identical input", () => {
-      const files = [
-        makeFile(1, "src/a.ts"),
-        makeFile(2, "src/b.ts"),
-        makeFile(3, "README.md"),
-      ];
+      const files = [makeFile(1, "src/a.ts"), makeFile(2, "src/b.ts"), makeFile(3, "README.md")];
       const a = computeTreeLayout(files);
       const b = computeTreeLayout(files);
       expect(a.radius).toBe(b.radius);
@@ -62,10 +58,7 @@ describe("computeTreeLayout", () => {
 
   describe("directory structure", () => {
     it("creates a dir node for a shared parent", () => {
-      const layout = computeTreeLayout([
-        makeFile(1, "src/a.ts"),
-        makeFile(2, "src/b.ts"),
-      ]);
+      const layout = computeTreeLayout([makeFile(1, "src/a.ts"), makeFile(2, "src/b.ts")]);
       expect(layout.dirs).toHaveLength(1);
       expect(layout.dirs[0].path).toBe("src");
       expect(layout.dirs[0].depth).toBe(1);
@@ -108,18 +101,14 @@ describe("computeTreeLayout", () => {
 
   describe("leaf positions", () => {
     it("every leaf gets a unique position", () => {
-      const files = Array.from({ length: 10 }, (_, i) =>
-        makeFile(i + 1, `file${i}.ts`),
-      );
+      const files = Array.from({ length: 10 }, (_, i) => makeFile(i + 1, `file${i}.ts`));
       const layout = computeTreeLayout(files);
       const keys = [...layout.leaf.values()].map((p) => `${p.x.toFixed(4)},${p.z.toFixed(4)}`);
       expect(new Set(keys).size).toBe(10);
     });
 
     it("leaf positions are symmetric around origin", () => {
-      const files = Array.from({ length: 4 }, (_, i) =>
-        makeFile(i + 1, `f${i}.ts`),
-      );
+      const files = Array.from({ length: 4 }, (_, i) => makeFile(i + 1, `f${i}.ts`));
       const layout = computeTreeLayout(files);
       const positions = [...layout.leaf.values()];
       const cx = positions.reduce((sum, p) => sum + p.x, 0) / positions.length;
@@ -131,10 +120,7 @@ describe("computeTreeLayout", () => {
 
   describe("edges", () => {
     it("creates edges for leaf files and parent dirs", () => {
-      const layout = computeTreeLayout([
-        makeFile(1, "src/a.ts"),
-        makeFile(2, "README.md"),
-      ]);
+      const layout = computeTreeLayout([makeFile(1, "src/a.ts"), makeFile(2, "README.md")]);
       expect(layout.edges.length).toBeGreaterThanOrEqual(3);
     });
   });

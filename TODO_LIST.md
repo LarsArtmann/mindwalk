@@ -17,8 +17,8 @@
 
 ## Blocked
 
-| Task              | Status       | Impact | Effort | Evidence                                                                                                                                  |
-| ----------------- | ------------ | ------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Task              | Status       | Impact | Effort | Evidence                                                                                                                                       |
+| ----------------- | ------------ | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Guided tour (T16) | 🔵 `BLOCKED` | Low    | 1h30m  | `CheatSheet.tsx:6` has an `onReplayTour` stub; `GuidedTour.tsx` does not exist yet. Requires frontend development iteration to build and test. |
 
 ## Low Impact

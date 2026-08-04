@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import {
-  loadFilters,
-  saveFilters,
-  sessionVisible,
-  type SessionFilters,
-} from "./filters";
+import { loadFilters, saveFilters, sessionVisible, type SessionFilters } from "./filters";
 import type { SessionMeta } from "../types";
 
 function makeSession(overrides: Partial<SessionMeta> = {}): SessionMeta {
@@ -24,69 +19,55 @@ describe("sessionVisible", () => {
   });
 
   it("hides zero-event sessions when hideEmpty is true", () => {
-    expect(
-      sessionVisible(makeSession({ eventCount: 0 }), { hideEmpty: true }),
-    ).toBe(false);
+    expect(sessionVisible(makeSession({ eventCount: 0 }), { hideEmpty: true })).toBe(false);
   });
 
   it("keeps zero-event session visible when it is the active key", () => {
     expect(
-      sessionVisible(
-        makeSession({ eventCount: 0, key: "active" }),
-        { hideEmpty: true },
-        "active",
-      ),
+      sessionVisible(makeSession({ eventCount: 0, key: "active" }), { hideEmpty: true }, "active"),
     ).toBe(true);
   });
 
   it("shows non-empty session when hideEmpty is true", () => {
-    expect(
-      sessionVisible(makeSession({ eventCount: 5 }), { hideEmpty: true }),
-    ).toBe(true);
+    expect(sessionVisible(makeSession({ eventCount: 5 }), { hideEmpty: true })).toBe(true);
   });
 
   it("hides session when harness filter does not match", () => {
     expect(
-      sessionVisible(
-        makeSession({ harness: "claude" }),
-        { hideEmpty: false, harness: "codex" },
-      ),
+      sessionVisible(makeSession({ harness: "claude" }), { hideEmpty: false, harness: "codex" }),
     ).toBe(false);
   });
 
   it("shows session when harness filter matches", () => {
     expect(
-      sessionVisible(
-        makeSession({ harness: "claude" }),
-        { hideEmpty: false, harness: "claude" },
-      ),
+      sessionVisible(makeSession({ harness: "claude" }), { hideEmpty: false, harness: "claude" }),
     ).toBe(true);
   });
 
   it("both filters pass when harness matches and session has events", () => {
     expect(
-      sessionVisible(
-        makeSession({ harness: "claude", eventCount: 5 }),
-        { hideEmpty: true, harness: "claude" },
-      ),
+      sessionVisible(makeSession({ harness: "claude", eventCount: 5 }), {
+        hideEmpty: true,
+        harness: "claude",
+      }),
     ).toBe(true);
   });
 
   it("hides when harness matches but hideEmpty fails", () => {
     expect(
-      sessionVisible(
-        makeSession({ harness: "claude", eventCount: 0 }),
-        { hideEmpty: true, harness: "claude" },
-      ),
+      sessionVisible(makeSession({ harness: "claude", eventCount: 0 }), {
+        hideEmpty: true,
+        harness: "claude",
+      }),
     ).toBe(false);
   });
 
   it("hides when hideEmpty passes but harness fails", () => {
     expect(
-      sessionVisible(
-        makeSession({ harness: "claude", eventCount: 5 }),
-        { hideEmpty: true, harness: "codex" },
-      ),
+      sessionVisible(makeSession({ harness: "claude", eventCount: 5 }), {
+        hideEmpty: true,
+        harness: "codex",
+      }),
     ).toBe(false);
   });
 });
@@ -123,10 +104,7 @@ describe("loadFilters / saveFilters", () => {
   });
 
   it("defaults hideEmpty to true when stored value is absent", () => {
-    localStorage.setItem(
-      "mindwalk.sessionFilters",
-      JSON.stringify({ harness: "codex" }),
-    );
+    localStorage.setItem("mindwalk.sessionFilters", JSON.stringify({ harness: "codex" }));
     const filters = loadFilters();
     expect(filters.hideEmpty).toBe(true);
     expect(filters.harness).toBe("codex");

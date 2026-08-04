@@ -1,15 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { PlaybackEngine } from "./reducer";
-import type {
-  Action,
-  CityFile,
-  CityMap,
-  Stats,
-  Target,
-  Touch,
-  Trace,
-  TraceEvent,
-} from "../types";
+import type { Action, CityFile, CityMap, Stats, Target, Touch, Trace, TraceEvent } from "../types";
 
 const zeroStats: Stats = {
   filesInRepo: 0,
@@ -113,10 +104,7 @@ describe("PlaybackEngine", () => {
         makeEvent(1, [target("a.ts", "read", 1)]),
         makeEvent(2, [target("a.ts", "edit", 1)]),
       ];
-      const engine = new PlaybackEngine(
-        makeTrace(events),
-        makeCity([makeCityFile(1, "a.ts")]),
-      );
+      const engine = new PlaybackEngine(makeTrace(events), makeCity([makeCityFile(1, "a.ts")]));
 
       expect(engine.snapshotAt(0).touchByPath.get("a.ts")).toBe("hit");
       expect(engine.snapshotAt(1).touchByPath.get("a.ts")).toBe("read");
@@ -128,10 +116,7 @@ describe("PlaybackEngine", () => {
         makeEvent(0, [target("a.ts", "edit", 1)]),
         makeEvent(1, [target("a.ts", "hit", 1)]),
       ];
-      const engine = new PlaybackEngine(
-        makeTrace(events),
-        makeCity([makeCityFile(1, "a.ts")]),
-      );
+      const engine = new PlaybackEngine(makeTrace(events), makeCity([makeCityFile(1, "a.ts")]));
       const snap = engine.snapshotAt(1);
       expect(snap.touchByPath.get("a.ts")).toBe("edit");
       expect(snap.touchByFile.get(1)).toBe("edit");
@@ -139,19 +124,13 @@ describe("PlaybackEngine", () => {
 
     it("updates touchByFile alongside touchByPath", () => {
       const events = [makeEvent(0, [target("a.ts", "read", 1)])];
-      const engine = new PlaybackEngine(
-        makeTrace(events),
-        makeCity([makeCityFile(1, "a.ts")]),
-      );
+      const engine = new PlaybackEngine(makeTrace(events), makeCity([makeCityFile(1, "a.ts")]));
       expect(engine.snapshotAt(0).touchByFile.get(1)).toBe("read");
     });
 
     it("resolves fileId from city when target has no fileId", () => {
       const events = [makeEvent(0, [target("a.ts", "read")])];
-      const engine = new PlaybackEngine(
-        makeTrace(events),
-        makeCity([makeCityFile(1, "a.ts")]),
-      );
+      const engine = new PlaybackEngine(makeTrace(events), makeCity([makeCityFile(1, "a.ts")]));
       const snap = engine.snapshotAt(0);
       expect(snap.touchByFile.get(1)).toBe("read");
       expect(snap.visitsByFile.get(1)).toBe(1);
@@ -209,10 +188,7 @@ describe("PlaybackEngine", () => {
 
     it("prefers non-weak target for the trail", () => {
       const events = [
-        makeEvent(0, [
-          target("weak.ts", "hit", 1, true),
-          target("strong.ts", "hit", 2, false),
-        ]),
+        makeEvent(0, [target("weak.ts", "hit", 1, true), target("strong.ts", "hit", 2, false)]),
       ];
       const engine = new PlaybackEngine(
         makeTrace(events),
@@ -223,10 +199,7 @@ describe("PlaybackEngine", () => {
 
     it("falls back to first target when all are weak", () => {
       const events = [
-        makeEvent(0, [
-          target("weak1.ts", "hit", 1, true),
-          target("weak2.ts", "hit", 2, true),
-        ]),
+        makeEvent(0, [target("weak1.ts", "hit", 1, true), target("weak2.ts", "hit", 2, true)]),
       ];
       const engine = new PlaybackEngine(
         makeTrace(events),
@@ -289,10 +262,7 @@ describe("PlaybackEngine", () => {
         makeEvent(0, [target("a.ts", "hit", 1)]),
         makeEvent(1, [target("a.ts", "read", 1)]),
       ];
-      const engine = new PlaybackEngine(
-        makeTrace(events),
-        makeCity([makeCityFile(1, "a.ts")]),
-      );
+      const engine = new PlaybackEngine(makeTrace(events), makeCity([makeCityFile(1, "a.ts")]));
       const snap = engine.snapshotAt(100);
       expect(snap.touchByPath.get("a.ts")).toBe("read");
       expect(snap.visitsByFile.get(1)).toBe(2);

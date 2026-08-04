@@ -8,53 +8,53 @@
 
 ### M4: Vitest Infrastructure + Reducer Tests
 
-| Step | What | Status |
-|------|------|--------|
-| S4.1 | Read `web/package.json` — confirmed no vitest existed | DONE |
-| S4.2 | `npm --prefix web install -D vitest @testing-library/react jsdom` via `nix develop` | DONE — 148 packages added |
-| S4.3 | Created `web/vitest.config.ts` — jsdom environment, `src/**/*.test.{ts,tsx}` glob | DONE |
-| S4.4 | Added `"test:unit": "vitest run"` script to `web/package.json` | DONE |
-| S4.5 | Read `web/src/playback/reducer.ts` (94 lines) — understood the PlaybackEngine state machine | DONE |
-| S4.6 | Wrote `web/src/playback/reducer.test.ts` — 20 tests | DONE |
-| S4.7 | Test: initial state (empty snapshot before any events applied) | DONE |
-| S4.8 | Test: touch-state transitions (hit→read→edit progression, non-regression: edit stays edit after weaker touch) | DONE |
-| S4.9 | Test: visit counting per file across multiple events | DONE |
-| S4.10 | Test: history accumulation per path in seq order | DONE |
-| S4.11 | Test: recent-targets windowing (max 12, oldest evicted, weak-target preference, no-target events skipped) | DONE |
-| S4.12 | Test: backward-scrub reset (replays from scratch, clears all state) | DONE |
-| S4.13 | Test: edge cases (empty events, out-of-range clamping, incremental-vs-jump equivalence) | DONE |
-| S4.14 | Ran `npm --prefix web run test:unit` — all 20 pass | DONE |
-| S4.15 | Wired `test:unit` into CI (`.github/workflows/ci.yml` — new step after typecheck) | DONE |
+| Step  | What                                                                                                          | Status                    |
+| ----- | ------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| S4.1  | Read `web/package.json` — confirmed no vitest existed                                                         | DONE                      |
+| S4.2  | `npm --prefix web install -D vitest @testing-library/react jsdom` via `nix develop`                           | DONE — 148 packages added |
+| S4.3  | Created `web/vitest.config.ts` — jsdom environment, `src/**/*.test.{ts,tsx}` glob                             | DONE                      |
+| S4.4  | Added `"test:unit": "vitest run"` script to `web/package.json`                                                | DONE                      |
+| S4.5  | Read `web/src/playback/reducer.ts` (94 lines) — understood the PlaybackEngine state machine                   | DONE                      |
+| S4.6  | Wrote `web/src/playback/reducer.test.ts` — 20 tests                                                           | DONE                      |
+| S4.7  | Test: initial state (empty snapshot before any events applied)                                                | DONE                      |
+| S4.8  | Test: touch-state transitions (hit→read→edit progression, non-regression: edit stays edit after weaker touch) | DONE                      |
+| S4.9  | Test: visit counting per file across multiple events                                                          | DONE                      |
+| S4.10 | Test: history accumulation per path in seq order                                                              | DONE                      |
+| S4.11 | Test: recent-targets windowing (max 12, oldest evicted, weak-target preference, no-target events skipped)     | DONE                      |
+| S4.12 | Test: backward-scrub reset (replays from scratch, clears all state)                                           | DONE                      |
+| S4.13 | Test: edge cases (empty events, out-of-range clamping, incremental-vs-jump equivalence)                       | DONE                      |
+| S4.14 | Ran `npm --prefix web run test:unit` — all 20 pass                                                            | DONE                      |
+| S4.15 | Wired `test:unit` into CI (`.github/workflows/ci.yml` — new step after typecheck)                             | DONE                      |
 
 ### M5: Filters + TreeLayout Tests
 
-| Step | What | Status |
-|------|------|--------|
-| S5.1 | Read `web/src/state/filters.ts` (44 lines) — `sessionVisible`, `loadFilters`, `saveFilters` | DONE |
-| S5.2 | Wrote `web/src/state/filters.test.ts` — 15 tests | DONE |
-| S5.3 | Tests: `sessionVisible` predicates (9 cases: no filters, hideEmpty, active-key override, harness match/mismatch, both-filter combinations) | DONE |
-| S5.4 | Tests: `loadFilters`/`saveFilters` (6 cases: defaults, round-trip, corrupted JSON, type coercion, absent hideEmpty defaults true) | DONE |
-| S5.5 | Read `web/src/scene/treeLayout.ts` (185 lines) — deterministic radial tree algorithm | DONE |
-| S5.6 | Wrote `web/src/scene/treeLayout.test.ts` — 12 tests | DONE |
-| S5.7 | Tests: determinism (identical output, order-independent), empty input, single file, directory structure, deep nesting, radius scaling, unique leaf positions, origin symmetry, edge counts | DONE |
-| S5.8 | Ran all frontend tests — 44 pass across 3 suites | DONE |
+| Step | What                                                                                                                                                                                       | Status |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
+| S5.1 | Read `web/src/state/filters.ts` (44 lines) — `sessionVisible`, `loadFilters`, `saveFilters`                                                                                                | DONE   |
+| S5.2 | Wrote `web/src/state/filters.test.ts` — 15 tests                                                                                                                                           | DONE   |
+| S5.3 | Tests: `sessionVisible` predicates (9 cases: no filters, hideEmpty, active-key override, harness match/mismatch, both-filter combinations)                                                 | DONE   |
+| S5.4 | Tests: `loadFilters`/`saveFilters` (6 cases: defaults, round-trip, corrupted JSON, type coercion, absent hideEmpty defaults true)                                                          | DONE   |
+| S5.5 | Read `web/src/scene/treeLayout.ts` (185 lines) — deterministic radial tree algorithm                                                                                                       | DONE   |
+| S5.6 | Wrote `web/src/scene/treeLayout.test.ts` — 12 tests                                                                                                                                        | DONE   |
+| S5.7 | Tests: determinism (identical output, order-independent), empty input, single file, directory structure, deep nesting, radius scaling, unique leaf positions, origin symmetry, edge counts | DONE   |
+| S5.8 | Ran all frontend tests — 44 pass across 3 suites                                                                                                                                           | DONE   |
 
 ### Infrastructure
 
-| What | Status |
-|------|--------|
-| `flake.nix` `npmDepsHash` updated from `sha256-LUaQ...` to `sha256-WbLU...` | DONE |
-| `CHANGELOG.md` — 5 new entries (Vitest infra, reducer tests, filter tests, treeLayout tests) | DONE |
-| `FEATURES.md` — `Frontend unit tests` changed from PLANNED to FULLY_FUNCTIONAL | DONE |
-| `TODO_LIST.md` — removed M4/M5 from Blocked section | DONE |
+| What                                                                                         | Status |
+| -------------------------------------------------------------------------------------------- | ------ |
+| `flake.nix` `npmDepsHash` updated from `sha256-LUaQ...` to `sha256-WbLU...`                  | DONE   |
+| `CHANGELOG.md` — 5 new entries (Vitest infra, reducer tests, filter tests, treeLayout tests) | DONE   |
+| `FEATURES.md` — `Frontend unit tests` changed from PLANNED to FULLY_FUNCTIONAL               | DONE   |
+| `TODO_LIST.md` — removed M4/M5 from Blocked section                                          | DONE   |
 
 ### Verification Results (ALL GREEN)
 
-| Check | Result |
-|-------|--------|
-| `go test ./... -count=1` | 12 packages, all pass |
-| `npm --prefix web run test:unit` | 44 tests, 3 suites, all pass |
-| `tsc --noEmit` | Clean (no errors) |
+| Check                                     | Result                       |
+| ----------------------------------------- | ---------------------------- |
+| `go test ./... -count=1`                  | 12 packages, all pass        |
+| `npm --prefix web run test:unit`          | 44 tests, 3 suites, all pass |
+| `tsc --noEmit`                            | Clean (no errors)            |
 | `npm --prefix web run build` (vite build) | Succeeds, 1741 modules, 2.0s |
 
 ---
@@ -150,6 +150,7 @@ The auto-git daemon commits at unpredictable intervals. If I leave work uncommit
 ### P2: Add `.gitignore` Entries for Build Artifacts
 
 Missing entries:
+
 - `web/tsconfig.tsbuildinfo`
 - `testdata/crush/crush.db-wal`
 - `testdata/crush/crush.db-shm`
@@ -264,39 +265,39 @@ The `.golangci.yml` from the prior session enables `revive` and `errcheck`. Runn
 
 ### Environment
 
-| Tool | Version | How Accessed |
-|------|---------|-------------|
-| Go | 1.26.5 linux/amd64 | Direct |
-| Node.js | v22.23.2 | `nix develop .#default` |
-| npm | 10.9.8 | `nix develop .#default` |
-| Nix | 2.34.8 | Direct |
-| golangci-lint | Available at `/run/current-system/sw/bin/golangci-lint` | NOT RUN |
+| Tool          | Version                                                 | How Accessed            |
+| ------------- | ------------------------------------------------------- | ----------------------- |
+| Go            | 1.26.5 linux/amd64                                      | Direct                  |
+| Node.js       | v22.23.2                                                | `nix develop .#default` |
+| npm           | 10.9.8                                                  | `nix develop .#default` |
+| Nix           | 2.34.8                                                  | Direct                  |
+| golangci-lint | Available at `/run/current-system/sw/bin/golangci-lint` | NOT RUN                 |
 
 ### Go Coverage (Post-Session)
 
-| Package | Coverage |
-|---------|----------|
-| `cmd/mindwalk` | 39.9% |
-| `cmd/rubriceval` | 45.6% |
-| `internal/adapter` | 72.3% |
-| `internal/adapter/claudecode` | 83.7% |
-| `internal/adapter/codex` | 87.1% |
-| `internal/adapter/crush` | 83.3% |
-| `internal/adapter/pi` | 87.8% |
-| `internal/citymap` | 90.4% |
-| `internal/judge` | 78.6% |
-| `internal/model` | 96.3% |
-| `internal/server` | 75.7% |
-| `internal/textutil` | 100.0% |
+| Package                       | Coverage |
+| ----------------------------- | -------- |
+| `cmd/mindwalk`                | 39.9%    |
+| `cmd/rubriceval`              | 45.6%    |
+| `internal/adapter`            | 72.3%    |
+| `internal/adapter/claudecode` | 83.7%    |
+| `internal/adapter/codex`      | 87.1%    |
+| `internal/adapter/crush`      | 83.3%    |
+| `internal/adapter/pi`         | 87.8%    |
+| `internal/citymap`            | 90.4%    |
+| `internal/judge`              | 78.6%    |
+| `internal/model`              | 96.3%    |
+| `internal/server`             | 75.7%    |
+| `internal/textutil`           | 100.0%   |
 
 ### Frontend Test Counts
 
-| Suite | File | Tests |
-|-------|------|-------|
-| PlaybackEngine | `web/src/playback/reducer.test.ts` | 20 |
-| Session filters | `web/src/state/filters.test.ts` | 15 |
-| Tree layout | `web/src/scene/treeLayout.test.ts` | 12 |
-| **Total** | | **44** |
+| Suite           | File                               | Tests  |
+| --------------- | ---------------------------------- | ------ |
+| PlaybackEngine  | `web/src/playback/reducer.test.ts` | 20     |
+| Session filters | `web/src/state/filters.test.ts`    | 15     |
+| Tree layout     | `web/src/scene/treeLayout.test.ts` | 12     |
+| **Total**       |                                    | **44** |
 
 ### Git State at Report Time
 
