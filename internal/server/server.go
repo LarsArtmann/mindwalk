@@ -1032,6 +1032,13 @@ func storeAgentGraphToDisk(digest [sha256.Size]byte, graph *model.AgentGraph) {
 // by modification time (oldest first) and deleted until usage is under
 // the cap.
 func evictAgentGraphCache(dir string) {
+	evictAgentGraphCacheN(dir, maxAgentGraphCacheBytes)
+}
+
+// evictAgentGraphCacheN is the size-parameterised core of
+// evictAgentGraphCache, extracted so tests can exercise eviction with a
+// small threshold instead of writing 100 MB of fixture files.
+func evictAgentGraphCacheN(dir string, maxBytes int64) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return
@@ -1058,14 +1065,14 @@ func evictAgentGraphCache(dir string) {
 		})
 		total += info.Size()
 	}
-	if total <= maxAgentGraphCacheBytes {
+	if total <= maxBytes {
 		return
 	}
 	sort.Slice(files, func(i, j int) bool {
 		return files[i].modTime < files[j].modTime
 	})
 	for _, f := range files {
-		if total <= maxAgentGraphCacheBytes {
+		if total <= maxBytes {
 			break
 		}
 		if err := os.Remove(f.path); err == nil {

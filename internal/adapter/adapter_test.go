@@ -380,7 +380,15 @@ func TestCommandReadPaths(t *testing.T) {
 	}
 }
 
-func TestGitDiffPaths(t *testing.T) {
+func diffTargetPaths(ts []diffTarget) []string {
+	paths := make([]string, len(ts))
+	for i, t := range ts {
+		paths[i] = t.path
+	}
+	return paths
+}
+
+func TestGitDiffTargets(t *testing.T) {
 	diff := "diff --git a/internal/server/server.go b/internal/server/server.go\n" +
 		"index abc..def 100644\n" +
 		"--- a/internal/server/server.go\n" +
@@ -390,32 +398,80 @@ func TestGitDiffPaths(t *testing.T) {
 		"index 123..456 100644\n" +
 		"--- a/cmd/mindwalk/main.go\n" +
 		"+++ b/cmd/mindwalk/main.go\n"
-	got := gitDiffPaths(diff)
+	got := diffTargetPaths(gitDiffTargets(diff))
 	want := []string{"cmd/mindwalk/main.go", "internal/server/server.go"}
 	if len(got) != len(want) {
-		t.Fatalf("gitDiffPaths = %#v, want %#v", got, want)
+		t.Fatalf("gitDiffTargets paths = %#v, want %#v", got, want)
 	}
 	for i := range got {
 		if got[i] != want[i] {
-			t.Fatalf("gitDiffPaths = %#v, want %#v", got, want)
+			t.Fatalf("gitDiffTargets paths = %#v, want %#v", got, want)
 		}
 	}
 }
 
-func TestGitDiffPathsHandlesRenames(t *testing.T) {
+func TestGitDiffTargetsHandlesRenames(t *testing.T) {
 	diff := "diff --git a/old/path.go b/new/path.go\n" +
 		"similarity index 95%\n" +
 		"rename from old/path.go\n" +
 		"rename to new/path.go\n"
-	got := gitDiffPaths(diff)
+	got := diffTargetPaths(gitDiffTargets(diff))
 	if len(got) != 1 || got[0] != "new/path.go" {
-		t.Fatalf("gitDiffPaths = %#v, want [new/path.go]", got)
+		t.Fatalf("gitDiffTargets = %#v, want [new/path.go]", got)
 	}
 }
 
-func TestGitDiffPathsEmpty(t *testing.T) {
-	if got := gitDiffPaths("no diff here"); len(got) != 0 {
-		t.Fatalf("gitDiffPaths = %#v, want empty", got)
+func TestGitDiffTargetsEmpty(t *testing.T) {
+	if got := gitDiffTargets("no diff here"); len(got) != 0 {
+		t.Fatalf("gitDiffTargets = %#v, want empty", got)
+	}
+}
+
+func TestGitDiffTargetsQuotedSpaces(t *testing.T) {
+	diff := "diff --git \"a/foo bar.go\" \"b/foo bar.go\"\n" +
+		"index abc..def 100644\n" +
+		"--- a/foo bar.go\n" +
+		"+++ b/foo bar.go\n" +
+		"@@ -1,3 +1,4 @@\n" +
+		"+new line\n"
+	got := gitDiffTargets(diff)
+	if len(got) != 1 {
+		t.Fatalf("gitDiffTargets = %#v, want 1 target", got)
+	}
+	if got[0].path != "foo bar.go" {
+		t.Fatalf("path = %q, want %q", got[0].path, "foo bar.go")
+	}
+}
+
+func TestGitDiffTargetsPlusPlusFallback(t *testing.T) {
+	diff := "--- a/old/path.go\n" +
+		"+++ b/new/path.go\n" +
+		"@@ -1,3 +1,4 @@\n" +
+		"+added\n"
+	got := diffTargetPaths(gitDiffTargets(diff))
+	if len(got) != 1 || got[0] != "new/path.go" {
+		t.Fatalf("gitDiffTargets = %#v, want [new/path.go]", got)
+	}
+}
+
+func TestGitDiffTargetsHunkLineRanges(t *testing.T) {
+	diff := "diff --git a/main.go b/main.go\n" +
+		"--- a/main.go\n" +
+		"+++ b/main.go\n" +
+		"@@ -1,3 +10,5 @@\n" +
+		"@@ -20,1 +30,2 @@\n"
+	got := gitDiffTargets(diff)
+	if len(got) != 1 {
+		t.Fatalf("gitDiffTargets = %#v, want 1 target", got)
+	}
+	want := [][2]int{{10, 14}, {30, 31}}
+	if len(got[0].lines) != len(want) {
+		t.Fatalf("lines = %#v, want %#v", got[0].lines, want)
+	}
+	for i := range want {
+		if got[0].lines[i] != want[i] {
+			t.Fatalf("lines[%d] = %v, want %v", i, got[0].lines[i], want[i])
+		}
 	}
 }
 
@@ -590,5 +646,43 @@ func TestBuildEventPiReadRecordsLineRange(t *testing.T) {
 	}
 	if len(event.Outside) != 1 {
 		t.Fatalf("outside = %#v", event.Outside)
+	}
+}
+
+func TestOpenFileSuccess(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.jsonl")
+	if err := os.WriteFile(path, []byte("hello\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	f, close, err := OpenFile(path)
+	if err != nil {
+		t.Fatalf("OpenFile error: %v", err)
+	}
+	if f == nil {
+		t.Fatal("file is nil")
+	}
+	if close == nil {
+		t.Fatal("close is nil")
+	}
+	buf := make([]byte, 5)
+	n, _ := f.Read(buf)
+	if string(buf[:n]) != "hello" {
+		t.Fatalf("read = %q, want hello", buf[:n])
+	}
+	if err := close(); err != nil {
+		t.Fatalf("close error: %v", err)
+	}
+}
+
+func TestOpenFileNotFound(t *testing.T) {
+	f, close, err := OpenFile(filepath.Join(t.TempDir(), "missing.jsonl"))
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+	if f != nil {
+		t.Fatal("file should be nil on error")
+	}
+	if close != nil {
+		t.Fatal("close should be nil on error")
 	}
 }

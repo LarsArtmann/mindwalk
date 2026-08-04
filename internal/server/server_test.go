@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -1904,4 +1905,70 @@ func (s *singleCrushSource) Summarize(path string) (model.SessionMeta, error) {
 func (s *singleCrushSource) Parse(path string) (*model.Trace, error) {
 	clone := *s.trace
 	return &clone, nil
+}
+
+func TestEvictAgentGraphCacheN(t *testing.T) {
+	dir := t.TempDir()
+
+	// Write three files with distinct sizes and staggered mod times so the
+	// eviction order (oldest-first) is deterministic.
+	files := []struct {
+		name string
+		data []byte
+		age  time.Duration // how old relative to "now"
+	}{
+		{"oldest.json", make([]byte, 40), 3 * time.Hour},
+		{"middle.json", make([]byte, 40), 2 * time.Hour},
+		{"newest.json", make([]byte, 40), 1 * time.Hour},
+	}
+	now := time.Now()
+	for _, f := range files {
+		path := filepath.Join(dir, f.name)
+		if err := os.WriteFile(path, f.data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		mtime := now.Add(-f.age)
+		if err := os.Chtimes(path, mtime, mtime); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Threshold: 40+40=80 is under 100, but 40+40+40=120 exceeds it.
+	// The oldest file should be evicted, leaving the two newer files.
+	evictAgentGraphCacheN(dir, 100)
+
+	remaining, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range remaining {
+		names = append(names, e.Name())
+	}
+	sort.Strings(names)
+	want := []string{"middle.json", "newest.json"}
+	if len(names) != len(want) {
+		t.Fatalf("after eviction: %v files remain (%v), want %v", len(names), names, want)
+	}
+	for i := range want {
+		if names[i] != want[i] {
+			t.Fatalf("remaining[%d] = %q, want %q (all: %v)", i, names[i], want[i], names)
+		}
+	}
+}
+
+func TestEvictAgentGraphCacheNUnderCap(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.json"), make([]byte, 10), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Total (10 B) is well under the threshold (1000 B) — nothing evicted.
+	evictAgentGraphCacheN(dir, 1000)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 file to survive, got %d", len(entries))
+	}
 }

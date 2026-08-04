@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/cosmtrek/mindwalk/internal/model"
@@ -480,8 +481,8 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 		for _, path := range extractPaths(command + "\n" + result) {
 			add(path, "hit", true, nil, base)
 		}
-		for _, path := range gitDiffPaths(result) {
-			add(path, "read", true, nil, base)
+		for _, t := range gitDiffTargets(result) {
+			add(t.path, "read", true, t.lines, base)
 		}
 	case "exec_command":
 		command := firstString(input, "cmd", "command")
@@ -498,8 +499,8 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 		for _, hit := range parsePathHits(result) {
 			add(hit.path, "hit", true, hit.lines, base)
 		}
-		for _, path := range gitDiffPaths(result) {
-			add(path, "read", true, nil, base)
+		for _, t := range gitDiffTargets(result) {
+			add(t.path, "read", true, t.lines, base)
 		}
 	case "exec":
 		for _, command := range execCommands(input) {
@@ -522,8 +523,8 @@ func targetsFor(cwd, tool string, input map[string]any, result string) ([]model.
 		for _, hit := range parsePathHits(result) {
 			add(hit.path, "hit", true, hit.lines, "")
 		}
-		for _, path := range gitDiffPaths(result) {
-			add(path, "read", true, nil, "")
+		for _, t := range gitDiffTargets(result) {
+			add(t.path, "read", true, t.lines, "")
 		}
 		for _, path := range execPatchPaths(input) {
 			add(path, "edit", false, nil, "")
@@ -911,6 +912,10 @@ var commandPathRe = regexp.MustCompile(
 )
 var patchFileRe = regexp.MustCompile(`(?m)^\*\*\* (?:Add|Update|Delete) File: (.+)$|^\*\*\* Move to: (.+)$`)
 var gitDiffHeaderRe = regexp.MustCompile(`(?m)^diff --git a/.+? b/(.+)$`)
+var gitDiffHeaderQuotedRe = regexp.MustCompile(`(?m)^diff --git "a/.+?" "b/(.+?)"$`)
+var gitDiffPlusRe = regexp.MustCompile(`(?m)^\+\+\+ b/(.+)$`)
+var gitDiffPlusQuotedRe = regexp.MustCompile(`(?m)^\+\+\+ "b/(.+?)"$`)
+var gitDiffHunkRe = regexp.MustCompile(`(?m)^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@`)
 
 func parsePathHits(text string) []pathHit {
 	byPath := map[string][][2]int{}
@@ -991,25 +996,83 @@ func parsePatchPaths(patch string) []string {
 	return paths
 }
 
-// gitDiffPaths extracts the current ("b/") paths from unified diff output —
-// the `diff --git a/old b/new` headers that git diff, git show, and git log -p
-// emit for each changed file. Structural parsing is more reliable than the
-// generic extractPaths regex, which leaves diff paths as weak "hit" targets
-// indistinguishable from unvisited files in the citymap.
-func gitDiffPaths(text string) []string {
-	matches := gitDiffHeaderRe.FindAllStringSubmatch(text, -1)
-	seen := map[string]bool{}
-	paths := make([]string, 0, len(matches))
-	for _, m := range matches {
-		path := strings.TrimSpace(m[1])
-		if path == "" || seen[path] {
+// diffTarget carries a diff-extracted path and the hunk line ranges
+// associated with it, so callers can populate model.Target.Lines.
+type diffTarget struct {
+	path  string
+	lines [][2]int
+}
+
+// gitDiffTargets extracts current ("b/") paths from unified diff output and
+// the hunk line ranges under each file. It handles three header forms:
+//
+//   - `diff --git a/old b/new` — the standard git header (primary).
+//   - `diff --git "a/old name" "b/new name"` — git quotes paths with spaces.
+//   - `+++ b/new` — a fallback for headerless diffs (e.g. `diff -u` output).
+//
+// Hunk headers (`@@ -o,n +s,n @@`) are associated with the current file and
+// turned into [start, start+count-1] line ranges. Structural parsing is more
+// reliable than the generic extractPaths regex, which leaves diff paths as
+// weak "hit" targets indistinguishable from unvisited files in the citymap.
+func gitDiffTargets(text string) []diffTarget {
+	seen := map[string]int{} // path → index into result
+	var result []diffTarget
+	var currentPath string
+	hasDiffGit := false
+
+	ensure := func(path string) {
+		path = strings.TrimSpace(path)
+		if path == "" || path == "/dev/null" {
+			return
+		}
+		if _, ok := seen[path]; ok {
+			return
+		}
+		seen[path] = len(result)
+		result = append(result, diffTarget{path: path})
+	}
+
+	for _, raw := range strings.Split(text, "\n") {
+		if m := gitDiffHeaderRe.FindStringSubmatch(raw); m != nil {
+			hasDiffGit = true
+			currentPath = strings.TrimSpace(m[1])
+			ensure(currentPath)
 			continue
 		}
-		seen[path] = true
-		paths = append(paths, path)
+		if m := gitDiffHeaderQuotedRe.FindStringSubmatch(raw); m != nil {
+			hasDiffGit = true
+			currentPath = strings.TrimSpace(m[1])
+			ensure(currentPath)
+			continue
+		}
+		if m := gitDiffPlusRe.FindStringSubmatch(raw); m != nil {
+			if !hasDiffGit {
+				currentPath = strings.TrimSpace(m[1])
+				ensure(currentPath)
+			}
+			continue
+		}
+		if m := gitDiffPlusQuotedRe.FindStringSubmatch(raw); m != nil {
+			if !hasDiffGit {
+				currentPath = strings.TrimSpace(m[1])
+				ensure(currentPath)
+			}
+			continue
+		}
+		if m := gitDiffHunkRe.FindStringSubmatch(raw); m != nil && currentPath != "" {
+			start, _ := strconv.Atoi(m[1])
+			count := 1
+			if m[2] != "" {
+				count, _ = strconv.Atoi(m[2])
+			}
+			if count > 0 {
+				idx := seen[currentPath]
+				result[idx].lines = append(result[idx].lines, [2]int{start, start + count - 1})
+			}
+		}
 	}
-	sort.Strings(paths)
-	return paths
+	sort.Slice(result, func(i, j int) bool { return result[i].path < result[j].path })
+	return result
 }
 
 func cleanExtractedPath(path string, allowTopLevel bool) (string, bool) {
