@@ -64,12 +64,18 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 		return nil, nil
 	}
 	var all []model.SessionMeta
+	var oldSchema []string
+	var missingCols []string
 	for _, pdb := range projectDBs {
 		h, err := a.openCached(pdb.DBPath)
 		if err != nil || h == nil {
 			continue
 		}
-		a.warnIfOldSchema(h)
+		missing := schemaMissingColumns(h)
+		if len(missing) > 0 && a.recordOldSchema(pdb.DBPath) {
+			oldSchema = append(oldSchema, pdb.DBPath)
+			missingCols = unionStrings(missingCols, missing)
+		}
 		rows, err := h.db.QueryContext(context.Background(), listSessionsQuery)
 		if err != nil {
 			_ = h.close()
@@ -94,6 +100,9 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 		}
 		_ = rows.Close()
 		_ = h.close()
+	}
+	if len(oldSchema) > 0 {
+		a.reportOldSchemaSummary(oldSchema, missingCols)
 	}
 	sort.Slice(all, func(i, j int) bool {
 		return all[i].EndedAt > all[j].EndedAt
@@ -425,17 +434,10 @@ func (a Adapter) warnIfOldSchema(h *sqlHandle) bool {
 	if len(missing) == 0 {
 		return false
 	}
-	if a.warnedOldSchema != nil {
-		if _, already := a.warnedOldSchema.LoadOrStore(h.path, true); already {
-			return true
-		}
+	if !a.recordOldSchema(h.path) {
+		return true
 	}
-	fmt.Fprintf(
-		os.Stderr,
-		"mindwalk: warning: %s has an old schema (missing %s); upgrade Crush to get full trace coverage\n",
-		h.path,
-		strings.Join(missing, ", "),
-	)
+	a.reportOldSchemaSummary([]string{h.path}, missing)
 	return true
 }
 
@@ -457,6 +459,9 @@ func schemaMissingColumns(h *sqlHandle) []string {
 			found[col] = true
 		}
 	}
+	if err := rows.Err(); err != nil {
+		return nil
+	}
 	var missing []string
 	for _, col := range expectedSchemaColumns {
 		if !found[col] {
@@ -464,6 +469,71 @@ func schemaMissingColumns(h *sqlHandle) []string {
 		}
 	}
 	return missing
+}
+
+// recordOldSchema marks path as having been warned about. It returns
+// false when the path was already recorded, so callers can avoid
+// duplicate warnings.
+func (a Adapter) recordOldSchema(path string) bool {
+	if a.warnedOldSchema == nil {
+		return true
+	}
+	if _, already := a.warnedOldSchema.LoadOrStore(path, true); already {
+		return false
+	}
+	return true
+}
+
+// reportOldSchemaSummary prints a single stderr warning for one or more
+// databases with an old schema. Multiple paths are summarized so a
+// host-wide scan does not flood the terminal.
+func (a Adapter) reportOldSchemaSummary(paths []string, missing []string) {
+	if len(paths) == 0 {
+		return
+	}
+	cols := strings.Join(missing, ", ")
+	if len(paths) == 1 {
+		fmt.Fprintf(
+			os.Stderr,
+			"mindwalk: warning: %s has an old schema (missing %s); upgrade Crush to get full trace coverage\n",
+			paths[0],
+			cols,
+		)
+		return
+	}
+	fmt.Fprintf(
+		os.Stderr,
+		"mindwalk: warning: %d Crush databases have an old schema (missing %s); upgrade Crush to get full trace coverage",
+		len(paths),
+		cols,
+	)
+	n := min(3, len(paths))
+	if n > 0 {
+		fmt.Fprintf(os.Stderr, " (e.g. %s", paths[0])
+		for i := 1; i < n; i++ {
+			fmt.Fprintf(os.Stderr, ", %s", paths[i])
+		}
+		if len(paths) > n {
+			fmt.Fprint(os.Stderr, ", ...")
+		}
+		fmt.Fprint(os.Stderr, ")")
+	}
+	fmt.Fprintln(os.Stderr)
+}
+
+// unionStrings returns the union of a and b preserving order.
+func unionStrings(a, b []string) []string {
+	seen := make(map[string]bool, len(a))
+	for _, s := range a {
+		seen[s] = true
+	}
+	for _, s := range b {
+		if !seen[s] {
+			seen[s] = true
+			a = append(a, s)
+		}
+	}
+	return a
 }
 
 // enumerateDBPaths returns every database path the adapter should

@@ -142,7 +142,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- `adapter.ToolResult` now carries a `ToolCallID` field, letting
+- **Crush old-schema warnings are now batched** — when the adapter
+  auto-discovers many project databases, all old-schema notices are
+  collapsed into a single summary line (with a count and a few example
+  paths) instead of one line per database.
   the cross-message tool-call/result pairing happen at the type
   level instead of through a fragile parallel-slice
   (`finishResult.resultIDs`) that the consumer had to index in

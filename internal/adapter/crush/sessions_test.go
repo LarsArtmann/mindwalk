@@ -3,6 +3,7 @@ package crush
 import (
 	"database/sql"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -377,5 +378,60 @@ func TestWarnIfOldSchemaSkipsGoodSchema(t *testing.T) {
 	}
 	if a.warnIfOldSchema(h) != false {
 		t.Fatal("warnIfOldSchema should return false for good schema")
+	}
+}
+
+// captureStderr redirects os.Stderr to a pipe while f runs and returns
+// everything that was written.
+func captureStderr(f func()) string {
+	old := os.Stderr
+	r, w, _ := os.Pipe()
+	os.Stderr = w
+	f()
+	_ = w.Close()
+	out, _ := io.ReadAll(r)
+	os.Stderr = old
+	return string(out)
+}
+
+// TestRecordOldSchemaDedup verifies that recordOldSchema returns true the
+// first time for a path and false thereafter.
+func TestRecordOldSchemaDedup(t *testing.T) {
+	a := NewAdapter("")
+	if !a.recordOldSchema("/tmp/x") {
+		t.Fatal("first record should return true")
+	}
+	if a.recordOldSchema("/tmp/x") {
+		t.Fatal("second record should return false")
+	}
+	if !a.recordOldSchema("/tmp/y") {
+		t.Fatal("different path should return true")
+	}
+}
+
+// TestReportOldSchemaSummarySingle verifies the single-database warning
+// format.
+func TestReportOldSchemaSummarySingle(t *testing.T) {
+	a := NewAdapter("")
+	out := captureStderr(func() {
+		a.reportOldSchemaSummary([]string{"/tmp/foo/crush.db"}, []string{"parent_session_id"})
+	})
+	want := "mindwalk: warning: /tmp/foo/crush.db has an old schema (missing parent_session_id); upgrade Crush to get full trace coverage\n"
+	if out != want {
+		t.Fatalf("unexpected summary output:\n got: %q\nwant: %q", out, want)
+	}
+}
+
+// TestReportOldSchemaSummaryMultiple verifies that several databases are
+// collapsed into one summary line with a sample list.
+func TestReportOldSchemaSummaryMultiple(t *testing.T) {
+	a := NewAdapter("")
+	paths := []string{"/tmp/a/crush.db", "/tmp/b/crush.db", "/tmp/c/crush.db", "/tmp/d/crush.db"}
+	out := captureStderr(func() {
+		a.reportOldSchemaSummary(paths, []string{"parent_session_id"})
+	})
+	want := "mindwalk: warning: 4 Crush databases have an old schema (missing parent_session_id); upgrade Crush to get full trace coverage (e.g. /tmp/a/crush.db, /tmp/b/crush.db, /tmp/c/crush.db, ...)\n"
+	if out != want {
+		t.Fatalf("unexpected summary output:\n got: %q\nwant: %q", out, want)
 	}
 }
