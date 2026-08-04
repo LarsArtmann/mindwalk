@@ -535,8 +535,14 @@ func clearCache() error {
 	if err != nil {
 		return err
 	}
-	removed := clearDir(graphsDir)
-	fmt.Printf("cleared %d file(s) from %s\n", removed, graphsDir)
+	reportsDir, err := cacheSubdir("reports")
+	if err != nil {
+		return err
+	}
+	removedGraphs := clearDir(graphsDir)
+	removedReports := clearDir(reportsDir)
+	fmt.Printf("cleared %d file(s) from %s\n", removedGraphs, graphsDir)
+	fmt.Printf("cleared %d file(s) from %s\n", removedReports, reportsDir)
 	return nil
 }
 
@@ -545,8 +551,14 @@ func cacheStatus() error {
 	if err != nil {
 		return err
 	}
-	count, size := dirStats(graphsDir)
-	fmt.Printf("agent-graphs:  %d file(s), %s in %s\n", count, humanBytes(size), graphsDir)
+	reportsDir, err := cacheSubdir("reports")
+	if err != nil {
+		return err
+	}
+	gCount, gSize := dirStats(graphsDir)
+	rCount, rSize := dirStats(reportsDir)
+	fmt.Printf("agent-graphs:  %d file(s), %s in %s\n", gCount, humanBytes(gSize), graphsDir)
+	fmt.Printf("reports:       %d file(s), %s in %s\n", rCount, humanBytes(rSize), reportsDir)
 	return nil
 }
 
@@ -606,6 +618,8 @@ func dirStats(dir string) (count int, size int64) {
 
 func humanBytes(n int64) string {
 	switch {
+	case n >= 1_000_000_000:
+		return fmt.Sprintf("%.1f GB", float64(n)/1_000_000_000)
 	case n >= 1_000_000:
 		return fmt.Sprintf("%.1f MB", float64(n)/1_000_000)
 	case n >= 1_000:

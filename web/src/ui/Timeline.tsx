@@ -484,6 +484,10 @@ export function Timeline({
               <span className="legend-glyph finish-reason" />
               turn ended
             </span>
+            <span className="legend-item">
+              <span className="legend-glyph model-switch" />
+              model switched
+            </span>
           </span>
         </div>
       </div>
