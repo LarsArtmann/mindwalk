@@ -140,6 +140,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     the UI can distinguish server-side execution from local.
   - **Crush-specific agent link constant** — `crush-agent-id` replaces
     the misnomer codex constant in the agent graph link method enum.
+  - **`schema/progress.schema.json`** — JSON Schema for the SSE `Progress`
+    wire format, restoring the AGENTS.md invariant that every JSON contract
+    has a committed schema.
+  - **Per-message duration on marks** — `model.Mark.Duration` carries the
+    wall-clock seconds from `finished_at - created_at` on thinking and
+    finish-reason marks, surfaced in the Timeline tooltip. The
+    `schema/trace.schema.json` and TypeScript `Mark` type include the new
+    field.
+  - **SSE heartbeat keep-alive** — the SSE handler now sends `: keep-alive`
+    comment lines every 15 seconds during idle phases so reverse proxies
+    (nginx, Cloudflare) do not drop long judge runs.
+  - **Test fixture enriched** — `testdata/crush/crush.db` now carries
+    non-zero `prompt_tokens`, `completion_tokens`, `cost`, and a `read_files`
+    table, exercising the exact-observability and token-economics paths
+    end-to-end via fixture tests.
+  - **Test coverage lockdown** — new tests for `evictAgentGraphCache` (LRU
+    eviction path), `crush.Adapter.Diagnostics()` (schema/data-dir checks),
+    `adapter.OpenFile` (3-return contract), and `humanBytes` (B/KB/MB/GB).
 
 ### Fixed
 
@@ -161,6 +179,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **CLI commands leaked database connections** — `listSessions` and
   `doctor` now call `closeSources()` via `defer` to release cached
   `*sql.DB` handles after scanning.
+- **`mindwalk analyze` mangled `crush://` session paths** —
+  `filepath.Abs` collapsed the `crush://session/<id>` URI into a
+  filesystem path, making the crush judge unreachable from the CLI.
+  Non-filesystem paths are now passed through untouched.
+- **HUD showed false "cwd may not match repository" warning** —
+  provider-executed tool calls (server-side reads/edits) have no local
+  file targets but were counted as "file actions", triggering the
+  misconfigured-adapter warning. The predicate now excludes
+  `providerExecuted` events.
+- **Timeline legend missing `model-switch` glyph** — the legend
+  hardcoded five mark types but the CSS class and `MARK_LABEL` entry for
+  `model-switch` already existed. The sixth glyph is now rendered.
+- **`mindwalk cache clear` ignored reports** — only `agent-graphs/`
+  was cleared; `~/.mindwalk/reports/` was left behind. Both directories
+  are now cleared and reported in `cache status`.
+- **`humanBytes` capped at MB** — a 1.5 GB cache showed "1500.0 MB".
+  Added a GB branch to the switch.
+- **`gitDiffPaths` failed on paths with spaces** — git quotes paths
+  containing spaces (`diff --git "a/foo bar.go" "b/foo bar.go"`); the
+  regex only matched unquoted form. Also added `+++`/`---` fallback for
+  headerless diffs and hunk line-range extraction (`@@ -o,n +s,n @@`)
+  into `Target.Lines`.
 
 - **Crush sessions showed zero targets / all-unvisited** —
   `trace.Session.Cwd` was never set for Crush sessions, so absolute
@@ -196,6 +236,19 @@ finished_at` when the columns are absent.
   `filepath.Dir(meta.Path)` when the path is a `crush://`
   synthetic handle, preventing a garbage repo-root from
   polluting the citymap.
+- **`ComputeStats` signature gains `readsSignal`** — the reads
+  observability grade is now threaded in as an explicit parameter
+  (mirroring the existing `errorSignal`), eliminating the fragile
+  post-hoc override in the Crush adapter. Adapters that do not supply
+  a signal pass `""` and get the previous weak-target-derived
+  behaviour.
+- **`gitDiffPaths` renamed to `gitDiffTargets`** — returns
+  `[]diffTarget` (path + hunk line ranges) instead of `[]string`, so
+  diff-extracted targets carry precise `Target.Lines` from `@@` hunk
+  headers. The line ranges flow through to the Inspector.
+- **`evictAgentGraphCache` refactored** — the size cap is now a
+  parameter (`evictAgentGraphCacheN`) so tests exercise eviction with a
+  small threshold instead of writing 100 MB of fixture files.
 - `model.SessionMeta.Path` comment now mentions the synthetic
   `crush://session/<id>` URI so future contributors don't trip
   over the silent contract.
