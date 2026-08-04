@@ -58,9 +58,7 @@ export const Hud = memo(function Hud({
   const hasTargets = !!trace && trace.events.some((e) => e.targets.length > 0);
   const hasFileActions =
     !!trace &&
-    trace.events.some(
-      (e) => (e.action === "read" || e.action === "edit") && !e.providerExecuted,
-    );
+    trace.events.some((e) => (e.action === "read" || e.action === "edit") && !e.providerExecuted);
   const showNoTargetsWarning = hasEvents && !hasTargets;
   const noTargetsIsMisconfigured = showNoTargetsWarning && hasFileActions;
 

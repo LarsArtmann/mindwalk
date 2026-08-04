@@ -201,6 +201,44 @@ func TestFixtureBuildsAgentGraph(t *testing.T) {
 	}
 }
 
+// TestFixtureTokenEconomics verifies the fixture carries non-zero
+// token and cost values so the exact-observability code path is
+// exercised end-to-end.
+func TestFixtureTokenEconomics(t *testing.T) {
+	dir := fixtureDir(t)
+	metas, err := Adapter{Dir: dir}.ListSessions()
+	if err != nil {
+		t.Fatalf("ListSessions: %v", err)
+	}
+	if len(metas) != 1 {
+		t.Fatalf("metas = %d, want 1", len(metas))
+	}
+	root := metas[0]
+	if root.PromptTokens == 0 {
+		t.Error("PromptTokens = 0, want non-zero")
+	}
+	if root.CompletionTokens == 0 {
+		t.Error("CompletionTokens = 0, want non-zero")
+	}
+	if root.Cost == 0 {
+		t.Error("Cost = 0, want non-zero")
+	}
+}
+
+// TestFixtureReadObservability verifies the read_files table in the
+// fixture upgrades the read observability grade from estimated to exact.
+func TestFixtureReadObservability(t *testing.T) {
+	dir := fixtureDir(t)
+	trace, err := Adapter{Dir: dir}.Parse(SessionPath("fixture-root"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if trace.Stats.Observability.Reads != model.ObservabilityExact {
+		t.Fatalf("reads observability = %q, want exact (read_files table should upgrade it)",
+			trace.Stats.Observability.Reads)
+	}
+}
+
 // BenchmarkFixtureListSessions measures the cold-open + session-listing
 // path. Each iteration opens the SQLite file read-only, runs the
 // sessions query, and closes the handle.

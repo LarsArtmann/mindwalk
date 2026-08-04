@@ -1032,7 +1032,7 @@ func gitDiffTargets(text string) []diffTarget {
 		result = append(result, diffTarget{path: path})
 	}
 
-	for _, raw := range strings.Split(text, "\n") {
+	for raw := range strings.SplitSeq(text, "\n") {
 		if m := gitDiffHeaderRe.FindStringSubmatch(raw); m != nil {
 			hasDiffGit = true
 			currentPath = strings.TrimSpace(m[1])

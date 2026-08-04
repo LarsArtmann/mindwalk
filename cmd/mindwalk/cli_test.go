@@ -168,6 +168,9 @@ func TestCacheStatusAndClear(t *testing.T) {
 	if !strings.Contains(out, "agent-graphs") {
 		t.Fatalf("expected 'agent-graphs' in status output, got:\n%s", out)
 	}
+	if !strings.Contains(out, "reports") {
+		t.Fatalf("expected 'reports' in status output, got:\n%s", out)
+	}
 
 	// Clear on an empty cache should succeed.
 	out, err = captureStdout(t, func() error { return run([]string{"cache", "clear"}) })
@@ -176,6 +179,29 @@ func TestCacheStatusAndClear(t *testing.T) {
 	}
 	if !strings.Contains(out, "cleared") {
 		t.Fatalf("expected 'cleared' in clear output, got:\n%s", out)
+	}
+	if !strings.Contains(out, "reports") {
+		t.Fatalf("expected 'reports' in clear output, got:\n%s", out)
+	}
+}
+
+func TestHumanBytes(t *testing.T) {
+	tests := []struct {
+		n    int64
+		want string
+	}{
+		{0, "0 B"},
+		{999, "999 B"},
+		{1_000, "1.0 KB"},
+		{1_500_000, "1.5 MB"},
+		{1_500_000_000, "1.5 GB"},
+		{100_000_000_000, "100.0 GB"},
+	}
+	for _, tt := range tests {
+		got := humanBytes(tt.n)
+		if got != tt.want {
+			t.Errorf("humanBytes(%d) = %q, want %q", tt.n, got, tt.want)
+		}
 	}
 }
 

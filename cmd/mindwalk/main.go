@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
@@ -254,9 +255,13 @@ func analyze(args []string) error {
 			"usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache] [--no-rubric]",
 		)
 	}
-	session, err := filepath.Abs(positional[0])
-	if err != nil {
-		return err
+	session := positional[0]
+	if !strings.HasPrefix(session, "crush://") {
+		var err error
+		session, err = filepath.Abs(positional[0])
+		if err != nil {
+			return err
+		}
 	}
 	tr, err := parseTrace(session, crushDirFor(*crushDir, *noCrush))
 	if err != nil {
