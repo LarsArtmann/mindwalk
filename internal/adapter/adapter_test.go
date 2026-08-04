@@ -772,3 +772,94 @@ func TestOpenFileNotFound(t *testing.T) {
 		t.Fatal("close should be nil on error")
 	}
 }
+
+func TestFilesystemDiagnostics(t *testing.T) {
+	t.Run("empty dir returns error check", func(t *testing.T) {
+		checks := FilesystemDiagnostics("", ".jsonl")
+		if len(checks) != 1 {
+			t.Fatalf("got %d checks, want 1", len(checks))
+		}
+
+		if checks[0].Status != "error" {
+			t.Fatalf("status = %q, want error", checks[0].Status)
+		}
+
+		if checks[0].Name != "data-dir" {
+			t.Fatalf("name = %q, want data-dir", checks[0].Name)
+		}
+	})
+
+	t.Run("missing dir returns warn check", func(t *testing.T) {
+		checks := FilesystemDiagnostics("/nonexistent/path/xyz", ".jsonl")
+		if len(checks) != 1 {
+			t.Fatalf("got %d checks, want 1", len(checks))
+		}
+
+		if checks[0].Status != "warn" {
+			t.Fatalf("status = %q, want warn", checks[0].Status)
+		}
+	})
+
+	t.Run("valid dir with matching files", func(t *testing.T) {
+		dir := t.TempDir()
+		for _, name := range []string{"a.jsonl", "b.jsonl", "c.jsonl"} {
+			if err := os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0o644); err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		checks := FilesystemDiagnostics(dir, ".jsonl")
+		if len(checks) != 2 {
+			t.Fatalf("got %d checks, want 2", len(checks))
+		}
+
+		if checks[0].Status != "ok" || checks[0].Name != "data-dir" {
+			t.Fatalf("check[0] = %+v, want ok/data-dir", checks[0])
+		}
+
+		if checks[1].Status != "ok" || checks[1].Name != "session-files" {
+			t.Fatalf("check[1] = %+v, want ok/session-files", checks[1])
+		}
+
+		if !strings.Contains(checks[1].Detail, "3") {
+			t.Fatalf("detail = %q, want count 3", checks[1].Detail)
+		}
+	})
+
+	t.Run("valid dir with no matching files", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "readme.txt"), []byte("hi"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		checks := FilesystemDiagnostics(dir, ".jsonl")
+		if len(checks) != 2 {
+			t.Fatalf("got %d checks, want 2", len(checks))
+		}
+
+		if !strings.Contains(checks[1].Detail, "0") {
+			t.Fatalf("detail = %q, want count 0", checks[1].Detail)
+		}
+	})
+
+	t.Run("nested directories counted", func(t *testing.T) {
+		dir := t.TempDir()
+		nested := filepath.Join(dir, "sub")
+		if err := os.Mkdir(nested, 0o755); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := os.WriteFile(filepath.Join(dir, "top.jsonl"), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		if err := os.WriteFile(filepath.Join(nested, "deep.jsonl"), []byte("{}"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		checks := FilesystemDiagnostics(dir, ".jsonl")
+		if !strings.Contains(checks[1].Detail, "2") {
+			t.Fatalf("detail = %q, want count 2 (nested)", checks[1].Detail)
+		}
+	})
+}
