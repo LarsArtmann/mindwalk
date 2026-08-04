@@ -84,7 +84,7 @@ func writeParts(t *testing.T, parts ...map[string]any) string {
 }
 
 // insertSession writes a row to the sessions table. createdAt is
-// captured in milliseconds like Crush does internally.
+// captured in Unix seconds like Crush does internally.
 func insertSession(
 	t *testing.T,
 	db *sql.DB,
@@ -96,13 +96,13 @@ func insertSession(
 ) {
 	t.Helper()
 	if _, err := db.Exec(`INSERT INTO sessions (id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at) VALUES (?, ?, ?, ?, 0, 0, 0.0, ?, ?)`,
-		id, nullableString(parent), title, messages, createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
+		id, nullableString(parent), title, messages, createdAt.Unix(), createdAt.Unix()); err != nil {
 		t.Fatal(err)
 	}
 }
 
 // insertMessage writes one row to the messages table. createdAt is
-// recorded in milliseconds to match Crush's convention.
+// recorded in Unix seconds to match Crush's convention.
 func insertMessage(
 	t *testing.T,
 	db *sql.DB,
@@ -115,7 +115,7 @@ func insertMessage(
 ) {
 	t.Helper()
 	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id, sessionID, role, parts, nullableString(model), createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
+		id, sessionID, role, parts, nullableString(model), createdAt.Unix(), createdAt.Unix()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -527,7 +527,7 @@ func insertMessageWithProvider(
 ) {
 	t.Helper()
 	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, provider, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, sessionID, role, parts, nullableString(model), nullableString(provider), createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
+		id, sessionID, role, parts, nullableString(model), nullableString(provider), createdAt.Unix(), createdAt.Unix()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -546,7 +546,7 @@ func insertSessionWithUsage(
 ) {
 	t.Helper()
 	if _, err := db.Exec(`INSERT INTO sessions (id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at) VALUES (?, NULL, ?, 0, ?, ?, ?, ?, ?)`,
-		id, title, promptTokens, completionTokens, cost, createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
+		id, title, promptTokens, completionTokens, cost, createdAt.Unix(), createdAt.Unix()); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -812,7 +812,7 @@ func TestOldSchemaListSessionsDoesNotCrash(t *testing.T) {
 	db := createOldSchemaDB(t, dbPath)
 	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
 	if _, err := db.Exec(`INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at) VALUES (?, ?, 0, 0, 0, ?, ?)`,
-		"s1", "Old schema", base.UnixMilli(), base.UnixMilli()); err != nil {
+		"s1", "Old schema", base.Unix(), base.Unix()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -837,13 +837,13 @@ func TestOldSchemaParseDoesNotCrash(t *testing.T) {
 	db := createOldSchemaDB(t, dbPath)
 	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
 	if _, err := db.Exec(`INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at) VALUES (?, ?, 1, 0, 0, ?, ?)`,
-		"s1", "Old schema parse", base.UnixMilli(), base.UnixMilli()); err != nil {
+		"s1", "Old schema parse", base.Unix(), base.Unix()); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		"m1", "s1", "assistant",
 		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "hello"}}),
-		"claude-sonnet-4", base.UnixMilli(), base.UnixMilli()); err != nil {
+		"claude-sonnet-4", base.Unix(), base.Unix()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -867,7 +867,7 @@ func TestThinkingMarkUsesMessageDuration(t *testing.T) {
 	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		"m1", "s1", "assistant",
 		writeParts(t, map[string]any{"type": "reasoning", "data": map[string]any{"thinking": "I need to think about this"}}),
-		"claude-sonnet-4", base.UnixMilli(), base.UnixMilli(), base.Add(7*time.Second).UnixMilli()); err != nil {
+		"claude-sonnet-4", base.Unix(), base.Unix(), base.Add(7*time.Second).Unix()); err != nil {
 		t.Fatal(err)
 	}
 

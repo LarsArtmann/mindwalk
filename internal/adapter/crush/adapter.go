@@ -6,7 +6,7 @@
 // crush TUI: it opens the database in mode=ro without acquiring the
 // data-dir lock and never writes. Each session's tool calls live in
 // one row per message, with parts JSON-encoded in messages.parts and
-// ordered by created_at (millisecond timestamps).
+// ordered by created_at (second-precision Unix timestamps).
 package crush
 
 import (

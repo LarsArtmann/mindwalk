@@ -265,7 +265,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			return nil, fmt.Errorf("scan crush message: %w", err)
 		}
 		recognized = true
-		ts := millisToRFC3339(msg.CreatedAt)
+		ts := secondsToRFC3339(msg.CreatedAt)
 		applyMessageMeta(trace, msg, ts)
 
 		// Track model/provider switches mid-session.
@@ -331,7 +331,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			// Fall back to the message-level wall-clock duration when
 			// the reasoning part doesn't carry its own timestamps.
 			if duration == 0 && msg.FinishedAt.Valid && msg.FinishedAt.Int64 > msg.CreatedAt {
-				duration = (msg.FinishedAt.Int64 - msg.CreatedAt) / 1000
+				duration = msg.FinishedAt.Int64 - msg.CreatedAt
 			}
 			note := truncateNote(parsed.reasoningText, 200)
 			if duration > 0 {
@@ -362,7 +362,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				Note: note,
 			}
 			if msg.FinishedAt.Valid && msg.FinishedAt.Int64 > msg.CreatedAt {
-				mk.Duration = int((msg.FinishedAt.Int64 - msg.CreatedAt) / 1000)
+				mk.Duration = int(msg.FinishedAt.Int64 - msg.CreatedAt)
 			}
 			trace.Marks = append(trace.Marks, mk)
 		}
@@ -828,8 +828,8 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 			Harness:          harnessName,
 			Path:             SessionPath(sr.ID),
 			Title:            sr.Title,
-			StartedAt:        millisToRFC3339(sr.CreatedAt),
-			EndedAt:          millisToRFC3339(sr.UpdatedAt),
+			StartedAt:        secondsToRFC3339(sr.CreatedAt),
+			EndedAt:          secondsToRFC3339(sr.UpdatedAt),
 			EventCount:       int(sr.MessageCount),
 			UserTurns:        0,
 			Auxiliary:        true,
@@ -845,8 +845,8 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 		Harness:          harnessName,
 		Path:             SessionPath(sr.ID),
 		Title:            sr.Title,
-		StartedAt:        millisToRFC3339(sr.CreatedAt),
-		EndedAt:          millisToRFC3339(sr.UpdatedAt),
+		StartedAt:        secondsToRFC3339(sr.CreatedAt),
+		EndedAt:          secondsToRFC3339(sr.UpdatedAt),
 		EventCount:       int(sr.MessageCount),
 		PromptTokens:     sr.PromptTokens,
 		CompletionTokens: sr.CompletionTokens,
@@ -896,15 +896,15 @@ func applyMessageMeta(trace *model.Trace, msg messageRow, ts string) {
 	}
 }
 
-// millisToRFC3339 renders Crush's millisecond Unix timestamps in the
-// ISO-8601 UTC shape the rest of mindwalk expects. Zero or negative
+// secondsToRFC3339 renders Crush's second-precision Unix timestamps in
+// the ISO-8601 UTC shape the rest of mindwalk expects. Zero or negative
 // values return "" so an empty/uninitialised timestamp doesn't trip
 // downstream parsers.
-func millisToRFC3339(ms int64) string {
-	if ms <= 0 {
+func secondsToRFC3339(s int64) string {
+	if s <= 0 {
 		return ""
 	}
-	return time.UnixMilli(ms).UTC().Format(time.RFC3339Nano)
+	return time.Unix(s, 0).UTC().Format(time.RFC3339Nano)
 }
 
 // queryReadFiles returns the set of file paths the agent actually
