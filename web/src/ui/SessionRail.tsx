@@ -130,6 +130,37 @@ export const SessionRail = memo(function SessionRail({
     });
   }, []);
 
+  // J/K navigate between visible sessions (vim-style: j = next, k = prev).
+  // Skips when the rail is collapsed, locked, or focus is in a text field.
+  useEffect(() => {
+    if (collapsed || locked) return;
+    const isTyping = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTyping(e.target)) return;
+      const key = e.key.toLowerCase();
+      if (key !== "j" && key !== "k") return;
+      e.preventDefault();
+      const keys = grouped.flatMap((g) => g.sessions.map((s) => s.key));
+      if (keys.length === 0) return;
+      const currentIdx = activeKey ? keys.indexOf(activeKey) : -1;
+      const nextIdx =
+        key === "j"
+          ? currentIdx < keys.length - 1
+            ? currentIdx + 1
+            : 0
+          : currentIdx > 0
+            ? currentIdx - 1
+            : keys.length - 1;
+      onSelect(keys[nextIdx]);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [collapsed, locked, grouped, activeKey, onSelect]);
+
   return (
     <aside className={collapsed ? "session-rail collapsed" : "session-rail"}>
       <div className="rail-head">
@@ -308,47 +339,62 @@ export const SessionRail = memo(function SessionRail({
                 <span className="session-group-count">{group.sessions.length}</span>
               </button>
               {!collapsed
-                ? group.sessions.map((session) => (
-                    <button
-                      key={session.key}
-                      className={session.key === activeKey ? "session-row active" : "session-row"}
-                      onClick={() => onSelect(session.key)}
-                      disabled={locked}
-                    >
-                      <span className="session-title">
-                        <span className={`harness-dot harness-${session.harness}`} aria-hidden />
-                        {session.title || session.id}
-                      </span>
-                      <span className="session-meta">
-                        <span className="session-meta-text">
-                          {harnessLabel(session.harness)} · {session.eventCount}{" "}
-                          {session.eventCount === 1 ? "call" : "calls"}
-                          {session.provider ? ` · ${session.provider}` : ""}
-                          {session.promptTokens || session.completionTokens
-                            ? ` · ${formatTokens(session.promptTokens || 0)}/${formatTokens(session.completionTokens || 0)} tok`
-                            : ""}
-                          {session.cost && session.cost > 0 ? ` · $${session.cost.toFixed(2)}` : ""}
-                          {session.gitBranch ? ` · ${session.gitBranch}` : ""}
-                          {session.endedAt ? ` · ${relativeTime(session.endedAt)}` : ""}
+                ? group.sessions.map((session) => {
+                    const isActive = session.key === activeKey;
+                    const evalState =
+                      isActive && activeReportState !== undefined
+                        ? activeReportState
+                        : session.reportState;
+                    return (
+                      <button
+                        key={session.key}
+                        className={isActive ? "session-row active" : "session-row"}
+                        onClick={() => onSelect(session.key)}
+                        disabled={locked}
+                      >
+                        <span className="session-title">
+                          <span
+                            className={`harness-dot harness-${session.harness}${!session.endedAt ? " running" : ""}`}
+                            aria-hidden
+                          />
+                          {session.title || session.id}
                         </span>
-                        {(() => {
-                          const evalState =
-                            session.key === activeKey && activeReportState !== undefined
-                              ? activeReportState
-                              : session.reportState;
-                          return evalState ? (
-                            <span
-                              className={`rail-eval rail-eval-${evalState}`}
-                              title={evalHint(evalState)}
-                              aria-label={evalHint(evalState)}
-                            >
-                              {evalState === "running" ? "evaluating" : ""}
-                            </span>
-                          ) : null;
-                        })()}
-                      </span>
-                    </button>
-                  ))
+                        <span className="session-meta">
+                          <span className="session-meta-text">
+                            {harnessLabel(session.harness)} · {session.eventCount}{" "}
+                            {session.eventCount === 1 ? "call" : "calls"}
+                            {session.cwd ? ` · ${repoBasename(session.cwd)}` : ""}
+                            {session.provider ? ` · ${session.provider}` : ""}
+                            {session.promptTokens || session.completionTokens
+                              ? ` · ${formatTokens(session.promptTokens || 0)}/${formatTokens(session.completionTokens || 0)} tok`
+                              : ""}
+                            {session.cost && session.cost > 0
+                              ? ` · $${session.cost.toFixed(2)}`
+                              : ""}
+                            {session.gitBranch ? ` · ${session.gitBranch}` : ""}
+                          </span>
+                          <span className="session-meta-right">
+                            {evalState ? (
+                              <span
+                                className={`rail-eval rail-eval-${evalState}`}
+                                title={evalHint(evalState)}
+                                aria-label={evalHint(evalState)}
+                              >
+                                {evalState === "running" ? "evaluating" : ""}
+                              </span>
+                            ) : null}
+                            {session.endedAt ? (
+                              <span className="session-meta-time" title={session.endedAt}>
+                                {relativeTime(session.endedAt)}
+                              </span>
+                            ) : (
+                              <span className="session-meta-live">active</span>
+                            )}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })
                 : null}
             </div>
           );
@@ -384,9 +430,15 @@ function evalHint(state: "running" | "done" | "stale" | "failed"): string {
 function harnessLabel(harness: string): string {
   switch (harness) {
     case "claude-code":
-      return "claude";
+      return "Claude";
+    case "crush":
+      return "Crush";
+    case "codex":
+      return "Codex";
+    case "pi":
+      return "Pi";
     default:
-      return harness;
+      return harness.charAt(0).toUpperCase() + harness.slice(1);
   }
 }
 

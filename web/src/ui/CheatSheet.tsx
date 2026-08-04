@@ -33,6 +33,7 @@ const SHORTCUTS: { group: string; entries: ShortcutEntry[] }[] = [
       { keys: "⌘P / Ctrl+P", description: "Open file command palette" },
       { keys: "V", description: "Toggle tree / terrain scene" },
       { keys: "⌘B / Ctrl+B", description: "Toggle session sidebar" },
+      { keys: "J / K", description: "Next / previous session in sidebar" },
     ],
   },
   {
