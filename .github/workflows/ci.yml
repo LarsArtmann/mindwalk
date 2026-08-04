@@ -27,8 +27,15 @@ jobs:
       - name: Install web dependencies
         run: npm --prefix web ci
 
+      - name: Go vet
+        run: go vet ./...
+
       - name: Test
-        run: go test ./...
+        run: go test ./... -race -count=1
+
+      - name: Frontend typecheck
+        run: ./node_modules/.bin/tsc --noEmit
+        working-directory: web
 
       - name: Verify embedded frontend
         run: |

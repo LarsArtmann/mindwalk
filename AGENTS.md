@@ -38,7 +38,7 @@ Crush is a database-backed source: each project keeps its own
 `~/.local/share/crush/`), with message parts JSON-encoded in the
 `messages.parts` column. When no `--crush-dir` is set, the adapter
 reads Crush's `~/.local/share/crush/projects.json` registry and
-queries every project database, merging all sessions; a process-global
+queries every project database, merging all sessions; a per-Adapter
 `sessionDBIndex` (`sync.Map`) routes each session id to its source
 database so `Parse`/`Summarize` open the right file. The adapter
 opens each database in read-only mode without taking the data-dir
@@ -58,6 +58,16 @@ displays them without a new code path. The agent-graph builders in
 `internal/adapter/crush/agents.go` use `enumerateDBPaths()` to
 iterate every known project database, and `openDBForPath()` to route
 launch reads to the correct database in auto-discover mode.
+
+Computed agent graphs are persisted to `~/.mindwalk/agent-graphs/`
+as versioned JSON files keyed by a stable digest of the session's
+input file paths, sizes, and modification times. The cache auto-evicts
+oldest files when the directory exceeds 100 MB. Override the base
+directory with `MINDWALK_HOME` (used by tests and CI). The crush
+adapter also implements `Diagnostics()` — the `mindwalk doctor`
+command type-asserts to `adapter.DiagnosticsSource` and runs deeper
+health checks (data-dir readability, projects.json validity, schema
+column coverage) beyond the session-count summary.
 
 ## Development
 

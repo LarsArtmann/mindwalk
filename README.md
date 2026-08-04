@@ -51,10 +51,25 @@ mindwalk build <repo> [-o out]               write the repository citymap JSON
 mindwalk trace <session> [-o out]            write the normalized trace JSON
 mindwalk analyze <session> [--judge claude|codex|crush] [--model name] [--no-rubric]
                                             evaluate one session (see below)
+mindwalk sessions [--json] [--harness NAME] [--limit N]   list discovered sessions
+mindwalk doctor                              print adapter status and diagnostics
 ```
 
 Pass `--host 0.0.0.0` to any of `serve`, `open`, or `map` to expose the UI
 on your LAN instead of localhost.
+
+### Data directories and caches
+
+mindwalk stores computed agent graphs and evaluation reports under
+`~/.mindwalk/`:
+
+| Path | Purpose |
+|------|---------|
+| `~/.mindwalk/agent-graphs/` | Persisted agent-graph cache (auto-evicted at 100 MB) |
+| `~/.mindwalk/reports/` | Cached evaluation reports from `mindwalk analyze` |
+
+Set the `MINDWALK_HOME` environment variable to override the base
+directory (useful for tests and CI).
 
 ## Reading the picture
 

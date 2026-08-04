@@ -27,6 +27,15 @@ interface HudProps {
 
 const CHURN_PANEL_ROWS = 8;
 
+/** truncatePath shortens long filesystem paths for HUD display. Keeps
+ * the leading segment and a meaningful tail so the project name stays
+ * visible. Paths under 40 characters are returned unchanged. */
+function truncatePath(path: string, max = 40): string {
+	if (path.length <= max) return path;
+	const tail = Math.min(28, max - 3);
+	return path.slice(0, max - tail - 1) + "…" + path.slice(-tail);
+}
+
 // memo: the app re-renders every playback tick; the HUD only changes when the
 // session, the view toggle, or the touch counts under the playhead change
 export const Hud = memo(function Hud({
@@ -58,7 +67,9 @@ export const Hud = memo(function Hud({
 		: false;
 	const hasEvents = !!trace && trace.events.length > 0;
 	const hasTargets = !!trace && trace.events.some((e) => e.targets.length > 0);
+	const hasFileActions = !!trace && trace.events.some((e) => e.action === "read" || e.action === "edit");
 	const showNoTargetsWarning = hasEvents && !hasTargets;
+	const noTargetsIsMisconfigured = showNoTargetsWarning && hasFileActions;
 
 	const [churnOpen, setChurnOpen] = useState(false);
 	const churnPanelRef = useRef<HTMLDivElement | null>(null);
@@ -113,7 +124,7 @@ export const Hud = memo(function Hud({
 						{trace?.session.model ? <span>{trace.session.model}</span> : null}
 						{trace?.session.cwd ? (
 							<span data-hint="Working directory the adapter resolved for this session">
-								{trace.session.cwd}
+								{truncatePath(trace.session.cwd)}
 							</span>
 						) : null}
 						{stats ? (
@@ -126,9 +137,15 @@ export const Hud = memo(function Hud({
 				{showNoTargetsWarning ? (
 					<div
 						className="hud-warning"
-						data-hint="The adapter found tool calls but could not map any to repository files — check that the session's working directory matches the loaded repository"
+						data-hint={
+							noTargetsIsMisconfigured
+								? "The adapter found file read/edit calls but could not map any to repository files — check that the session's working directory matches the loaded repository"
+								: "This session had no file read/edit operations — only commands or reasoning steps"
+						}
 					>
-						no file targets resolved — adapter may be misconfigured
+						{noTargetsIsMisconfigured
+							? "no file targets resolved — cwd may not match repository"
+							: "no file operations in this session"}
 					</div>
 				) : null}
 				{stats ? (

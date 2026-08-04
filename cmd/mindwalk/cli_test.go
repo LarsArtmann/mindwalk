@@ -143,6 +143,42 @@ func TestRunUnknownCommand(t *testing.T) {
 	}
 }
 
+// TestRunVersion verifies the version subcommand runs without error
+// and produces output.
+func TestRunVersion(t *testing.T) {
+	out, err := captureStdout(t, func() error { return run([]string{"version"}) })
+	if err != nil {
+		t.Fatalf("run(version) error: %v", err)
+	}
+	if !strings.Contains(out, "mindwalk") {
+		t.Fatalf("expected output to contain 'mindwalk', got:\n%s", out)
+	}
+}
+
+// TestCacheStatusAndClear verifies the cache status/clear lifecycle.
+func TestCacheStatusAndClear(t *testing.T) {
+	// Point MINDWALK_HOME at a temp dir for isolation.
+	home := t.TempDir()
+	t.Setenv("MINDWALK_HOME", home)
+
+	out, err := captureStdout(t, func() error { return run([]string{"cache", "status"}) })
+	if err != nil {
+		t.Fatalf("cache status error: %v", err)
+	}
+	if !strings.Contains(out, "agent-graphs") {
+		t.Fatalf("expected 'agent-graphs' in status output, got:\n%s", out)
+	}
+
+	// Clear on an empty cache should succeed.
+	out, err = captureStdout(t, func() error { return run([]string{"cache", "clear"}) })
+	if err != nil {
+		t.Fatalf("cache clear error: %v", err)
+	}
+	if !strings.Contains(out, "cleared") {
+		t.Fatalf("expected 'cleared' in clear output, got:\n%s", out)
+	}
+}
+
 // TestParseAdapterFlagsRespectsNoCrush is a smoke test that verifies the
 // flag is actually parsed — not silently ignored. This catches the
 // classic pointer-dereference-before-Parse bug where fs.String() returns

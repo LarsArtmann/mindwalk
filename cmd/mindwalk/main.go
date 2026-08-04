@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
@@ -47,6 +48,10 @@ func run(args []string) error {
 		return listSessions(args[1:])
 	case "doctor":
 		return doctor(args[1:])
+	case "version":
+		return printVersion()
+	case "cache":
+		return manageCache(args[1:])
 	case "-h", "--help", "help":
 		usage()
 		return nil
@@ -467,6 +472,132 @@ func doctor(args []string) error {
 	return nil
 }
 
+// printVersion reports the build info: Go version, module version, and
+// VCS revision (when built from a git checkout).
+func printVersion() error {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		fmt.Println("mindwalk (no build info)")
+		return nil
+	}
+	rev := "unknown"
+	dirty := ""
+	for _, setting := range info.Settings {
+		switch setting.Key {
+		case "vcs.revision":
+			if len(setting.Value) >= 8 {
+				rev = setting.Value[:8]
+			} else {
+				rev = setting.Value
+			}
+		case "vcs.modified":
+			if setting.Value == "true" {
+				dirty = " (dirty)"
+			}
+		}
+	}
+	fmt.Printf("mindwalk %s%s\n", rev, dirty)
+	fmt.Printf("  go %s\n", info.GoVersion)
+	if info.Main.Version != "" && info.Main.Version != "(devel)" {
+		fmt.Printf("  module %s\n", info.Main.Version)
+	}
+	return nil
+}
+
+// manageCache handles the `mindwalk cache` subcommand: clear or status.
+func manageCache(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("usage: mindwalk cache <clear|status>")
+	}
+	switch args[0] {
+	case "clear":
+		return clearCache()
+	case "status":
+		return cacheStatus()
+	default:
+		return fmt.Errorf("unknown cache subcommand %q (use: clear, status)", args[0])
+	}
+}
+
+// cacheHome resolves the ~/.mindwalk base directory (or MINDWALK_HOME
+// override) shared by the server's caches.
+func cacheHome() string {
+	if override := os.Getenv("MINDWALK_HOME"); override != "" {
+		return override
+	}
+	dir, err := os.UserHomeDir()
+	if err != nil || dir == "" {
+		return ""
+	}
+	return filepath.Join(dir, ".mindwalk")
+}
+
+func clearCache() error {
+	home := cacheHome()
+	if home == "" {
+		return fmt.Errorf("cannot resolve mindwalk home directory")
+	}
+	graphsDir := filepath.Join(home, "agent-graphs")
+	removed := clearDir(graphsDir)
+	fmt.Printf("cleared %d file(s) from %s\n", removed, graphsDir)
+	return nil
+}
+
+func cacheStatus() error {
+	home := cacheHome()
+	if home == "" {
+		return fmt.Errorf("cannot resolve mindwalk home directory")
+	}
+	graphsDir := filepath.Join(home, "agent-graphs")
+	count, size := dirStats(graphsDir)
+	fmt.Printf("agent-graphs:  %d file(s), %s in %s\n", count, humanBytes(size), graphsDir)
+	return nil
+}
+
+func clearDir(dir string) int {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0
+	}
+	var removed int
+	for _, entry := range entries {
+		if err := os.RemoveAll(filepath.Join(dir, entry.Name())); err == nil {
+			removed++
+		}
+	}
+	return removed
+}
+
+func dirStats(dir string) (count int, size int64) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, 0
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		count++
+		size += info.Size()
+	}
+	return count, size
+}
+
+func humanBytes(n int64) string {
+	switch {
+	case n >= 1_000_000:
+		return fmt.Sprintf("%.1f MB", float64(n)/1_000_000)
+	case n >= 1_000:
+		return fmt.Sprintf("%.1f KB", float64(n)/1_000)
+	default:
+		return fmt.Sprintf("%d B", n)
+	}
+}
+
 func parseTrace(path string, crushDir string) (*model.Trace, error) {
 	var lastErr error
 	for _, source := range traceSources(crushDir) {
@@ -549,8 +680,10 @@ Usage:
   mindwalk build <repo> [-o out]  write citymap.json
   mindwalk trace <session> [-o out] write trace.json
   mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] [--no-rubric] evaluate a session with a local agent CLI
-  mindwalk sessions [--no-crush] [--crush-dir DIR]  list all discovered sessions without starting the server
-  mindwalk doctor [--no-crush] [--crush-dir DIR]    print adapter status, session counts, and data-dir paths
+  mindwalk sessions [--json] [--harness NAME] [--limit N] [--no-crush]  list all discovered sessions
+  mindwalk doctor [--no-crush] [--crush-dir DIR]    print adapter status, session counts, and diagnostics
+  mindwalk version                                print build version
+  mindwalk cache <clear|status>                   manage the agent-graph disk cache
 
 Examples:
   mindwalk serve --crush-dir ~/.local/share/crush   # point at a specific Crush install
