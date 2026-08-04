@@ -33,6 +33,7 @@ import { PlaybackEngine } from "./playback/reducer";
 import { downloadBlob, recordingSupported, recordPlayback } from "./playback/recorder";
 import { CityScene } from "./scene/CityScene";
 import { TreeScene } from "./scene/TreeScene";
+import { Treemap2D, hasWebGL } from "./scene/Treemap2D";
 import { sessionVisible } from "./state/filters";
 import { useAppStore } from "./state/store";
 import { Hud } from "./ui/Hud";
@@ -876,7 +877,14 @@ export default function App() {
               <Maximize2 size={15} />
             </button>
           ) : null}
-          {view === "tree" ? (
+          {!hasWebGL() && city ? (
+            <Treemap2D
+              city={city}
+              playback={playback}
+              selectedPath={selectedPath}
+              onSelect={selectFile}
+            />
+          ) : view === "tree" ? (
             <TreeScene
               city={city}
               playback={playback}

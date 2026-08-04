@@ -52,6 +52,13 @@ export const SessionRail = memo(function SessionRail({
   const [repoPath, setRepoPath] = useState("");
   const [mapOpen, setMapOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState(() => {
+    try {
+      return (localStorage.getItem("mindwalk.sortBy") as SortKey) || "newest";
+    } catch {
+      return "newest" as SortKey;
+    }
+  });
   const mapPopRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -88,7 +95,9 @@ export const SessionRail = memo(function SessionRail({
     });
   }, [sessions, query, hideEmpty, effectiveHarness, activeKey]);
 
-  const grouped = useMemo(() => groupSessionsByDate(shown), [shown]);
+  const sorted = useMemo(() => sortSessions(shown, sortBy), [shown, sortBy]);
+
+  const grouped = useMemo(() => groupSessionsByDate(sorted), [sorted]);
   const toggleGroup = useCallback((label: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -378,11 +387,6 @@ function relativeTime(iso: string): string {
   const week = Math.floor(day / 7);
   if (week < 5) return `${week}w ago`;
   return shortDate(iso);
-}
-
-interface SessionGroup {
-  label: string;
-  sessions: SessionMeta[];
 }
 
 function groupSessionsByDate(sessions: SessionMeta[]): SessionGroup[] {
