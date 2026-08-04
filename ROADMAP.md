@@ -80,20 +80,35 @@ Raw ideas:
 - Split server tests into fast and slow groups (build tag or separate
   package) if the suite grows significantly.
 
-### 5. Frontend observability
+### 5. Frontend observability and UX
 
-The web UI trusts the API. When an adapter is misconfigured, the only signals
-are the HUD's 0-target warning and the Cwd display. Adapter health is not
-surfaced.
+The web UI trusts the API and has historically been verification-light.
+The HUD surfaces adapter health signals (0-target warning, Cwd display)
+but the **core playback feedback loop is broken**: scrubbing the timeline
+changes scene colors without showing what event you are looking at. There
+is also no frontend unit-test infrastructure (no Vitest/Jest) and only a
+single Playwright spec.
 
 Raw ideas:
 
+- **Event summary card during playback** — surface `TraceEvent.tool`,
+  `.action`, `.summary`, and `.targets` as the timeline scrubs. This is the
+  single highest-impact UI gap (the 1%→51% item in the UI/UX sprint).
+- Command palette (Cmd+P) to fly-to-file; keyboard cheat-sheet overlay (`?`);
+  collapsible HUD (`H`).
 - Surface adapter health in the UI — a status panel backed by `/api/adapters`
   showing which adapters are wired, their data directories, and session
   counts.
-- Group sessions by project in the rail sidebar (derived from `projects.json`).
-- Add a thinking lane in the Timeline for visual duration bars (requires
-  per-message duration wiring).
+- Group sessions by project / date in the rail sidebar (derived from
+  `projects.json`).
+- Relative timestamps ("2h ago"), color-coded harness indicators, a coverage
+  gauge, error markers on the timeline strip, and a report summary verdict.
+- Set up Vitest so the pure-logic modules (`reducer.ts`, `filters.ts`,
+  `treeLayout.ts`, `sceneUtils.ts`) gain unit coverage.
+
+See `docs/planning/2026-08-04_09-46_SUPERB-ui-ux-sprint.md` for the full
+27-task Pareto-ordered execution plan and `docs/100-ui-ux-ideas.md` for the
+raw idea backlog.
 
 ## Open questions
 

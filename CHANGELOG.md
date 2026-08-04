@@ -216,6 +216,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 such column`. Dynamic `build*Query()` functions now probe the schema
   once per database handle and substitute `0 AS cost` / `0 AS
 finished_at` when the columns are absent.
+- **All Crush sessions appeared at the Unix epoch (1970)** — Crush
+  stores `created_at`, `updated_at`, and message timestamps as
+  second-precision Unix values, but the adapter treated them as
+  milliseconds (`3f547fc`). A value like `1781655007` (June 2026 in
+  seconds) was passed to `time.UnixMilli`, producing `1970-01-21`.
+  Renamed `millisToRFC3339` → `secondsToRFC3339` (`time.Unix(s, 0)`)
+  and removed the erroneous `/ 1000` division from two message-duration
+  calculations. The Crush migration comment says "milliseconds" but the
+  `strftime('%s', 'now')` trigger writes seconds — the adapter now
+  trusts the data.
 
 ### Changed
 

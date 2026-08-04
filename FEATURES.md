@@ -19,83 +19,83 @@
 
 ## Session adapters
 
-| Feature                        | Status                    | Notes                                                                                                                                                                                                                                |
-| ------------------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Claude Code adapter            | 🟢 `FULLY_FUNCTIONAL`     | `internal/adapter/claudecode/adapter.go:33`; JSONL parsing, agent graph, path normalization                                                                                                                                          |
-| Codex adapter                  | 🟢 `FULLY_FUNCTIONAL`     | `internal/adapter/codex/adapter.go:44`; JSONL parsing, agent graph, `--ephemeral` session filtering                                                                                                                                  |
-| pi adapter                     | 🟢 `FULLY_FUNCTIONAL`     | `internal/adapter/pi/adapter.go:46`; JSONL parsing                                                                                                                                                                                   |
-| Crush adapter                  | 🟡 `PARTIALLY_FUNCTIONAL` | `internal/adapter/crush/`; SQLite-backed, multi-DB discovery, parts JSON parser, dynamic schema queries. `providerExecuted` flag decoded but not wired into HUD warning; `finished_at` scanned but no per-message duration surfaced. |
-| Multi-database Crush discovery | 🟢 `FULLY_FUNCTIONAL`     | `crush/sessions.go:671` (`enumerateDBPaths`), `crush/projects.go`; reads `projects.json`, merges all project DBs                                                                                                                     |
-| `/api/adapters` endpoint       | 🟢 `FULLY_FUNCTIONAL`     | `server.go:244`; returns harness name, session dir, count, agent-graph capability                                                                                                                                                    |
-| Synthetic path routing         | 🟢 `FULLY_FUNCTIONAL`     | `crush://session/<id>` scheme via `crush.SessionPath`/`IsSessionPath`; all server call sites guarded                                                                                                                                 |
+| Feature                        | Status                | Notes                                                                                                                                                                                                                                                                                             |
+| ------------------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code adapter            | 🟢 `FULLY_FUNCTIONAL` | `internal/adapter/claudecode/adapter.go:33`; JSONL parsing, agent graph, path normalization                                                                                                                                                                                                       |
+| Codex adapter                  | 🟢 `FULLY_FUNCTIONAL` | `internal/adapter/codex/adapter.go:44`; JSONL parsing, agent graph, `--ephemeral` session filtering                                                                                                                                                                                               |
+| pi adapter                     | 🟢 `FULLY_FUNCTIONAL` | `internal/adapter/pi/adapter.go:46`; JSONL parsing                                                                                                                                                                                                                                                |
+| Crush adapter                  | 🟢 `FULLY_FUNCTIONAL` | `internal/adapter/crush/`; SQLite-backed, multi-DB discovery, parts JSON parser, dynamic schema queries, provider tracking, token/cost, exact read observability, thinking/finish/model-switch marks, per-message duration, shell-command events. Timestamps decoded as Unix seconds (`3f547fc`). |
+| Multi-database Crush discovery | 🟢 `FULLY_FUNCTIONAL` | `crush/sessions.go:671` (`enumerateDBPaths`), `crush/projects.go`; reads `projects.json`, merges all project DBs                                                                                                                                                                                  |
+| `/api/adapters` endpoint       | 🟢 `FULLY_FUNCTIONAL` | `server.go:244`; returns harness name, session dir, count, agent-graph capability                                                                                                                                                                                                                 |
+| Synthetic path routing         | 🟢 `FULLY_FUNCTIONAL` | `crush://session/<id>` scheme via `crush.SessionPath`/`IsSessionPath`; all server call sites guarded                                                                                                                                                                                              |
 
 ## Visualization
 
-| Feature                | Status                    | Notes                                                                                                                                                                                            |
-| ---------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 3D code city (terrain) | 🟢 `FULLY_FUNCTIONAL`     | `internal/citymap/builder.go:20`; squarified treemap, language detection, line counting                                                                                                          |
-| Tree view              | 🟢 `FULLY_FUNCTIONAL`     | `web/src/scene/TreeScene.tsx`; radial tree layout                                                                                                                                                |
-| Touch-state coloring   | 🟢 `FULLY_FUNCTIONAL`     | seen/read/edited/unvisited + wireframe ghosts; `web/src/playback/reducer.ts`                                                                                                                     |
-| HUD stats panel        | 🟡 `PARTIALLY_FUNCTIONAL` | `web/src/ui/Hud.tsx`; fovea/parafovea/edited counts, friction strip. `providerExecuted` field exists in the model and TypeScript types but the HUD warning does not consume it (`types.ts:152`). |
-| Session Cwd display    | 🟢 `FULLY_FUNCTIONAL`     | `web/src/ui/Hud.tsx`; shows adapter-resolved working directory with truncation                                                                                                                   |
-| 0-target warning       | 🟢 `FULLY_FUNCTIONAL`     | `web/src/ui/Hud.tsx`; distinguishes "misconfigured" from "no file operations"                                                                                                                    |
-| Session rail           | 🟢 `FULLY_FUNCTIONAL`     | `web/src/ui/SessionRail.tsx`; provider, token counts, cost (zero-values suppressed)                                                                                                              |
-| Inspector panel        | 🟢 `FULLY_FUNCTIONAL`     | `web/src/ui/Inspector.tsx:16`; file visit history, click-to-jump                                                                                                                                 |
+| Feature                | Status                | Notes                                                                                                                                                                                                                                |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 3D code city (terrain) | 🟢 `FULLY_FUNCTIONAL` | `internal/citymap/builder.go:20`; squarified treemap, language detection, line counting                                                                                                                                              |
+| Tree view              | 🟢 `FULLY_FUNCTIONAL` | `web/src/scene/TreeScene.tsx`; radial tree layout                                                                                                                                                                                    |
+| Touch-state coloring   | 🟢 `FULLY_FUNCTIONAL` | seen/read/edited/unvisited + wireframe ghosts; `web/src/playback/reducer.ts`                                                                                                                                                         |
+| HUD stats panel        | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Hud.tsx`; fovea/parafovea/edited counts, friction strip, provider display. The 0-target warning now excludes `providerExecuted` events so server-side tool calls no longer trigger a false misconfigured-adapter banner. |
+| Session Cwd display    | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Hud.tsx`; shows adapter-resolved working directory with truncation                                                                                                                                                       |
+| 0-target warning       | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Hud.tsx`; distinguishes "misconfigured" from "no file operations"                                                                                                                                                        |
+| Session rail           | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/SessionRail.tsx`; provider, token counts, cost (zero-values suppressed)                                                                                                                                                  |
+| Inspector panel        | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Inspector.tsx:16`; file visit history, click-to-jump                                                                                                                                                                     |
 
 ## Trace playback
 
-| Feature            | Status                    | Notes                                                                                                                                                                                                          |
-| ------------------ | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Playback engine    | 🟢 `FULLY_FUNCTIONAL`     | `web/src/playback/reducer.ts:24`; per-file playback state from trace events                                                                                                                                    |
-| Timeline histogram | 🟢 `FULLY_FUNCTIONAL`     | `web/src/ui/Timeline.tsx`; cool/warm action spectrum, scrub/play                                                                                                                                               |
-| Timeline marks     | 🟡 `PARTIALLY_FUNCTIONAL` | `web/src/ui/Timeline.tsx:45`; compaction, user-message, subagent, thinking, finish-reason, model-switch labels exist. Legend renders thinking + finish-reason but **omits model-switch** (`Timeline.tsx:457`). |
-| Video export       | 🟢 `FULLY_FUNCTIONAL`     | `web/src/playback/recorder.ts:59`; `MediaRecorder` + `canvas.captureStream` → webm                                                                                                                             |
-| Keyboard shortcuts | 🟢 `FULLY_FUNCTIONAL`     | `web/src/ui/shortcuts.ts`; Space, arrows, speed, view, next-edit, next-error                                                                                                                                   |
+| Feature            | Status                | Notes                                                                                                                                                                    |
+| ------------------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Playback engine    | 🟢 `FULLY_FUNCTIONAL` | `web/src/playback/reducer.ts:24`; per-file playback state from trace events                                                                                              |
+| Timeline histogram | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Timeline.tsx`; cool/warm action spectrum, scrub/play                                                                                                         |
+| Timeline marks     | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Timeline.tsx`; compaction, user-message, subagent, thinking, finish-reason, model-switch marks all render with legend glyphs and per-mark duration tooltips. |
+| Video export       | 🟢 `FULLY_FUNCTIONAL` | `web/src/playback/recorder.ts:59`; `MediaRecorder` + `canvas.captureStream` → webm                                                                                       |
+| Keyboard shortcuts | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/shortcuts.ts`; Space, arrows, speed, view, next-edit, next-error                                                                                             |
 
 ## Agent lens
 
-| Feature                    | Status                    | Notes                                                                                                                              |
-| -------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| Agent graph builder        | 🟢 `FULLY_FUNCTIONAL`     | All four adapters implement `BuildAgentGraph`; `internal/model/agent.go:31`                                                        |
-| Agent panel UI             | 🟢 `FULLY_FUNCTIONAL`     | `web/src/ui/AgentsPanel.tsx:32`; main + children, detail popovers                                                                  |
-| Cross-project agent graphs | 🟢 `FULLY_FUNCTIONAL`     | `crush/agents.go` uses `enumerateDBPaths()` for multi-DB routing                                                                   |
-| Agent-graph disk cache     | 🟡 `PARTIALLY_FUNCTIONAL` | `server.go:979` (`loadAgentGraphFromDisk`), `:1006` (`storeAgentGraphToDisk`); 100 MB LRU eviction. **No test for eviction path.** |
+| Feature                    | Status                | Notes                                                                                                                                                             |
+| -------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent graph builder        | 🟢 `FULLY_FUNCTIONAL` | All four adapters implement `BuildAgentGraph`; `internal/model/agent.go:31`                                                                                       |
+| Agent panel UI             | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/AgentsPanel.tsx:32`; main + children, detail popovers                                                                                                 |
+| Cross-project agent graphs | 🟢 `FULLY_FUNCTIONAL` | `crush/agents.go` uses `enumerateDBPaths()` for multi-DB routing                                                                                                  |
+| Agent-graph disk cache     | 🟢 `FULLY_FUNCTIONAL` | `server.go` (`loadAgentGraphFromDisk`/`storeAgentGraphToDisk`); 100 MB LRU eviction, versioned cache files. Eviction path covered by `TestEvictAgentGraphCacheN`. |
 
 ## Session evaluation
 
-| Feature                | Status                    | Notes                                                                                                                                                          |
-| ---------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| LLM judge              | 🟢 `FULLY_FUNCTIONAL`     | `internal/judge/judge.go:44`; sealed subprocess, mechanical verdicts from finding severities                                                                   |
-| Judge CLI support      | 🟢 `FULLY_FUNCTIONAL`     | `internal/judge/cli.go:33`; `claude`, `codex`, `crush` all supported                                                                                           |
-| Dynamic rubric         | 🟢 `FULLY_FUNCTIONAL`     | `internal/judge/rubric.go:56`; drafts task-specific criteria, reuses on unchanged wording, degrades gracefully                                                 |
-| Report caching         | 🟢 `FULLY_FUNCTIONAL`     | `~/.mindwalk/reports/`; staleness by content change, never auto-reruns                                                                                         |
-| Real-time progress SSE | 🟡 `PARTIALLY_FUNCTIONAL` | `internal/server/sse.go:23` + `internal/judge/progress.go`; streams phase + step log. **No `schema/progress.schema.json`**; no heartbeat/reconnection support. |
-| Report panel UI        | 🟢 `FULLY_FUNCTIONAL`     | `web/src/ui/ReportPanel.tsx`; evaluate trigger, running state, findings, rubric scorecard                                                                      |
+| Feature                | Status                | Notes                                                                                                                                                                                                                                                               |
+| ---------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LLM judge              | 🟢 `FULLY_FUNCTIONAL` | `internal/judge/judge.go:44`; sealed subprocess, mechanical verdicts from finding severities                                                                                                                                                                        |
+| Judge CLI support      | 🟢 `FULLY_FUNCTIONAL` | `internal/judge/cli.go:33`; `claude`, `codex`, `crush` all supported                                                                                                                                                                                                |
+| Dynamic rubric         | 🟢 `FULLY_FUNCTIONAL` | `internal/judge/rubric.go:56`; drafts task-specific criteria, reuses on unchanged wording, degrades gracefully                                                                                                                                                      |
+| Report caching         | 🟢 `FULLY_FUNCTIONAL` | `~/.mindwalk/reports/`; staleness by content change, never auto-reruns                                                                                                                                                                                              |
+| Real-time progress SSE | 🟢 `FULLY_FUNCTIONAL` | `internal/server/sse.go` + `internal/judge/progress.go`; streams phase + step log with a 15s keep-alive heartbeat. `schema/progress.schema.json` mirrors the wire format. Reconnection (`Last-Event-ID` replay) is a [ROADMAP](ROADMAP.md) item, not a current gap. |
+| Report panel UI        | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/ReportPanel.tsx`; evaluate trigger, running state, findings, rubric scorecard                                                                                                                                                                           |
 
 ## CLI
 
-| Feature               | Status                    | Notes                                                                                                                                       |
-| --------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `serve`               | 🟢 `FULLY_FUNCTIONAL`     | `cmd/mindwalk/main.go:35`; `--port`, `--host`, `--no-open`, adapter flags                                                                   |
-| `open <session>`      | 🟢 `FULLY_FUNCTIONAL`     | `cmd/mindwalk/main.go:37`; open one specific session                                                                                        |
-| `map <repo>`          | 🟢 `FULLY_FUNCTIONAL`     | `cmd/mindwalk/main.go:39`; repo citymap without a session                                                                                   |
-| `build <repo>`        | 🟢 `FULLY_FUNCTIONAL`     | `cmd/mindwalk/main.go:41`; write citymap JSON                                                                                               |
-| `trace <session>`     | 🟢 `FULLY_FUNCTIONAL`     | `cmd/mindwalk/main.go:43`; write normalized trace JSON                                                                                      |
-| `analyze <session>`   | 🟡 `PARTIALLY_FUNCTIONAL` | `cmd/mindwalk/main.go:45`; `--judge`, `--model`, `--no-rubric`. Crush judge wired but **never verified end-to-end** against a live session. |
-| `sessions`            | 🟢 `FULLY_FUNCTIONAL`     | `cmd/mindwalk/main.go:47`; `--json`, `--harness`, `--limit`                                                                                 |
-| `doctor`              | 🟡 `PARTIALLY_FUNCTIONAL` | `cmd/mindwalk/main.go:49`; adapter status, schema checks, `projects.json` validation. **No test for `Diagnostics()`.**                      |
-| `version`             | 🟢 `FULLY_FUNCTIONAL`     | `cmd/mindwalk/main.go:51`; build revision, Go version, module version                                                                       |
-| `cache clear\|status` | 🟡 `PARTIALLY_FUNCTIONAL` | `cmd/mindwalk/main.go:53`; clears agent-graphs only. **Does not clear `~/.mindwalk/reports/`.** `humanBytes` caps at MB.                    |
+| Feature               | Status                | Notes                                                                                                                                                                         |
+| --------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `serve`               | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:35`; `--port`, `--host`, `--no-open`, adapter flags                                                                                                     |
+| `open <session>`      | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:37`; open one specific session                                                                                                                          |
+| `map <repo>`          | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:39`; repo citymap without a session                                                                                                                     |
+| `build <repo>`        | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:41`; write citymap JSON                                                                                                                                 |
+| `trace <session>`     | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:43`; write normalized trace JSON                                                                                                                        |
+| `analyze <session>`   | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go`; `--judge`, `--model`, `--no-rubric`. Verified end-to-end for `crush` (valid report with 4 dimensions, findings, and judge model).                     |
+| `sessions`            | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:47`; `--json`, `--harness`, `--limit`                                                                                                                   |
+| `doctor`              | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go`; adapter status, schema checks, `projects.json` validation via `DiagnosticsSource`. Covered by `internal/adapter/crush/diagnostics_test.go` (3 tests). |
+| `version`             | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:51`; build revision, Go version, module version                                                                                                         |
+| `cache clear\|status` | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go`; clears both `agent-graphs/` and `reports/`, reports size in both. `humanBytes` handles B/KB/MB/GB.                                                    |
 
 ## Caching and persistence
 
-| Feature                   | Status                    | Notes                                                                      |
-| ------------------------- | ------------------------- | -------------------------------------------------------------------------- |
-| Trace cache               | 🟢 `FULLY_FUNCTIONAL`     | `server.go`; fingerprint-based, invalidates on content change              |
-| Agent-graph disk cache    | 🟡 `PARTIALLY_FUNCTIONAL` | `~/.mindwalk/agent-graphs/`; versioned, 100 MB eviction. No eviction test. |
-| Crush DB connection cache | 🟢 `FULLY_FUNCTIONAL`     | `crush.Adapter.dbCache`; reuses `*sql.DB` handles across requests          |
-| Report cache              | 🟢 `FULLY_FUNCTIONAL`     | `~/.mindwalk/reports/`; one per session, content-staleness keyed           |
-| Old-schema warning        | 🟢 `FULLY_FUNCTIONAL`     | `crush/sessions.go`; batched summary across multi-DB scans                 |
+| Feature                   | Status                | Notes                                                                          |
+| ------------------------- | --------------------- | ------------------------------------------------------------------------------ |
+| Trace cache               | 🟢 `FULLY_FUNCTIONAL` | `server.go`; fingerprint-based, invalidates on content change                  |
+| Agent-graph disk cache    | 🟢 `FULLY_FUNCTIONAL` | `~/.mindwalk/agent-graphs/`; versioned, 100 MB eviction, eviction path tested. |
+| Crush DB connection cache | 🟢 `FULLY_FUNCTIONAL` | `crush.Adapter.dbCache`; reuses `*sql.DB` handles across requests              |
+| Report cache              | 🟢 `FULLY_FUNCTIONAL` | `~/.mindwalk/reports/`; one per session, content-staleness keyed               |
+| Old-schema warning        | 🟢 `FULLY_FUNCTIONAL` | `crush/sessions.go`; batched summary across multi-DB scans                     |
 
 ## Testing and CI
 

@@ -54,18 +54,20 @@ Nothing partial — the fix is complete and all tests pass.
    the server and driving the UI. I verified the fix with a standalone Go
    snippet (`1781655007` → `2026-06-17T00:10:07Z`) and unit tests, but never
    booted the actual server to visually confirm the session rail shows real
-   dates. This is the highest-confidence verification I skipped.
+   dates. This is the highest-confidence verification I skipped. ← **still open** (low priority; unit tests + standalone snippet prove the conversion).
 
 2. **Dedicated regression test** — I updated existing test helpers to use
    `.Unix()`, but did not add a named test like
    `TestTimestampsAreSecondsNotMillis` that explicitly asserts a known
    second-precision value produces a known RFC3339 date. The existing tests
    pass but don't loudly guard against someone reverting to `.UnixMilli()`.
+   ← **still open → `TODO_LIST.md`** (High Impact item).
 
 3. **Defensive comment in the adapter** — I did not add a code comment at the
    conversion site explaining WHY we use seconds (Crush's schema comment lies;
    the trigger proves seconds). A future maintainer reading Crush's migration
    comment could "fix" it back to milliseconds.
+   ← **still open → `TODO_LIST.md`** (Medium Impact item).
 
 ---
 
@@ -81,7 +83,7 @@ Nothing. The fix is correct, targeted, and fully tested.
 
 1. **Trust the data, not the comment** — The schema said "milliseconds" but
    the trigger said seconds. A 30-second query (`SELECT datetime(created_at,
-   'unixepoch')`) would have caught this during the original adapter
+'unixepoch')`) would have caught this during the original adapter
    implementation. **Always validate assumptions against real data.**
 
 2. **The previous self-review propagated the same myth** — The
@@ -167,7 +169,7 @@ Nothing. The fix is correct, targeted, and fully tested.
 15. **No frontend tests exist** — the TypeScript UI has zero automated tests.
     Every UI change (including timestamp display) is manual-verify-only.
 16. **`make test` requires npm** — the `test` target runs `npm --prefix web
-    run build`, which fails if npm isn't installed. The Go test pass should
+run build`, which fails if npm isn't installed. The Go test pass should
     succeed independently.
 17. **Fixture DB is a black box** — no regeneration script committed for the
     crush fixture database.
@@ -194,3 +196,24 @@ Nothing. The fix is correct, targeted, and fully tested.
    source data is second-precision, sub-second durations are impossible from
    Crush. Other adapters (Claude Code, Codex) may have different precision —
    should we check before deciding?
+
+---
+
+## Resolution (2026-08-04)
+
+The fix shipped in `3f547fc` and is now logged in `CHANGELOG.md`
+`[Unreleased] > Fixed` ("All Crush sessions appeared at the Unix epoch").
+
+- **Section a) — all 6 items done** (no change; the report already records them
+  as complete).
+- **Section c) — see inline markers above.** Items c.2 (regression test) and
+  c.3 (defensive comment) are tracked in `TODO_LIST.md`; c.1 (e2e UI verify)
+  remains low-priority open.
+- **Section e) item 4** (`queryReadFiles` `sqlrowserr` lint) is now tracked in
+  `TODO_LIST.md` (High Impact).
+- **Section f)** is a 50-item brainstorm. The genuinely-open, bounded items
+  (regression test, defensive comment, `queryReadFiles`, `finishData.Time`
+  dead code) are in `TODO_LIST.md`; the rest are deferred or captured in
+  `ROADMAP.md`.
+- **Section g) question 3** is settled: `Mark.Duration` stays `int` seconds —
+  the source data is second-precision, so sub-second resolution is impossible.

@@ -151,18 +151,18 @@ Priority legend: **P0** = high impact / low effort · **P1** = high impact / med
 97. **(P1)** WebGL detection and 2D fallback — if WebGL is unavailable, show a 2D treemap version of the city instead of a blank canvas. Currently there's no graceful degradation.
 98. **(P1)** Map build progress indicator — large repos take seconds to build. Show a progress bar or skeleton. SSE infrastructure exists for the judge; extend it to citymap builds.
 99. **(P2)** Tablet/touch responsive layout — the app sets `min-width: 320px` but the layout is desktop-first. A touch-friendly mode (larger hit targets, gesture controls for the scene) would unlock tablet usage.
-100. **(P2)** Session prefetching — while idle, prefetch the trace data for the next session in the rail so switching feels instant. Currently each switch fetches on demand.
+100.  **(P2)** Session prefetching — while idle, prefetch the trace data for the next session in the rail so switching feels instant. Currently each switch fetches on demand.
 
 ---
 
 ## Summary by Priority
 
-| Priority | Count | Theme |
-|----------|-------|-------|
-| P0       | 22    | Ship first — highest impact, lowest effort |
+| Priority | Count | Theme                                                |
+| -------- | ----- | ---------------------------------------------------- |
+| P0       | 22    | Ship first — highest impact, lowest effort           |
 | P1       | 38    | Core improvements — meaningful impact, moderate work |
-| P2       | 28    | Polish — enhances depth and breadth |
-| P3       | 12    | Ambitious — high effort, transformative potential |
+| P2       | 28    | Polish — enhances depth and breadth                  |
+| P3       | 12    | Ambitious — high effort, transformative potential    |
 
 ## Top 10 to Start With (Highest Impact / Lowest Effort)
 
