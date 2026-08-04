@@ -204,3 +204,19 @@ Nothing. All code compiles, all tests pass, the build is clean.
 2. **Should `Progress` live in `internal/model` instead of `internal/judge`?** It's a wire format consumed by the server and frontend, not a judge-internal concept. Moving it to `model` would match the pattern where `model` "owns the trace, citymap, and report data contracts" (AGENTS.md line 22). But it also couples the model package to a streaming concern.
 
 3. **Should we add a polling fallback?** The old 2.5s polling was removed for the running state, but `EventSource` can fail (proxy stripping, browser support). Should the SSE effect detect connection failure and fall back to the old polling loop, or is SSE reliable enough for a localhost-only server?
+
+---
+
+## Resolution (2026-08-04)
+
+The section B/C gaps shipped in the sprint that followed:
+
+- ~~`schema/progress.schema.json` missing~~ → done (CHANGELOG `[Unreleased] > Added`).
+- ~~CHANGELOG entry missing~~ → done (`[Unreleased] > Added`).
+- ~~SSE heartbeat/keep-alive~~ → done: 15s keep-alive comments (CHANGELOG `[Unreleased] > Added`).
+- ~~`emitProgress` linter warning~~ → false positive; `go build` passes.
+
+The section F 50-item brainstorm: shipped items are in `CHANGELOG.md`
+`[Unreleased]`; open bounded items (`writeSSE` error handling) are in
+`TODO_LIST.md`; SSE reconnection (`Last-Event-ID`) and the go-sse library
+move are in `ROADMAP.md` (theme 3, "Real-time streaming infrastructure").

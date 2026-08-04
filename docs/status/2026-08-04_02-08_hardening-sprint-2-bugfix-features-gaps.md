@@ -223,3 +223,19 @@ The HUD changes (path truncation, smarter warning) TypeScript-check clean but we
 ### 3. The auto-git daemon committed 4 commits during this session, mixing my work with a dedup sprint's changes. Should these be squashed/reorganized before pushing, or is the linear history acceptable?
 
 The commits are: `0dd5cd8` (parseAdapterFlags fix + agent_launch extraction + adapter helper extraction), `f645c62` (doctor diagnostics + disk cache + handlers extraction), `0489681` (cache/version CLI + CI + HUD + docs). Each commit is buildable and testable independently, but the first commit mixes a critical bugfix with unrelated refactoring. Should I reorganize, or leave the history as-is?
+
+---
+
+## Resolution (2026-08-04)
+
+The critical section D gaps all shipped in the sprint that followed:
+
+- ~~No test for `Diagnostics()` / `evictAgentGraphCache` / `humanBytes`~~ → done (CHANGELOG `[Unreleased] > Added`, "Test coverage lockdown").
+- ~~`cacheHome()` duplicates `agentGraphCacheDir()`~~ → consolidated.
+- ~~`clearCache` only clears agent-graphs~~ → fixed: clears reports too (CHANGELOG `[Unreleased] > Fixed`).
+- ~~`humanBytes` doesn't handle GB~~ → fixed (CHANGELOG `[Unreleased] > Fixed`).
+
+The `parseAdapterFlags` bug (discovered here, fixed in the next session) is
+logged in CHANGELOG `[Unreleased] > Fixed`. The section F brainstorm: open
+bounded items (`DiagnosticsSource` for other adapters, `golangci-lint` in CI)
+are in `TODO_LIST.md`; the rest are deferred or in `ROADMAP.md`.

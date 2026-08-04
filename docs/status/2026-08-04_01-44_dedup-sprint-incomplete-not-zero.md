@@ -219,3 +219,15 @@ internal/server/static/assets/*
 cmd/mindwalk/cli_test.go (untracked)
 web/src/* (large frontend diff)
 ```
+
+---
+
+## Resolution (2026-08-04)
+
+The dedup work continued in the `2026-08-04_01-59` session (above): the
+`agentLaunch` → `adapter.AgentLaunch` promotion, `requireGet` extraction,
+`sessionIDFromPath`, and `OpenFile` 3-return signature all shipped. The
+"double-printed usage" and `_ = af` regressions were fixed in later
+sessions. The `TestListSessionsPrintsHeaders` hang was root-caused to the
+`parseAdapterFlags` bug (CHANGELOG `[Unreleased] > Fixed`). Open items
+(`golangci-lint` in CI) are in `TODO_LIST.md`.

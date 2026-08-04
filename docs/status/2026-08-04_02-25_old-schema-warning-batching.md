@@ -204,3 +204,14 @@ Nothing is partially done. All changes are complete and verified.
 2. **Should the old-schema warning go to stderr (current) or stdout?** The current behavior is stderr, which is conventional for warnings. But if users redirect stdout to a file, they won't see the warning. Is that acceptable, or should it be on stdout for `mindwalk serve`?
 
 3. **Should I fix the CHANGELOG regression now and commit, or wait for your review?** The regression is a formatting issue (lost bullet on the `ToolResult` entry). It's a 1-line fix. I can fix it immediately, but you may want to review the full diff first.
+
+---
+
+## Resolution (2026-08-04)
+
+The feature shipped and is logged in `CHANGELOG.md` `[Unreleased] > Changed`
+("Crush old-schema warnings are now batched"). The section D CHANGELOG
+formatting regression was fixed in a later edit (the `adapter.ToolResult`
+bullet was restored). The section F brainstorm: open bounded items are in
+`TODO_LIST.md`; the structured-logging and adapter-health-API ideas are in
+`ROADMAP.md`.

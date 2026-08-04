@@ -101,7 +101,11 @@ The existing `warnIfOldSchema` / `schemaMissingColumns` pattern only prints a wa
 
 **Impact**: Any user with a Crush database from before the `cost` column migration will see `ListSessions`, `Summarize`, and `Parse` all fail with SQL errors. This is a regression — before this change, those queries worked on old DBs.
 
-**Status**: Identified but NOT YET FIXED.
+**Status**: ~~Identified but NOT YET FIXED.~~ **FIXED** — dynamic
+`build*Query()` functions now probe the schema once per handle and
+substitute `0 AS cost` / `0 AS finished_at` when the columns are absent.
+Logged in `CHANGELOG.md` `[Unreleased] > Fixed`. Covered by
+`TestOldSchemaListSessionsDoesNotCrash` + `TestOldSchemaParseDoesNotCrash`.
 
 ### D2: Thinking mark duration uses reasoning part timestamps, not message-level `finished_at`
 
@@ -213,3 +217,21 @@ The existing `warnIfOldSchema` / `schemaMissingColumns` pattern only prints a wa
 2. **Should per-message `finished_at` duration go on `model.Event` (new `Duration` field), or should it enrich thinking/finish marks only?** Putting it on Event makes it visible in the event details panel but adds a field to a hot type; putting it on marks keeps Events lean but limits where duration appears.
 
 3. **The uncommitted working tree has refactoring changes I didn't make (shared adapter types, renamed fields). Should I work around them, or should they be committed/stashed first?** I don't want to commit someone else's in-progress refactoring, but I also can't cleanly separate my backward-compat fix from their changes if they touch the same files.
+
+---
+
+## Resolution (2026-08-04)
+
+Section D1 (backward-compat crash) is corrected inline above as **FIXED**.
+The section B "partially done" items all shipped in the sprint that followed
+(`bed3e8e` → `e4a1c22`):
+
+- ~~`finished_at` scanned but not wired~~ → wired as `model.Mark.Duration` (CHANGELOG `[Unreleased] > Added`).
+- ~~HUD `providerExecuted` warning~~ → fixed (CHANGELOG `[Unreleased] > Fixed`).
+- ~~`model-switch` legend glyph~~ → fixed (CHANGELOG `[Unreleased] > Fixed`).
+
+The section F 50-item brainstorm: shipped items are in `CHANGELOG.md`
+`[Unreleased]`; genuinely-open bounded items (schema-validation test,
+`finishData.Time` dead code, `queryReadFiles` rows.Err) are in
+`TODO_LIST.md`; long-term items are in `ROADMAP.md`. Question 2 is settled
+(duration lives on `Mark`, not `Event`).

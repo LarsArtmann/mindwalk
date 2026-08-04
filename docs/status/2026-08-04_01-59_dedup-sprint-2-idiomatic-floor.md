@@ -201,3 +201,15 @@ internal/server/analyze.go                1 call site: requireGET
 ```
 
 All changes were committed by the auto-git daemon into `0dd5cd8` (01:54) and `f645c62` (01:59).
+
+---
+
+## Resolution (2026-08-04)
+
+~~`AgentLaunchOutput` is dead code~~ → **WIRED**: both codex and crush
+agents now use `adapter.AgentLaunchOutput` (`internal/adapter/agent_launch.go`,
+covered by `internal/adapter/helpers_test.go`). The "unit tests for new
+helpers" gap also shipped (CHANGELOG `[Unreleased] > Added`, "Test coverage
+lockdown" covers `OpenFile`, `ApplyLaunchNickname`, `AgentLaunchOutput`).
+The remaining 9 clone groups are accepted as the idiomatic floor. Open
+items (`golangci-lint`/`staticcheck` in CI) are in `TODO_LIST.md`.
