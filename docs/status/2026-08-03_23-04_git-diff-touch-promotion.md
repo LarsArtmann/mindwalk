@@ -1,5 +1,7 @@
 # Status Report — 2026-08-03 23:04
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 > **Update 2026-08-03 (commit `72f91e2`):** this feature shipped, bundled into
 > the LAN/multi-DB commit. `gitDiffPaths` lives at `adapter.go:883`, wired into
 > all three shell-command paths. The "pre-existing crush build failure" noted

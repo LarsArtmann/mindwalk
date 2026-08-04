@@ -1372,7 +1372,7 @@ func newAgentAPIServer(t *testing.T) (*Server, *agentAPISource) {
 			},
 			Events: events,
 			Marks:  []model.Mark{},
-			Stats:  model.ComputeStats(&model.Trace{Events: events}, 1, model.ObservabilityExact, ""),
+			Stats:  model.ComputeStats(&model.Trace{Events: events}, 1, model.ObservabilitySignals{Errors: model.ObservabilityExact}),
 		}
 	}
 	zeroMeta := metas[filepath.Clean(paths["child-zero"])]
@@ -1387,7 +1387,7 @@ func newAgentAPIServer(t *testing.T) (*Server, *agentAPISource) {
 		},
 		Events: []model.Event{},
 		Marks:  []model.Mark{},
-		Stats:  model.ComputeStats(&model.Trace{Events: []model.Event{}}, 1, model.ObservabilityExact, ""),
+		Stats:  model.ComputeStats(&model.Trace{Events: []model.Event{}}, 1, model.ObservabilitySignals{Errors: model.ObservabilityExact}),
 	}
 	graphs := map[string]*model.AgentGraph{
 		"root-a": {

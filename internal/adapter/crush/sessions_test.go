@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -433,5 +434,49 @@ func TestReportOldSchemaSummaryMultiple(t *testing.T) {
 	want := "mindwalk: warning: 4 Crush databases have an old schema (missing parent_session_id); upgrade Crush to get full trace coverage (e.g. /tmp/a/crush.db, /tmp/b/crush.db, /tmp/c/crush.db, ...)\n"
 	if out != want {
 		t.Fatalf("unexpected summary output:\n got: %q\nwant: %q", out, want)
+	}
+}
+
+// TestTimestampsAreSecondsNotMillis guards against the regression fixed
+// in 3f547fc: Crush stores timestamps as Unix seconds, but the adapter
+// previously passed them to time.UnixMilli, sending every date to 1970.
+func TestTimestampsAreSecondsNotMillis(t *testing.T) {
+	known := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	got := secondsToRFC3339(known)
+	if !strings.HasPrefix(got, "2026-") {
+		t.Fatalf("secondsToRFC3339(%d) = %q, want a 2026- date (if this shows 1970-, the value is being treated as milliseconds — see 3f547fc)", known, got)
+	}
+	bad := time.UnixMilli(known).UTC().Format(time.RFC3339Nano)
+	if strings.HasPrefix(bad, "2026-") {
+		t.Fatalf("test invariant broken: %d via UnixMilli should land in 1970, got %q", known, bad)
+	}
+}
+
+// TestTimestampsSecondsEndToEnd verifies that a session row carrying a
+// known seconds timestamp surfaces as the correct date through the
+// adapter's ListSessions path, not as a 1970 date.
+func TestTimestampsSecondsEndToEnd(t *testing.T) {
+	ts := time.Date(2026, 6, 15, 12, 0, 0, 0, time.UTC).Unix()
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "crush.db")
+	createCrushDBAt(t, dbPath, func(db *sql.DB) {
+		_, err := db.Exec(
+			`INSERT INTO sessions (id, title, message_count, updated_at, created_at) VALUES (?, ?, 0, ?, ?)`,
+			"ts-e2e", "timestamp test", ts, ts,
+		)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	a := NewAdapter(dir)
+	metas, err := a.ListSessions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(metas) != 1 {
+		t.Fatalf("expected 1 session, got %d", len(metas))
+	}
+	if !strings.HasPrefix(metas[0].StartedAt, "2026-06-15") {
+		t.Fatalf("StartedAt = %q, want a 2026-06-15 date (timestamp decoded as milliseconds, not seconds — see 3f547fc)", metas[0].StartedAt)
 	}
 }

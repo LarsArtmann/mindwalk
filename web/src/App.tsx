@@ -38,6 +38,7 @@ import { sessionVisible } from "./state/filters";
 import { useAppStore } from "./state/store";
 import { Hud } from "./ui/Hud";
 import { Inspector } from "./ui/Inspector";
+import { Minimap } from "./ui/Minimap";
 import { SessionRail } from "./ui/SessionRail";
 import { toggleRailShortcut } from "./ui/shortcuts";
 import { Timeline } from "./ui/Timeline";
@@ -106,6 +107,7 @@ export default function App() {
   const [openPop, setOpenPop] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [cheatOpen, setCheatOpen] = useState(false);
+  const [heatMode, setHeatMode] = useState(false);
   const [reportStatus, setReportStatus] = useState<ReportStatus | undefined>();
   const [judgeProgress, setJudgeProgress] = useState<JudgeProgress[]>([]);
   const [agentGraph, setAgentGraph] = useState<AgentGraph | undefined>();
@@ -791,6 +793,18 @@ export default function App() {
         ? "height ∝ depth × revisits"
         : "height ∝ lines";
 
+  const editCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (!trace) return counts;
+    for (const ev of trace.events) {
+      if (ev.action !== "edit") continue;
+      for (const t of ev.targets) {
+        counts.set(t.path, (counts.get(t.path) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [trace]);
+
   const engine = useMemo(() => new PlaybackEngine(trace, city), [trace, city]);
   const playback = useMemo(() => engine.snapshotAt(currentSeq), [engine, currentSeq]);
   // live tallies for the HUD spectrum; touchByPath mirrors the backend stats scope
@@ -902,6 +916,16 @@ export default function App() {
               locHeights={mapOnly}
             />
           )}
+          {city && hasWebGL() && !hudHidden ? (
+            <Minimap
+              city={city}
+              playback={playback}
+              selectedPath={selectedPath}
+              onSelect={selectFile}
+              heatMode={heatMode}
+              editCounts={editCounts}
+            />
+          ) : null}
           {!hudHidden ? (
             <Hud
               trace={trace}
@@ -931,6 +955,8 @@ export default function App() {
                       onViewChange={setView}
                       note={viewNote}
                       locked={exporting}
+                      heatMode={heatMode}
+                      onHeatModeChange={setHeatMode}
                     />
                   ),
                 },
@@ -950,6 +976,8 @@ export default function App() {
                       onClose={closeSheet}
                       onJumpTo={jumpToHistory}
                       locked={exporting}
+                      currentSeq={currentSeq}
+                      total={trace?.events.length ?? 0}
                     />
                   ),
                 },

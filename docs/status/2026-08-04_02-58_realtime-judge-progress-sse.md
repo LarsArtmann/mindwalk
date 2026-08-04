@@ -1,5 +1,7 @@
 # Status Report: Real-Time Judge Progress via SSE
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-04 02:58  
 **Session goal:** Add real-time user feedback to the evaluation/judging flow using Server-Sent Events.
 

@@ -1,9 +1,16 @@
-import { Eye, EyeOff, FolderOpen, PanelLeftClose, RefreshCw, Search } from "lucide-react";
+import { ArrowDownUp, Eye, EyeOff, FolderOpen, PanelLeftClose, RefreshCw, Search } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sessionVisible } from "../state/filters";
 import { LogoMark } from "./LogoMark";
 import { toggleRailShortcut } from "./shortcuts";
 import type { SessionMeta } from "../types";
+
+type SortKey = "newest" | "oldest" | "events" | "cost";
+
+interface SessionGroup {
+  label: string;
+  sessions: SessionMeta[];
+}
 
 interface SessionRailProps {
   sessions: SessionMeta[];
@@ -52,13 +59,21 @@ export const SessionRail = memo(function SessionRail({
   const [repoPath, setRepoPath] = useState("");
   const [mapOpen, setMapOpen] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [sortBy, setSortBy] = useState(() => {
+  const [sortBy, setSortByState] = useState<SortKey>(() => {
     try {
       return (localStorage.getItem("mindwalk.sortBy") as SortKey) || "newest";
     } catch {
-      return "newest" as SortKey;
+      return "newest";
     }
   });
+  const setSortBy = useCallback((key: SortKey) => {
+    setSortByState(key);
+    try {
+      localStorage.setItem("mindwalk.sortBy", key);
+    } catch {
+      /* localStorage may be unavailable */
+    }
+  }, []);
   const mapPopRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -209,6 +224,19 @@ export const SessionRail = memo(function SessionRail({
             onChange={(e) => setQuery(e.currentTarget.value)}
             aria-label="Filter sessions"
           />
+        </label>
+        <label className="rail-sort" title="Sort sessions">
+          <ArrowDownUp size={13} aria-hidden />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.currentTarget.value as SortKey)}
+            aria-label="Sort sessions"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="events">Most events</option>
+            <option value="cost">Highest cost</option>
+          </select>
         </label>
         {harnesses.length > 1 || emptyCount > 0 ? (
           <div className="rail-chips" role="group" aria-label="Session filters">
@@ -387,6 +415,34 @@ function relativeTime(iso: string): string {
   const week = Math.floor(day / 7);
   if (week < 5) return `${week}w ago`;
   return shortDate(iso);
+}
+
+function sortSessions(sessions: SessionMeta[], key: SortKey): SessionMeta[] {
+  const sorted = [...sessions];
+  switch (key) {
+    case "newest":
+      return sorted.sort(
+        (a, b) =>
+          timeOrZero(b.endedAt ?? b.startedAt) - timeOrZero(a.endedAt ?? a.startedAt),
+      );
+    case "oldest":
+      return sorted.sort(
+        (a, b) =>
+          timeOrZero(a.endedAt ?? a.startedAt) - timeOrZero(b.endedAt ?? b.startedAt),
+      );
+    case "events":
+      return sorted.sort((a, b) => b.eventCount - a.eventCount);
+    case "cost":
+      return sorted.sort((a, b) => (b.cost ?? 0) - (a.cost ?? 0));
+    default:
+      return sorted;
+  }
+}
+
+function timeOrZero(iso?: string): number {
+  if (!iso) return 0;
+  const t = new Date(iso).getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
 function groupSessionsByDate(sessions: SessionMeta[]): SessionGroup[] {

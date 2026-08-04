@@ -50,6 +50,56 @@ type DiagnosticsSource interface {
 	Diagnostics() []DiagnosticCheck
 }
 
+// FilesystemDiagnostics builds standard health checks for a
+// filesystem-based adapter: the data directory exists and is readable,
+// and a count of session files matching suffix. Adapters call it from
+// their Diagnostics() method and may append adapter-specific checks.
+func FilesystemDiagnostics(dir, suffix string) []DiagnosticCheck {
+	var checks []DiagnosticCheck
+	if dir == "" {
+		checks = append(checks, DiagnosticCheck{
+			Name:   "data-dir",
+			Status: "error",
+			Detail: "no data directory configured",
+		})
+		return checks
+	}
+	if !ReadableDir(dir) {
+		checks = append(checks, DiagnosticCheck{
+			Name:   "data-dir",
+			Status: "warn",
+			Detail: fmt.Sprintf("directory %s does not exist or is not readable", dir),
+		})
+		return checks
+	}
+	checks = append(checks, DiagnosticCheck{
+		Name:   "data-dir",
+		Status: "ok",
+		Detail: dir,
+	})
+	count := countFilesBySuffix(dir, suffix)
+	checks = append(checks, DiagnosticCheck{
+		Name:   "session-files",
+		Status: "ok",
+		Detail: fmt.Sprintf("%d %s file(s) found", count, suffix),
+	})
+	return checks
+}
+
+func countFilesBySuffix(dir, suffix string) int {
+	count := 0
+	_ = filepath.WalkDir(dir, func(_ string, entry os.DirEntry, err error) error {
+		if err != nil || entry.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(entry.Name(), suffix) {
+			count++
+		}
+		return nil
+	})
+	return count
+}
+
 type AgentGraphSource interface {
 	AgentGraphInputs(root model.SessionMeta, catalog []model.SessionMeta) ([]string, error)
 	BuildAgentGraph(root model.SessionMeta, catalog []model.SessionMeta) (*model.AgentGraph, error)
@@ -1018,7 +1068,13 @@ func gitDiffTargets(text string) []diffTarget {
 	seen := map[string]int{} // path → index into result
 	var result []diffTarget
 	var currentPath string
-	hasDiffGit := false
+	// currentHasDiffGit tracks whether the current file section was
+	// introduced by a diff --git header. When true, the +++ fallback
+	// for the same section is suppressed. When a new section starts
+	// (via --- or a new diff --git), the flag resets. This prevents
+	// a single diff --git from suppressing +++ headers for unrelated
+	// headerless files later in the same output.
+	currentHasDiffGit := false
 
 	ensure := func(path string) {
 		path = strings.TrimSpace(path)
@@ -1034,26 +1090,32 @@ func gitDiffTargets(text string) []diffTarget {
 
 	for raw := range strings.SplitSeq(text, "\n") {
 		if m := gitDiffHeaderRe.FindStringSubmatch(raw); m != nil {
-			hasDiffGit = true
+			currentHasDiffGit = true
 			currentPath = strings.TrimSpace(m[1])
 			ensure(currentPath)
 			continue
 		}
 		if m := gitDiffHeaderQuotedRe.FindStringSubmatch(raw); m != nil {
-			hasDiffGit = true
+			currentHasDiffGit = true
 			currentPath = strings.TrimSpace(m[1])
 			ensure(currentPath)
 			continue
 		}
+		// A --- line starts a new file section in headerless diffs.
+		// Reset the per-file flag so the following +++ is honoured.
+		if strings.HasPrefix(raw, "--- ") {
+			currentHasDiffGit = false
+			continue
+		}
 		if m := gitDiffPlusRe.FindStringSubmatch(raw); m != nil {
-			if !hasDiffGit {
+			if !currentHasDiffGit {
 				currentPath = strings.TrimSpace(m[1])
 				ensure(currentPath)
 			}
 			continue
 		}
 		if m := gitDiffPlusQuotedRe.FindStringSubmatch(raw); m != nil {
-			if !hasDiffGit {
+			if !currentHasDiffGit {
 				currentPath = strings.TrimSpace(m[1])
 				ensure(currentPath)
 			}

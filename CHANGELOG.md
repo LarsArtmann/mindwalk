@@ -158,8 +158,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - **Test coverage lockdown** — new tests for `evictAgentGraphCache` (LRU
     eviction path), `crush.Adapter.Diagnostics()` (schema/data-dir checks),
     `adapter.OpenFile` (3-return contract), and `humanBytes` (B/KB/MB/GB).
+  - **Frontend: event summary card** — the timeline now shows the current
+    event's tool, action, and summary so users always know what the agent is
+    doing (`EventSummary.tsx`).
+  - **Frontend: command palette** — Cmd+K opens a quick-navigation palette
+    for jumping to events, files, and views (`CommandPalette.tsx`).
+  - **Frontend: cheat sheet** — a keyboard-shortcut reference overlay
+    accessible via `?` (`CheatSheet.tsx`).
+  - **Frontend: event list** — a scrollable, filterable event log with
+    click-to-jump (`EventList.tsx`).
+  - **Frontend: coverage gauge** — an animated percentage ring in the HUD
+    showing explored-file coverage (`CoverageGauge` in `Hud.tsx`).
+  - **Frontend: virtualized session rail** — native `content-visibility: auto`
+    keeps the session rail smooth with hundreds of sessions.
+  - **Frontend: date-grouped session rail** — sessions are grouped by date
+    with sticky headers for quick scanning.
+  - **Frontend: sortable session rail** — click column headers to sort by
+    time, tokens, or cost.
+  - **Frontend: WebGL 2D fallback** — when WebGL is unavailable, a
+    canvas-based 2D treemap renders instead of a blank canvas
+    (`Treemap2D.tsx` with `hasWebGL` detection).
+  - **DiagnosticsSource on all adapters** — claudecode, codex, and pi
+    adapters now implement `Diagnostics()` so the `doctor` command covers
+    all four adapters, not just crush. Shared `FilesystemDiagnostics`
+    helper in the adapter package.
+  - **ObservabilitySignals struct** — `ComputeStats` now takes an
+    `ObservabilitySignals` struct instead of positional `errorSignal`/
+    `readsSignal` string parameters, preventing parameter explosion as
+    more signals are added.
+  - **golangci-lint in CI** — `.golangci.yml` config and
+    `golangci-lint-action` step added to the CI workflow.
+  - **SSE Last-Event-ID reconnection** — progress events now carry `id:`
+    lines and the handler honors the `Last-Event-ID` header, so a dropped
+    connection resumes from where it left off instead of replaying from
+    the beginning.
+  - **Fixture builder script** — `testdata/crush/build.go` regenerates the
+    committed `crush.db` from scratch with proper second-based timestamps,
+    replacing the previous black-box fixture.
+  - **Schema-validation tests** — `internal/model/schema_test.go` validates
+    all Go types against `schema/*.json`; `internal/judge/progress_schema_test.go`
+    covers the progress schema. Catches Go↔JSON schema drift at test time.
+  - **Property-based tests** — `testing/quick` tests for `normalizePath`
+    idempotency, citymap determinism, and `truncateNote` bounds.
+  - **Fuzz tests** — `testing.F` fuzz targets for `gitDiffTargets`,
+    `decodeParts`, and `splitAgentID` — random input must never panic.
+  - **Stress tests** — `TestListSessionsLargeDatabase` (500 sessions) and
+    `TestParseLargeMessageHistory` (1000 messages) verify the adapter
+    handles volume without errors. `BenchmarkListSessionsLargeDB` measures
+    performance with 2000 sessions.
+  - **cmd/rubriceval tests** — 13 tests covering pure functions (`taskRunes`,
+    `stats`, `writeJSON`, `printSummary`, `timingRunner`) bringing coverage
+    from 0.0% to 45.8%.
+  - **Timestamp regression test** — `TestTimestampsAreSecondsNotMillis` and
+    `TestTimestampsSecondsEndToEnd` guard against reverting the seconds-vs-millis
+    fix (`3f547fc`).
 
 ### Fixed
+
+- **`queryReadFiles` swallowed SQLite errors** — the `rows.Next()` loop
+  had no final `rows.Err()` check, so partial query results from a
+  corrupted database could be silently used. Now returns nil on error.
+- **`writeSSE` ignored broken-pipe errors** — `fmt.Fprintf` return values
+  were unchecked; a disconnected client would silently spin the handler.
+  Now returns immediately on write error.
+- **`gitDiffTargets` global `hasDiffGit` flag** — a single boolean
+  suppressed `+++` fallback headers for ALL files once any `diff --git`
+  appeared. Mixed diffs (some with headers, some without) lost headerless
+  files. Now tracks per-file-section state via `currentHasDiffGit`.
+- **Dead `finishData.Time` field** — decoded from JSON but never read.
+  Removed to prevent misleading readers.
+- **`gopls sqlrowserr` warning** — the only remaining lint warning in the
+  project (`sessions.go:914`) is now resolved by the `rows.Err()` fix above.
 
 - **Critical: `parseAdapterFlags` ignored all adapter flags** — the
   function dereferenced `*fs.String()`/`*fs.Bool()` pointers BEFORE

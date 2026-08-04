@@ -1,5 +1,7 @@
 # Status: Docs Health + Update-Old-Docs Pass — Brutally Honest Review
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-03 23:34
 **Session scope:** Run the `update-old-docs` and `docs-health` skills across all `2026-08-*` historical files, then build/maintain the living docs (especially `TODO_LIST.md` and `ROADMAP.md`).
 **Verdict:** The work is real and shipped, but I made avoidable mistakes that the skills exist to prevent. Read on.

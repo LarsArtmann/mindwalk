@@ -3,7 +3,6 @@ import { useEffect, useRef } from "react";
 
 interface CheatSheetProps {
   onClose: () => void;
-  onReplayTour?: () => void;
 }
 
 interface ShortcutEntry {
@@ -45,7 +44,7 @@ const SHORTCUTS: { group: string; entries: ShortcutEntry[] }[] = [
   },
 ];
 
-export function CheatSheet({ onClose, onReplayTour }: CheatSheetProps) {
+export function CheatSheet({ onClose }: CheatSheetProps) {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -89,13 +88,6 @@ export function CheatSheet({ onClose, onReplayTour }: CheatSheetProps) {
             </div>
           ))}
         </div>
-        {onReplayTour ? (
-          <div className="cheat-foot">
-            <button className="cheat-replay" onClick={onReplayTour}>
-              Replay guided tour
-            </button>
-          </div>
-        ) : null}
       </div>
     </div>
   );

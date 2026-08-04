@@ -1,5 +1,7 @@
 # Status: Crush adapter hardening — DONE, live-verified, ready to push
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-03 22:06
 **Author:** Crush (with user prompt as scope)
 **Scope of this run:** Continue the Crush adapter work from the previous session. The adapter landed in `0ba1f79` but had thin test coverage, a cross-message tool-call/result pairing bug, and 30+ open follow-up tasks. This session executed the Pareto backlog: tests, fixture, refactor, docs, CLI flags, and live verification.

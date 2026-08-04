@@ -332,6 +332,11 @@ export function CityScene({
         firefly.scale.setScalar(base * pulse);
       }
       renderer.render(scene, camera);
+      window.dispatchEvent(
+        new CustomEvent("mindwalk:camera-state", {
+          detail: { tx: controls.target.x, tz: controls.target.z, dist: camera.position.distanceTo(controls.target) },
+        }),
+      );
       frameRef.current = requestAnimationFrame(render);
     };
     render();

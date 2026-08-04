@@ -33,6 +33,42 @@ The read-only open path is `mode=ro&_txlock=immediate` via
 migrations and acquires a process-wide advisory lock; mindwalk
 intentionally bypasses both because it only reads.
 
+## Multi-database discovery
+
+When no `--crush-dir` is set, the adapter does not stop at a single
+directory. Instead it reads Crush's `~/.local/share/crush/projects.json`
+registry — a JSON file mapping project paths to their database locations —
+and queries **every** project's `crush.db`, merging all sessions into one
+unified catalog. This is the default mode when `mindwalk serve` runs without
+adapter flags.
+
+Key internals:
+
+- **`enumerateDBPaths()`** (`sessions.go`) walks `projects.json` and returns
+  every known database path. It also includes the global `crush.db` if
+  present.
+- **`sessionDBIndex`** (a per-Adapter `sync.Map`) routes each session id to
+  its source database so `Parse`/`Summarize` open the correct file. Without
+  this index, a session id alone would not tell the adapter which project
+  database to read.
+- **`openDBForPath()`** opens the right database in read-only mode, using the
+  index for routing.
+- **`projectPathForDB()`** derives the project working directory from the
+  database path (via `projects.json`, then path inference) and stamps
+  `trace.Session.Cwd` so absolute tool-call paths relativize correctly.
+- The server's `scanSessions` short-circuits the directory walk for adapters
+  whose paths are not real files.
+- `fingerprintPath` synthesises a stable zero fingerprint for `crush://`
+  paths so the trace cache still works.
+
+The `doctor` command runs deeper health checks via the `DiagnosticsSource`
+interface: data-dir readability, `projects.json` validity, and schema column
+coverage across all discovered databases.
+
+Old-schema warnings are batched across databases: when multiple project DBs
+are missing expected columns, all notices collapse into a single summary
+line instead of one per database.
+
 ## Synthetic session path
 
 Sessions don't live on the filesystem — they live as rows in
@@ -153,25 +189,29 @@ tagged with a `LinkQuality` field. Crush supports all three:
 `testdata/crush/crush.db` is a tiny committed SQLite database
 that drives the Crush end-to-end tests. It contains:
 
-- One root session (`fixture-root`) with three messages: a user
-  prompt with `finish/stop`, an assistant turn with a single
-  `agent` tool call, and the matching tool result.
+- One root session (`fixture-root`) with ten messages across two user turns:
+  user prompts with `finish/stop`, assistant turns with `agent`/`read`/`write`/`bash`
+  tool calls, matching tool results, and non-zero token/cost values.
 - One sub-agent session (`m_assistant_1$$call_agent_1`) whose
   `parent_session_id` is the root.
+- A `read_files` table so the exact-read observability path is exercised.
 
-The fixture is generated from a small in-tree helper that is
-deleted after generation; the seed data lives in the test file
-itself and can be reconstructed from the `insertSession` /
-`insertMessage` calls. To regenerate after a schema change:
+The fixture is regenerated via a builder script:
 
-1. Add a new `cmd/gencrushfixture` that seeds the schema and
-   rows.
-2. `go run ./cmd/gencrushfixture`
-3. `rm -rf cmd/gencrushfixture`
-4. `git add testdata/crush/crush.db`
-5. Update the affected test expectations in
-   `internal/adapter/crush/fixture_test.go` and
-   `internal/server/server_test.go`.
+```bash
+go run testdata/crush/build.go
+```
+
+The builder (`testdata/crush/build.go`, `//go:build ignore` tag) recreates
+the database from scratch with the schema, sessions, messages, and
+`read_files` rows. Timestamps are Unix **seconds** (not milliseconds) —
+consistent with the adapter's `secondsToRFC3339` decoder (`3f547fc`).
+
+After regenerating, verify the fixture tests still pass:
+
+```bash
+go test ./internal/adapter/crush/... ./internal/server/...
+```
 
 ## Disabling the adapter
 

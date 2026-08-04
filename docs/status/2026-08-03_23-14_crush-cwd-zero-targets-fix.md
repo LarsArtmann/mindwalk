@@ -1,5 +1,7 @@
 # Status: Crush Cwd Fix — Zero Targets / All-Unvisited Bug
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-03 23:14  
 **Session scope:** Single bug investigation and fix  
 **Commit:** `72f91e2` (auto-committed alongside pre-existing staged work)

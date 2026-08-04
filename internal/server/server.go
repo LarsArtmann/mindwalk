@@ -1145,7 +1145,7 @@ func (s *Server) loadTraceAndMap(meta model.SessionMeta) (*model.Trace, *model.C
 	}
 	// Recompute with the citymap's file count, carrying over the adapter's
 	// grade for its error signal — the recount cannot re-derive it.
-	trace.Stats = model.ComputeStats(trace, repoFileCount(city), trace.Stats.Observability.Errors, "")
+	trace.Stats = model.ComputeStats(trace, repoFileCount(city), model.ObservabilitySignals{Errors: trace.Stats.Observability.Errors})
 	return trace, city, nil
 }
 
@@ -1330,7 +1330,7 @@ func traceAgainstCity(trace *model.Trace, city *model.CityMap) *model.Trace {
 	}
 	clone.Marks = append([]model.Mark{}, trace.Marks...)
 	assignFileIDs(&clone, city)
-	clone.Stats = model.ComputeStats(&clone, repoFileCount(city), trace.Stats.Observability.Errors, "")
+	clone.Stats = model.ComputeStats(&clone, repoFileCount(city), model.ObservabilitySignals{Errors: trace.Stats.Observability.Errors})
 	return &clone
 }
 

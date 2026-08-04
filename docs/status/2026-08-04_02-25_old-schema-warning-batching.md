@@ -1,5 +1,7 @@
 # Status Report: Old-Schema Warning Noise Reduction
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-04 02:25
 **Session goal:** Answer "Is this safe?" about the 200+ old-schema warnings flooding the terminal on `mindwalk serve`, then fix the noise problem.
 **Outcome:** Confirmed safe (read-only adapter, no writes, no data loss risk). Batched 222 per-database warnings into a single summary line. All tests green with `-race`, `go vet` clean. One unintended CHANGELOG formatting regression introduced.

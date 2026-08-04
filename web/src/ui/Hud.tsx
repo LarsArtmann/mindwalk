@@ -145,7 +145,7 @@ export const Hud = memo(function Hud({
           <>
             {/* the spectrum doubles as scene legend and live tally: each entry is
                 a touch state, counted at the playhead → across the whole walk */}
-            <div className="spectrum">
+            <div className="spectrum" data-hint="Coverage spectrum: each color is a touch state. Counts update live at the playhead. Hover any entry for details.">
               <SpectrumStat
                 kind="edit"
                 label="edited"

@@ -1,5 +1,7 @@
 # Status: Crush adapter hardening — round 2 (bug fixes, cleanup, endpoint)
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-03 22:28
 **Author:** Crush (glm-5.2)
 **Scope:** The user said "READ, UNDERSTAND, RESEARCH, REFLECT" and pointed me at the previous session's handoff context. I executed the P0 items (gofmt, .gitignore, test pass) and then tackled P1 items from the previous status report's backlog: the `ToolResult.ToolCallID` design refactor, a full server audit for `crush://` path assumptions, the `/api/adapters` endpoint, the `findSession` bare-id investigation, and SQLite parse benchmarks.

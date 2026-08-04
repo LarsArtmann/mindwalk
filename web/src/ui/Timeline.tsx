@@ -3,6 +3,7 @@ import {
   Loader,
   Pause,
   Play,
+  Repeat,
   RotateCcw,
   StepBack,
   StepForward,
@@ -67,6 +68,7 @@ export function Timeline({
 }: TimelineProps) {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<Speed>(1);
+  const [looping, setLooping] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [zoomStart, setZoomStart] = useState(0);
   const [zoomEnd, setZoomEnd] = useState(1);
@@ -88,6 +90,7 @@ export function Timeline({
     setPlaying(false);
     setZoomStart(0);
     setZoomEnd(1);
+    setLooping(false);
   }, [trace]);
 
   // while a video export is recording, the recorder owns the playhead — force
@@ -111,13 +114,25 @@ export function Timeline({
     const step = Math.max(1, Math.round((speed * interval) / BASE_TICK_MS));
     const timer = window.setInterval(() => {
       if (seqRef.current >= maxRef.current) {
+        if (looping) {
+          const loopFrom = zoomStart > 0.001 ? Math.round(zoomStart * maxRef.current) : 0;
+          onChange(loopFrom);
+          return;
+        }
         setPlaying(false);
         return;
       }
-      onChange(Math.min(seqRef.current + step, maxRef.current));
+      const loopTo = zoomEnd < 0.999 ? Math.min(maxRef.current, Math.round(zoomEnd * maxRef.current)) : maxRef.current;
+      const next = seqRef.current + step;
+      if (next > loopTo && looping) {
+        const loopFrom = zoomStart > 0.001 ? Math.round(zoomStart * maxRef.current) : 0;
+        onChange(loopFrom);
+        return;
+      }
+      onChange(Math.min(next, maxRef.current));
     }, interval);
     return () => window.clearInterval(timer);
-  }, [playing, speed, total, onChange, exporting]);
+  }, [playing, speed, total, onChange, exporting, looping, zoomStart, zoomEnd, max]);
 
   const togglePlay = useCallback(() => {
     if (!playingRef.current && seqRef.current >= maxRef.current) onChange(0);
@@ -423,7 +438,7 @@ export function Timeline({
           />
         </div>
 
-        <div className="deck-pos">
+        <div className="deck-pos" data-hint="Event position and wall-clock timestamp at the playhead">
           {/* reserve the widest count for this session ("599 / 599") so the
               ticking digits never resize the strip beside them */}
           <span
@@ -482,6 +497,29 @@ export function Timeline({
             aria-label={isZoomed ? "Reset zoom" : "Zoom out of timeline"}
           >
             <ZoomOut size={15} />
+          </button>
+          <div className="transport-speed-chips" role="group" aria-label="Playback speed">
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                className={s === speed ? "speed-chip active" : "speed-chip"}
+                onClick={() => setSpeed(s)}
+                aria-pressed={s === speed}
+                aria-label={`${s}x speed`}
+              >
+                {s}×
+              </button>
+            ))}
+          </div>
+          <button
+            className={looping ? "icon-btn active" : "icon-btn"}
+            onClick={() => setLooping((v) => !v)}
+            disabled={locked}
+            title={looping ? "Loop on (wraps within zoom range)" : "Loop off"}
+            aria-label={looping ? "Disable loop playback" : "Enable loop playback"}
+            aria-pressed={looping}
+          >
+            <Repeat size={15} />
           </button>
           <div className="transport-more" ref={menuRef}>
             {/* the trigger doubles as status: recording spinner while an export

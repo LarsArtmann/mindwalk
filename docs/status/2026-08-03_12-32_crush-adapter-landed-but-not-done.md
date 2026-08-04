@@ -1,5 +1,7 @@
 # Status: Crush adapter landed — but the job is not done
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-03 12:32
 **Author:** Crush (with user prompt as scope)
 **Scope of this run:** Add a `crush` (charmbracelet/crush) session adapter so Crush users can visualise their sessions alongside Claude Code and Codex.

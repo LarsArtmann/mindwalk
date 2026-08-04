@@ -59,7 +59,6 @@ type toolResultData struct {
 // without warning on a minor schema bump.
 type finishData struct {
 	Reason  string `json:"reason"`
-	Time    int64  `json:"time"`
 	Message string `json:"message,omitempty"`
 	Details string `json:"details,omitempty"`
 }

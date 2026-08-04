@@ -454,6 +454,28 @@ func TestGitDiffTargetsPlusPlusFallback(t *testing.T) {
 	}
 }
 
+func TestGitDiffTargetsMixedHeadersAndFallback(t *testing.T) {
+	diff := "diff --git a/main.go b/main.go\n" +
+		"--- a/main.go\n" +
+		"+++ b/main.go\n" +
+		"@@ -1,3 +1,4 @@\n" +
+		"+added\n" +
+		"--- a/legacy.go\n" +
+		"+++ b/legacy.go\n" +
+		"@@ -1,3 +1,4 @@\n" +
+		"+legacy\n"
+	got := diffTargetPaths(gitDiffTargets(diff))
+	want := []string{"legacy.go", "main.go"}
+	if len(got) != 2 {
+		t.Fatalf("gitDiffTargets = %#v, want %#v (headerless file should not be suppressed by earlier diff --git)", got, want)
+	}
+	for i, p := range want {
+		if got[i] != p {
+			t.Fatalf("got[%d] = %q, want %q", i, got[i], p)
+		}
+	}
+}
+
 func TestGitDiffTargetsHunkLineRanges(t *testing.T) {
 	diff := "diff --git a/main.go b/main.go\n" +
 		"--- a/main.go\n" +

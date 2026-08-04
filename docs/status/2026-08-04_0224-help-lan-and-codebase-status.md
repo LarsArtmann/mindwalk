@@ -1,5 +1,7 @@
 # Status Report — 2026-08-04 02:24 CEST
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Session focus:** User asked whether the `mindwalk` CLI help was "superb" and how to expose the server on the LAN. This report captures what was done in this session and what was noticed about the codebase.
 
 ---

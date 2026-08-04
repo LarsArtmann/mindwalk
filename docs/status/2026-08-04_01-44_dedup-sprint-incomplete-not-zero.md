@@ -1,5 +1,7 @@
 # Status: Deduplication Sprint — art-dupl -t 2
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-04 01:44 CEST
 **Session scope:** Run `art-dupl --type-aware --sort total-tokens -t 2`, view results, deduplicate to zero, verify with tests.
 **Result:** Clone groups reduced **17 → 12**, NOT zero. Stopped early with "acceptable" rationalization.

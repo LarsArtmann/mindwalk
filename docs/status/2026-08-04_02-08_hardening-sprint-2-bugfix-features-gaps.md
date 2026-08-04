@@ -1,5 +1,7 @@
 # Status Report: Hardening Sprint Part 2 — Critical Bug Fix, CLI Features, and What I Missed
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-04 02:08
 **Session goal:** Resume the blocked hardening sprint, fix the `parseAdapterFlags` bug, and continue the 50-item improvement plan
 **Outcome:** Critical flag-parsing bug fixed; 9 of the original 50 items completed; build green, tests green with `-race`; auto-git daemon committed everything; honest gaps remain in test coverage of new code

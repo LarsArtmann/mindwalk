@@ -248,6 +248,28 @@ dd {
   outline: none;
 }
 
+.rail-sort {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--faint);
+}
+
+.rail-sort select {
+  border: 1px solid var(--hairline-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.rail-sort select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .rail-chips {
   display: flex;
   flex-wrap: wrap;
@@ -991,6 +1013,20 @@ dd {
   text-transform: uppercase;
 }
 
+.visit-sparkline {
+  width: 100%;
+  height: 16px;
+  margin-bottom: 10px;
+  overflow: visible;
+}
+
+.spark-dot.spark-search { fill: var(--act-search); }
+.spark-dot.spark-read { fill: var(--act-read); }
+.spark-dot.spark-edit { fill: var(--act-edit); }
+.spark-dot.spark-verify { fill: var(--act-verify); }
+.spark-dot.spark-exec { fill: var(--act-exec); }
+.spark-dot.spark-other { fill: var(--muted); }
+
 .history-list {
   display: grid;
 }
@@ -1133,6 +1169,40 @@ dd {
 
 .icon-btn.recording {
   color: var(--warm, #e0a458);
+}
+
+.icon-btn.active {
+  color: var(--moss);
+  background: var(--panel-raised);
+}
+
+.transport-speed-chips {
+  display: flex;
+  gap: 2px;
+  margin: 0 4px;
+}
+
+.speed-chip {
+  min-width: 28px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 560;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-chip:hover {
+  color: var(--ink);
+  background: var(--panel);
+}
+
+.speed-chip.active {
+  color: oklch(0.95 0.02 88);
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px var(--hairline-strong);
 }
 
 .spin {
@@ -3104,6 +3174,20 @@ dd {
   color: var(--muted);
 }
 
+/* T26: Dimension Radar Chart */
+.radar-chart {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 8px;
+}
+
+.radar-label {
+  font-size: 7px;
+  fill: var(--faint);
+  font-weight: 560;
+  letter-spacing: 0.04em;
+}
+
 /* T11: Screen-reader live region */
 .sr-live {
   position: absolute;
@@ -3136,6 +3220,63 @@ dd {
 }
 
 .zoom-fit-btn:hover {
+  color: var(--ink);
+  background: var(--panel-raised);
+}
+
+/* T22: Scene Minimap */
+.minimap-container {
+  position: absolute;
+  bottom: 14px;
+  right: 14px;
+  z-index: 20;
+  border-radius: 6px;
+  overflow: hidden;
+  background: oklch(0.245 0.014 256 / 0.85);
+  border: 1px solid var(--hairline);
+  backdrop-filter: blur(4px);
+  pointer-events: auto;
+}
+
+.minimap-svg {
+  display: block;
+  cursor: pointer;
+}
+
+.minimap-search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--faint);
+}
+
+.minimap-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: var(--text-xs);
+  outline: none;
+}
+
+.minimap-search input::placeholder {
+  color: var(--faint);
+}
+
+.minimap-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  color: var(--faint);
+}
+
+.minimap-search-clear:hover {
   color: var(--ink);
   background: var(--panel-raised);
 }

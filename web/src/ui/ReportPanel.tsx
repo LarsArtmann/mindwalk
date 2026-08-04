@@ -323,6 +323,7 @@ function PanelBody({
         </div>
       </div>
       <ReportVerdict dimensions={report.dimensions} />
+      <RadarChart dimensions={report.dimensions} />
       {/* the lede: one line of what was asked, then the judge's overview —
           the report reads summary-first, details after */}
       <p className="report-task">{report.taskSummary}</p>
@@ -622,4 +623,93 @@ function day(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toISOString().slice(0, 10);
+}
+
+function verdictScore(verdict: Verdict): number {
+  switch (verdict) {
+    case "good":
+      return 1.0;
+    case "warning":
+      return 0.5;
+    case "problem":
+      return 0.0;
+    case "insufficient-data":
+      return 0.25;
+  }
+}
+
+function overallVerdictColor(dimensions: ReportDimension[]): string {
+  const verdicts = dimensions.map((d) => d.verdict);
+  if (verdicts.includes("problem")) return "var(--alarm, #e05555)";
+  if (verdicts.includes("warning")) return "var(--amber, #e0a458)";
+  if (verdicts.every((v) => v === "good")) return "var(--moss)";
+  return "var(--muted)";
+}
+
+function RadarChart({ dimensions }: { dimensions: ReportDimension[] }) {
+  if (dimensions.length < 3) return null;
+  const S = 130;
+  const C = S / 2;
+  const R = S * 0.35;
+  const axes = dimensions.slice(0, 4);
+  const angle = (i: number) => (Math.PI * 2 * i) / axes.length - Math.PI / 2;
+  const pointAt = (score: number, i: number) => {
+    const a = angle(i);
+    return [C + Math.cos(a) * R * score, C + Math.sin(a) * R * score];
+  };
+  const polygon = axes
+    .map((dim, i) => pointAt(verdictScore(dim.verdict), i).join(","))
+    .join(" ");
+  const color = overallVerdictColor(dimensions);
+  return (
+    <div className="radar-chart">
+      <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} role="img" aria-label="Dimension radar chart">
+        {[0.25, 0.5, 0.75, 1].map((ring) => {
+          const pts = axes.map((_, i) => pointAt(ring, i).join(",")).join(" ");
+          return (
+            <polygon
+              key={ring}
+              points={pts}
+              fill="none"
+              stroke="var(--hairline)"
+              strokeWidth="0.5"
+              opacity={0.6}
+            />
+          );
+        })}
+        {axes.map((_, i) => {
+          const [x, y] = pointAt(1, i);
+          return (
+            <line
+              key={i}
+              x1={C}
+              y1={C}
+              x2={x}
+              y2={y}
+              stroke="var(--hairline)"
+              strokeWidth="0.5"
+              opacity={0.4}
+            />
+          );
+        })}
+        <polygon points={polygon} fill={color} fillOpacity={0.2} stroke={color} strokeWidth="1.5" />
+        {axes.map((dim, i) => {
+          const [x, y] = pointAt(1.18, i);
+          const words = DIMENSION_WORDS[dim.name] ?? { title: dim.name, hint: "" };
+          return (
+            <text
+              key={dim.name}
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="radar-label"
+            >
+              {words.title}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
 }

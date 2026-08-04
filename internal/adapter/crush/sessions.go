@@ -416,7 +416,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	// Crush's finish reasons carry no observability flags; the visualizer
 	// infers failures from tool_result.is_error the same way it does for
 	// Claude Code and Codex.
-	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilityEstimated, readsGrade)
+	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilitySignals{Errors: model.ObservabilityEstimated, Reads: readsGrade})
 
 	if !recognized {
 		return nil, adapter.NotRecognizedErr("Crush", path)
@@ -900,6 +900,12 @@ func applyMessageMeta(trace *model.Trace, msg messageRow, ts string) {
 // the ISO-8601 UTC shape the rest of mindwalk expects. Zero or negative
 // values return "" so an empty/uninitialised timestamp doesn't trip
 // downstream parsers.
+//
+// IMPORTANT: Crush's database migration comment says "milliseconds", but
+// the trigger writes `strftime('%s', 'now')` which is Unix SECONDS. Do not
+// "fix" this back to time.UnixMilli — that sends every timestamp to 1970
+// (the bug fixed in 3f547fc). The adapter trusts the actual data, not the
+// misleading migration comment.
 func secondsToRFC3339(s int64) string {
 	if s <= 0 {
 		return ""
@@ -922,6 +928,9 @@ func queryReadFiles(db *sql.DB, sessionID string) map[string]bool {
 		if rows.Scan(&p) == nil && p != "" {
 			paths[p] = true
 		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil
 	}
 	return paths
 }

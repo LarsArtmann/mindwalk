@@ -1,5 +1,7 @@
 # Dedup Sprint 2 — 12→9 Clone Groups, Idiomatic Floor Reached
 
+> **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
+
 **Date:** 2026-08-04 01:59
 **Session goal:** Drive `art-dupl --type-aware --sort total-tokens -t 2` to zero harmful clones.
 **Result:** 12 → 9 clone groups. The remaining 9 are all idiomatic shared-helper usage or standard Go patterns (1-line `sort.Strings`, 1-line `requireGET`, etc.).

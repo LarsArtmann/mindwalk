@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/model"
@@ -28,6 +29,11 @@ var sseHeartbeat = 15 * time.Second
 // judge milestone) followed by a terminal "status" event carrying the same
 // reportStatus the polling endpoint returns. If no job is running, the
 // handler sends just the "status" event and closes.
+//
+// Each progress event carries an SSE "id:" line so the browser's EventSource
+// tracks the last received event and sends it back as Last-Event-ID on
+// reconnect. This lets a dropped connection resume from where it left off
+// instead of replaying from the beginning.
 func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Request, selector string) {
 	if requireGET(w, r) {
 		return
@@ -61,16 +67,18 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Tail the progress log until the job finishes.
-	offset := 0
+	// Tail the progress log until the job finishes. If the client sent a
+	// Last-Event-ID header (reconnect after a dropped connection), resume
+	// from that offset instead of replaying from the start.
+	offset := parseLastEventID(r.Header.Get("Last-Event-ID"))
 	lastWrite := time.Now()
 	for {
 		wrote := false
 		// Drain any new progress events since the last poll.
 		if job.progress != nil {
 			events, next := job.progress.since(offset)
-			for _, evt := range events {
-				writeSSE(w, flusher, "progress", evt)
+			for i, evt := range events {
+				writeSSEWithID(w, flusher, "progress", evt, offset+i)
 				wrote = true
 			}
 			offset = next
@@ -90,7 +98,9 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 		// heartbeat interval, keeping intermediary proxies from
 		// timing out the connection during long judge phases.
 		if !wrote && time.Since(lastWrite) >= sseHeartbeat {
-			fmt.Fprintf(w, ": keep-alive\n\n")
+			if _, err := fmt.Fprintf(w, ": keep-alive\n\n"); err != nil {
+				return
+			}
 			flusher.Flush()
 			lastWrite = time.Now()
 		} else if wrote {
@@ -121,10 +131,38 @@ func (s *Server) sseSendStatus(w http.ResponseWriter, flusher http.Flusher, meta
 // "data:" line with the JSON payload, and a blank line to delimit. The
 // caller must flush afterwards.
 func writeSSE(w http.ResponseWriter, flusher http.Flusher, eventType string, payload any) {
+	writeSSEWithID(w, flusher, eventType, payload, -1)
+}
+
+// writeSSEWithID is like writeSSE but also emits an "id:" line when id >= 0.
+// The id lets the browser's EventSource track the last received event and
+// send it back as Last-Event-ID on reconnect.
+func writeSSEWithID(w http.ResponseWriter, flusher http.Flusher, eventType string, payload any, id int) {
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return
 	}
-	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, data)
+	if id >= 0 {
+		if _, err := fmt.Fprintf(w, "id: %d\nevent: %s\ndata: %s\n\n", id, eventType, data); err != nil {
+			return
+		}
+	} else {
+		if _, err := fmt.Fprintf(w, "event: %s\ndata: %s\n\n", eventType, data); err != nil {
+			return
+		}
+	}
 	flusher.Flush()
+}
+
+// parseLastEventID extracts the integer offset from the Last-Event-ID
+// request header. Returns 0 when the header is missing or unparseable.
+func parseLastEventID(header string) int {
+	if header == "" {
+		return 0
+	}
+	id, err := strconv.Atoi(header)
+	if err != nil || id < 0 {
+		return 0
+	}
+	return id
 }

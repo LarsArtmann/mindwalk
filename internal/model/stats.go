@@ -1,13 +1,24 @@
 package model
 
-// ComputeStats derives session facts from a parsed trace. errorSignal is the
-// adapter's grade for its own error detection (ObservabilityExact when the
-// source log flags failures structurally, ObservabilityEstimated when they
-// are inferred from output text); an empty value falls back to estimated.
-// readsSignal overrides the reads grade when non-empty (used by adapters
-// that have a structural read_files table); empty falls back to deriving
-// from weak target flags.
-func ComputeStats(trace *Trace, filesInRepo int, errorSignal, readsSignal string) Stats {
+// ObservabilitySignals carries adapter-supplied observability grades into
+// ComputeStats, preventing positional-parameter explosion as more signals
+// are added. Each field overrides the derived grade when non-empty.
+type ObservabilitySignals struct {
+	// Errors is the adapter's grade for its own error detection
+	// (ObservabilityExact when the source log flags failures structurally,
+	// ObservabilityEstimated when they are inferred from output text).
+	// Empty falls back to estimated.
+	Errors string
+	// Reads overrides the reads grade when non-empty (used by adapters
+	// that have a structural read_files table); empty falls back to
+	// deriving from weak target flags.
+	Reads string
+}
+
+// ComputeStats derives session facts from a parsed trace. The signals
+// parameter carries adapter-supplied observability grades; empty fields
+// are derived from the trace data.
+func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) Stats {
 	state := map[string]string{}
 	lastReadVersion := map[string]int{}
 	editVersion := map[string]int{}
@@ -103,6 +114,7 @@ func ComputeStats(trace *Trace, filesInRepo int, errorSignal, readsSignal string
 	// The reads grade: prefer the adapter-supplied signal (structural
 	// truth from a read_files table); fall back to deriving from weak
 	// target flags when the adapter did not supply one.
+	readsSignal := signals.Reads
 	if readsSignal == "" {
 		switch {
 		case readEvents == 0:
@@ -114,6 +126,7 @@ func ComputeStats(trace *Trace, filesInRepo int, errorSignal, readsSignal string
 		}
 	}
 	stats.Observability.Reads = readsSignal
+	errorSignal := signals.Errors
 	if errorSignal == "" {
 		errorSignal = ObservabilityEstimated
 	}

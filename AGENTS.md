@@ -12,6 +12,8 @@ The project has three primary artifacts:
 
 The UI combines those artifacts so users can see how a coding agent moved through a codebase over time — and, when asked, how well. Keep the separation clear: source-specific parsing should not know about rendering, citymap generation should not depend on session playback, the judge reads only the normalized trace (never raw session logs), and the server should mainly connect data sources to the web client.
 
+See [`docs/DOMAIN_LANGUAGE.md`](docs/DOMAIN_LANGUAGE.md) for the glossary of domain terms (trace, session, harness, adapter, mark, target, event, citymap, agent graph, report, rubric, finding, dimension, verdict).
+
 ## Architecture
 
 - `cmd/mindwalk` provides the CLI commands: serve a local UI, open a session, build a citymap, export a trace, or evaluate a session.
