@@ -75,8 +75,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       currentSeq: 0,
       selectedPath: undefined,
     }),
-  setData: (trace, city) =>
-    set({ trace, city, currentSeq: Math.max(0, trace.events.length - 1) }),
+  setData: (trace, city) => set({ trace, city, currentSeq: Math.max(0, trace.events.length - 1) }),
   // static full-repo map: render the city with no session/trace attached
   setCityOnly: (city) =>
     set({

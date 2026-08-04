@@ -25,8 +25,7 @@ function extensionForMime(mimeType: string): string {
   const subtype = base.split("/")[1] ?? "";
   if (subtype.includes("webm")) return "webm";
   if (subtype.includes("mp4")) return "mp4";
-  if (subtype.includes("x-matroska") || subtype.includes("matroska"))
-    return "mkv";
+  if (subtype.includes("x-matroska") || subtype.includes("matroska")) return "mkv";
   if (subtype.includes("ogg")) return "ogv";
   return subtype || "webm";
 }
@@ -39,17 +38,9 @@ const MAX_DURATION_MS = 30_000;
 const PER_EVENT_MS = 120;
 
 function pickMimeType(): string | undefined {
-  const candidates = [
-    "video/webm;codecs=vp9",
-    "video/webm;codecs=vp8",
-    "video/webm",
-  ];
+  const candidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
   for (const type of candidates) {
-    if (
-      typeof MediaRecorder !== "undefined" &&
-      MediaRecorder.isTypeSupported(type)
-    )
-      return type;
+    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(type)) return type;
   }
   return undefined;
 }
@@ -71,25 +62,18 @@ export function recordPlayback(opts: RecordOptions): Promise<RecordResult> {
 
   if (!recordingSupported()) {
     return Promise.reject(
-      new Error(
-        "This browser can't record the canvas (MediaRecorder unavailable).",
-      ),
+      new Error("This browser can't record the canvas (MediaRecorder unavailable)."),
     );
   }
   if (total <= 0) {
-    return Promise.reject(
-      new Error("Nothing to record — load a session first."),
-    );
+    return Promise.reject(new Error("Nothing to record — load a session first."));
   }
 
   const durationMs =
-    opts.durationMs ??
-    Math.min(MAX_DURATION_MS, Math.max(1000, total * PER_EVENT_MS));
+    opts.durationMs ?? Math.min(MAX_DURATION_MS, Math.max(1000, total * PER_EVENT_MS));
   const mimeType = pickMimeType();
   const stream = canvas.captureStream(fps);
-  const recorder = mimeType
-    ? new MediaRecorder(stream, { mimeType })
-    : new MediaRecorder(stream);
+  const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
   const chunks: BlobPart[] = [];
 
   return new Promise<RecordResult>((resolve, reject) => {

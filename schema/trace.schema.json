@@ -28,15 +28,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": [
-          "seq",
-          "tool",
-          "action",
-          "targets",
-          "resultBytes",
-          "isError",
-          "summary"
-        ],
+        "required": ["seq", "tool", "action", "targets", "resultBytes", "isError", "summary"],
         "properties": {
           "seq": { "type": "integer", "minimum": 0 },
           "ts": { "type": "string" },

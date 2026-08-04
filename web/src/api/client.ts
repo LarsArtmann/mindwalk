@@ -24,15 +24,11 @@ export function describeError(err: unknown, doing: string): string {
     return `Can't reach the mindwalk server while ${doing} — is it still running?`;
   }
   const detail = (err instanceof Error ? err.message : String(err)).trim();
-  return detail
-    ? `Couldn't finish ${doing}: ${detail}`
-    : `Couldn't finish ${doing}`;
+  return detail ? `Couldn't finish ${doing}: ${detail}` : `Couldn't finish ${doing}`;
 }
 
 export function listSessions(fresh = false): Promise<SessionMeta[]> {
-  return getJSON<SessionMeta[]>(
-    fresh ? "/api/sessions?fresh=1" : "/api/sessions",
-  );
+  return getJSON<SessionMeta[]>(fresh ? "/api/sessions?fresh=1" : "/api/sessions");
 }
 
 export function getTrace(key: string): Promise<Trace> {
@@ -43,33 +39,24 @@ export function getCityMap(key: string): Promise<CityMap> {
   return getJSON<CityMap>(`/api/sessions/${encodeURIComponent(key)}/citymap`);
 }
 
-export function getSessionSnapshot(
-  key: string,
-): Promise<{ trace: Trace; city: CityMap }> {
+export function getSessionSnapshot(key: string): Promise<{ trace: Trace; city: CityMap }> {
   return getJSON<{ trace: Trace; city: CityMap }>(
     `/api/sessions/${encodeURIComponent(key)}/snapshot`,
   );
 }
 
 export function getSessionAgents(rootKey: string): Promise<AgentGraph> {
-  return getJSON<AgentGraph>(
-    `/api/sessions/${encodeURIComponent(rootKey)}/agents`,
-  );
+  return getJSON<AgentGraph>(`/api/sessions/${encodeURIComponent(rootKey)}/agents`);
 }
 
-export function getAgentTrace(
-  rootKey: string,
-  agentID: string,
-): Promise<Trace> {
+export function getAgentTrace(rootKey: string, agentID: string): Promise<Trace> {
   return getJSON<Trace>(
     `/api/sessions/${encodeURIComponent(rootKey)}/agents/${encodeURIComponent(agentID)}/trace`,
   );
 }
 
 export function getSessionReport(key: string): Promise<ReportStatus> {
-  return getJSON<ReportStatus>(
-    `/api/sessions/${encodeURIComponent(key)}/report`,
-  );
+  return getJSON<ReportStatus>(`/api/sessions/${encodeURIComponent(key)}/report`);
 }
 
 // kicks off a judge run on the server; progress is observed by polling
@@ -101,9 +88,7 @@ export function openAnalyzeStream(
   onProgress: (p: JudgeProgress) => void,
   onStatus: (s: ReportStatus) => void,
 ): EventSource {
-  const es = new EventSource(
-    `/api/sessions/${encodeURIComponent(key)}/analyze/stream`,
-  );
+  const es = new EventSource(`/api/sessions/${encodeURIComponent(key)}/analyze/stream`);
   es.addEventListener("progress", (e: MessageEvent) => {
     try {
       onProgress(JSON.parse(e.data) as JudgeProgress);
@@ -125,8 +110,6 @@ export function openAnalyzeStream(
 // or trace attached. Without a repo path the server falls back to its
 // configured RepoRoot (the `mindwalk map <repo>` case).
 export function getRepoMap(repo?: string): Promise<CityMap> {
-  const url = repo
-    ? `/api/repomap?repo=${encodeURIComponent(repo)}`
-    : "/api/repomap";
+  const url = repo ? `/api/repomap?repo=${encodeURIComponent(repo)}` : "/api/repomap";
   return getJSON<CityMap>(url);
 }

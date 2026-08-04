@@ -169,13 +169,7 @@ export interface OutsideTouch {
 
 export interface Mark {
   seq: number;
-  type:
-    | "compaction"
-    | "user-message"
-    | "subagent"
-    | "thinking"
-    | "finish-reason"
-    | "model-switch";
+  type: "compaction" | "user-message" | "subagent" | "thinking" | "finish-reason" | "model-switch";
   note?: string;
   duration?: number;
 }
@@ -243,11 +237,7 @@ export interface Report {
 }
 
 export type RubricStatus = "scored" | "unavailable";
-export type RubricReason =
-  | "generation-failed"
-  | "no-task-text"
-  | "weak-task-text"
-  | "no-events";
+export type RubricReason = "generation-failed" | "no-task-text" | "weak-task-text" | "no-events";
 /** what the log let the scorer judge; none forces insufficient-data */
 export type Coverage = "sufficient" | "partial" | "none";
 
@@ -285,11 +275,7 @@ export interface RubricCriterion {
 
 export type Verdict = "good" | "warning" | "problem" | "insufficient-data";
 export type Severity = "info" | "warning" | "problem";
-export type DimensionName =
-  | "exploration"
-  | "scope"
-  | "wandering"
-  | "verification";
+export type DimensionName = "exploration" | "scope" | "wandering" | "verification";
 
 export interface ReportDimension {
   name: DimensionName;

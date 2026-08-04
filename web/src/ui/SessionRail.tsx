@@ -66,9 +66,7 @@ export const SessionRail = memo(function SessionRail({
   const [query, setQuery] = useState("");
   const [repoPath, setRepoPath] = useState("");
   const [mapOpen, setMapOpen] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
-    new Set(),
-  );
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [sortBy, setSortByState] = useState<SortKey>(() => {
     try {
       return (localStorage.getItem("mindwalk.sortBy") as SortKey) || "newest";
@@ -102,30 +100,16 @@ export const SessionRail = memo(function SessionRail({
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [mapOpen]);
-  const harnesses = useMemo(
-    () => [...new Set(sessions.map((s) => s.harness))].sort(),
-    [sessions],
-  );
-  const emptyCount = useMemo(
-    () => sessions.filter((s) => s.eventCount === 0).length,
-    [sessions],
-  );
+  const harnesses = useMemo(() => [...new Set(sessions.map((s) => s.harness))].sort(), [sessions]);
+  const emptyCount = useMemo(() => sessions.filter((s) => s.eventCount === 0).length, [sessions]);
   // a persisted filter can name a harness with no sessions this scan; treating
   // it as "all" avoids an empty list with no visible chip to clear it
   const effectiveHarness =
-    harnessFilter && harnesses.includes(harnessFilter)
-      ? harnessFilter
-      : undefined;
+    harnessFilter && harnesses.includes(harnessFilter) ? harnessFilter : undefined;
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return sessions.filter((session) => {
-      if (
-        !sessionVisible(
-          session,
-          { hideEmpty, harness: effectiveHarness },
-          activeKey,
-        )
-      )
+      if (!sessionVisible(session, { hideEmpty, harness: effectiveHarness }, activeKey))
         return false;
       if (!q) return true;
       return `${session.title ?? ""} ${session.id} ${session.gitBranch ?? ""} ${session.harness}`
@@ -179,14 +163,10 @@ export const SessionRail = memo(function SessionRail({
                   >
                     <FolderOpen size={14} aria-hidden />
                     <span className="rail-map-primary-text">
-                      <span className="rail-map-primary-name">
-                        {repoBasename(activeRepo)}
-                      </span>
+                      <span className="rail-map-primary-name">{repoBasename(activeRepo)}</span>
                       {/* the leading LRM pins the path's neutral "/" runs to
                           LTR order inside the RTL ellipsis-at-start trick */}
-                      <span className="rail-map-primary-path">
-                        {"\u200E" + activeRepo}
-                      </span>
+                      <span className="rail-map-primary-path">{"\u200E" + activeRepo}</span>
                     </span>
                   </button>
                 ) : null}
@@ -216,11 +196,7 @@ export const SessionRail = memo(function SessionRail({
                     onChange={(e) => setRepoPath(e.currentTarget.value)}
                     spellCheck={false}
                   />
-                  <button
-                    type="submit"
-                    className="rail-map-go"
-                    disabled={repoPath.trim() === ""}
-                  >
+                  <button type="submit" className="rail-map-go" disabled={repoPath.trim() === ""}>
                     Open
                   </button>
                 </form>
@@ -275,9 +251,7 @@ export const SessionRail = memo(function SessionRail({
             {harnesses.length > 1 ? (
               <>
                 <button
-                  className={
-                    effectiveHarness === undefined ? "chip active" : "chip"
-                  }
+                  className={effectiveHarness === undefined ? "chip active" : "chip"}
                   onClick={() => onHarnessFilterChange(undefined)}
                 >
                   all
@@ -285,9 +259,7 @@ export const SessionRail = memo(function SessionRail({
                 {harnesses.map((harness) => (
                   <button
                     key={harness}
-                    className={
-                      effectiveHarness === harness ? "chip active" : "chip"
-                    }
+                    className={effectiveHarness === harness ? "chip active" : "chip"}
                     onClick={() => onHarnessFilterChange(harness)}
                   >
                     {harnessLabel(harness)}
@@ -311,11 +283,7 @@ export const SessionRail = memo(function SessionRail({
                     : `Hide ${emptyCount} empty sessions`
                 }
               >
-                {hideEmpty ? (
-                  <EyeOff size={13} aria-hidden />
-                ) : (
-                  <Eye size={13} aria-hidden />
-                )}
+                {hideEmpty ? <EyeOff size={13} aria-hidden /> : <Eye size={13} aria-hidden />}
               </button>
             ) : null}
           </div>
@@ -324,9 +292,7 @@ export const SessionRail = memo(function SessionRail({
       <div className="session-list" aria-busy={loading}>
         {grouped.length === 0 ? (
           <p className="muted" style={{ padding: "10px 8px" }}>
-            {loading && sessions.length === 0
-              ? "Scanning sessions…"
-              : "No matching sessions."}
+            {loading && sessions.length === 0 ? "Scanning sessions…" : "No matching sessions."}
           </p>
         ) : null}
         {grouped.map((group) => {
@@ -339,27 +305,18 @@ export const SessionRail = memo(function SessionRail({
                 aria-expanded={!collapsed}
               >
                 <span className="session-group-label">{group.label}</span>
-                <span className="session-group-count">
-                  {group.sessions.length}
-                </span>
+                <span className="session-group-count">{group.sessions.length}</span>
               </button>
               {!collapsed
                 ? group.sessions.map((session) => (
                     <button
                       key={session.key}
-                      className={
-                        session.key === activeKey
-                          ? "session-row active"
-                          : "session-row"
-                      }
+                      className={session.key === activeKey ? "session-row active" : "session-row"}
                       onClick={() => onSelect(session.key)}
                       disabled={locked}
                     >
                       <span className="session-title">
-                        <span
-                          className={`harness-dot harness-${session.harness}`}
-                          aria-hidden
-                        />
+                        <span className={`harness-dot harness-${session.harness}`} aria-hidden />
                         {session.title || session.id}
                       </span>
                       <span className="session-meta">
@@ -370,18 +327,13 @@ export const SessionRail = memo(function SessionRail({
                           {session.promptTokens || session.completionTokens
                             ? ` · ${formatTokens(session.promptTokens || 0)}/${formatTokens(session.completionTokens || 0)} tok`
                             : ""}
-                          {session.cost && session.cost > 0
-                            ? ` · $${session.cost.toFixed(2)}`
-                            : ""}
+                          {session.cost && session.cost > 0 ? ` · $${session.cost.toFixed(2)}` : ""}
                           {session.gitBranch ? ` · ${session.gitBranch}` : ""}
-                          {session.endedAt
-                            ? ` · ${relativeTime(session.endedAt)}`
-                            : ""}
+                          {session.endedAt ? ` · ${relativeTime(session.endedAt)}` : ""}
                         </span>
                         {(() => {
                           const evalState =
-                            session.key === activeKey &&
-                            activeReportState !== undefined
+                            session.key === activeKey && activeReportState !== undefined
                               ? activeReportState
                               : session.reportState;
                           return evalState ? (
@@ -478,15 +430,11 @@ function sortSessions(sessions: SessionMeta[], key: SortKey): SessionMeta[] {
   switch (key) {
     case "newest":
       return sorted.sort(
-        (a, b) =>
-          timeOrZero(b.endedAt ?? b.startedAt) -
-          timeOrZero(a.endedAt ?? a.startedAt),
+        (a, b) => timeOrZero(b.endedAt ?? b.startedAt) - timeOrZero(a.endedAt ?? a.startedAt),
       );
     case "oldest":
       return sorted.sort(
-        (a, b) =>
-          timeOrZero(a.endedAt ?? a.startedAt) -
-          timeOrZero(b.endedAt ?? b.startedAt),
+        (a, b) => timeOrZero(a.endedAt ?? a.startedAt) - timeOrZero(b.endedAt ?? b.startedAt),
       );
     case "events":
       return sorted.sort((a, b) => b.eventCount - a.eventCount);

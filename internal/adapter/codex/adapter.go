@@ -747,6 +747,7 @@ func applyPatchChanges(input map[string]any, changes map[string]patchApplyChange
 	sort.Strings(paths)
 
 	var patchSb645 strings.Builder
+
 	for _, path := range paths {
 		operation := "Update"
 
@@ -757,8 +758,9 @@ func applyPatchChanges(input map[string]any, changes map[string]patchApplyChange
 			operation = "Delete"
 		}
 
-		patchSb645.WriteString(fmt.Sprintf("*** %s File: %s\n", operation, path))
+		fmt.Fprintf(&patchSb645, "*** %s File: %s\n", operation, path)
 	}
+
 	patch += patchSb645.String()
 
 	merged["patch"] = patch

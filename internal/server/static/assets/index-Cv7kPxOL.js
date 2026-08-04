@@ -49,8 +49,7 @@ import {
   new MutationObserver((a) => {
     for (const o of a)
       if (o.type === "childList")
-        for (const d of o.addedNodes)
-          d.tagName === "LINK" && d.rel === "modulepreload" && r(d);
+        for (const d of o.addedNodes) d.tagName === "LINK" && d.rel === "modulepreload" && r(d);
   }).observe(document, { childList: !0, subtree: !0 });
   function n(a) {
     const o = {};
@@ -74,9 +73,7 @@ import {
 })();
 const Fn = (t) => t.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase(),
   Dn = (t) =>
-    t.replace(/^([A-Z])|[\s-_]+(\w)/g, (s, n, r) =>
-      r ? r.toUpperCase() : n.toLowerCase(),
-    ),
+    t.replace(/^([A-Z])|[\s-_]+(\w)/g, (s, n, r) => (r ? r.toUpperCase() : n.toLowerCase())),
   Xt = (t) => {
     const s = Dn(t);
     return s.charAt(0).toUpperCase() + s.slice(1);
@@ -87,8 +84,7 @@ const Fn = (t) => t.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase(),
       .join(" ")
       .trim(),
   _n = (t) => {
-    for (const s in t)
-      if (s.startsWith("aria-") || s === "role" || s === "title") return !0;
+    for (const s in t) if (s.startsWith("aria-") || s === "role" || s === "title") return !0;
   };
 var Hn = {
   xmlns: "http://www.w3.org/2000/svg",
@@ -128,10 +124,7 @@ const On = i.forwardRef(
         ...(!o && !_n(c) && { "aria-hidden": "true" }),
         ...c,
       },
-      [
-        ...d.map(([h, v]) => i.createElement(h, v)),
-        ...(Array.isArray(o) ? o : [o]),
-      ],
+      [...d.map(([h, v]) => i.createElement(h, v)), ...(Array.isArray(o) ? o : [o])],
     ),
 );
 const ae = (t, s) => {
@@ -154,10 +147,7 @@ const Wn = [
   Un = ae("arrow-down-up", Wn);
 const Kn = [
     ["path", { d: "M12 8V4H8", key: "hb8ula" }],
-    [
-      "rect",
-      { width: "16", height: "12", x: "4", y: "8", rx: "2", key: "enze0r" },
-    ],
+    ["rect", { width: "16", height: "12", x: "4", y: "8", rx: "2", key: "enze0r" }],
     ["path", { d: "M2 14h2", key: "vft8re" }],
     ["path", { d: "M20 14h2", key: "4cs60a" }],
     ["path", { d: "M15 13v2", key: "1xurst" }],
@@ -312,32 +302,20 @@ const vr = [
 const wr = [["path", { d: "m8 3 4 8 5-5 5 15H2L8 3z", key: "otkl63" }]],
   Ts = ae("mountain", wr);
 const br = [
-    [
-      "rect",
-      { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" },
-    ],
+    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M9 3v18", key: "fh3hqa" }],
     ["path", { d: "m16 15-3-3 3-3", key: "14y99z" }],
   ],
   jr = ae("panel-left-close", br);
 const kr = [
-    [
-      "rect",
-      { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" },
-    ],
+    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M9 3v18", key: "fh3hqa" }],
     ["path", { d: "m14 9 3 3-3 3", key: "8010ee" }],
   ],
   Nr = ae("panel-left-open", kr);
 const Mr = [
-    [
-      "rect",
-      { x: "14", y: "3", width: "5", height: "18", rx: "1", key: "kaeet6" },
-    ],
-    [
-      "rect",
-      { x: "5", y: "3", width: "5", height: "18", rx: "1", key: "1wsw3u" },
-    ],
+    ["rect", { x: "14", y: "3", width: "5", height: "18", rx: "1", key: "kaeet6" }],
+    ["rect", { x: "5", y: "3", width: "5", height: "18", rx: "1", key: "1wsw3u" }],
   ],
   Er = ae("pause", Mr);
 const Cr = [
@@ -377,10 +355,7 @@ const $r = [
   ],
   Ar = ae("repeat", $r);
 const Lr = [
-    [
-      "path",
-      { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" },
-    ],
+    ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
     ["path", { d: "M3 3v5h5", key: "1xhq8a" }],
   ],
   zr = ae("rotate-ccw", Lr);
@@ -462,10 +437,7 @@ const Wr = [
         key: "ftymec",
       },
     ],
-    [
-      "rect",
-      { x: "2", y: "6", width: "14", height: "12", rx: "2", key: "158x01" },
-    ],
+    ["rect", { x: "2", y: "6", width: "14", height: "12", rx: "2", key: "158x01" }],
   ],
   Ur = ae("video", Wr);
 const Kr = [
@@ -510,9 +482,7 @@ function Jr(t) {
   return Ze(`/api/sessions/${encodeURIComponent(t)}/agents`);
 }
 function Qr(t, s) {
-  return Ze(
-    `/api/sessions/${encodeURIComponent(t)}/agents/${encodeURIComponent(s)}/trace`,
-  );
+  return Ze(`/api/sessions/${encodeURIComponent(t)}/agents/${encodeURIComponent(s)}/trace`);
 }
 function ea(t) {
   return Ze(`/api/sessions/${encodeURIComponent(t)}/report`);
@@ -530,9 +500,7 @@ async function ta(t, s) {
   return n.json();
 }
 function sa(t, s, n) {
-  const r = new EventSource(
-    `/api/sessions/${encodeURIComponent(t)}/analyze/stream`,
-  );
+  const r = new EventSource(`/api/sessions/${encodeURIComponent(t)}/analyze/stream`);
   return (
     r.addEventListener("progress", (a) => {
       try {
@@ -676,9 +644,7 @@ function ra() {
     ].map((c) => ({
       ...c,
       rect: { x: 0, z: 0, w: 0, d: 0 },
-      fileCount: o.filter(
-        (u) => u.dir === c.path || u.dir.startsWith(c.path + "/"),
-      ).length,
+      fileCount: o.filter((u) => u.dir === c.path || u.dir.startsWith(c.path + "/")).length,
       lines: o
         .filter((u) => u.dir === c.path || u.dir.startsWith(c.path + "/"))
         .reduce((u, h) => u + h.lines, 0),
@@ -755,9 +721,7 @@ function aa() {
         ts: s(18),
         tool: "Edit",
         action: "edit",
-        targets: [
-          { path: "src/lib/parser.ts", touch: "edit", lines: [[20, 35]] },
-        ],
+        targets: [{ path: "src/lib/parser.ts", touch: "edit", lines: [[20, 35]] }],
         resultBytes: 800,
         isError: !1,
         summary: "refactored parseConfig to accept options",
@@ -767,9 +731,7 @@ function aa() {
         ts: s(22),
         tool: "Edit",
         action: "edit",
-        targets: [
-          { path: "src/lib/parser.ts", touch: "edit", lines: [[40, 55]] },
-        ],
+        targets: [{ path: "src/lib/parser.ts", touch: "edit", lines: [[40, 55]] }],
         resultBytes: 600,
         isError: !1,
         summary: "added error handling to parse loop",
@@ -829,9 +791,7 @@ function aa() {
         ts: s(45),
         tool: "Edit",
         action: "edit",
-        targets: [
-          { path: "src/lib/parser.ts", touch: "edit", lines: [[30, 38]] },
-        ],
+        targets: [{ path: "src/lib/parser.ts", touch: "edit", lines: [[30, 38]] }],
         resultBytes: 500,
         isError: !1,
         summary: "fixed off-by-one in parse loop",
@@ -861,9 +821,7 @@ function aa() {
         ts: s(57),
         tool: "Edit",
         action: "edit",
-        targets: [
-          { path: "src/ui/Modal.tsx", touch: "edit", lines: [[15, 30]] },
-        ],
+        targets: [{ path: "src/ui/Modal.tsx", touch: "edit", lines: [[15, 30]] }],
         resultBytes: 700,
         isError: !1,
         summary: "updated Modal to match Button styling",
@@ -893,9 +851,7 @@ function aa() {
         ts: s(69),
         tool: "Edit",
         action: "edit",
-        targets: [
-          { path: "src/api/client.ts", touch: "edit", lines: [[45, 60]] },
-        ],
+        targets: [{ path: "src/api/client.ts", touch: "edit", lines: [[45, 60]] }],
         resultBytes: 800,
         isError: !1,
         summary: "added retry logic to fetch calls",
@@ -959,13 +915,7 @@ function aa() {
 function ia() {
   return { trace: aa(), city: ra() };
 }
-function oa({
-  panels: t,
-  openSheet: s,
-  openPop: n,
-  onToggle: r,
-  onClosePop: a,
-}) {
+function oa({ panels: t, openSheet: s, openPop: n, onToggle: r, onClosePop: a }) {
   const o = i.useRef(null),
     d = i.useRef(null),
     c = t.find((l) => l.id === s && l.presentation === "sheet"),
@@ -1002,9 +952,7 @@ function oa({
               children: u.render(),
             })
           : null,
-        c
-          ? e.jsx("aside", { className: "dock-panel", children: c.render() })
-          : null,
+        c ? e.jsx("aside", { className: "dock-panel", children: c.render() }) : null,
         e.jsx("div", {
           className: "dock-side",
           ref: d,
@@ -1113,9 +1061,7 @@ function ca({
         children: [
           e.jsxs("button", {
             className:
-              s === null
-                ? "agent-row agent-row-select active"
-                : "agent-row agent-row-select",
+              s === null ? "agent-row agent-row-select active" : "agent-row agent-row-select",
             "aria-pressed": s === null,
             disabled: a,
             onClick: () => c(null),
@@ -1172,14 +1118,10 @@ function ca({
                     detailMode: f?.agentID === p.id ? f.mode : void 0,
                     onPreview: (P) =>
                       b((k) =>
-                        k?.mode === "pinned"
-                          ? k
-                          : { agentID: p.id, mode: "preview", anchor: P },
+                        k?.mode === "pinned" ? k : { agentID: p.id, mode: "preview", anchor: P },
                       ),
                     onPreviewEnd: (P) =>
-                      b((k) =>
-                        k?.agentID === P && k.mode === "preview" ? null : k,
-                      ),
+                      b((k) => (k?.agentID === P && k.mode === "preview" ? null : k)),
                     onToggleDetails: (P) =>
                       b((k) =>
                         k?.agentID === p.id && k.mode === "pinned"
@@ -1255,9 +1197,7 @@ function la({
     l = [t.role, t.instructionPreview].filter(Boolean).join(" · "),
     y = !h || r;
   return e.jsxs("div", {
-    className: ["agent-row", s ? "active" : "", y ? "disabled" : ""]
-      .filter(Boolean)
-      .join(" "),
+    className: ["agent-row", s ? "active" : "", y ? "disabled" : ""].filter(Boolean).join(" "),
     onMouseEnter: (f) => d(f.currentTarget),
     onMouseLeave: () => c(t.id),
     onFocus: (f) => d(f.currentTarget),
@@ -1276,9 +1216,7 @@ function la({
           e.jsx("span", {
             className: "agent-row-icon",
             "aria-hidden": !0,
-            children: n
-              ? e.jsx(qt, { size: 13, className: "spin" })
-              : e.jsx(Vn, { size: 13 }),
+            children: n ? e.jsx(qt, { size: 13, className: "spin" }) : e.jsx(Vn, { size: 13 }),
           }),
           e.jsxs("span", {
             className: "agent-row-copy",
@@ -1479,8 +1417,7 @@ function fa({ onClose: t }) {
         r.key === "Escape" && t();
       };
       return (
-        window.addEventListener("keydown", n),
-        () => window.removeEventListener("keydown", n)
+        window.addEventListener("keydown", n), () => window.removeEventListener("keydown", n)
       );
     }, [t]),
     e.jsx("div", {
@@ -1552,11 +1489,9 @@ function ma(t, s) {
     o = 0,
     d = 0,
     c = 0;
-  for (; a < r.length && o < n.length; ) {
+  for (; a < r.length && o < n.length;) {
     if (r[a] === n[o]) {
-      (c++,
-        (d += 1 + c),
-        (a === 0 || r[a - 1] === "/" || r[a - 1] === ".") && (d += 3));
+      (c++, (d += 1 + c), (a === 0 || r[a - 1] === "/" || r[a - 1] === ".") && (d += 3));
       const u = r.lastIndexOf("/");
       (a > u && (d += 2), o++);
     } else c = 0;
@@ -1581,10 +1516,7 @@ function ga({ files: t, touchByPath: s, onSelect: n, onClose: r }) {
       R >= 0 && f.push({ file: b, score: R });
     }
     return (
-      f.sort(
-        (b, R) => R.score - b.score || (b.file.path < R.file.path ? -1 : 1),
-      ),
-      f.slice(0, es)
+      f.sort((b, R) => R.score - b.score || (b.file.path < R.file.path ? -1 : 1)), f.slice(0, es)
     );
   }, [a, t]);
   i.useEffect(() => c(0), [a]);
@@ -1664,8 +1596,7 @@ function ga({ files: t, touchByPath: s, onSelect: n, onClose: r }) {
                     return e.jsxs(
                       "button",
                       {
-                        className:
-                          f === d ? "palette-result active" : "palette-result",
+                        className: f === d ? "palette-result active" : "palette-result",
                         onClick: () => {
                           (n(y.path), r());
                         },
@@ -1699,10 +1630,7 @@ function ga({ files: t, touchByPath: s, onSelect: n, onClose: r }) {
             className: "palette-foot",
             children: [
               e.jsxs("span", {
-                children: [
-                  e.jsx(Qn, { size: 11, "aria-hidden": !0 }),
-                  " Enter to fly",
-                ],
+                children: [e.jsx(Qn, { size: 11, "aria-hidden": !0 }), " Enter to fly"],
               }),
               e.jsx("span", { children: "Esc to close" }),
             ],
@@ -1723,12 +1651,7 @@ const xa = [
   ],
   et = 36,
   ts = 8,
-  va = i.memo(function ({
-    trace: s,
-    currentSeq: n,
-    onChange: r,
-    locked: a = !1,
-  }) {
+  va = i.memo(function ({ trace: s, currentSeq: n, onChange: r, locked: a = !1 }) {
     const [o, d] = i.useState("all"),
       [c, u] = i.useState(0),
       h = i.useRef(null),
@@ -1762,10 +1685,7 @@ const xa = [
               e.jsx(
                 "button",
                 {
-                  className:
-                    o === p.value
-                      ? "event-filter-chip active"
-                      : "event-filter-chip",
+                  className: o === p.value ? "event-filter-chip active" : "event-filter-chip",
                   onClick: () => d(p.value),
                   children: p.label,
                 },
@@ -1787,9 +1707,7 @@ const xa = [
                     return e.jsxs(
                       "button",
                       {
-                        className: O
-                          ? "event-list-row current"
-                          : "event-list-row",
+                        className: O ? "event-list-row current" : "event-list-row",
                         "data-current": O || void 0,
                         style: { height: et },
                         onClick: () => r(p.seq),
@@ -1836,9 +1754,7 @@ const xa = [
           e.jsx("div", {
             className: "event-list-count",
             children:
-              l.length === v.length
-                ? `${v.length} events`
-                : `${l.length} of ${v.length} events`,
+              l.length === v.length ? `${v.length} events` : `${l.length} of ${v.length} events`,
           }),
         ],
       })
@@ -1957,8 +1873,7 @@ function ba({
         locked: r,
         analyze: y,
         onJumpTo: d,
-        picker:
-          h.length > 0 ? e.jsx(ja, { clis: h, choice: v, onChange: l }) : null,
+        picker: h.length > 0 ? e.jsx(ja, { clis: h, choice: v, onChange: l }) : null,
       }),
     ],
   });
@@ -1980,9 +1895,7 @@ function ja({ clis: t, choice: s, onChange: n }) {
         onChange: (a) => n({ ...s, model: a.target.value }),
         "aria-label": "Judge model",
         title: "Which model the judge runs on",
-        children: r.map((a) =>
-          e.jsx("option", { value: a.value, children: a.label }, a.value),
-        ),
+        children: r.map((a) => e.jsx("option", { value: a.value, children: a.label }, a.value)),
       }),
     ],
   });
@@ -2150,9 +2063,7 @@ function Na({
       e.jsx("p", { className: "report-narrative", children: c.narrative }),
       e.jsx(Ma, { rubric: c.rubric, locked: r, onJumpTo: o }),
       e.jsx("p", { className: "report-chapter", children: "Process" }),
-      c.dimensions.map((u) =>
-        e.jsx(Sa, { dimension: u, locked: r, onJumpTo: o }, u.name),
-      ),
+      c.dimensions.map((u) => e.jsx(Sa, { dimension: u, locked: r, onJumpTo: o }, u.name)),
       c.notableMoments?.length
         ? e.jsxs("section", {
             className: "report-section",
@@ -2216,11 +2127,7 @@ function Ma({ rubric: t, locked: s, onJumpTo: n }) {
           })
         : null,
       r.map((u, h) =>
-        e.jsx(
-          Ea,
-          { task: u, multi: c, locked: s, onJumpTo: n },
-          u.anchorSeqs?.[0] ?? `task-${h}`,
-        ),
+        e.jsx(Ea, { task: u, multi: c, locked: s, onJumpTo: n }, u.anchorSeqs?.[0] ?? `task-${h}`),
       ),
       t.note
         ? e.jsxs("div", {
@@ -2246,10 +2153,7 @@ function Ea({ task: t, multi: s, locked: n, onJumpTo: r }) {
               a !== void 0 && r(a);
             },
             disabled: n || a === void 0,
-            title:
-              a !== void 0
-                ? `Jump to this task's start (step ${a + 1})`
-                : void 0,
+            title: a !== void 0 ? `Jump to this task's start (step ${a + 1})` : void 0,
             children: e.jsxs("span", {
               className: "rubric-task-title",
               children: [
@@ -2264,18 +2168,13 @@ function Ea({ task: t, multi: s, locked: n, onJumpTo: r }) {
             }),
           })
         : null,
-      t.criteria.map((o) =>
-        e.jsx(Ca, { criterion: o, locked: n, onJumpTo: r }, o.id),
-      ),
+      t.criteria.map((o) => e.jsx(Ca, { criterion: o, locked: n, onJumpTo: r }, o.id)),
     ],
   });
 }
 function Ca({ criterion: t, locked: s, onJumpTo: n }) {
-  const r = [
-    t.why,
-    t.good ? `good: ${t.good}` : "",
-    t.bad ? `bad: ${t.bad}` : "",
-  ].filter(Boolean).join(`
+  const r = [t.why, t.good ? `good: ${t.good}` : "", t.bad ? `bad: ${t.bad}` : ""].filter(Boolean)
+    .join(`
 `);
   return e.jsxs("section", {
     className: "report-dimension report-criterion",
@@ -2372,10 +2271,7 @@ function Ra(t) {
   return `sev-${t}`;
 }
 function $a({ dimensions: t }) {
-  const s = t.reduce(
-      (u, h) => ((u[h.verdict] = (u[h.verdict] ?? 0) + 1), u),
-      {},
-    ),
+  const s = t.reduce((u, h) => ((u[h.verdict] = (u[h.verdict] ?? 0) + 1), u), {}),
     n = s.problem ?? 0,
     r = s.warning ?? 0,
     a = s.good ?? 0,
@@ -2391,10 +2287,8 @@ function $a({ dimensions: t }) {
         : a === t.length
           ? ((d = "All dimensions passing"), (c = "verdict-good"))
           : o > 0
-            ? ((d = `${o} dimension${o > 1 ? "s" : ""} lack signal`),
-              (c = "verdict-insufficient"))
-            : ((d = `${t.length} dimensions evaluated`),
-              (c = "verdict-neutral")),
+            ? ((d = `${o} dimension${o > 1 ? "s" : ""} lack signal`), (c = "verdict-insufficient"))
+            : ((d = `${t.length} dimensions evaluated`), (c = "verdict-neutral")),
     e.jsx("div", {
       className: `report-verdict ${c}`,
       children: e.jsx("span", { className: "verdict-label", children: d }),
@@ -2524,24 +2418,16 @@ function Ta({
         className: t === "tree" ? "view-row active" : "view-row",
         onClick: () => s("tree"),
         disabled: r,
-        "data-hint":
-          "Tree view: each file is a block, height = line count, touch state = color",
-        children: [
-          e.jsx(Bs, { size: 14 }),
-          e.jsx("span", { children: "Tree" }),
-        ],
+        "data-hint": "Tree view: each file is a block, height = line count, touch state = color",
+        children: [e.jsx(Bs, { size: 14 }), e.jsx("span", { children: "Tree" })],
       }),
       e.jsxs("button", {
         "aria-pressed": t === "terrain",
         className: t === "terrain" ? "view-row active" : "view-row",
         onClick: () => s("terrain"),
         disabled: r,
-        "data-hint":
-          "Terrain view: extruded city blocks, height = size, glow = revisits",
-        children: [
-          e.jsx(Ts, { size: 14 }),
-          e.jsx("span", { children: "Terrain" }),
-        ],
+        "data-hint": "Terrain view: extruded city blocks, height = size, glow = revisits",
+        children: [e.jsx(Ts, { size: 14 }), e.jsx("span", { children: "Terrain" })],
       }),
       o
         ? e.jsxs("button", {
@@ -2549,12 +2435,8 @@ function Ta({
             className: a ? "view-row active" : "view-row",
             onClick: () => o(!a),
             disabled: r,
-            "data-hint":
-              "Edit heatmap: recolor the minimap by edit count — red = most edited",
-            children: [
-              e.jsx(ur, { size: 14 }),
-              e.jsx("span", { children: "Heat" }),
-            ],
+            "data-hint": "Edit heatmap: recolor the minimap by edit count — red = most edited",
+            children: [e.jsx(ur, { size: 14 }), e.jsx("span", { children: "Heat" })],
           })
         : null,
       e.jsxs("p", {
@@ -2642,9 +2524,7 @@ const Fa = 30,
   _a = 120;
 function Ha() {
   const t = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-  for (const s of t)
-    if (typeof MediaRecorder < "u" && MediaRecorder.isTypeSupported(s))
-      return s;
+  for (const s of t) if (typeof MediaRecorder < "u" && MediaRecorder.isTypeSupported(s)) return s;
 }
 function Ws() {
   return (
@@ -2658,14 +2538,9 @@ function Oa(t) {
     d = t.fps ?? Fa;
   if (!Ws())
     return Promise.reject(
-      new Error(
-        "This browser can't record the canvas (MediaRecorder unavailable).",
-      ),
+      new Error("This browser can't record the canvas (MediaRecorder unavailable)."),
     );
-  if (n <= 0)
-    return Promise.reject(
-      new Error("Nothing to record — load a session first."),
-    );
+  if (n <= 0) return Promise.reject(new Error("Nothing to record — load a session first."));
   const c = t.durationMs ?? Math.min(Da, Math.max(1e3, n * _a)),
     u = Ha(),
     h = s.captureStream(d),
@@ -2948,10 +2823,7 @@ function Ys(t, s, n, r, a, o) {
     O = p * t.aspect,
     P = new oe().crossVectors(d, new oe(0, 1, 0)).normalize(),
     k = new oe().crossVectors(P, d),
-    T = P.multiplyScalar(((h - R) * 2 * c * O) / r).addScaledVector(
-      k,
-      ((I - v) * 2 * c * p) / a,
-    );
+    T = P.multiplyScalar(((h - R) * 2 * c * O) / r).addScaledVector(k, ((I - v) * 2 * c * p) / a);
   (t.position.add(T), s.target.add(T), s.update());
 }
 class Zs {
@@ -2988,8 +2860,7 @@ class Zs {
   }
 }
 const Js = () =>
-  typeof window < "u" &&
-  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window < "u" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function Qs(t) {
   t.traverse((s) => {
     if (s instanceof ot || s instanceof $n || s instanceof bt) {
@@ -3050,8 +2921,7 @@ class en {
         this.curve.v0.copy(d),
         this.curve.v1.copy(this.mid),
         this.curve.v2.copy(c));
-      for (let h = 0; h <= nt; h++)
-        this.curve.getPoint(h / nt, this.arcPoints[h]);
+      for (let h = 0; h <= nt; h++) this.curve.getPoint(h / nt, this.arcPoints[h]);
       const u = o / n;
       this.color.copy(Vs).multiplyScalar(0.05 + 0.95 * u * u);
       for (let h = 0; h < nt; h++) {
@@ -3075,10 +2945,7 @@ const $e = { unvisited: new ye("#5b6372"), ghost: new ye("#404551"), ...Gs },
   Xa = 2.4,
   Ya = 348;
 function rs(t, s) {
-  return (
-    (t === "edit" ? 7.2 : t === "read" ? 4.2 : 1.6) *
-    (1 + 0.35 * Math.log2(Math.max(s, 1)))
-  );
+  return (t === "edit" ? 7.2 : t === "read" ? 4.2 : 1.6) * (1 + 0.35 * Math.log2(Math.max(s, 1)));
 }
 const as = 0.3,
   Za = 16,
@@ -3143,8 +3010,7 @@ function si({
     );
   }, []);
   const U = i.useMemo(() => {
-    if (!t || t.files.length === 0)
-      return { cx: 0, cz: 0, size: 120, halfW: 60, halfD: 60 };
+    if (!t || t.files.length === 0) return { cx: 0, cz: 0, size: 120, halfW: 60, halfD: 60 };
     let C = 1 / 0,
       F = -1 / 0,
       B = 1 / 0,
@@ -3237,15 +3103,8 @@ function si({
               const me = $.current,
                 ge = me.touchByPath.get(te.path),
                 J = me.visitsByFile.get(te.id) ?? 0,
-                z = ge
-                  ? `${De(ge)} · ${J} visit${J === 1 ? "" : "s"}`
-                  : De(void 0);
-              S.show(
-                te.path,
-                te.ghost ? `${z} · ghost` : z,
-                Z.clientX,
-                Z.clientY,
-              );
+                z = ge ? `${De(ge)} · ${J} visit${J === 1 ? "" : "s"}` : De(void 0);
+              S.show(te.path, te.ghost ? `${z} · ghost` : z, Z.clientX, Z.clientY);
             }));
         },
         ie = () => {
@@ -3273,11 +3132,7 @@ function si({
         X = new Fe(),
         ce = () => {
           (E.update(),
-            P.current?.updateTargets(
-              j,
-              w.domElement.clientWidth,
-              w.domElement.clientHeight,
-            ),
+            P.current?.updateTargets(j, w.domElement.clientWidth, w.domElement.clientHeight),
             P.current?.ease(T.current));
           const Z = u.current,
             te = v.current,
@@ -3291,11 +3146,8 @@ function si({
               let de = me.get(G.fileId) ?? 0;
               const pe = G.target - de;
               Math.abs(pe) > 0.015
-                ? ((de = T.current ? G.target : de + pe * 0.13),
-                  me.set(G.fileId, de),
-                  (J = !0))
-                : de !== G.target &&
-                  (me.set(G.fileId, G.target), (de = G.target), (J = !0));
+                ? ((de = T.current ? G.target : de + pe * 0.13), me.set(G.fileId, de), (J = !0))
+                : de !== G.target && (me.set(G.fileId, G.target), (de = G.target), (J = !0));
               const je = Math.max(se.rect.w, 0.45) + 0.04,
                 ue = Math.max(se.rect.d, 0.45) + 0.04;
               (H.compose(
@@ -3363,19 +3215,11 @@ function si({
       const F = new $s(),
         B = U.size;
       C.fog = new As(wt, B * 2.1, B * 4.2);
-      const j = new ot(
-        new zt(B * 6, B * 6),
-        new mt({ color: "#14171e", roughness: 1 }),
-      );
+      const j = new ot(new zt(B * 6, B * 6), new mt({ color: "#14171e", roughness: 1 }));
       ((j.rotation.x = -Math.PI / 2), (j.position.y = -0.32), F.add(j));
       const w = new Ls(B * 2.8, 46, "#20242e", "#1a1e27");
-      ((w.material.transparent = !0),
-        (w.material.opacity = 0.5),
-        (w.position.y = -0.3),
-        F.add(w));
-      const E = t.dirs.filter(
-        (V) => V.depth <= 3 && V.rect.w > 0 && V.rect.d > 0,
-      );
+      ((w.material.transparent = !0), (w.material.opacity = 0.5), (w.position.y = -0.3), F.add(w));
+      const E = t.dirs.filter((V) => V.depth <= 3 && V.rect.w > 0 && V.rect.d > 0);
       if (E.length > 0) {
         const V = new Pt(1, 1, 1),
           K = new mt({ roughness: 0.95, metalness: 0 }),
@@ -3386,11 +3230,7 @@ function si({
           const H = -0.2 + Math.min(m.depth, 3) * 0.06,
             X = H + 0.3;
           (ie.compose(
-            new oe(
-              m.rect.x + m.rect.w / 2 - U.cx,
-              H - X / 2,
-              m.rect.z + m.rect.d / 2 - U.cz,
-            ),
+            new oe(m.rect.x + m.rect.w / 2 - U.cx, H - X / 2, m.rect.z + m.rect.d / 2 - U.cz),
             new Fe(),
             new oe(m.rect.w, X, m.rect.d),
           ),
@@ -3419,11 +3259,7 @@ function si({
         x.instanceColor && (x.instanceColor.needsUpdate = !0),
         (c.current = x),
         F.add(x));
-      const N = new Ye(
-        ni(),
-        new Ge({ toneMapped: !1, vertexColors: !0 }),
-        t.files.length,
-      );
+      const N = new Ye(ni(), new Ge({ toneMapped: !1, vertexColors: !0 }), t.files.length);
       ((N.instanceColor = new gt(new Float32Array(t.files.length * 3), 3)),
         (N.count = 0),
         (N.frustumCulled = !1),
@@ -3431,10 +3267,7 @@ function si({
         F.add(N),
         (P.current = new Ks(
           t.dirs
-            .filter(
-              (V) =>
-                V.depth >= 1 && V.fileCount > 0 && V.rect.w > 0 && V.rect.d > 0,
-            )
+            .filter((V) => V.depth >= 1 && V.fileCount > 0 && V.rect.w > 0 && V.rect.d > 0)
             .map((V) => ({
               name: ri(V.path),
               x: V.rect.x + V.rect.w / 2 - U.cx,
@@ -3605,17 +3438,12 @@ function ni() {
 function is(t) {
   if (t.ghost) return $e.ghost;
   let s = 2166136261;
-  for (let r = 0; r < t.path.length; r++)
-    s = Math.imul(s ^ t.path.charCodeAt(r), 16777619);
+  for (let r = 0; r < t.path.length; r++) s = Math.imul(s ^ t.path.charCodeAt(r), 16777619);
   const n = ((s >>> 0) % 1e3) / 1e3 - 0.5;
   return $e.unvisited.clone().offsetHSL(0, 0, n * 0.05);
 }
 function At(t, s) {
-  return new oe(
-    t.rect.x + t.rect.w / 2 - s.cx,
-    0,
-    t.rect.z + t.rect.d / 2 - s.cz,
-  );
+  return new oe(t.rect.x + t.rect.w / 2 - s.cx, 0, t.rect.z + t.rect.d / 2 - s.cz);
 }
 function ri(t) {
   return t.slice(t.lastIndexOf("/") + 1) || t;
@@ -3653,8 +3481,7 @@ function ai(t) {
   }
   let r = 1;
   const a = (p) => {
-    ((p.leafCount = p.files.length),
-      p.files.length > 0 && (r = Math.max(r, p.depth + 1)));
+    ((p.leafCount = p.files.length), p.files.length > 0 && (r = Math.max(r, p.depth + 1)));
     for (const O of p.children.values()) p.leafCount += a(O);
     return p.leafCount;
   };
@@ -3668,8 +3495,8 @@ function ai(t) {
     l = (p, O, P, k) => {
       const T = p < 1e-6 ? k : O;
       let L = k - T;
-      for (; L > Math.PI; ) L -= Math.PI * 2;
-      for (; L < -Math.PI; ) L += Math.PI * 2;
+      for (; L > Math.PI;) L -= Math.PI * 2;
+      for (; L < -Math.PI;) L += Math.PI * 2;
       const $ = [],
         W = 8;
       for (let Q = 0; Q <= W; Q++) {
@@ -3682,9 +3509,7 @@ function ai(t) {
   let y = 0;
   const f = (p) => {
     p.angle = (y + p.leafCount / 2) * u;
-    const O = [...p.children.values()].sort((k, T) =>
-        k.name < T.name ? -1 : 1,
-      ),
+    const O = [...p.children.values()].sort((k, T) => (k.name < T.name ? -1 : 1)),
       P = [...p.files].sort((k, T) => (k.path < T.path ? -1 : 1));
     for (const k of O) f(k);
     for (const k of P) {
@@ -3750,13 +3575,7 @@ function li(t) {
 }
 const di = 1.8,
   ui = 348;
-function hi({
-  city: t,
-  playback: s,
-  selectedPath: n,
-  onSelect: r,
-  onCanvasReady: a,
-}) {
+function hi({ city: t, playback: s, selectedPath: n, onSelect: r, onCanvasReady: a }) {
   const o = i.useRef(null),
     d = i.useRef(null),
     c = i.useRef(null),
@@ -3790,10 +3609,7 @@ function hi({
       () => window.removeEventListener("mindwalk:zoom-to-fit", w)
     );
   }, []);
-  const j = i.useMemo(
-    () => (t && t.files.length > 0 ? ai(t.files) : null),
-    [t],
-  );
+  const j = i.useMemo(() => (t && t.files.length > 0 ? ai(t.files) : null), [t]);
   return (
     i.useEffect(() => {
       const w = o.current;
@@ -3837,8 +3653,7 @@ function hi({
             je = he * he;
           for (const ue of f.current) {
             const Ne = z.leaf.get(ue.id);
-            if (!Ne || (V.set(Ne.x, Be, Ne.z).project(O.current), V.z > 1))
-              continue;
+            if (!Ne || (V.set(Ne.x, Be, Ne.z).project(O.current), V.z > 1)) continue;
             const we = ((V.x + 1) / 2) * G.width,
               be = ((1 - V.y) / 2) * G.height,
               Me = (we - se) * (we - se) + (be - de) * (be - de);
@@ -3872,15 +3687,8 @@ function hi({
               const G = C.current,
                 se = G.touchByPath.get(z.path),
                 de = G.visitsByFile.get(z.id) ?? 0,
-                pe = se
-                  ? `${De(se)} · ${de} visit${de === 1 ? "" : "s"}`
-                  : De(void 0);
-              N.show(
-                z.path,
-                z.ghost ? `${pe} · ghost` : pe,
-                J.clientX,
-                J.clientY,
-              );
+                pe = se ? `${De(se)} · ${de} visit${de === 1 ? "" : "s"}` : De(void 0);
+              N.show(z.path, z.ghost ? `${pe} · ghost` : pe, J.clientX, J.clientY);
             }));
         },
         H = () => {
@@ -3908,11 +3716,7 @@ function hi({
         me = new Fe().setFromEuler(new Pn(-Math.PI / 2, 0, 0)),
         ge = () => {
           (_.update(),
-            W.current?.updateTargets(
-              D,
-              x.domElement.clientWidth,
-              x.domElement.clientHeight,
-            ),
+            W.current?.updateTargets(D, x.domElement.clientWidth, x.domElement.clientHeight),
             W.current?.ease(U.current));
           const J = v.current,
             z = R.current,
@@ -3927,11 +3731,8 @@ function hi({
               let we = G.get(ue.fileId) ?? 0;
               const be = ue.target - we;
               (Math.abs(be) > 0.015
-                ? ((we = U.current ? ue.target : we + be * 0.12),
-                  G.set(ue.fileId, we),
-                  (pe = !0))
-                : we !== ue.target &&
-                  (G.set(ue.fileId, ue.target), (we = ue.target), (pe = !0)),
+                ? ((we = U.current ? ue.target : we + be * 0.12), G.set(ue.fileId, we), (pe = !0))
+                : we !== ue.target && (G.set(ue.fileId, ue.target), (we = ue.target), (pe = !0)),
                 te.compose(
                   new oe(Ne.x, 0.06, Ne.z),
                   me,
@@ -3993,16 +3794,10 @@ function hi({
       const E = new $s(),
         S = j.radius * 2.3;
       w.fog = new As(wt, S * 2.1, S * 4.2);
-      const D = new ot(
-        new zt(S * 6, S * 6),
-        new mt({ color: "#14171e", roughness: 1 }),
-      );
+      const D = new ot(new zt(S * 6, S * 6), new mt({ color: "#14171e", roughness: 1 }));
       ((D.rotation.x = -Math.PI / 2), (D.position.y = -0.25), E.add(D));
       const x = new Ls(S * 2.4, 40, "#1d222c", "#181c25");
-      ((x.material.transparent = !0),
-        (x.material.opacity = 0.4),
-        (x.position.y = -0.24),
-        E.add(x));
+      ((x.material.transparent = !0), (x.material.opacity = 0.4), (x.position.y = -0.24), E.add(x));
       const _ = [],
         N = [];
       for (const z of j.edges) {
@@ -4021,10 +3816,7 @@ function hi({
       ee.setAttribute("position", new Tn(_, 3));
       const fe = new Float32Array(_.length);
       ee.setAttribute("color", new xt(fe, 3));
-      const he = new ks(
-        ee,
-        new js({ vertexColors: !0, transparent: !0, opacity: 0.9 }),
-      );
+      const he = new ks(ee, new js({ vertexColors: !0, transparent: !0, opacity: 0.9 }));
       ((l.current = he), (y.current = N), E.add(he));
       const V = new Gt(0.5, 10, 8),
         K = new Ge({ toneMapped: !1, fog: !1 }),
@@ -4042,10 +3834,7 @@ function hi({
           Y.setMatrixAt(z.id, A);
           continue;
         }
-        const se = Math.min(
-          0.24 + Math.sqrt(Math.max(z.lines, 1)) * 0.045,
-          1.05,
-        );
+        const se = Math.min(0.24 + Math.sqrt(Math.max(z.lines, 1)) * 0.045, 1.05);
         (m.compose(new oe(G.x, Be, G.z), new Fe(), new oe(se, se, se)),
           Y.setMatrixAt(z.id, m),
           Y.setColorAt(z.id, Re.unvisited));
@@ -4075,9 +3864,7 @@ function hi({
             H.setMatrixAt(se, A);
             continue;
           }
-          const de =
-            Math.min(0.24 + Math.sqrt(Math.max(z.lines, 1)) * 0.045, 1.05) *
-            0.8;
+          const de = Math.min(0.24 + Math.sqrt(Math.max(z.lines, 1)) * 0.045, 1.05) * 0.8;
           (m.compose(new oe(G.x, Be, G.z), new Fe(), new oe(de, de, de)),
             H.setMatrixAt(se, m),
             H.setColorAt(se, Re.ghost));
@@ -4131,10 +3918,7 @@ function hi({
           fog: !1,
         }),
         te = new ot(new Bn(1.2, 1.5, 48), Z);
-      ((te.rotation.x = -Math.PI / 2),
-        (te.visible = !1),
-        (te.raycast = () => {}),
-        E.add(te));
+      ((te.rotation.x = -Math.PI / 2), (te.visible = !1), (te.raycast = () => {}), E.add(te));
       const me = new ot(
         new qn(0.05, 0.05, 6, 6, 1, !0),
         new Ge({
@@ -4147,10 +3931,7 @@ function hi({
           fog: !1,
         }),
       );
-      ((me.visible = !1),
-        (me.raycast = () => {}),
-        E.add(me),
-        (h.current = { ring: te, beam: me }));
+      ((me.visible = !1), (me.raycast = () => {}), E.add(me), (h.current = { ring: te, beam: me }));
       const ge = new en(1.6);
       ((L.current = ge), E.add(ge.object), (T.current = E), w.add(E));
       const J = () => {
@@ -4211,12 +3992,10 @@ function hi({
         if (Y) {
           ie = Re[Y];
           const le = s.visitsByFile.get(K.id) ?? 1;
-          (N.push({ fileId: K.id, target: li(le), color: Re[Y] }),
-            ee.add(K.id));
+          (N.push({ fileId: K.id, target: li(le), color: Re[Y] }), ee.add(K.id));
           const m = K.path.split("/");
           let A = "";
-          for (let H = 0; H < m.length - 1; H++)
-            ((A = A ? `${A}/${m[H]}` : m[H]), fe.add(A));
+          for (let H = 0; H < m.length - 1; H++) ((A = A ? `${A}/${m[H]}` : m[H]), fe.add(A));
         }
         if (K.ghost) {
           const le = S.get(K.id);
@@ -4241,8 +4020,7 @@ function hi({
           ? (Y = s.touchByFile.has(K.childFileId))
           : K.childPath && (Y = fe.has(K.childPath));
         const ie = Y ? oi : ii;
-        for (let le = 0; le < K.vertexCount; le++)
-          he.setXYZ(V++, ie.r, ie.g, ie.b);
+        for (let le = 0; le < K.vertexCount; le++) he.setXYZ(V++, ie.r, ie.g, ie.b);
       }
       he.needsUpdate = !0;
     }, [t, j, s]),
@@ -4262,8 +4040,7 @@ function hi({
         D &&
           x &&
           _ &&
-          ((x.autoRotate = !1),
-          Ys(D, x, new oe(S.x, Be, S.z), _.clientWidth, _.clientHeight, ui));
+          ((x.autoRotate = !1), Ys(D, x, new oe(S.x, Be, S.z), _.clientWidth, _.clientHeight, ui));
       } else ((w.ring.visible = !1), (w.beam.visible = !1));
     }, [t, j, n]),
     i.useEffect(() => {
@@ -4431,10 +4208,7 @@ const ls = (t) => {
         const l = typeof h == "function" ? h(s) : h;
         if (!Object.is(l, s)) {
           const y = s;
-          ((s =
-            (v ?? (typeof l != "object" || l === null))
-              ? l
-              : Object.assign({}, s, l)),
+          ((s = (v ?? (typeof l != "object" || l === null)) ? l : Object.assign({}, s, l)),
             n.forEach((f) => f(s, y)));
         }
       },
@@ -4501,8 +4275,7 @@ const Ae = yi((t, s) => ({
         currentSeq: 0,
         selectedPath: void 0,
       }),
-    setData: (n, r) =>
-      t({ trace: n, city: r, currentSeq: Math.max(0, n.events.length - 1) }),
+    setData: (n, r) => t({ trace: n, city: r, currentSeq: Math.max(0, n.events.length - 1) }),
     setCityOnly: (n) =>
       t({
         city: n,
@@ -4563,10 +4336,7 @@ const ki = i.memo(function ({
     P = !!s && s.events.some((C) => C.targets.length > 0),
     k =
       !!s &&
-      s.events.some(
-        (C) =>
-          (C.action === "read" || C.action === "edit") && !C.providerExecuted,
-      ),
+      s.events.some((C) => (C.action === "read" || C.action === "edit") && !C.providerExecuted),
     T = O && !P,
     L = T && k,
     [$, W] = i.useState(!1),
@@ -4621,9 +4391,7 @@ const ki = i.memo(function ({
                 className: "hud-commit",
                 children: [
                   e.jsx("span", { children: n.repo.commit || "worktree" }),
-                  n.repo.dirty
-                    ? e.jsx("span", { className: "dirty", children: "● dirty" })
-                    : null,
+                  n.repo.dirty ? e.jsx("span", { className: "dirty", children: "● dirty" }) : null,
                   s?.session.model
                     ? e.jsxs("span", {
                         children: [
@@ -4634,8 +4402,7 @@ const ki = i.memo(function ({
                     : null,
                   s?.session.cwd
                     ? e.jsx("span", {
-                        "data-hint":
-                          "Working directory the adapter resolved for this session",
+                        "data-hint": "Working directory the adapter resolved for this session",
                         children: ji(s.session.cwd),
                       })
                     : null,
@@ -4728,23 +4495,17 @@ const ki = i.memo(function ({
                         children: [fs(l.actions), " calls"],
                       }),
                       e.jsxs("span", {
-                        "data-hint":
-                          "User messages — each one starts a turn of agent work",
+                        "data-hint": "User messages — each one starts a turn of agent work",
                         children: [l.userTurns, " turns"],
                       }),
                       l.subagents > 0
                         ? e.jsxs("button", {
                             className: "hud-agent-link",
-                            "data-hint":
-                              "Subagent launches (Task/Agent) — open Agent lenses",
+                            "data-hint": "Subagent launches (Task/Agent) — open Agent lenses",
                             onClick: h,
                             disabled: !h || v,
                             "aria-label": `Open ${l.subagents} subagent${l.subagents === 1 ? "" : "s"} in Agent lenses`,
-                            children: [
-                              l.subagents,
-                              " subagent",
-                              l.subagents === 1 ? "" : "s",
-                            ],
+                            children: [l.subagents, " subagent", l.subagents === 1 ? "" : "s"],
                           })
                         : null,
                       l.compactions > 0
@@ -4759,8 +4520,7 @@ const ki = i.memo(function ({
                           })
                         : null,
                       e.jsxs("span", {
-                        "data-hint":
-                          "Tool output the agent consumed over the session",
+                        "data-hint": "Tool output the agent consumed over the session",
                         children: [Si(l.resultBytes), " output"],
                       }),
                       e.jsx("span", {
@@ -4795,9 +4555,7 @@ const ki = i.memo(function ({
                           l.churnFiles > 0
                             ? e.jsxs("button", {
                                 ref: U,
-                                className: $
-                                  ? "warn churn-toggle open"
-                                  : "warn churn-toggle",
+                                className: $ ? "warn churn-toggle open" : "warn churn-toggle",
                                 "aria-expanded": $,
                                 onClick: () => W((C) => !C),
                                 "data-hint": `Files edited in three or more separate events — the most-edited file changed ${l.maxEditsPerFile} times. Click to list them.`,
@@ -4857,11 +4615,7 @@ const ki = i.memo(function ({
                                   }),
                                   e.jsxs("span", {
                                     className: "churn-count",
-                                    children: [
-                                      C.edits,
-                                      " edit",
-                                      C.edits === 1 ? "" : "s",
-                                    ],
+                                    children: [C.edits, " edit", C.edits === 1 ? "" : "s"],
                                   }),
                                 ],
                               },
@@ -4975,11 +4729,7 @@ function ms(t) {
 }
 function Si(t) {
   const s = t / 1024;
-  return s < 1
-    ? `${t} B`
-    : s < 1e3
-      ? `${Math.round(s)} KB`
-      : `${(s / 1024).toFixed(1)} MB`;
+  return s < 1 ? `${t} B` : s < 1e3 ? `${Math.round(s)} KB` : `${(s / 1024).toFixed(1)} MB`;
 }
 function Ri(t) {
   const s = t.replace(/\/+$/, "");
@@ -5088,10 +4838,7 @@ function $i({
             ],
           }),
           e.jsxs("div", {
-            children: [
-              e.jsx("dt", { children: "Bytes" }),
-              e.jsx("dd", { children: zi(t.bytes) }),
-            ],
+            children: [e.jsx("dt", { children: "Bytes" }), e.jsx("dd", { children: zi(t.bytes) })],
           }),
         ],
       }),
@@ -5352,9 +5099,7 @@ const Ii = {
                       ? "var(--amber, #e0a458)"
                       : "var(--moss)"),
                   (B = (0.3 + j * 0.7) * (C ? 1 : 0.15)));
-              } else
-                ((F = Ii[W ?? "unvisited"]),
-                  (B = (W ? 0.8 : 0.2) * (C ? 1 : 0.15)));
+              } else ((F = Ii[W ?? "unvisited"]), (B = (W ? 0.8 : 0.2) * (C ? 1 : 0.15)));
               return e.jsx(
                 "rect",
                 {
@@ -5367,11 +5112,7 @@ const Ii = {
                   stroke: Q ? "var(--ember)" : "none",
                   strokeWidth: Q ? 1 : 0,
                   children: e.jsxs("title", {
-                    children: [
-                      $.path,
-                      " — ",
-                      o && U > 0 ? `${U} edits` : De(W),
-                    ],
+                    children: [$.path, " — ", o && U > 0 ? `${U} edits` : De(W)],
                   }),
                 },
                 $.id,
@@ -5538,10 +5279,7 @@ const Fi = typeof navigator < "u" && /Mac|iPhone|iPad/.test(navigator.platform),
         }
       );
     }, [k]);
-    const F = i.useMemo(
-        () => [...new Set(s.map((x) => x.harness))].sort(),
-        [s],
-      ),
+    const F = i.useMemo(() => [...new Set(s.map((x) => x.harness))].sort(), [s]),
       B = i.useMemo(() => s.filter((x) => x.eventCount === 0).length, [s]),
       j = o && F.includes(o) ? o : void 0,
       w = i.useMemo(() => {
@@ -5575,10 +5313,7 @@ const Fi = typeof navigator < "u" && /Mac|iPhone|iPad/.test(navigator.platform),
               children: [
                 e.jsx(qi, {}),
                 e.jsxs("span", {
-                  children: [
-                    "mindwalk",
-                    e.jsx("span", { className: "spark", children: "." }),
-                  ],
+                  children: ["mindwalk", e.jsx("span", { className: "spark", children: "." })],
                 }),
               ],
             }),
@@ -5759,12 +5494,8 @@ const Fi = typeof navigator < "u" && /Mac|iPhone|iPad/.test(navigator.platform),
                           className: a ? "eye-toggle" : "eye-toggle showing",
                           onClick: () => h(!a),
                           "aria-pressed": !a,
-                          title: a
-                            ? `Show ${B} empty sessions`
-                            : `Hide ${B} empty sessions`,
-                          "aria-label": a
-                            ? `Show ${B} empty sessions`
-                            : `Hide ${B} empty sessions`,
+                          title: a ? `Show ${B} empty sessions` : `Hide ${B} empty sessions`,
+                          "aria-label": a ? `Show ${B} empty sessions` : `Hide ${B} empty sessions`,
                           children: a
                             ? e.jsx(ar, { size: 13, "aria-hidden": !0 })
                             : e.jsx(or, { size: 13, "aria-hidden": !0 }),
@@ -5783,10 +5514,7 @@ const Fi = typeof navigator < "u" && /Mac|iPhone|iPad/.test(navigator.platform),
               ? e.jsx("p", {
                   className: "muted",
                   style: { padding: "10px 8px" },
-                  children:
-                    r && s.length === 0
-                      ? "Scanning sessions…"
-                      : "No matching sessions.",
+                  children: r && s.length === 0 ? "Scanning sessions…" : "No matching sessions.",
                 })
               : null,
             S.map((x) => {
@@ -5817,10 +5545,7 @@ const Fi = typeof navigator < "u" && /Mac|iPhone|iPad/.test(navigator.platform),
                           e.jsxs(
                             "button",
                             {
-                              className:
-                                N.key === n
-                                  ? "session-row active"
-                                  : "session-row",
+                              className: N.key === n ? "session-row active" : "session-row",
                               onClick: () => c(N.key),
                               disabled: b,
                               children: [
@@ -5849,27 +5574,19 @@ const Fi = typeof navigator < "u" && /Mac|iPhone|iPad/.test(navigator.platform),
                                         N.promptTokens || N.completionTokens
                                           ? ` · ${vs(N.promptTokens || 0)}/${vs(N.completionTokens || 0)} tok`
                                           : "",
-                                        N.cost && N.cost > 0
-                                          ? ` · $${N.cost.toFixed(2)}`
-                                          : "",
+                                        N.cost && N.cost > 0 ? ` · $${N.cost.toFixed(2)}` : "",
                                         N.gitBranch ? ` · ${N.gitBranch}` : "",
                                         N.endedAt ? ` · ${Oi(N.endedAt)}` : "",
                                       ],
                                     }),
                                     (() => {
-                                      const ee =
-                                        N.key === n && R !== void 0
-                                          ? R
-                                          : N.reportState;
+                                      const ee = N.key === n && R !== void 0 ? R : N.reportState;
                                       return ee
                                         ? e.jsx("span", {
                                             className: `rail-eval rail-eval-${ee}`,
                                             title: gs(ee),
                                             "aria-label": gs(ee),
-                                            children:
-                                              ee === "running"
-                                                ? "evaluating"
-                                                : "",
+                                            children: ee === "running" ? "evaluating" : "",
                                           })
                                         : null;
                                     })(),
@@ -5949,13 +5666,9 @@ function Wi(t, s) {
   const n = [...t];
   switch (s) {
     case "newest":
-      return n.sort(
-        (r, a) => ft(a.endedAt ?? a.startedAt) - ft(r.endedAt ?? r.startedAt),
-      );
+      return n.sort((r, a) => ft(a.endedAt ?? a.startedAt) - ft(r.endedAt ?? r.startedAt));
     case "oldest":
-      return n.sort(
-        (r, a) => ft(r.endedAt ?? r.startedAt) - ft(a.endedAt ?? a.startedAt),
-      );
+      return n.sort((r, a) => ft(r.endedAt ?? r.startedAt) - ft(a.endedAt ?? a.startedAt));
     case "events":
       return n.sort((r, a) => a.eventCount - r.eventCount);
     case "cost":
@@ -6016,20 +5729,14 @@ const Ki = i.memo(function ({ event: s, total: n }) {
               className: "event-summary-head",
               children: [
                 e.jsx("span", { className: "readout-tool", children: s.tool }),
-                s.isError
-                  ? e.jsx("span", { className: "err-badge", children: "error" })
-                  : null,
+                s.isError ? e.jsx("span", { className: "err-badge", children: "error" }) : null,
                 r.length > 0
                   ? e.jsxs("span", {
                       className: "event-targets",
                       title: r.join(", "),
                       children: [
                         r.map((a, o) =>
-                          e.jsx(
-                            "span",
-                            { className: "event-target", children: a },
-                            o,
-                          ),
+                          e.jsx("span", { className: "event-target", children: a }, o),
                         ),
                         s.targets.length > 4
                           ? e.jsxs("span", {
@@ -6116,10 +5823,7 @@ function Yi({
             c(!1);
             return;
           }
-          const X =
-              I < 0.999
-                ? Math.min(j.current, Math.round(I * j.current))
-                : j.current,
+          const X = I < 0.999 ? Math.min(j.current, Math.round(I * j.current)) : j.current,
             ce = B.current + A;
           if (ce > X && v) {
             const Z = b > 0.001 ? Math.round(b * j.current) : 0;
@@ -6163,10 +5867,7 @@ function Yi({
     N = i.useCallback(
       (m) => {
         const A = B.current,
-          H =
-            m === 1
-              ? _.find((X) => X > A)
-              : [..._].reverse().find((X) => X < A);
+          H = m === 1 ? _.find((X) => X > A) : [..._].reverse().find((X) => X < A);
         H !== void 0 && n(H);
       },
       [_, n],
@@ -6179,9 +5880,7 @@ function Yi({
           A.metaKey ||
           A.ctrlKey ||
           A.altKey ||
-          A.target?.closest(
-            "input, textarea, select, button, [contenteditable]",
-          )
+          A.target?.closest("input, textarea, select, button, [contenteditable]")
         )
       ) {
         switch (A.key) {
@@ -6217,10 +5916,7 @@ function Yi({
         }
       }
     };
-    return (
-      window.addEventListener("keydown", m),
-      () => window.removeEventListener("keydown", m)
-    );
+    return (window.addEventListener("keydown", m), () => window.removeEventListener("keydown", m));
   }, [t, o, E, D, n, S, x, N]);
   const ee = k === 0 || o,
     fe = i.useCallback(
@@ -6262,8 +5958,7 @@ function Yi({
         window.addEventListener("pointerdown", m),
         window.addEventListener("keydown", A),
         () => {
-          (window.removeEventListener("pointerdown", m),
-            window.removeEventListener("keydown", A));
+          (window.removeEventListener("pointerdown", m), window.removeEventListener("keydown", A));
         }
       );
     }, [y]));
@@ -6368,8 +6063,7 @@ function Yi({
                       disabled: ee,
                       title: `${m.note || ws[m.type]}${m.count > 1 ? ` ×${m.count}` : ""}${m.duration ? ` (${m.duration}s)` : ""}`,
                       "aria-label": `Jump to ${m.note || ws[m.type]} at event ${m.seq + 1}${m.count > 1 ? `, ${m.count} marks` : ""}`,
-                      onClick: () =>
-                        m.type === "subagent" && r ? r(m.seq) : n(m.seq),
+                      onClick: () => (m.type === "subagent" && r ? r(m.seq) : n(m.seq)),
                     },
                     `${m.type}-${m.seq}-${A}`,
                   ),
@@ -6428,8 +6122,7 @@ function Yi({
           }),
           e.jsxs("div", {
             className: "deck-pos",
-            "data-hint":
-              "Event position and wall-clock timestamp at the playhead",
+            "data-hint": "Event position and wall-clock timestamp at the playhead",
             children: [
               e.jsx("span", {
                 className: "deck-pos-count",
@@ -6512,9 +6205,7 @@ function Yi({
                 onClick: () => l((m) => !m),
                 disabled: ee,
                 title: v ? "Loop on (wraps within zoom range)" : "Loop off",
-                "aria-label": v
-                  ? "Disable loop playback"
-                  : "Enable loop playback",
+                "aria-label": v ? "Disable loop playback" : "Enable loop playback",
                 "aria-pressed": v,
                 children: e.jsx(Ar, { size: 15 }),
               }),
@@ -6557,10 +6248,7 @@ function Yi({
                                   e.jsxs(
                                     "button",
                                     {
-                                      className:
-                                        m === u
-                                          ? "pop-chip engaged"
-                                          : "pop-chip",
+                                      className: m === u ? "pop-chip engaged" : "pop-chip",
                                       onClick: () => h(m),
                                       "aria-pressed": m === u,
                                       children: [m, "×"],
@@ -6628,10 +6316,7 @@ function Yi({
                     "span",
                     {
                       className: "legend-item",
-                      children: [
-                        e.jsx("span", { className: `action-dot ${m}` }),
-                        m,
-                      ],
+                      children: [e.jsx("span", { className: `action-dot ${m}` }), m],
                     },
                     m,
                   ),
@@ -6649,10 +6334,7 @@ function Yi({
                   }),
                   e.jsxs("span", {
                     className: "legend-item",
-                    children: [
-                      e.jsx("span", { className: "legend-glyph subagent" }),
-                      "subagent",
-                    ],
+                    children: [e.jsx("span", { className: "legend-glyph subagent" }), "subagent"],
                   }),
                   e.jsxs("span", {
                     className: "legend-item",
@@ -6663,10 +6345,7 @@ function Yi({
                   }),
                   e.jsxs("span", {
                     className: "legend-item",
-                    children: [
-                      e.jsx("span", { className: "legend-glyph thinking" }),
-                      "thinking",
-                    ],
+                    children: [e.jsx("span", { className: "legend-glyph thinking" }), "thinking"],
                   }),
                   e.jsxs("span", {
                     className: "legend-item",
@@ -6845,9 +6524,7 @@ function Qi() {
           if (xe === null) {
             p(re, ne);
             const ke = ze.current.get(qe);
-            (ke !== void 0 &&
-              P(Math.min(ke, Math.max(0, re.events.length - 1))),
-              k(void 0));
+            (ke !== void 0 && P(Math.min(ke, Math.max(0, re.events.length - 1))), k(void 0));
           } else {
             const ke = He.current.get(xe);
             if (ke) {
@@ -6856,9 +6533,7 @@ function Qi() {
             }
           }
         } catch (re) {
-          M === B.current &&
-            x.current === g &&
-            L(Ie(re, "loading the session"));
+          M === B.current && x.current === g && L(Ie(re, "loading the session"));
         } finally {
           We();
         }
@@ -6881,8 +6556,7 @@ function Qi() {
       if (M && q) {
         p(M, q);
         const re = ze.current.get(qe);
-        (re !== void 0 && P(Math.min(re, Math.max(0, M.events.length - 1))),
-          k(void 0));
+        (re !== void 0 && P(Math.min(re, Math.max(0, M.events.length - 1))), k(void 0));
       }
     }, [P, p, k]),
     kt = i.useCallback(
@@ -6896,9 +6570,7 @@ function Qi() {
           let re;
           if (!C.current) {
             C.current = !0;
-            const Ee =
-                new URL(window.location.href).searchParams.get("session") ??
-                void 0,
+            const Ee = new URL(window.location.href).searchParams.get("session") ?? void 0,
               Ut = Ee ? q.find(($t) => $t.key === Ee) : void 0,
               Rt = Ee && !Ut ? q.filter(($t) => $t.id === Ee) : [],
               Kt = Ut?.key ?? (Rt.length === 1 ? Rt[0].key : void 0);
@@ -6909,14 +6581,11 @@ function Qi() {
                     `session id "${Ee}" is ambiguous; falling back to the latest session`,
                   )
                 : Ee &&
-                  console.warn(
-                    `session "${Ee}" not found; falling back to the latest session`,
-                  );
+                  console.warn(`session "${Ee}" not found; falling back to the latest session`);
           }
           const ne = x.current,
             xe = ne !== void 0 && q.some((Ee) => Ee.key === ne),
-            ke = (q.find((Ee) => sn(Ee, { hideEmpty: h, harness: v })) ?? q[0])
-              ?.key,
+            ke = (q.find((Ee) => sn(Ee, { hideEmpty: h, harness: v })) ?? q[0])?.key,
             ve = re ?? (xe ? ne : ke);
           if (ve !== ne) {
             const Ee = ct();
@@ -6965,8 +6634,7 @@ function Qi() {
       (g, M, q) => {
         (dt(), (be.current = g), z(g), p(M, q));
         const re = ze.current.get(g ?? qe);
-        (re !== void 0 && P(Math.min(re, Math.max(0, M.events.length - 1))),
-          k(void 0));
+        (re !== void 0 && P(Math.min(re, Math.max(0, M.events.length - 1))), k(void 0));
       },
       [dt, P, p, k],
     ),
@@ -6977,14 +6645,7 @@ function Qi() {
           q = _e.current;
         if (!M || !q) return;
         const re = ++E.current;
-        if (
-          ((Me.current = void 0),
-          pe(void 0),
-          ue(void 0),
-          we(void 0),
-          be.current === g)
-        )
-          return;
+        if (((Me.current = void 0), pe(void 0), ue(void 0), we(void 0), be.current === g)) return;
         const ne = g === null ? Je.current : He.current.get(g);
         if (ne) {
           Nt(g, ne, q);
@@ -7033,12 +6694,7 @@ function Qi() {
       const q = x.current,
         re = be.current,
         ne = Ae.getState().currentSeq;
-      (E.current++,
-        (Me.current = void 0),
-        pe(void 0),
-        (Ce.current = !0),
-        ee(!0),
-        L(void 0));
+      (E.current++, (Me.current = void 0), pe(void 0), (Ce.current = !0), ee(!0), L(void 0));
       try {
         const { blob: xe, extension: ke } = await Oa({
             canvas: g,
@@ -7050,9 +6706,7 @@ function Qi() {
       } catch (xe) {
         L(Ie(xe, "exporting the video"));
       } finally {
-        (x.current === q && be.current === re && P(ne),
-          (Ce.current = !1),
-          ee(!1));
+        (x.current === q && be.current === re && P(ne), (Ce.current = !1), ee(!1));
       }
     }, [n, N, P, L]),
     pn = i.useCallback(() => Q(!0), [Q]),
@@ -7179,38 +6833,20 @@ function Qi() {
     );
   (i.useEffect(() => {
     const g = (M) => {
-      if (
-        M.key.toLowerCase() !== "b" ||
-        !(M.metaKey || M.ctrlKey) ||
-        M.altKey ||
-        M.shiftKey
-      )
+      if (M.key.toLowerCase() !== "b" || !(M.metaKey || M.ctrlKey) || M.altKey || M.shiftKey)
         return;
       M.preventDefault();
       const q = Ae.getState();
       q.setRailCollapsed(!q.railCollapsed);
     };
-    return (
-      window.addEventListener("keydown", g),
-      () => window.removeEventListener("keydown", g)
-    );
+    return (window.addEventListener("keydown", g), () => window.removeEventListener("keydown", g));
   }, []),
     i.useEffect(() => {
       const g = (M) => {
-        if (
-          M.key.toLowerCase() !== "v" ||
-          M.metaKey ||
-          M.ctrlKey ||
-          M.altKey ||
-          M.shiftKey
-        )
-          return;
+        if (M.key.toLowerCase() !== "v" || M.metaKey || M.ctrlKey || M.altKey || M.shiftKey) return;
         const q = M.target;
         if (
-          (q &&
-            (q.tagName === "INPUT" ||
-              q.tagName === "TEXTAREA" ||
-              q.isContentEditable)) ||
+          (q && (q.tagName === "INPUT" || q.tagName === "TEXTAREA" || q.isContentEditable)) ||
           Ce.current
         )
           return;
@@ -7218,18 +6854,14 @@ function Qi() {
         re.setView(re.view === "tree" ? "terrain" : "tree");
       };
       return (
-        window.addEventListener("keydown", g),
-        () => window.removeEventListener("keydown", g)
+        window.addEventListener("keydown", g), () => window.removeEventListener("keydown", g)
       );
     }, []),
     i.useEffect(() => {
       const g = (ne) => {
           const xe = ne;
           return (
-            !!xe &&
-            (xe.tagName === "INPUT" ||
-              xe.tagName === "TEXTAREA" ||
-              xe.isContentEditable)
+            !!xe && (xe.tagName === "INPUT" || xe.tagName === "TEXTAREA" || xe.isContentEditable)
           );
         },
         M = (ne) => {
@@ -7289,10 +6921,7 @@ function Qi() {
       [X],
     ),
     Ot = i.useMemo(
-      () =>
-        J === null
-          ? "Main"
-          : (me?.agents.find((g) => g.id === J)?.label ?? "Subagent"),
+      () => (J === null ? "Main" : (me?.agents.find((g) => g.id === J)?.label ?? "Subagent")),
       [J, me],
     ),
     Mn =
@@ -7307,8 +6936,7 @@ function Qi() {
       const g = new Map();
       if (!n) return g;
       for (const M of n.events)
-        if (M.action === "edit")
-          for (const q of M.targets) g.set(q.path, (g.get(q.path) ?? 0) + 1);
+        if (M.action === "edit") for (const q of M.targets) g.set(q.path, (g.get(q.path) ?? 0) + 1);
       return g;
     }, [n]),
     Wt = i.useMemo(() => new Ba(n, r), [n, r]),
@@ -7317,21 +6945,15 @@ function Qi() {
       let g = 0,
         M = 0,
         q = 0;
-      for (const re of Se.touchByPath.values())
-        re === "edit" ? g++ : re === "read" ? M++ : q++;
+      for (const re of Se.touchByPath.values()) re === "edit" ? g++ : re === "read" ? M++ : q++;
       return { edited: g, read: M, seen: q };
     }, [Se]),
-    Qe = i.useMemo(
-      () => (o ? r?.files.find((g) => g.path === o) : void 0),
-      [r, o],
-    ),
+    Qe = i.useMemo(() => (o ? r?.files.find((g) => g.path === o) : void 0), [r, o]),
     Cn = i.useMemo(() => {
       const g = new Map();
       for (const M of n?.events ?? [])
         for (const q of M.targets)
-          q.touch === "edit" &&
-            q.path &&
-            g.set(q.path, (g.get(q.path) ?? 0) + 1);
+          q.touch === "edit" && q.path && g.set(q.path, (g.get(q.path) ?? 0) + 1);
       return [...g.entries()]
         .filter(([, M]) => M >= 3)
         .map(([M, q]) => ({ path: M, edits: q }))
@@ -7459,9 +7081,7 @@ function Qi() {
                           e.jsx($i, {
                             file: Qe,
                             touch: Qe ? Se.touchByPath.get(Qe.path) : void 0,
-                            history: Qe
-                              ? (Se.historyByPath.get(Qe.path) ?? [])
-                              : [],
+                            history: Qe ? (Se.historyByPath.get(Qe.path) ?? []) : [],
                             onClose: Et,
                             onJumpTo: Nn,
                             locked: N,
@@ -7581,9 +7201,7 @@ function Qi() {
                         : "Reading trace…",
                   })
                 : null,
-              u
-                ? e.jsx("div", { className: "toast error", children: u })
-                : null,
+              u ? e.jsx("div", { className: "toast error", children: u }) : null,
             ],
           }),
           e.jsx(Yi, {

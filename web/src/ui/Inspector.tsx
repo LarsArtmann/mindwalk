@@ -1,10 +1,5 @@
 import { AlertTriangle, Copy, X } from "lucide-react";
-import {
-  touchWord,
-  type CityFile,
-  type Touch,
-  type TraceEvent,
-} from "../types";
+import { touchWord, type CityFile, type Touch, type TraceEvent } from "../types";
 
 interface InspectorProps {
   /** absent when nothing is selected yet — renders the teaching empty state */
@@ -35,18 +30,13 @@ export function Inspector({
       <div className="dock-body" aria-label="File inspector">
         <div className="inspector-head">
           <div className="inspector-path">Inspect</div>
-          <button
-            className="icon-btn"
-            onClick={onClose}
-            title="Close"
-            aria-label="Close inspector"
-          >
+          <button className="icon-btn" onClick={onClose} title="Close" aria-label="Close inspector">
             <X size={15} />
           </button>
         </div>
         <p className="dock-note">
-          Click a building in the scene to inspect a file — its touch state,
-          size, and every visit the agent paid it.
+          Click a building in the scene to inspect a file — its touch state, size, and every visit
+          the agent paid it.
         </p>
       </div>
     );
@@ -71,25 +61,16 @@ export function Inspector({
               <Copy size={13} />
             </button>
           </div>
-          {file.ghost ? (
-            <span className="ghost-badge">ghost — not in this tree</span>
-          ) : null}
+          {file.ghost ? <span className="ghost-badge">ghost — not in this tree</span> : null}
         </div>
-        <button
-          className="icon-btn"
-          onClick={onClose}
-          title="Close"
-          aria-label="Close inspector"
-        >
+        <button className="icon-btn" onClick={onClose} title="Close" aria-label="Close inspector">
           <X size={15} />
         </button>
       </div>
       <dl className="inspector-facts">
         <div>
           <dt>Touch</dt>
-          <dd className={touch ? `touch-${touch}` : undefined}>
-            {touchWord(touch)}
-          </dd>
+          <dd className={touch ? `touch-${touch}` : undefined}>{touchWord(touch)}</dd>
         </div>
         <div>
           <dt>Lang</dt>
@@ -130,20 +111,13 @@ export function Inspector({
                 <span className={`action-dot ${event.action}`} />
                 <strong>#{event.seq + 1}</strong>
                 <span>{event.tool}</span>
-                <span className="history-time">
-                  {event.ts ? clock(event.ts) : ""}
-                </span>
-                {event.isError ? (
-                  <AlertTriangle className="history-err" size={13} />
-                ) : (
-                  <span />
-                )}
+                <span className="history-time">{event.ts ? clock(event.ts) : ""}</span>
+                {event.isError ? <AlertTriangle className="history-err" size={13} /> : <span />}
               </button>
             ))}
           {history.length === 0 ? (
             <p className="muted">
-              Not visited yet at this point of the walk. Scrub the timeline
-              forward.
+              Not visited yet at this point of the walk. Scrub the timeline forward.
             </p>
           ) : null}
         </div>
@@ -176,24 +150,11 @@ function VisitSparkline({
       role="img"
       aria-label={`Visit timeline: ${history.length} visits across ${total} events`}
     >
-      <line
-        x1={0}
-        y1={H / 2}
-        x2={W}
-        y2={H / 2}
-        stroke="var(--hairline)"
-        strokeWidth="0.5"
-      />
+      <line x1={0} y1={H / 2} x2={W} y2={H / 2} stroke="var(--hairline)" strokeWidth="0.5" />
       {history.map((ev) => {
         const x = total > 1 ? (ev.seq / (total - 1)) * W : W / 2;
         return (
-          <circle
-            key={ev.seq}
-            cx={x}
-            cy={H / 2}
-            r={1.8}
-            className={`spark-dot spark-${ev.action}`}
-          >
+          <circle key={ev.seq} cx={x} cy={H / 2} r={1.8} className={`spark-dot spark-${ev.action}`}>
             <title>
               #{ev.seq + 1}: {ev.action} — {ev.summary}
             </title>

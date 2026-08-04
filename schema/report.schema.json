@@ -4,14 +4,7 @@
   "title": "mindwalk report",
   "description": "LLM-assisted evaluation of one session trace. Findings come from the judge; dimension verdicts are derived mechanically from finding severities so reports stay comparable across runs.",
   "type": "object",
-  "required": [
-    "version",
-    "session",
-    "judge",
-    "taskSummary",
-    "dimensions",
-    "narrative"
-  ],
+  "required": ["version", "session", "judge", "taskSummary", "dimensions", "narrative"],
   "properties": {
     "version": { "const": 1 },
     "session": {
@@ -89,12 +82,7 @@
       "properties": {
         "status": { "enum": ["scored", "unavailable"] },
         "reason": {
-          "enum": [
-            "generation-failed",
-            "no-task-text",
-            "weak-task-text",
-            "no-events"
-          ],
+          "enum": ["generation-failed", "no-task-text", "weak-task-text", "no-events"],
           "description": "Why an unavailable rubric is unavailable: transient generation failure, or a deterministic skip a re-run would repeat (no/weak task text, or a conversation-only trace with nothing to cite)"
         },
         "source": {
@@ -148,12 +136,7 @@
                       "description": "What the log let the scorer judge; unverifiability lowers coverage instead of producing warnings"
                     },
                     "verdict": {
-                      "enum": [
-                        "good",
-                        "warning",
-                        "problem",
-                        "insufficient-data"
-                      ],
+                      "enum": ["good", "warning", "problem", "insufficient-data"],
                       "description": "max(finding severity), forced to insufficient-data when coverage is none — computed in Go, never by the judge"
                     },
                     "findings": { "$ref": "#/$defs/findings" }

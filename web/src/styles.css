@@ -42,8 +42,8 @@
 
   --font-display: "Fraunces Variable", "Songti SC", "Noto Serif SC", serif;
   --font-body:
-    "Schibsted Grotesk Variable", "PingFang SC", "Hiragino Sans GB",
-    "Noto Sans SC", system-ui, sans-serif;
+    "Schibsted Grotesk Variable", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui,
+    sans-serif;
 
   color: var(--ink);
   background: var(--sky);

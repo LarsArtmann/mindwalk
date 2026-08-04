@@ -31,21 +31,11 @@ interface DockProps {
   onClosePop: () => void;
 }
 
-export function Dock({
-  panels,
-  openSheet,
-  openPop,
-  onToggle,
-  onClosePop,
-}: DockProps) {
+export function Dock({ panels, openSheet, openPop, onToggle, onClosePop }: DockProps) {
   const popRef = useRef<HTMLDivElement | null>(null);
   const stripRef = useRef<HTMLDivElement | null>(null);
-  const sheet = panels.find(
-    (panel) => panel.id === openSheet && panel.presentation === "sheet",
-  );
-  const pop = panels.find(
-    (panel) => panel.id === openPop && panel.presentation === "pop",
-  );
+  const sheet = panels.find((panel) => panel.id === openSheet && panel.presentation === "sheet");
+  const pop = panels.find((panel) => panel.id === openPop && panel.presentation === "pop");
   const sections: PanelSection[] = ["scene", "session"];
   const grouped = sections
     .map((section) => ({
@@ -60,11 +50,7 @@ export function Dock({
     if (!pop) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (
-        popRef.current?.contains(target) ||
-        stripRef.current?.contains(target)
-      )
-        return;
+      if (popRef.current?.contains(target) || stripRef.current?.contains(target)) return;
       onClosePop();
     };
     const onKeyDown = (event: KeyboardEvent) => {
@@ -94,9 +80,7 @@ export function Dock({
         <div className="dock-strip" role="group" aria-label="Stage panels">
           {grouped.map((group, index) => (
             <div key={group.section} className="dock-strip-group">
-              {index > 0 ? (
-                <div className="dock-strip-divider" aria-hidden />
-              ) : null}
+              {index > 0 ? <div className="dock-strip-divider" aria-hidden /> : null}
               {group.items.map((panel) => {
                 const active = panel.id === openSheet || panel.id === openPop;
                 const Icon = panel.icon;
@@ -110,9 +94,7 @@ export function Dock({
                     aria-label={panel.hint}
                   >
                     <Icon size={15} />
-                    {panel.badge ? (
-                      <span className={`dock-dot dock-dot-${panel.badge}`} />
-                    ) : null}
+                    {panel.badge ? <span className={`dock-dot dock-dot-${panel.badge}`} /> : null}
                   </button>
                 );
               })}

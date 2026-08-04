@@ -119,9 +119,7 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
   let cursor = 0;
   const place = (node: Node) => {
     node.angle = (cursor + node.leafCount / 2) * slotAngle;
-    const dirs = [...node.children.values()].sort((a, b) =>
-      a.name < b.name ? -1 : 1,
-    );
+    const dirs = [...node.children.values()].sort((a, b) => (a.name < b.name ? -1 : 1));
     const files = [...node.files].sort((a, b) => (a.path < b.path ? -1 : 1));
     for (const child of dirs) {
       place(child);
@@ -133,12 +131,7 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
       layout.leaf.set(file.id, pos);
       layout.edges.push({
         childFileId: file.id,
-        points: sampleEdge(
-          node.depth * step,
-          node.angle,
-          (node.depth + 1) * step,
-          angle,
-        ),
+        points: sampleEdge(node.depth * step, node.angle, (node.depth + 1) * step, angle),
       });
     }
     if (node.path !== "") {
@@ -165,18 +158,11 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
   collect(root);
   for (const dir of layout.dirs) {
     const node = nodeByPath.get(dir.path)!;
-    const parentPath = dir.path.includes("/")
-      ? dir.path.slice(0, dir.path.lastIndexOf("/"))
-      : "";
+    const parentPath = dir.path.includes("/") ? dir.path.slice(0, dir.path.lastIndexOf("/")) : "";
     const parent = nodeByPath.get(parentPath)!;
     layout.edges.push({
       childPath: dir.path,
-      points: sampleEdge(
-        parent.depth * step,
-        parent.angle,
-        node.depth * step,
-        node.angle,
-      ),
+      points: sampleEdge(parent.depth * step, parent.angle, node.depth * step, node.angle),
     });
   }
 
@@ -191,10 +177,7 @@ export function computeTreeLayout(files: CityFile[]): TreeLayout {
       path = path ? `${path}/${parts[i]}` : parts[i];
       const dir = dirByPath.get(path);
       if (!dir) continue;
-      dir.radius = Math.max(
-        dir.radius,
-        Math.hypot(pos.x - dir.x, pos.z - dir.z),
-      );
+      dir.radius = Math.max(dir.radius, Math.hypot(pos.x - dir.x, pos.z - dir.z));
     }
   }
 

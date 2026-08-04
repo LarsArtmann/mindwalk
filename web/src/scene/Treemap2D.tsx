@@ -13,9 +13,7 @@ interface Treemap2DProps {
 export function hasWebGL(): boolean {
   try {
     const canvas = document.createElement("canvas");
-    return (
-      !!canvas.getContext("webgl") || !!canvas.getContext("experimental-webgl")
-    );
+    return !!canvas.getContext("webgl") || !!canvas.getContext("experimental-webgl");
   } catch {
     return false;
   }
@@ -32,12 +30,7 @@ const COLORS: Record<Touch | "unvisited" | "selected", string> = {
 /** 2D fallback scene: renders the city as an SVG treemap when WebGL is
  *  unavailable. Reuses the same touch-state coloring and click-to-select
  *  API so the rest of the app works identically. */
-export function Treemap2D({
-  city,
-  playback,
-  selectedPath,
-  onSelect,
-}: Treemap2DProps) {
+export function Treemap2D({ city, playback, selectedPath, onSelect }: Treemap2DProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
 
   const layout = useMemo(() => {
@@ -67,10 +60,8 @@ export function Treemap2D({
   const svgW = 1000;
   const svgH = (layout.d / layout.w) * svgW || 600;
 
-  const scaleX = (x: number) =>
-    padding + ((x - layout.minX) / layout.w) * (svgW - 2 * padding);
-  const scaleZ = (z: number) =>
-    padding + ((z - layout.minZ) / layout.d) * (svgH - 2 * padding);
+  const scaleX = (x: number) => padding + ((x - layout.minX) / layout.w) * (svgW - 2 * padding);
+  const scaleZ = (z: number) => padding + ((z - layout.minZ) / layout.d) * (svgH - 2 * padding);
   const scaleW = (w: number) => (w / layout.w) * (svgW - 2 * padding);
   const scaleD = (d: number) => (d / layout.d) * (svgH - 2 * padding);
 

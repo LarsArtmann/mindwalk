@@ -15,12 +15,7 @@ export function sessionVisible(
   activeKey?: string,
 ): boolean {
   if (filters.harness && session.harness !== filters.harness) return false;
-  if (
-    filters.hideEmpty &&
-    session.eventCount === 0 &&
-    session.key !== activeKey
-  )
-    return false;
+  if (filters.hideEmpty && session.eventCount === 0 && session.key !== activeKey) return false;
   return true;
 }
 
@@ -31,8 +26,7 @@ export function loadFilters(): SessionFilters {
       const parsed = JSON.parse(raw) as Partial<SessionFilters>;
       return {
         hideEmpty: parsed.hideEmpty !== false,
-        harness:
-          typeof parsed.harness === "string" ? parsed.harness : undefined,
+        harness: typeof parsed.harness === "string" ? parsed.harness : undefined,
       };
     }
   } catch {

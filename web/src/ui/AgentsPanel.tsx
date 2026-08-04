@@ -1,12 +1,4 @@
-import {
-  AlertTriangle,
-  Bot,
-  Circle,
-  Info,
-  Loader,
-  RefreshCw,
-  X,
-} from "lucide-react";
+import { AlertTriangle, Bot, Circle, Info, Loader, RefreshCw, X } from "lucide-react";
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { AgentGraph, AgentNode } from "../types";
@@ -53,9 +45,7 @@ export function AgentsPanel({
   const main = graph?.agents.find((agent) => agent.kind === "main");
   const graphError = error && retryAgentID === null ? error : undefined;
   const [detail, setDetail] = useState<AgentDetailState>(null);
-  const detailAgent = graph?.agents.find(
-    (agent) => agent.id === detail?.agentID,
-  );
+  const detailAgent = graph?.agents.find((agent) => agent.id === detail?.agentID);
 
   useEffect(() => {
     if (detail && graph && !detailAgent) setDetail(null);
@@ -73,29 +63,17 @@ export function AgentsPanel({
           <div className="inspector-path">Agents</div>
           <div className="agents-head-note">Choose one trace at a time</div>
         </div>
-        <button
-          className="icon-btn"
-          onClick={closePanel}
-          title="Close"
-          aria-label="Close agents"
-        >
+        <button className="icon-btn" onClick={closePanel} title="Close" aria-label="Close agents">
           <X size={15} />
         </button>
       </div>
 
-      {graphError ? (
-        <AgentError error={graphError} locked={locked} onRetry={onRetry} />
-      ) : null}
+      {graphError ? <AgentError error={graphError} locked={locked} onRetry={onRetry} /> : null}
 
-      <div
-        className="agent-list"
-        aria-busy={loading || loadingAgentID !== undefined}
-      >
+      <div className="agent-list" aria-busy={loading || loadingAgentID !== undefined}>
         <button
           className={
-            current === null
-              ? "agent-row agent-row-select active"
-              : "agent-row agent-row-select"
+            current === null ? "agent-row agent-row-select active" : "agent-row agent-row-select"
           }
           aria-pressed={current === null}
           disabled={locked}
@@ -108,21 +86,16 @@ export function AgentsPanel({
             <span className="agent-row-primary">
               <span className="agent-row-title">
                 Main
-                {current === null ? (
-                  <span className="agent-current">current</span>
-                ) : null}
+                {current === null ? <span className="agent-current">current</span> : null}
               </span>
-              <span className="agent-row-count">
-                {eventCount(main?.traceEventCount ?? 0)}
-              </span>
+              <span className="agent-row-count">{eventCount(main?.traceEventCount ?? 0)}</span>
             </span>
             <span className="agent-row-secondary">Root trace</span>
           </span>
         </button>
 
         {children.map((agent) => {
-          const rowError =
-            error && retryAgentID === agent.id ? error : undefined;
+          const rowError = error && retryAgentID === agent.id ? error : undefined;
           return (
             <Fragment key={agent.id}>
               <AgentRow
@@ -131,9 +104,7 @@ export function AgentsPanel({
                 loading={loadingAgentID === agent.id}
                 locked={locked}
                 onSelect={onSelect}
-                detailMode={
-                  detail?.agentID === agent.id ? detail.mode : undefined
-                }
+                detailMode={detail?.agentID === agent.id ? detail.mode : undefined}
                 onPreview={(anchor) =>
                   setDetail((currentDetail) =>
                     currentDetail?.mode === "pinned"
@@ -143,28 +114,21 @@ export function AgentsPanel({
                 }
                 onPreviewEnd={(agentID) =>
                   setDetail((currentDetail) =>
-                    currentDetail?.agentID === agentID &&
-                    currentDetail.mode === "preview"
+                    currentDetail?.agentID === agentID && currentDetail.mode === "preview"
                       ? null
                       : currentDetail,
                   )
                 }
                 onToggleDetails={(anchor) =>
                   setDetail((currentDetail) =>
-                    currentDetail?.agentID === agent.id &&
-                    currentDetail.mode === "pinned"
+                    currentDetail?.agentID === agent.id && currentDetail.mode === "pinned"
                       ? null
                       : { agentID: agent.id, mode: "pinned", anchor },
                   )
                 }
               />
               {rowError ? (
-                <AgentError
-                  error={rowError}
-                  locked={locked}
-                  onRetry={onRetry}
-                  rowLocal
-                />
+                <AgentError error={rowError} locked={locked} onRetry={onRetry} rowLocal />
               ) : null}
             </Fragment>
           );
@@ -182,11 +146,7 @@ export function AgentsPanel({
       </div>
 
       {detail && detailAgent ? (
-        <AgentDetailPopover
-          agent={detailAgent}
-          state={detail}
-          onClose={() => setDetail(null)}
-        />
+        <AgentDetailPopover agent={detailAgent} state={detail} onClose={() => setDetail(null)} />
       ) : null}
     </div>
   );
@@ -204,10 +164,7 @@ function AgentError({
   rowLocal?: boolean;
 }) {
   return (
-    <div
-      className={rowLocal ? "agents-error row-local" : "agents-error"}
-      role="alert"
-    >
+    <div className={rowLocal ? "agents-error row-local" : "agents-error"} role="alert">
       <span>
         <AlertTriangle size={14} aria-hidden />
         {error}
@@ -243,18 +200,12 @@ function AgentRow({
 }) {
   const available = agent.traceAvailability === "available";
   const status = agentStatus(agent, loading);
-  const secondary = [agent.role, agent.instructionPreview]
-    .filter(Boolean)
-    .join(" · ");
+  const secondary = [agent.role, agent.instructionPreview].filter(Boolean).join(" · ");
   const disabled = !available || locked;
 
   return (
     <div
-      className={[
-        "agent-row",
-        current ? "active" : "",
-        disabled ? "disabled" : "",
-      ]
+      className={["agent-row", current ? "active" : "", disabled ? "disabled" : ""]
         .filter(Boolean)
         .join(" ")}
       onMouseEnter={(event) => onPreview(event.currentTarget)}
@@ -283,15 +234,11 @@ function AgentRow({
               {agent.label}
               {current ? <span className="agent-current">current</span> : null}
             </span>
-            <span
-              className={`agent-row-count agent-status-${agent.traceAvailability}`}
-            >
+            <span className={`agent-row-count agent-status-${agent.traceAvailability}`}>
               {status}
             </span>
           </span>
-          <span className="agent-row-secondary">
-            {secondary || "No launch details"}
-          </span>
+          <span className="agent-row-secondary">{secondary || "No launch details"}</span>
         </span>
       </button>
       <button
@@ -300,9 +247,7 @@ function AgentRow({
         aria-pressed={detailMode === "pinned"}
         onClick={(event) => {
           event.stopPropagation();
-          onToggleDetails(
-            event.currentTarget.closest(".agent-row") as HTMLElement,
-          );
+          onToggleDetails(event.currentTarget.closest(".agent-row") as HTMLElement);
         }}
       >
         <Info size={12} aria-hidden />
@@ -341,15 +286,9 @@ function AgentDetailPopover({
           ? leftCandidate
           : rightCandidate + width <= window.innerWidth - margin
             ? rightCandidate
-            : Math.min(
-                Math.max(anchorRect.left, margin),
-                window.innerWidth - width - margin,
-              );
+            : Math.min(Math.max(anchorRect.left, margin), window.innerWidth - width - margin);
       const maxHeight = window.innerHeight - margin * 2;
-      const measuredHeight = Math.min(
-        popoverRef.current?.offsetHeight ?? maxHeight,
-        maxHeight,
-      );
+      const measuredHeight = Math.min(popoverRef.current?.offsetHeight ?? maxHeight, maxHeight);
       const top = Math.min(
         Math.max(anchorRect.top, margin),
         window.innerHeight - measuredHeight - margin,
@@ -377,8 +316,7 @@ function AgentDetailPopover({
     };
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (popoverRef.current?.contains(target) || state.anchor.contains(target))
-        return;
+      if (popoverRef.current?.contains(target) || state.anchor.contains(target)) return;
       onClose();
     };
 
@@ -404,19 +342,13 @@ function AgentDetailPopover({
           {agent.role ? <span>{agent.role}</span> : null}
         </span>
         {state.mode === "pinned" ? (
-          <button
-            className="agent-detail-close"
-            onClick={onClose}
-            aria-label="Close details"
-          >
+          <button className="agent-detail-close" onClick={onClose} aria-label="Close details">
             <X size={14} aria-hidden />
           </button>
         ) : null}
       </div>
       {agent.instructionPreview ? (
-        <div className="agent-detail-instruction">
-          {agent.instructionPreview}
-        </div>
+        <div className="agent-detail-instruction">{agent.instructionPreview}</div>
       ) : null}
       <div className="agent-detail-meta">{agentDetail(agent)}</div>
     </div>,

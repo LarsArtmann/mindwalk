@@ -136,9 +136,7 @@ function buildDemoCity(): CityMap {
   ].map((d) => ({
     ...d,
     rect: { x: 0, z: 0, w: 0, d: 0 },
-    fileCount: files.filter(
-      (f) => f.dir === d.path || f.dir.startsWith(d.path + "/"),
-    ).length,
+    fileCount: files.filter((f) => f.dir === d.path || f.dir.startsWith(d.path + "/")).length,
     lines: files
       .filter((f) => f.dir === d.path || f.dir.startsWith(d.path + "/"))
       .reduce((sum, f) => sum + f.lines, 0),
@@ -160,8 +158,7 @@ function buildDemoCity(): CityMap {
 
 function buildDemoTrace(): Trace {
   const now = new Date();
-  const iso = (offset: number) =>
-    new Date(now.getTime() + offset * 1000).toISOString();
+  const iso = (offset: number) => new Date(now.getTime() + offset * 1000).toISOString();
 
   const events = [
     {

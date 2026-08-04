@@ -19,8 +19,7 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules/three/")) return "three";
-          if (/node_modules\/(react|react-dom|scheduler)\//.test(id))
-            return "react";
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
           return undefined;
         },
       },
