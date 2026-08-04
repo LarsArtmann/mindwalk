@@ -21,7 +21,7 @@
 | ---------------------------------------------------------------------------------- | --------- | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Add the **current-event summary card** to the playback UI (T1 of the UI/UX sprint) | 🔴 `TODO` | High   | 45min  | Closes the core feedback loop; `TraceEvent.tool/action/summary` exist but are unsurfaced. Plan: `docs/planning/2026-08-04_09-46_SUPERB-ui-ux-sprint.md`                            |
 | Fix `queryReadFiles` missing `rows.Err()` check                                    | 🔴 `TODO` | High   | 10min  | `internal/adapter/crush/sessions.go:920` — `rows.Next()` loop with no final `rows.Err()`; gopls `sqlrowserr` warning. Partial SQLite results could be silently swallowed.          |
-| Add `TestTimestampsAreSecondsNotMillis` regression test                            | 🔴 `TODO` | High   | 15min  | Guards `3f547fc`; no named test asserts a known second value yields a `2026-` date instead of `1970-`. `docs/status/2026-08-04_09-36_crush-timestamp-seconds-not-millis.md` (c.1). |
+| Add `TestTimestampsAreSecondsNotMillis` regression test                            | 🔴 `TODO` | High   | 15min  | Guards `3f547fc`; no named test asserts a known second value yields a `2026-` date instead of `1970-`. `docs/status/2026-08-04_09-36_crush-timestamp-seconds-not-millis.md` (c.2). |
 
 ## Medium Impact
 

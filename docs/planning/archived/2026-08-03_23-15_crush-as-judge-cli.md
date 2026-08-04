@@ -101,6 +101,6 @@ All 7 tasks shipped. The plan is fully executed.
 | 6   | Tests: model parser + args shape                                        | done at `266bd64`  | `cli_test.go:43`                                               |
 | 7   | `make test` green                                                       | done               | 11 packages green (judge `ok`)                                 |
 
-Tasks 4–5 are the only unfinished thread: the doc/UI mentions exist as
-uncommitted working-tree edits on top of `266bd64`. Committing them closes
-the plan (see TODO_LIST "Commit the uncommitted judge-CLI docs").
+Tasks 4–5 were the only unfinished thread at the time; both landed in later
+commits (the ReportPanel and AGENTS.md mentions are committed). The plan is
+fully closed.

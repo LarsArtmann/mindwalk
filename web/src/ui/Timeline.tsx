@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Action, Mark, Trace, TraceEvent } from "../types";
+import { EventSummary } from "./EventSummary";
 
 interface TimelineProps {
   trace?: Trace;
@@ -438,24 +439,17 @@ export function Timeline({
       </div>
 
       <div className="deck-foot">
-        <div className="readout-now">
-          {event ? (
-            <>
-              <span className={`action-dot ${event.action}`} />
-              <span className="readout-tool">{event.tool}</span>
-              {event.isError ? <span className="err">error</span> : null}
-              <span className="readout-summary" title={event.summary}>
-                {event.summary}
-              </span>
-            </>
-          ) : (
-            <span className="readout-summary">
-              {trace
-                ? "No recorded activity for this agent."
-                : "Select a session to start the walk."}
-            </span>
-          )}
-        </div>
+      {event ? (
+      <EventSummary event={event} total={total} />
+      ) : (
+      <div className="readout-now">
+      <span className="readout-summary">
+        {trace
+        ? "No recorded activity for this agent."
+        : "Select a session to start the walk."}
+      </span>
+      </div>
+      )}
         <div className="deck-legend" aria-hidden>
           <span className="legend-group">
             {STRIP_ACTIONS.map((action) => (

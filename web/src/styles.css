@@ -1514,6 +1514,94 @@ dd {
   text-overflow: ellipsis;
 }
 
+/* Event Summary Card — the rich playback readout replacing the bare readout-now */
+.event-summary {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: var(--text-sm);
+  padding-left: 10px;
+  border-left: 2px solid transparent;
+  transition: border-color 0.15s ease;
+}
+
+.event-summary.action-search {
+  border-left-color: var(--act-search);
+}
+.event-summary.action-read {
+  border-left-color: var(--act-read);
+}
+.event-summary.action-edit {
+  border-left-color: var(--act-edit);
+}
+.event-summary.action-verify {
+  border-left-color: var(--act-verify);
+}
+.event-summary.action-exec {
+  border-left-color: var(--act-exec);
+}
+.event-summary.action-other {
+  border-left-color: var(--hairline-strong);
+}
+.event-summary.errored {
+  border-left-color: var(--alarm);
+}
+
+.event-summary-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.event-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.event-summary .action-dot {
+  flex: none;
+  margin-top: 6px;
+}
+
+.err-badge {
+  flex: none;
+  color: var(--alarm);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.event-targets {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--faint);
+  font-size: var(--text-xs);
+  overflow: hidden;
+}
+
+.event-target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.event-target-more {
+  flex: none;
+  color: var(--faint);
+}
+
+.event-summary .readout-summary {
+  white-space: nowrap;
+}
+
 /* full key for the strip: bar colors, then the mark shapes above them;
    the two groups separate by distance alone */
 .deck-legend {

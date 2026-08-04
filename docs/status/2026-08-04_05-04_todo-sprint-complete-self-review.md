@@ -334,3 +334,21 @@ opaque binary diff. A proper `gencrushfixture` Go tool (like the one hinted
 at in `fixture_test.go`'s comments) would make the fixture reproducible and
 the diff reviewable. But that is ~1-2h of additional work. Is it worth
 doing now, or is the direct SQL modification acceptable for test data?
+
+---
+
+## Resolution (2026-08-04)
+
+All 15 sprint items (M1-M13 + Docs) shipped and are logged in `CHANGELOG.md`
+`[Unreleased]`. The section D "fucked up" items were addressed in follow-up:
+
+- ~~`queryReadFiles` missing `rows.Err()`~~ → **still open** (`TODO_LIST.md`, High Impact).
+- ~~`writeSSE` unchecked `fmt.Fprintf`~~ → **still open** (`TODO_LIST.md`, Low Impact).
+- ~~`TestAnalyzeStreamHeartbeat` missing `scanner.Err()`~~ → pre-existing pattern, low priority.
+- ~~FEATURES.md drift~~ → **fixed** in this docs-health pass (stale PARTIALLY_FUNCTIONAL rows updated to FULLY_FUNCTIONAL).
+- ~~`Mark.Duration` seconds vs milliseconds~~ → settled: seconds is correct (source data is second-precision; see the `2026-08-04_09-36` report).
+
+The embedded frontend assets were rebuilt (`048a301`). The section F
+brainstorm: shipped items are in CHANGELOG; open bounded items are in
+`TODO_LIST.md`; the `ObservabilitySignals` struct and SSE-config ideas are
+in `ROADMAP.md`.

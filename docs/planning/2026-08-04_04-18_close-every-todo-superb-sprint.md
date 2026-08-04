@@ -1,7 +1,9 @@
 # Plan: Close Every Open TODO — Pareto-Ordered Execution Sprint
 
 **Date:** 2026-08-04 04:18
-**Status:** Planning — ready for execution
+**Status:** ~~Planning — ready for execution~~ **Executed** — all 13 medium
+tasks (M1-M13) shipped in the `2026-08-04_05-04` session. See that report for
+per-item verification; shipped features are in `CHANGELOG.md` `[Unreleased]`.
 **Goal:** Close every item in `TODO_LIST.md` (15 items) with zero regressions, ordered by customer value per minute of effort.
 
 ---

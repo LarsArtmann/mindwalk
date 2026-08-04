@@ -1,7 +1,11 @@
 # Crush Integration Superb — Data Model & UI/UX Improvements
 
 **Date:** 2026-08-04 02:49
-**Status:** Planning
+**Status:** ~~Planning~~ **Executed** — all 15 medium tasks (M1-M15) shipped
+across the `2026-08-04_03-18` and `2026-08-04_03-54` sessions. See those
+reports for per-item status; shipped features are in `CHANGELOG.md`
+`[Unreleased]`. Deferred items (D1-D6: `files`-table diff viewer, `todos`
+column, MCP visibility) remain deferred.
 **Goal:** Close every gap between what charmbracelet/crush records and what mindwalk surfaces, prioritizing user-visible value
 
 ---

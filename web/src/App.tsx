@@ -15,6 +15,8 @@ import { Crosshair, Sparkles, Mountain, TreePine, Users } from "lucide-react";
 import type { AgentGraph, CityMap, JudgeChoice, JudgeProgress, ReportStatus, Trace } from "./types";
 import { Dock, type PanelDescriptor } from "./ui/Dock";
 import { AgentsPanel } from "./ui/AgentsPanel";
+import { CheatSheet } from "./ui/CheatSheet";
+import { CommandPalette } from "./ui/CommandPalette";
 import { ReportPanel } from "./ui/ReportPanel";
 import { ViewPanel } from "./ui/ViewPanel";
 import { PlaybackEngine } from "./playback/reducer";
@@ -89,6 +91,8 @@ export default function App() {
   const [exporting, setExporting] = useState(false);
   const [openSheet, setOpenSheet] = useState<string | null>(null);
   const [openPop, setOpenPop] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [cheatOpen, setCheatOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState<ReportStatus | undefined>();
   const [judgeProgress, setJudgeProgress] = useState<JudgeProgress[]>([]);
   const [agentGraph, setAgentGraph] = useState<AgentGraph | undefined>();

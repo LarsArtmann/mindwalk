@@ -158,3 +158,19 @@ That's the honest scope. One search, one summary, done.
 2. **Is `cmd/rubriceval` a throwaway bench tool or a maintained CLI?** If it's experimental/temporary, 0% coverage is fine. If it ships, it's critical. The AGENTS.md doesn't mention it at all — I can't tell its status from code alone.
 
 3. **What's the intended coverage floor?** The project has no coverage gate. Without knowing the target (70%? 80%? 90%?), I can't prioritize "raise server from 75% to X" meaningfully. This is a product/team decision, not something I can infer.
+
+---
+
+## Resolution (2026-08-04)
+
+This is an honest self-review of a thin testing-gap analysis. Its core
+finding stands: **the project has real coverage gaps, concentrated in
+`cmd/rubriceval` (0.0%), `cmd/mindwalk` (39.7%), and the frontend (zero unit
+tests, no runner).** The top items from section F are now tracked:
+
+- `cmd/rubriceval` tests, schema-validation test, and Vitest setup → `TODO_LIST.md` (Medium Impact).
+- Property-based tests, E2E expansion, and coverage floors → `ROADMAP.md` (theme 4, "Test infrastructure").
+
+The process lessons (run coverage before analyzing; check infrastructure
+before calling things "easy wins") are valid and remain as guidance. This
+report's value is the coverage table, which is still accurate as a baseline.
