@@ -53,6 +53,8 @@ mindwalk analyze <session> [--judge claude|codex|crush] [--model name] [--no-rub
                                             evaluate one session (see below)
 mindwalk sessions [--json] [--harness NAME] [--limit N]   list discovered sessions
 mindwalk doctor                              print adapter status and diagnostics
+mindwalk version                             print build revision and Go version
+mindwalk cache clear|status                  manage the agent-graph disk cache
 ```
 
 Pass `--host 0.0.0.0` to any of `serve`, `open`, or `map` to expose the UI

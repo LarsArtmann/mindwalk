@@ -55,7 +55,7 @@ New-tab endpoint needs PUT: `fetch('http://127.0.0.1:9333/json/new?<url>', {meth
   The pop coexists with an open sheet (report stays open while switching).
 - `/?map=1&repo=<abs-path>` renders the citymap with no trace and no transport
   (map-only mode); the rail-head folder icon (`[aria-label="Open a repository
-  map"]`) opens a popover — primary card for the active session's repo (name +
+map"]`) opens a popover — primary card for the active session's repo (name +
   path), then an "or open any repository" path input — and opens the map via
   `window.open`, so in headless drive the URL directly instead of clicking.
 - The right-edge dock strip is a panel registry with two sections (scene /

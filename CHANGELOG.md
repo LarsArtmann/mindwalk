@@ -173,9 +173,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   the `listSessionsQuery`, `sessionByIDQuery`, and
   `messagesBySessionQuery` unconditionally selected columns that
   older Crush databases do not have, causing `SQL logic error: no
-  such column`. Dynamic `build*Query()` functions now probe the schema
+such column`. Dynamic `build*Query()` functions now probe the schema
   once per database handle and substitute `0 AS cost` / `0 AS
-  finished_at` when the columns are absent.
+finished_at` when the columns are absent.
 
 ### Changed
 
