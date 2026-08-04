@@ -95,7 +95,7 @@ describe("computeTreeLayout", () => {
     it("radius grows with more files", () => {
       const few = computeTreeLayout([makeFile(1, "a.ts"), makeFile(2, "b.ts")]);
       const many = computeTreeLayout(
-        Array.from({ length: 50 }, (_, i) => makeFile(i + 1, `file${i}.ts`)),
+        Array.from({ length: 200 }, (_, i) => makeFile(i + 1, `file${i}.ts`)),
       );
       expect(many.radius).toBeGreaterThan(few.radius);
     });
