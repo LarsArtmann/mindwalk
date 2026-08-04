@@ -125,4 +125,4 @@
 
 ---
 
-*Report generated from this session only. Uncommitted changes present in the working tree were noted but not authored in this session.*
+_Report generated from this session only. Uncommitted changes present in the working tree were noted but not authored in this session._

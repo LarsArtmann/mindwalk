@@ -195,6 +195,7 @@ These helpers are in `internal/adapter/adapter.go` and are consumed by `claudeco
 ### 3. Should `parseAdapterFlags` return a pointer-struct or should each command define flags inline with `fs.StringVar`?
 
 Two approaches:
+
 - **A:** `parseAdapterFlags` returns `*adapterFlagPtrs` (pointers), callers dereference after `Parse`
 - **B:** Each command calls `fs.StringVar(&target, ...)` inline (no shared helper)
 

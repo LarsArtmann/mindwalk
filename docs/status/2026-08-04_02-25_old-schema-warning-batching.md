@@ -50,7 +50,7 @@ Nothing is partially done. All changes are complete and verified.
 
 ## d) TOTALLY FUCKED UP
 
-1. **CHANGELOG formatting regression** — **This is a real bug I introduced.** My `edit` call for the CHANGELOG replaced the old text starting with `` - `adapter.ToolResult` now carries a `ToolResult`... `` but my new text ended without preserving the continuation. The diff shows:
+1. **CHANGELOG formatting regression** — **This is a real bug I introduced.** My `edit` call for the CHANGELOG replaced the old text starting with ``- `adapter.ToolResult` now carries a `ToolResult`...`` but my new text ended without preserving the continuation. The diff shows:
 
    ```
    ### Changed
@@ -63,7 +63,7 @@ Nothing is partially done. All changes are complete and verified.
      the cross-message tool-call/result pairing happen at the type
    ```
 
-   The `adapter.ToolResult` entry lost its bullet (`- `) and the new entry's last line runs directly into it. The old text was a bullet point starting with `` - `adapter.ToolResult` now carries a `ToolResult`... `` and my replacement text ended with a blank line, then the orphaned continuation. **This must be fixed before committing.**
+   The `adapter.ToolResult` entry lost its bullet (`- `) and the new entry's last line runs directly into it. The old text was a bullet point starting with ``- `adapter.ToolResult` now carries a `ToolResult`...`` and my replacement text ended with a blank line, then the orphaned continuation. **This must be fixed before committing.**
 
 2. **`cmd/mindwalk/main.go` change is NOT mine** — The `--host` usage text and example were NOT added by me. They appeared in the working tree. Per the AGENTS.md rules ("NEVER revert changes you didn't author"), I must NOT commit this file. But I also must NOT revert it. The auto-git daemon likely committed it already, or it was part of a prior session. **I need to exclude this file from any commit.**
 

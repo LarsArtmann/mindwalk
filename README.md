@@ -63,10 +63,10 @@ on your LAN instead of localhost.
 mindwalk stores computed agent graphs and evaluation reports under
 `~/.mindwalk/`:
 
-| Path | Purpose |
-|------|---------|
+| Path                        | Purpose                                              |
+| --------------------------- | ---------------------------------------------------- |
 | `~/.mindwalk/agent-graphs/` | Persisted agent-graph cache (auto-evicted at 100 MB) |
-| `~/.mindwalk/reports/` | Cached evaluation reports from `mindwalk analyze` |
+| `~/.mindwalk/reports/`      | Cached evaluation reports from `mindwalk analyze`    |
 
 Set the `MINDWALK_HOME` environment variable to override the base
 directory (useful for tests and CI).

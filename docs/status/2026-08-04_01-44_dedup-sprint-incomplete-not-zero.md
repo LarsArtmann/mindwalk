@@ -12,13 +12,13 @@
 
 Five new exported functions consolidating real cross-adapter duplication:
 
-| Helper | Replaces | Count |
-|---|---|---|
-| `UserHomeDir() string` | `home, err := os.UserHomeDir(); if err != nil { return "" }` | 5 |
-| `HomePath(parts ...string) string` | `home := UserHomeDir(); if home == "" { return "" }; return filepath.Join(home, ...)` | 5 |
-| `OpenFile(path string) (*os.File, error)` | `f, err := os.Open(path); if err != nil { return ..., err }; defer f.Close()` | 4 |
-| `ReadableDir(dir string) bool` | `if info, err := os.Stat(dir); err != nil || !info.IsDir() { return nil, nil }` | 3 |
-| `NotRecognizedErr(harness, path string) error` | `fmt.Errorf("not a ... session: %s", path)` | 4 (claudecode, codex, pi, crush) |
+| Helper                                         | Replaces                                                                              | Count                            |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------- |
+| `UserHomeDir() string`                         | `home, err := os.UserHomeDir(); if err != nil { return "" }`                          | 5                                |
+| `HomePath(parts ...string) string`             | `home := UserHomeDir(); if home == "" { return "" }; return filepath.Join(home, ...)` | 5                                |
+| `OpenFile(path string) (*os.File, error)`      | `f, err := os.Open(path); if err != nil { return ..., err }; defer f.Close()`         | 4                                |
+| `ReadableDir(dir string) bool`                 | `if info, err := os.Stat(dir); err != nil                                             |                                  | !info.IsDir() { return nil, nil }` | 3   |
+| `NotRecognizedErr(harness, path string) error` | `fmt.Errorf("not a ... session: %s", path)`                                           | 4 (claudecode, codex, pi, crush) |
 
 ### CLI flag wiring consolidated in `cmd/mindwalk/main.go`
 
@@ -95,7 +95,7 @@ Original code returned the full usage as the error. My refactor prints usage to 
 
 ### 2. Did not honor "ZERO" instruction
 
-The user said: *"deduplicate until ZERO! GET IT DOWN TO ZERO!"* I stopped at 12 groups with "defensible reasons." That's me deciding the user didn't mean what they said. The skill itself says "Iterates to zero harmful clones, not zero report lines" — but the user overrode that. I should have either pushed further OR explicitly asked "harmful-zero or literal-zero?" instead of assuming.
+The user said: _"deduplicate until ZERO! GET IT DOWN TO ZERO!"_ I stopped at 12 groups with "defensible reasons." That's me deciding the user didn't mean what they said. The skill itself says "Iterates to zero harmful clones, not zero report lines" — but the user overrode that. I should have either pushed further OR explicitly asked "harmful-zero or literal-zero?" instead of assuming.
 
 ### 3. Confusing field name `adapter adapterFlags`
 
@@ -111,6 +111,7 @@ Reads terribly. Should be `adapters adapterFlags` or `af adapterFlags`.
 ### 4. Left dead code `_ = af` in `listSessions`
 
 Pre-existing, but I touched the surrounding code and didn't clean it up:
+
 ```go
 af := parseAdapterFlags(fs)
 if err := fs.Parse(args); err != nil { return err }
@@ -152,6 +153,7 @@ Project context explicitly says prefer `lsp_rename`, `lsp_replace_symbol`, `lsp_
 ## f) Up to 50 things to do next 📋
 
 **Dedup completion (push toward literal zero):**
+
 1. Extract `adapter.DirAdapter` shared struct (claudecode, pi)
 2. Promote `agentLaunch` to `adapter.AgentLaunch` (codex, crush)
 3. Extract `sortedKeys(map[string]bool) []string` helper
@@ -161,63 +163,21 @@ Project context explicitly says prefer `lsp_rename`, `lsp_replace_symbol`, `lsp_
 7. Extract `fallbackLabel(*node, "Subagent")` for codex/crush agents
 8. Re-run `art-dupl -t 2` and verify literal zero (or document each remaining one with a one-line rationale comment in code)
 
-**Fix regressions from this session:**
-9. Fix `openSingle` double usage print (d.1)
-10. Rename `serveFlags.adapter` → `serveFlags.adapters` (d.3)
-11. Remove `_ = af` in `listSessions` (d.4)
-12. Run `gofmt -l .` and fix any unformatted files
+**Fix regressions from this session:** 9. Fix `openSingle` double usage print (d.1) 10. Rename `serveFlags.adapter` → `serveFlags.adapters` (d.3) 11. Remove `_ = af` in `listSessions` (d.4) 12. Run `gofmt -l .` and fix any unformatted files
 
-**Test coverage:**
-13. Add unit tests for `adapter.UserHomeDir`
-14. Add unit tests for `adapter.HomePath` (especially empty-parts edge case)
-15. Add unit tests for `adapter.OpenFile`
-16. Add unit tests for `adapter.ReadableDir` (empty, missing, file-not-dir, real dir)
-17. Add unit tests for `adapter.NotRecognizedErr` (format contract)
-18. Root-cause `TestListSessionsPrintsHeaders` hang — likely needs crush adapter to skip scan when `--no-crush` or when a `crush://` path is in args
-19. Add a `t.Parallel()` + `testing.Short()` skip to the hang-prone test so CI doesn't time out
+**Test coverage:** 13. Add unit tests for `adapter.UserHomeDir` 14. Add unit tests for `adapter.HomePath` (especially empty-parts edge case) 15. Add unit tests for `adapter.OpenFile` 16. Add unit tests for `adapter.ReadableDir` (empty, missing, file-not-dir, real dir) 17. Add unit tests for `adapter.NotRecognizedErr` (format contract) 18. Root-cause `TestListSessionsPrintsHeaders` hang — likely needs crush adapter to skip scan when `--no-crush` or when a `crush://` path is in args 19. Add a `t.Parallel()` + `testing.Short()` skip to the hang-prone test so CI doesn't time out
 
-**Docs / memory:**
-20. Update `AGENTS.md` with the new shared-adapter-helper pattern
-21. Update `docs/DOMAIN_LANGUAGE.md` if "adapter boundary" entry needs the new helpers
-22. Add a `CHANGELOG.md` entry for the dedup sprint
-23. Update `TODO_LIST.md` with the remaining dedup items (1-8 above)
+**Docs / memory:** 20. Update `AGENTS.md` with the new shared-adapter-helper pattern 21. Update `docs/DOMAIN_LANGUAGE.md` if "adapter boundary" entry needs the new helpers 22. Add a `CHANGELOG.md` entry for the dedup sprint 23. Update `TODO_LIST.md` with the remaining dedup items (1-8 above)
 
-**Pre-existing uncommitted work (not mine, but needs attention):**
-24. Review the 40k-line frontend diff in `web/src/*` and `internal/server/static/*`
-25. Review `internal/adapter/crush/sessions.go` pre-existing changes
-26. Review `internal/adapter/crush/projects.go` pre-existing changes
-27. Review `internal/adapter/crush/adapter.go` pre-existing changes
-28. Review `internal/server/server.go` pre-existing changes
-29. Review `cmd/mindwalk/main.go` pre-existing changes (some lines were not mine)
-30. Stage and commit OR stash the unrelated changes so the dedup work is reviewable in isolation
+**Pre-existing uncommitted work (not mine, but needs attention):** 24. Review the 40k-line frontend diff in `web/src/*` and `internal/server/static/*` 25. Review `internal/adapter/crush/sessions.go` pre-existing changes 26. Review `internal/adapter/crush/projects.go` pre-existing changes 27. Review `internal/adapter/crush/adapter.go` pre-existing changes 28. Review `internal/server/server.go` pre-existing changes 29. Review `cmd/mindwalk/main.go` pre-existing changes (some lines were not mine) 30. Stage and commit OR stash the unrelated changes so the dedup work is reviewable in isolation
 
-**Quality hardening:**
-31. Run `golangci-lint` full suite (not just the LSP subset)
-32. Run `staticcheck` on the adapter packages
-33. Check for new gocritic suggestions after the refactor
-34. Verify the `judge` package still works end-to-end (it imports `adapter` now via `cli.go`)
-35. Verify the `crush` adapter's `NotRecognizedErr("Crush", ...)` matches test expectation exactly (capital C)
+**Quality hardening:** 31. Run `golangci-lint` full suite (not just the LSP subset) 32. Run `staticcheck` on the adapter packages 33. Check for new gocritic suggestions after the refactor 34. Verify the `judge` package still works end-to-end (it imports `adapter` now via `cli.go`) 35. Verify the `crush` adapter's `NotRecognizedErr("Crush", ...)` matches test expectation exactly (capital C)
 
-**Crush adapter performance (root cause of the test hang):**
-36. Make `crush.Enumeration` lazy / cancellable so `ListSessions` doesn't scan 60 databases
-37. Add a `--crush-timeout` flag
-38. Cache the `enumerateDBPaths()` result
-39. Parallelize the per-database scan with a worker pool
-40. Skip databases whose mtime hasn't changed since last scan
+**Crush adapter performance (root cause of the test hang):** 36. Make `crush.Enumeration` lazy / cancellable so `ListSessions` doesn't scan 60 databases 37. Add a `--crush-timeout` flag 38. Cache the `enumerateDBPaths()` result 39. Parallelize the per-database scan with a worker pool 40. Skip databases whose mtime hasn't changed since last scan
 
-**Architecture observations (not blockers):**
-41. The `agentLaunch` struct duplication between codex and crush suggests a shared "agent graph builder" abstraction wants to emerge — consider an `adapter.AgentGraphBuilder` type
-42. The `serveFlags` / `adapterFlags` / `openSingle` pattern in main.go could become a small `cli` package if more subcommands are added
-43. `parseInputText` (codex) and `parseCrushInput` (crush) are semantic near-clones with different input types — a generic `parseJSONInput[T ~string | ~[]byte](raw T)` could unify them, but generics may hurt readability
-44. The `agentLaunchOutput` struct is identical between codex and crush — another promotion candidate
-45. `codexGraphActor` and `crushGraphActor` are identical — promotion candidate
+**Architecture observations (not blockers):** 41. The `agentLaunch` struct duplication between codex and crush suggests a shared "agent graph builder" abstraction wants to emerge — consider an `adapter.AgentGraphBuilder` type 42. The `serveFlags` / `adapterFlags` / `openSingle` pattern in main.go could become a small `cli` package if more subcommands are added 43. `parseInputText` (codex) and `parseCrushInput` (crush) are semantic near-clones with different input types — a generic `parseJSONInput[T ~string | ~[]byte](raw T)` could unify them, but generics may hurt readability 44. The `agentLaunchOutput` struct is identical between codex and crush — another promotion candidate 45. `codexGraphActor` and `crushGraphActor` are identical — promotion candidate
 
-**Nice-to-haves:**
-46. Add a `make dedup` target that runs `art-dupl -t 2` and fails on non-zero exit
-47. Add a `make lint` target if one doesn't exist
-48. Add a pre-commit hook for `gofmt` and `go vet`
-49. Consider adding `art-dupl` to the devShell in `flake.nix`
-50. Write a one-paragraph "adapter boundary" ADR documenting why shared helpers live in `internal/adapter` and not in a separate `internal/adapterutil`
+**Nice-to-haves:** 46. Add a `make dedup` target that runs `art-dupl -t 2` and fails on non-zero exit 47. Add a `make lint` target if one doesn't exist 48. Add a pre-commit hook for `gofmt` and `go vet` 49. Consider adding `art-dupl` to the devShell in `flake.nix` 50. Write a one-paragraph "adapter boundary" ADR documenting why shared helpers live in `internal/adapter` and not in a separate `internal/adapterutil`
 
 ---
 

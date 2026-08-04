@@ -322,7 +322,12 @@ func parseAdapterFlags(fs *flag.FlagSet) *adapterFlags {
 	fs.StringVar(&af.claudeDir, "claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
 	fs.StringVar(&af.codexDir, "codex-dir", codex.DefaultDir(), "Codex sessions directory")
 	fs.StringVar(&af.piDir, "pi-dir", pi.DefaultDir(), "pi sessions directory")
-	fs.StringVar(&af.crushDir, "crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
+	fs.StringVar(
+		&af.crushDir,
+		"crush-dir",
+		"",
+		"Crush data directory override (containing crush.db); empty = auto-discover",
+	)
 	fs.BoolVar(&af.noCrush, "no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
 	return af
 }

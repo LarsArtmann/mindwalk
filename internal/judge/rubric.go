@@ -76,7 +76,10 @@ func acquireRubric(
 		return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonNoTaskText}, nil
 	}
 	if taskTextRunes(trace.Marks) < weakTaskTextRunes {
-		emitProgress(onProgress, Progress{Phase: "rubric", Step: "skip", Message: "Task text too short — skipping rubric"})
+		emitProgress(
+			onProgress,
+			Progress{Phase: "rubric", Step: "skip", Message: "Task text too short — skipping rubric"},
+		)
 		return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonWeakTaskText}, nil
 	}
 	digest := TaskDigest(trace, model.RubricSourceFull)
@@ -103,7 +106,10 @@ func acquireRubric(
 			Tasks:      tasks,
 		}, nil
 	}
-	emitProgress(onProgress, Progress{Phase: "rubric", Step: "fail", Message: "Rubric generation failed — scoring dimensions only"})
+	emitProgress(
+		onProgress,
+		Progress{Phase: "rubric", Step: "fail", Message: "Rubric generation failed — scoring dimensions only"},
+	)
 	return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonGenerationFailed}, nil
 }
 

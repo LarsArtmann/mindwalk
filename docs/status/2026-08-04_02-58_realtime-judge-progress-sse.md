@@ -24,16 +24,19 @@ GET /api/sessions/{key}/analyze/stream  →  SSE: "progress" events + terminal "
 ### Files changed
 
 **Judge package:**
+
 - `internal/judge/progress.go` — new `Progress` type (`phase`, `step`, `message`) + `emitProgress` helper
 - `internal/judge/judge.go` — `Options.OnProgress` callback; emits events at every pipeline milestone
 - `internal/judge/rubric.go` — `acquireRubric` accepts and emits progress at each resolution path
 
 **Server:**
+
 - `internal/server/sse.go` — new SSE handler: `handleSessionAnalyzeStream`
 - `internal/server/analyze.go` — `progressLog` type, `buildReportStatus` extracted, `OnProgress` wired to `runAnalyze`
 - `internal/server/server.go` — route for 3-segment `analyze/stream` path
 
 **Frontend:**
+
 - `web/src/types.ts` — `JudgeProgress` interface
 - `web/src/api/client.ts` — `openAnalyzeStream()` using `EventSource`
 - `web/src/App.tsx` — SSE effect replaces polling for running state; `judgeProgress` state
@@ -41,9 +44,11 @@ GET /api/sessions/{key}/analyze/stream  →  SSE: "progress" events + terminal "
 - `web/src/styles.css` — progress log, icon, and hint styling
 
 **Tests:**
+
 - `internal/server/analyze_test.go` — two new tests: `TestAnalyzeStreamSendsProgressAndTerminalStatus`, `TestAnalyzeStreamNoJobReturnsStatusImmediately`
 
 **Embedded assets:**
+
 - `internal/server/static/` — rebuilt from `web/dist`
 
 ---
@@ -119,6 +124,7 @@ Nothing. All code compiles, all tests pass, the build is clean.
 ## f) UP TO 50 THINGS WE SHOULD GET DONE NEXT
 
 ### Must-do (correctness & project invariants)
+
 1. Add `schema/progress.schema.json` for the `Progress` wire format
 2. Add CHANGELOG.md entry under `[Unreleased] > Added`
 3. Update `AGENTS.md` to mention the SSE stream endpoint in the architecture section
@@ -126,6 +132,7 @@ Nothing. All code compiles, all tests pass, the build is clean.
 5. Verify embedded static assets are fresh (run `make embed-static` and check `git diff`)
 
 ### Should-do (robustness)
+
 6. Add SSE heartbeat/keep-alive pings (every 15s) to prevent proxy timeouts
 7. Add SSE reconnection support — track event IDs, replay missed events on reconnect
 8. Add a native SSE `error` event type for judge failures (distinct from connection drops)
@@ -137,6 +144,7 @@ Nothing. All code compiles, all tests pass, the build is clean.
 14. Add SSE connection limit (e.g., max 4 concurrent streams) to prevent resource exhaustion
 
 ### Nice-to-have (polish)
+
 15. Update `docs/dynamic-rubric-evaluation.md` to mention real-time progress streaming
 16. Add a progress bar or phase indicator visualization (currently just text)
 17. Add elapsed time display ("Running for 45s…")
@@ -146,12 +154,14 @@ Nothing. All code compiles, all tests pass, the build is clean.
 21. Add a `verbose` query param to the SSE endpoint for debug-level events
 
 ### Architecture improvements
+
 22. Use the go-sse library (`github.com/larsartmann/go-sse`) instead of hand-rolled SSE — gets heartbeats, reconnection, and broadcaster for free
 23. Consider a generic SSE infrastructure for other long-running operations (citymap building, agent graph computation)
 24. Add a `Server-Sent Events` section to AGENTS.md describing the streaming pattern for future endpoints
 25. Consider WebSocket as an alternative for bidirectional communication (cancel, user input during run)
 
 ### Testing improvements
+
 26. Add a test that verifies SSE event format (proper `event:`, `data:`, and blank line delimiters)
 27. Add a test for the `progressLog.since()` method directly (unit test, not HTTP-level)
 28. Add a test that verifies progress events arrive in order
@@ -163,6 +173,7 @@ Nothing. All code compiles, all tests pass, the build is clean.
 34. Add a test for SSE handler with an invalid session selector (404)
 
 ### Documentation
+
 35. Document the SSE endpoint in a new `docs/realtime-progress.md`
 36. Add the SSE endpoint to the API route table in AGENTS.md
 37. Document the `Progress` type in the judge package (godoc comment could be richer)
@@ -170,6 +181,7 @@ Nothing. All code compiles, all tests pass, the build is clean.
 39. Update `FEATURES.md` if it exists, to list real-time progress as a feature
 
 ### Code quality
+
 40. Consider extracting `writeSSE` into a reusable helper if more SSE endpoints are planned
 41. The `ssePollInterval` constant (200ms) could be configurable via a server option
 42. The `RunningPanel` phase metadata (`PHASE_META`) could be co-located with the `Progress` type in Go to avoid duplication
@@ -178,6 +190,7 @@ Nothing. All code compiles, all tests pass, the build is clean.
 45. Consider a `ProgressEvent` wrapper with an `ID` field for SSE reconnection support
 
 ### Future features
+
 46. Real-time progress for citymap generation (also a long-running operation)
 47. Real-time progress for agent graph computation
 48. Real-time progress for trace parsing (large sessions can take seconds)

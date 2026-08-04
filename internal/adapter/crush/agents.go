@@ -376,7 +376,11 @@ func exactCrushAgentNode(
 	return node
 }
 
-func unlinkedCrushLaunchNode(harness, rootKey string, actor crushGraphActor, launch adapter.AgentLaunch) model.AgentNode {
+func unlinkedCrushLaunchNode(
+	harness, rootKey string,
+	actor crushGraphActor,
+	launch adapter.AgentLaunch,
+) model.AgentNode {
 	seq := launch.Seq
 	return model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+launch.CallID),

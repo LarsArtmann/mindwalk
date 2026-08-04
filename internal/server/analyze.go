@@ -91,8 +91,6 @@ func (a *analyzeState) snapshot(key string) (analyzeJob, bool) {
 	return *job, true
 }
 
-
-
 // reportStateFor grades one session for the list view: "running" while a
 // judge job is in flight, then "done" / "stale" / "failed". Staleness here
 // compares the report against the summary event count — cheap, no trace

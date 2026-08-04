@@ -75,7 +75,16 @@
 				"required": ["seq", "type"],
 				"properties": {
 					"seq": { "type": "integer", "minimum": 0 },
-					"type": { "enum": ["compaction", "user-message", "subagent", "thinking", "finish-reason", "model-switch"] },
+					"type": {
+						"enum": [
+							"compaction",
+							"user-message",
+							"subagent",
+							"thinking",
+							"finish-reason",
+							"model-switch"
+						]
+					},
 					"note": {
 						"type": "string",
 						"description": "Free-form context for the mark: user-message marks carry the message text truncated to 2000 runes; subagent marks carry the tool name"

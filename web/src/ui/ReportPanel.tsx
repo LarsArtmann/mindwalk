@@ -235,8 +235,8 @@ function RunningPanel({ progress }: { progress: JudgeProgress[] }) {
 			)}
 			<p className="report-progress-hint">
 				The judge first drafts task-specific criteria from your request, then
-				scores the session against them plus four process dimensions. Usually
-				a minute or two; you can keep exploring meanwhile.
+				scores the session against them plus four process dimensions. Usually a
+				minute or two; you can keep exploring meanwhile.
 			</p>
 		</div>
 	);
@@ -263,8 +263,8 @@ function PanelBody({
 		return <p className="report-note">Checking for an existing report…</p>;
 	}
 	if (status.state === "running" || analyzing) {
-				return <RunningPanel progress={progress} />;
-			}
+		return <RunningPanel progress={progress} />;
+	}
 	if (status.state === "failed") {
 		return (
 			<div className="report-note">

@@ -289,7 +289,11 @@ func exactCodexAgentNode(
 	return node
 }
 
-func unlinkedCodexLaunchNode(harness, rootKey string, actor codexGraphActor, launch adapter.AgentLaunch) model.AgentNode {
+func unlinkedCodexLaunchNode(
+	harness, rootKey string,
+	actor codexGraphActor,
+	launch adapter.AgentLaunch,
+) model.AgentNode {
 	seq := launch.Seq
 	return model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "launch:"+actor.nodeID+":"+launch.CallID),

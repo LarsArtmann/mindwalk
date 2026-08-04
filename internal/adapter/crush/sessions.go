@@ -278,7 +278,8 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				Note: fmt.Sprintf("%s → %s", prevModel, msg.Model.String),
 			})
 		}
-		if msg.Provider.Valid && msg.Provider.String != "" && prevProvider != "" && msg.Provider.String != prevProvider {
+		if msg.Provider.Valid && msg.Provider.String != "" && prevProvider != "" &&
+			msg.Provider.String != prevProvider {
 			trace.Marks = append(trace.Marks, model.Mark{
 				Seq:  len(pendingOrder),
 				Type: "model-switch",

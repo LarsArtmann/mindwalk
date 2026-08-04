@@ -75,7 +75,10 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 		scoringInput = "# RUBRIC (data)\n\n" + scoringRubricJSON(rubric) + "\n\n# SESSION\n\n" + input
 	}
 
-	emitProgress(opts.OnProgress, Progress{Phase: "scoring", Step: "score", Message: "Scoring session against dimensions and criteria…"})
+	emitProgress(
+		opts.OnProgress,
+		Progress{Phase: "scoring", Step: "score", Message: "Scoring session against dimensions and criteria…"},
+	)
 	var lastErr error
 	for range 2 {
 		result, err := runner.Run(ctx, sysPrompt, scoringInput)
@@ -86,7 +89,10 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 		report, err := parseOutput(result.Text, trace, rubric)
 		if err != nil {
 			lastErr = err
-			emitProgress(opts.OnProgress, Progress{Phase: "scoring", Step: "retry", Message: "Judge output invalid, retrying…"})
+			emitProgress(
+				opts.OnProgress,
+				Progress{Phase: "scoring", Step: "retry", Message: "Judge output invalid, retrying…"},
+			)
 			continue
 		}
 		// Prefer the model the CLI says it used; fall back to what was asked
