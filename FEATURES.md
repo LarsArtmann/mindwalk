@@ -41,12 +41,12 @@
 | 0-target warning       | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Hud.tsx`; distinguishes "misconfigured" from "no file operations"                                                                                                                                                        |
 | Session rail           | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/SessionRail.tsx`; provider, token counts, cost (zero-values suppressed)                                                                                                                                                  |
 | Inspector panel        | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Inspector.tsx:16`; file visit history, click-to-jump                                                                                                                                                                     |
-| Event summary card     | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/EventSummary.tsx`; rendered in `Timeline.tsx:554`; shows current event tool/action/summary                                                                                                                              |
-| Event list             | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/EventList.tsx`; scrollable, filterable event log with click-to-jump                                                                                                                                                     |
-| Command palette        | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/CommandPalette.tsx`; Cmd+K quick navigation                                                                                                                                                                             |
-| Cheat sheet            | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/CheatSheet.tsx`; keyboard shortcut reference overlay with replay-tour stub                                                                                                                                              |
-| Coverage gauge         | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Hud.tsx:308`; animated percentage ring showing explored-file coverage                                                                                                                                                   |
-| 2D treemap fallback    | 🟢 `FULLY_FUNCTIONAL` | `web/src/scene/Treemap2D.tsx`; canvas-based 2D treemap when WebGL is unavailable (`hasWebGL` detection in `App.tsx`)                                                                                                                |
+| Event summary card     | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/EventSummary.tsx`; rendered in `Timeline.tsx:554`; shows current event tool/action/summary                                                                                                                               |
+| Event list             | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/EventList.tsx`; scrollable, filterable event log with click-to-jump                                                                                                                                                      |
+| Command palette        | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/CommandPalette.tsx`; Cmd+K quick navigation                                                                                                                                                                              |
+| Cheat sheet            | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/CheatSheet.tsx`; keyboard shortcut reference overlay with replay-tour stub                                                                                                                                               |
+| Coverage gauge         | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/Hud.tsx:308`; animated percentage ring showing explored-file coverage                                                                                                                                                    |
+| 2D treemap fallback    | 🟢 `FULLY_FUNCTIONAL` | `web/src/scene/Treemap2D.tsx`; canvas-based 2D treemap when WebGL is unavailable (`hasWebGL` detection in `App.tsx`)                                                                                                                 |
 
 ## Trace playback
 
@@ -60,11 +60,11 @@
 
 ## Session management
 
-| Feature                      | Status                | Notes                                                                                                                                                       |
-| ---------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Date-grouped session rail    | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/SessionRail.tsx`; sessions grouped by date with sticky headers                                                                                  |
-| Virtualized session rows     | 🟢 `FULLY_FUNCTIONAL` | `web/src/styles.css:3174`; native `content-visibility: auto` keeps the session rail smooth with hundreds of sessions                                        |
-| Sortable session rail        | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/SessionRail.tsx`; click column headers to sort by time, tokens, or cost                                                                          |
+| Feature                   | Status                | Notes                                                                                                                |
+| ------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Date-grouped session rail | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/SessionRail.tsx`; sessions grouped by date with sticky headers                                           |
+| Virtualized session rows  | 🟢 `FULLY_FUNCTIONAL` | `web/src/styles.css:3174`; native `content-visibility: auto` keeps the session rail smooth with hundreds of sessions |
+| Sortable session rail     | 🟢 `FULLY_FUNCTIONAL` | `web/src/ui/SessionRail.tsx`; click column headers to sort by time, tokens, or cost                                  |
 
 ## Agent lens
 
@@ -88,18 +88,18 @@
 
 ## CLI
 
-| Feature               | Status                | Notes                                                                                                                                                                         |
-| --------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `serve`               | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:35`; `--port`, `--host`, `--no-open`, adapter flags                                                                                                     |
-| `open <session>`      | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:37`; open one specific session                                                                                                                          |
-| `map <repo>`          | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:39`; repo citymap without a session                                                                                                                     |
-| `build <repo>`        | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:41`; write citymap JSON                                                                                                                                 |
-| `trace <session>`     | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:43`; write normalized trace JSON                                                                                                                        |
-| `analyze <session>`   | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go`; `--judge`, `--model`, `--no-rubric`. Verified end-to-end for `crush` (valid report with 4 dimensions, findings, and judge model).                     |
-| `sessions`            | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:47`; `--json`, `--harness`, `--limit`                                                                                                                   |
+| Feature               | Status                | Notes                                                                                                                                                                                                                                  |
+| --------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `serve`               | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:35`; `--port`, `--host`, `--no-open`, adapter flags                                                                                                                                                              |
+| `open <session>`      | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:37`; open one specific session                                                                                                                                                                                   |
+| `map <repo>`          | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:39`; repo citymap without a session                                                                                                                                                                              |
+| `build <repo>`        | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:41`; write citymap JSON                                                                                                                                                                                          |
+| `trace <session>`     | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:43`; write normalized trace JSON                                                                                                                                                                                 |
+| `analyze <session>`   | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go`; `--judge`, `--model`, `--no-rubric`. Verified end-to-end for `crush` (valid report with 4 dimensions, findings, and judge model).                                                                              |
+| `sessions`            | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:47`; `--json`, `--harness`, `--limit`                                                                                                                                                                            |
 | `doctor`              | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go`; adapter status, schema checks, `projects.json` validation. All four adapters now implement `DiagnosticsSource` (crush: deep schema checks; claudecode/codex/pi: dir + file count via `FilesystemDiagnostics`). |
-| `version`             | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:51`; build revision, Go version, module version                                                                                                         |
-| `cache clear\|status` | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go`; clears both `agent-graphs/` and `reports/`, reports size in both. `humanBytes` handles B/KB/MB/GB.                                                    |
+| `version`             | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go:51`; build revision, Go version, module version                                                                                                                                                                  |
+| `cache clear\|status` | 🟢 `FULLY_FUNCTIONAL` | `cmd/mindwalk/main.go`; clears both `agent-graphs/` and `reports/`, reports size in both. `humanBytes` handles B/KB/MB/GB.                                                                                                             |
 
 ## Caching and persistence
 
@@ -113,15 +113,15 @@
 
 ## Testing and CI
 
-| Feature             | Status                | Notes                                                                        |
-| ------------------- | --------------------- | ---------------------------------------------------------------------------- |
-| Go test suite       | 🟢 `FULLY_FUNCTIONAL` | 12 packages, all green; `-race` enabled                                      |
-| Crush fixture tests | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/crush.db`; end-to-end server test, parts parser, agent graph |
-| CI workflow         | 🟢 `FULLY_FUNCTIONAL` | `.github/workflows/ci.yml`; `go test`, `go vet`, `golangci-lint`, `-race`, frontend `tsc`     |
-| CLI test isolation  | 🟢 `FULLY_FUNCTIONAL` | `TestMain` redirects `CRUSH_GLOBAL_DATA`/`XDG_DATA_HOME`/`MINDWALK_HOME`     |
-| Schema validation   | 🟢 `FULLY_FUNCTIONAL` | `internal/model/schema_test.go`; all 5 schemas validated against Go types   |
-| Property-based tests | 🟢 `FULLY_FUNCTIONAL` | `testing/quick` for `normalizePath`, citymap determinism, `truncateNote`    |
-| Fuzz tests          | 🟢 `FULLY_FUNCTIONAL` | `testing.F` for `gitDiffTargets`, `decodeParts`, `splitAgentID`             |
-| Fixture builder     | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/build.go`; regenerates `crush.db` from scratch              |
-| E2E browser tests   | ⚪ `PLANNED`          | Playwright config exists (`web/playwright.config.ts`); agent-lens spec only  |
-| Frontend unit tests | ⚪ `PLANNED`          | Vitest not yet installed (npm unavailable); reducer/filters/treeLayout uncovered |
+| Feature              | Status                | Notes                                                                                     |
+| -------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
+| Go test suite        | 🟢 `FULLY_FUNCTIONAL` | 12 packages, all green; `-race` enabled                                                   |
+| Crush fixture tests  | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/crush.db`; end-to-end server test, parts parser, agent graph              |
+| CI workflow          | 🟢 `FULLY_FUNCTIONAL` | `.github/workflows/ci.yml`; `go test`, `go vet`, `golangci-lint`, `-race`, frontend `tsc` |
+| CLI test isolation   | 🟢 `FULLY_FUNCTIONAL` | `TestMain` redirects `CRUSH_GLOBAL_DATA`/`XDG_DATA_HOME`/`MINDWALK_HOME`                  |
+| Schema validation    | 🟢 `FULLY_FUNCTIONAL` | `internal/model/schema_test.go`; all 5 schemas validated against Go types                 |
+| Property-based tests | 🟢 `FULLY_FUNCTIONAL` | `testing/quick` for `normalizePath`, citymap determinism, `truncateNote`                  |
+| Fuzz tests           | 🟢 `FULLY_FUNCTIONAL` | `testing.F` for `gitDiffTargets`, `decodeParts`, `splitAgentID`                           |
+| Fixture builder      | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/build.go`; regenerates `crush.db` from scratch                            |
+| E2E browser tests    | ⚪ `PLANNED`          | Playwright config exists (`web/playwright.config.ts`); agent-lens spec only               |
+| Frontend unit tests  | ⚪ `PLANNED`          | Vitest not yet installed (npm unavailable); reducer/filters/treeLayout uncovered          |

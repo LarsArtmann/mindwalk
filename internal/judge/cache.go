@@ -31,10 +31,12 @@ func (c Cache) Load(sessionKey string) *model.Report {
 	if c.Dir == "" || sessionKey == "" {
 		return nil
 	}
+
 	data, err := os.ReadFile(c.path(sessionKey))
 	if err != nil {
 		return nil
 	}
+
 	var report model.Report
 	if json.Unmarshal(data, &report) != nil {
 		return nil
@@ -53,6 +55,7 @@ func (c Cache) Load(sessionKey string) *model.Report {
 			report.Dimensions[i].Findings = []model.ReportFinding{}
 		}
 	}
+
 	if report.Rubric != nil {
 		for i := range report.Rubric.Tasks {
 			for j := range report.Rubric.Tasks[i].Criteria {
@@ -62,6 +65,7 @@ func (c Cache) Load(sessionKey string) *model.Report {
 			}
 		}
 	}
+
 	return &report
 }
 
@@ -78,6 +82,7 @@ func Fresh(report *model.Report, trace *model.Trace) bool {
 		report.Judge.InputDigest != InputDigest(trace) {
 		return false
 	}
+
 	return rubricFresh(report, trace)
 }
 
@@ -91,6 +96,7 @@ func rubricFresh(report *model.Report, trace *model.Trace) bool {
 	if rubric == nil {
 		return true
 	}
+
 	switch rubric.Status {
 	case model.RubricStatusScored:
 		if report.Judge.RubricPromptVersion != RubricPromptVersion {
@@ -101,6 +107,7 @@ func rubricFresh(report *model.Report, trace *model.Trace) bool {
 		if rubric.Source != model.RubricSourceFull && rubric.Source != model.RubricSourceTask {
 			return false
 		}
+
 		return rubric.TaskDigest == TaskDigest(trace, rubric.Source)
 	case model.RubricStatusUnavailable:
 		// Deterministic skips stay fresh only while their condition still
@@ -116,6 +123,7 @@ func rubricFresh(report *model.Report, trace *model.Trace) bool {
 			return len(taskMessages(trace.Marks)) > 0 && taskTextRunes(trace.Marks) < weakTaskTextRunes
 		}
 	}
+
 	return true
 }
 
@@ -123,9 +131,11 @@ func (c Cache) Store(sessionKey string, report *model.Report) error {
 	if c.Dir == "" || sessionKey == "" {
 		return nil
 	}
+
 	if err := os.MkdirAll(c.Dir, 0o755); err != nil {
 		return err
 	}
+
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return err
@@ -137,18 +147,25 @@ func (c Cache) Store(sessionKey string, report *model.Report) error {
 	if err != nil {
 		return err
 	}
+
 	if _, err := tmp.Write(data); err != nil {
 		_ = tmp.Close()
 		_ = os.Remove(tmp.Name())
+
 		return err
 	}
+
 	if err := tmp.Close(); err != nil {
 		_ = os.Remove(tmp.Name())
+
 		return err
 	}
+
 	if err := os.Rename(tmp.Name(), c.path(sessionKey)); err != nil {
 		_ = os.Remove(tmp.Name())
+
 		return err
 	}
+
 	return nil
 }

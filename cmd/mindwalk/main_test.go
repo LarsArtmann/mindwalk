@@ -19,6 +19,7 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("MINDWALK_HOME", filepath.Join(isolated, "mindwalk"))
 	code := m.Run()
 	_ = os.RemoveAll(isolated)
+
 	os.Exit(code)
 }
 
@@ -27,9 +28,11 @@ func TestParseOutputArgsAllowsTrailingOutput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(positional) != 1 || positional[0] != "repo" {
 		t.Fatalf("positional = %#v", positional)
 	}
+
 	if out != "citymap.json" {
 		t.Fatalf("out = %q", out)
 	}

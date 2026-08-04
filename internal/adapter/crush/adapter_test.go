@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/model"
-
 	_ "modernc.org/sqlite"
 )
 
@@ -21,15 +20,19 @@ import (
 func newFixtureDB(t *testing.T, seed func(*sql.DB)) (dir string, db *sql.DB) {
 	t.Helper()
 	root := t.TempDir()
+
 	data := filepath.Join(root, ".crush")
 	if err := os.MkdirAll(data, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	handle, err := sql.Open("sqlite", "file:"+filepath.Join(data, "crush.db")+"?_pragma=journal_mode(WAL)")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	handle.SetMaxOpenConns(1)
+
 	schema := `
 		CREATE TABLE IF NOT EXISTS sessions (
 			id TEXT PRIMARY KEY,
@@ -57,29 +60,37 @@ func newFixtureDB(t *testing.T, seed func(*sql.DB)) (dir string, db *sql.DB) {
 	`
 	if _, err := handle.Exec(schema); err != nil {
 		_ = handle.Close()
+
 		t.Fatal(err)
 	}
+
 	if seed != nil {
 		seed(handle)
 	}
+
 	t.Cleanup(func() { _ = handle.Close() })
+
 	return data, handle
 }
 
 func writeParts(t *testing.T, parts ...map[string]any) string {
 	t.Helper()
+
 	encoded := make([]json.RawMessage, 0, len(parts))
 	for _, part := range parts {
 		data, err := json.Marshal(part)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		encoded = append(encoded, data)
 	}
+
 	out, err := json.Marshal(encoded)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return string(out)
 }
 
@@ -95,8 +106,16 @@ func insertSession(
 	messages int64,
 ) {
 	t.Helper()
-	if _, err := db.Exec(`INSERT INTO sessions (id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at) VALUES (?, ?, ?, ?, 0, 0, 0.0, ?, ?)`,
-		id, nullableString(parent), title, messages, createdAt.Unix(), createdAt.Unix()); err != nil {
+
+	if _, err := db.Exec(
+		`INSERT INTO sessions (id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at) VALUES (?, ?, ?, ?, 0, 0, 0.0, ?, ?)`,
+		id,
+		nullableString(parent),
+		title,
+		messages,
+		createdAt.Unix(),
+		createdAt.Unix(),
+	); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -114,8 +133,17 @@ func insertMessage(
 	createdAt time.Time,
 ) {
 	t.Helper()
-	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id, sessionID, role, parts, nullableString(model), createdAt.Unix(), createdAt.Unix()); err != nil {
+
+	if _, err := db.Exec(
+		`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		id,
+		sessionID,
+		role,
+		parts,
+		nullableString(model),
+		createdAt.Unix(),
+		createdAt.Unix(),
+	); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -124,6 +152,7 @@ func nullableString(value string) any {
 	if value == "" {
 		return nil
 	}
+
 	return value
 }
 
@@ -133,6 +162,7 @@ func nullableString(value string) any {
 func TestSessionDirPrefersProjectFixture(t *testing.T) {
 	root := t.TempDir()
 	project := filepath.Join(root, "project")
+
 	data := filepath.Join(project, ".crush")
 	if err := os.MkdirAll(data, 0o755); err != nil {
 		t.Fatal(err)
@@ -163,13 +193,16 @@ func TestListSessionsHidesAgentSessions(t *testing.T) {
 	insertSession(t, db, "child-1", "root-1", "Agent: explore", base.Add(time.Minute), 2)
 
 	adapter := Adapter{Dir: data}
+
 	metas, err := adapter.ListSessions()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(metas) != 1 {
 		t.Fatalf("metas = %d, want 1 (child sessions should be hidden)", len(metas))
 	}
+
 	if metas[0].ID != "root-1" {
 		t.Fatalf("meta id = %q", metas[0].ID)
 	}
@@ -220,26 +253,33 @@ func TestParseBuildsEventsAndMarks(t *testing.T) {
 	), "", base.Add(2*time.Second))
 
 	adapter := Adapter{Dir: data}
+
 	trace, err := adapter.Parse(SessionPath("demo"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if trace.Session.Harness != "crush" {
 		t.Fatalf("harness = %q", trace.Session.Harness)
 	}
+
 	if trace.Session.Model != "minimax/minimax-m3" {
 		t.Fatalf("model = %q", trace.Session.Model)
 	}
+
 	if len(trace.Events) != 1 {
 		t.Fatalf("events = %d, want 1", len(trace.Events))
 	}
+
 	ev := trace.Events[0]
 	if ev.Tool != "view" || ev.Action != "read" {
 		t.Fatalf("event = %+v", ev)
 	}
+
 	if len(ev.Targets) != 1 || ev.Targets[0].Path != "internal/adapter/adapter.go" {
 		t.Fatalf("targets = %+v", ev.Targets)
 	}
+
 	if len(trace.Marks) != 1 || trace.Marks[0].Type != "user-message" {
 		t.Fatalf("marks = %+v", trace.Marks)
 	}
@@ -270,9 +310,11 @@ func TestParseOrphanToolCallStillEmitsEvent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(trace.Events) != 1 {
 		t.Fatalf("events = %d, want 1", len(trace.Events))
 	}
+
 	if trace.Events[0].ResultBytes != 0 {
 		t.Fatalf("orphan event should carry an empty result, got %d bytes", trace.Events[0].ResultBytes)
 	}
@@ -302,12 +344,15 @@ func TestParseMarksSubagentLaunches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(trace.Marks) != 1 {
 		t.Fatalf("marks = %+v", trace.Marks)
 	}
+
 	if trace.Marks[0].Type != "subagent" {
 		t.Fatalf("mark type = %q", trace.Marks[0].Type)
 	}
+
 	if trace.Marks[0].Note != "explore schema" {
 		t.Fatalf("note = %q", trace.Marks[0].Note)
 	}
@@ -340,9 +385,11 @@ func TestParseHandlesNestedJSONInput(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(trace.Events) != 1 {
 		t.Fatalf("events = %d, want 1", len(trace.Events))
 	}
+
 	if trace.Events[0].Targets[0].Path != "internal/server/server.go" {
 		t.Fatalf("path = %q", trace.Events[0].Targets[0].Path)
 	}
@@ -381,20 +428,25 @@ func TestParseRelativizesAbsolutePathsFromCwd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if trace.Session.Cwd != wantCwd {
 		t.Fatalf("cwd = %q, want %q", trace.Session.Cwd, wantCwd)
 	}
+
 	if len(trace.Events) != 1 {
 		t.Fatalf("events = %d, want 1", len(trace.Events))
 	}
+
 	ev := trace.Events[0]
 	if len(ev.Targets) != 1 {
 		t.Fatalf("targets = %+v (want 1)", ev.Targets)
 	}
+
 	wantRel := filepath.ToSlash(filepath.Join("internal", "server", "server.go"))
 	if ev.Targets[0].Path != wantRel {
 		t.Fatalf("target path = %q, want %q", ev.Targets[0].Path, wantRel)
 	}
+
 	if len(ev.Outside) != 0 {
 		t.Fatalf("outside = %+v (want none)", ev.Outside)
 	}
@@ -411,6 +463,7 @@ func TestProjectPathForDBDerivation(t *testing.T) {
 
 	tmp := t.TempDir()
 	crushDB := filepath.Join(tmp, dataDirName, dbName)
+
 	got := Adapter{}.projectPathForDB(crushDB)
 	if got != tmp {
 		t.Fatalf("projectPathForDB(%q) = %q, want %q", crushDB, got, tmp)
@@ -438,13 +491,16 @@ func TestSummarizeFlagsAuxiliary(t *testing.T) {
 	insertSession(t, db, "msg-1$$toolcall-1", "root", "Agent: explore", base.Add(time.Minute), 2)
 
 	adapter := Adapter{Dir: data}
+
 	meta, err := adapter.Summarize(SessionPath("msg-1$$toolcall-1"))
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if !meta.Auxiliary {
 		t.Fatalf("meta auxiliary = false, want true")
 	}
+
 	if meta.Agent == nil || meta.Agent.SourceID != "msg-1" || meta.Agent.LaunchCallID != "toolcall-1" {
 		t.Fatalf("agent = %+v", meta.Agent)
 	}
@@ -457,10 +513,12 @@ func TestDecodePartsToleratesMalformedParts(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected decode error for non-JSON parts")
 	}
+
 	result, err := decodeParts("[]", "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if result.text != "" || len(result.events) != 0 {
 		t.Fatalf("empty parts should produce empty result, got %+v", result)
 	}
@@ -478,6 +536,7 @@ func TestSummarizeMissingDatabase(t *testing.T) {
 	if err := os.RemoveAll(root); err != nil {
 		t.Fatal(err)
 	}
+
 	_, err := Adapter{}.Summarize(SessionPath("anything"))
 	if err == nil || !strings.Contains(err.Error(), "not a Crush session") {
 		t.Fatalf("expected not-a-Crush-session error, got %v", err)
@@ -492,10 +551,12 @@ func TestSummarizeMissingDatabase(t *testing.T) {
 func TestOpenReadOnlyReportsUnderlyingError(t *testing.T) {
 	// Empty file → "empty (size 0)"
 	dir := t.TempDir()
+
 	emptyFile := filepath.Join(dir, "crush.db")
 	if err := os.WriteFile(emptyFile, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	_, err := Adapter{Dir: dir}.ListSessions()
 	if err == nil || !strings.Contains(err.Error(), "empty (size 0)") {
 		t.Fatalf("empty file error = %v", err)
@@ -506,6 +567,7 @@ func TestOpenReadOnlyReportsUnderlyingError(t *testing.T) {
 	if err := os.MkdirAll(dirAsFile, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	_, err = Adapter{Dir: filepath.Dir(dirAsFile)}.ListSessions()
 	if err == nil || !strings.Contains(err.Error(), "is a directory") {
 		t.Fatalf("directory-as-file error = %v", err)
@@ -526,8 +588,18 @@ func insertMessageWithProvider(
 	createdAt time.Time,
 ) {
 	t.Helper()
-	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, provider, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		id, sessionID, role, parts, nullableString(model), nullableString(provider), createdAt.Unix(), createdAt.Unix()); err != nil {
+
+	if _, err := db.Exec(
+		`INSERT INTO messages (id, session_id, role, parts, model, provider, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		id,
+		sessionID,
+		role,
+		parts,
+		nullableString(model),
+		nullableString(provider),
+		createdAt.Unix(),
+		createdAt.Unix(),
+	); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -545,8 +617,17 @@ func insertSessionWithUsage(
 	cost float64,
 ) {
 	t.Helper()
-	if _, err := db.Exec(`INSERT INTO sessions (id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at) VALUES (?, NULL, ?, 0, ?, ?, ?, ?, ?)`,
-		id, title, promptTokens, completionTokens, cost, createdAt.Unix(), createdAt.Unix()); err != nil {
+
+	if _, err := db.Exec(
+		`INSERT INTO sessions (id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at) VALUES (?, NULL, ?, 0, ?, ?, ?, ?, ?)`,
+		id,
+		title,
+		promptTokens,
+		completionTokens,
+		cost,
+		createdAt.Unix(),
+		createdAt.Unix(),
+	); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -568,9 +649,11 @@ func TestParsePopulatesProvider(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
+
 	if trace.Session.Provider != "anthropic" {
 		t.Fatalf("provider = %q, want anthropic", trace.Session.Provider)
 	}
+
 	if trace.Session.Model != "claude-sonnet-4" {
 		t.Fatalf("model = %q, want claude-sonnet-4", trace.Session.Model)
 	}
@@ -593,15 +676,19 @@ func TestParseEmitsModelSwitchMark(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
+
 	var sawSwitch bool
+
 	for _, m := range trace.Marks {
 		if m.Type == "model-switch" {
 			sawSwitch = true
+
 			if !strings.Contains(m.Note, "model-a") || !strings.Contains(m.Note, "model-b") {
 				t.Fatalf("switch note = %q", m.Note)
 			}
 		}
 	}
+
 	if !sawSwitch {
 		t.Fatalf("expected a model-switch mark, marks = %+v", trace.Marks)
 	}
@@ -611,10 +698,15 @@ func TestParseEmitsModelSwitchMark(t *testing.T) {
 // upgrades the read observability grade from estimated to exact.
 func TestReadFilesUpgradesObservability(t *testing.T) {
 	data, db := newFixtureDB(t, func(db *sql.DB) {
-		if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS read_files (session_id TEXT NOT NULL, path TEXT NOT NULL, read_at INTEGER NOT NULL)`); err != nil {
+		if _, err := db.Exec(
+			`CREATE TABLE IF NOT EXISTS read_files (session_id TEXT NOT NULL, path TEXT NOT NULL, read_at INTEGER NOT NULL)`,
+		); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := db.Exec(`INSERT INTO read_files (session_id, path, read_at) VALUES ('s1', 'main.go', 0)`); err != nil {
+
+		if _, err := db.Exec(
+			`INSERT INTO read_files (session_id, path, read_at) VALUES ('s1', 'main.go', 0)`,
+		); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -628,6 +720,7 @@ func TestReadFilesUpgradesObservability(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
+
 	if trace.Stats.Observability.Reads != model.ObservabilityExact {
 		t.Fatalf("reads observability = %q, want exact", trace.Stats.Observability.Reads)
 	}
@@ -675,15 +768,19 @@ func TestParseEmitsFinishReasonMarks(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Parse: %v", err)
 			}
+
 			var saw bool
+
 			for _, m := range trace.Marks {
 				if m.Type == "finish-reason" {
 					saw = true
+
 					if !strings.Contains(m.Note, reason) {
 						t.Fatalf("note = %q, want to contain %q", m.Note, reason)
 					}
 				}
 			}
+
 			if !saw {
 				t.Fatalf("expected finish-reason mark for %q, marks = %+v", reason, trace.Marks)
 			}
@@ -712,18 +809,23 @@ func TestParseEmitsThinkingMark(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
+
 	var sawThinking bool
+
 	for _, m := range trace.Marks {
 		if m.Type == "thinking" {
 			sawThinking = true
+
 			if !strings.Contains(m.Note, "12s") {
 				t.Fatalf("thinking note should contain duration 12s, got %q", m.Note)
 			}
+
 			if !strings.Contains(m.Note, "check the file") {
 				t.Fatalf("thinking note should contain text, got %q", m.Note)
 			}
 		}
 	}
+
 	if !sawThinking {
 		t.Fatalf("expected a thinking mark, marks = %+v", trace.Marks)
 	}
@@ -741,16 +843,20 @@ func TestListSessionsPopulatesUsageAndCost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(metas) != 1 {
 		t.Fatalf("metas = %d, want 1", len(metas))
 	}
+
 	m := metas[0]
 	if m.PromptTokens != 5000 {
 		t.Fatalf("promptTokens = %d, want 5000", m.PromptTokens)
 	}
+
 	if m.CompletionTokens != 12000 {
 		t.Fatalf("completionTokens = %d, want 12000", m.CompletionTokens)
 	}
+
 	if m.Cost != 0.42 {
 		t.Fatalf("cost = %f, want 0.42", m.Cost)
 	}
@@ -761,15 +867,19 @@ func TestListSessionsPopulatesUsageAndCost(t *testing.T) {
 // This simulates a database from an older Crush version.
 func createOldSchemaDB(t *testing.T, dbPath string) *sql.DB {
 	t.Helper()
+
 	dir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	handle, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	handle.SetMaxOpenConns(1)
+
 	oldSchema := `
 		CREATE TABLE sessions (
 			id TEXT PRIMARY KEY,
@@ -795,9 +905,12 @@ func createOldSchemaDB(t *testing.T, dbPath string) *sql.DB {
 	`
 	if _, err := handle.Exec(oldSchema); err != nil {
 		_ = handle.Close()
+
 		t.Fatal(err)
 	}
+
 	t.Cleanup(func() { _ = handle.Close() })
+
 	return handle
 }
 
@@ -810,9 +923,15 @@ func TestOldSchemaListSessionsDoesNotCrash(t *testing.T) {
 	dataDir := filepath.Join(dir, ".crush")
 	dbPath := filepath.Join(dataDir, dbName)
 	db := createOldSchemaDB(t, dbPath)
+
 	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
-	if _, err := db.Exec(`INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at) VALUES (?, ?, 0, 0, 0, ?, ?)`,
-		"s1", "Old schema", base.Unix(), base.Unix()); err != nil {
+	if _, err := db.Exec(
+		`INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at) VALUES (?, ?, 0, 0, 0, ?, ?)`,
+		"s1",
+		"Old schema",
+		base.Unix(),
+		base.Unix(),
+	); err != nil {
 		t.Fatal(err)
 	}
 
@@ -820,9 +939,11 @@ func TestOldSchemaListSessionsDoesNotCrash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListSessions on old schema should not error: %v", err)
 	}
+
 	if len(metas) != 1 {
 		t.Fatalf("metas = %d, want 1", len(metas))
 	}
+
 	if metas[0].Cost != 0 {
 		t.Fatalf("cost should default to 0 on old schema, got %f", metas[0].Cost)
 	}
@@ -835,15 +956,28 @@ func TestOldSchemaParseDoesNotCrash(t *testing.T) {
 	dataDir := filepath.Join(dir, ".crush")
 	dbPath := filepath.Join(dataDir, dbName)
 	db := createOldSchemaDB(t, dbPath)
+
 	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
-	if _, err := db.Exec(`INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at) VALUES (?, ?, 1, 0, 0, ?, ?)`,
-		"s1", "Old schema parse", base.Unix(), base.Unix()); err != nil {
+	if _, err := db.Exec(
+		`INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at) VALUES (?, ?, 1, 0, 0, ?, ?)`,
+		"s1",
+		"Old schema parse",
+		base.Unix(),
+		base.Unix(),
+	); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		"m1", "s1", "assistant",
+
+	if _, err := db.Exec(
+		`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		"m1",
+		"s1",
+		"assistant",
 		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "hello"}}),
-		"claude-sonnet-4", base.Unix(), base.Unix()); err != nil {
+		"claude-sonnet-4",
+		base.Unix(),
+		base.Unix(),
+	); err != nil {
 		t.Fatal(err)
 	}
 
@@ -851,6 +985,7 @@ func TestOldSchemaParseDoesNotCrash(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse on old schema should not error: %v", err)
 	}
+
 	if trace.Session.ID != "s1" {
 		t.Fatalf("session id = %q", trace.Session.ID)
 	}
@@ -864,10 +999,20 @@ func TestThinkingMarkUsesMessageDuration(t *testing.T) {
 	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
 	insertSession(t, db, "s1", "", "Thinking duration test", base, 1)
 	// Message with finished_at = created + 7 seconds
-	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-		"m1", "s1", "assistant",
-		writeParts(t, map[string]any{"type": "reasoning", "data": map[string]any{"thinking": "I need to think about this"}}),
-		"claude-sonnet-4", base.Unix(), base.Unix(), base.Add(7*time.Second).Unix()); err != nil {
+	if _, err := db.Exec(
+		`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		"m1",
+		"s1",
+		"assistant",
+		writeParts(
+			t,
+			map[string]any{"type": "reasoning", "data": map[string]any{"thinking": "I need to think about this"}},
+		),
+		"claude-sonnet-4",
+		base.Unix(),
+		base.Unix(),
+		base.Add(7*time.Second).Unix(),
+	); err != nil {
 		t.Fatal(err)
 	}
 
@@ -875,15 +1020,19 @@ func TestThinkingMarkUsesMessageDuration(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Parse: %v", err)
 	}
+
 	var sawThinking bool
+
 	for _, m := range trace.Marks {
 		if m.Type == "thinking" {
 			sawThinking = true
+
 			if !strings.Contains(m.Note, "7s") {
 				t.Fatalf("thinking note should contain duration 7s (from finished_at), got %q", m.Note)
 			}
 		}
 	}
+
 	if !sawThinking {
 		t.Fatalf("expected a thinking mark, marks = %+v", trace.Marks)
 	}

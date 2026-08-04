@@ -27,7 +27,9 @@ export function fitDistance(
 ): number | null {
   if (!Number.isFinite(camera.aspect) || camera.aspect <= 0) return null;
   const forward = dir.clone().negate();
-  const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+  const right = new THREE.Vector3()
+    .crossVectors(forward, new THREE.Vector3(0, 1, 0))
+    .normalize();
   const up = new THREE.Vector3().crossVectors(right, forward);
   const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
   const tanH = tanV * camera.aspect;
@@ -71,7 +73,9 @@ export function ensureVisible(
   if (targetX === sx && targetY === sy) return;
   const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
   const tanH = tanV * camera.aspect;
-  const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+  const right = new THREE.Vector3()
+    .crossVectors(forward, new THREE.Vector3(0, 1, 0))
+    .normalize();
   const up = new THREE.Vector3().crossVectors(right, forward);
   // moving the camera right shifts the point left on screen, and vice versa
   const pan = right
@@ -106,8 +110,14 @@ export class SceneTip {
     const bounds = this.host.getBoundingClientRect();
     const x = clientX - bounds.left;
     const y = clientY - bounds.top;
-    const left = Math.min(x + 14, Math.max(0, bounds.width - this.el.offsetWidth - 8));
-    const top = Math.min(y + 16, Math.max(0, bounds.height - this.el.offsetHeight - 8));
+    const left = Math.min(
+      x + 14,
+      Math.max(0, bounds.width - this.el.offsetWidth - 8),
+    );
+    const top = Math.min(
+      y + 16,
+      Math.max(0, bounds.height - this.el.offsetHeight - 8),
+    );
     this.el.style.left = `${left}px`;
     this.el.style.top = `${top}px`;
   }
@@ -122,11 +132,16 @@ export class SceneTip {
 }
 
 export const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export function disposeGroup(group: THREE.Group) {
   group.traverse((obj) => {
-    if (obj instanceof THREE.Mesh || obj instanceof THREE.Line || obj instanceof THREE.Sprite) {
+    if (
+      obj instanceof THREE.Mesh ||
+      obj instanceof THREE.Line ||
+      obj instanceof THREE.Sprite
+    ) {
       obj.geometry?.dispose();
       const mat = obj.material as THREE.Material | THREE.Material[];
       if (Array.isArray(mat)) mat.forEach(disposeMaterial);

@@ -21,6 +21,7 @@ func openSQLite(path string) (*sql.DB, error) {
 	params.Set("mode", "ro")
 	params.Set("_txlock", "immediate")
 	dsn := fmt.Sprintf("file:%s?%s", path, params.Encode())
+
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
@@ -29,5 +30,6 @@ func openSQLite(path string) (*sql.DB, error) {
 	// visualizer's pool to a single connection mirrors Crush's own
 	// choice and keeps the read path predictable.
 	db.SetMaxOpenConns(1)
+
 	return db, nil
 }

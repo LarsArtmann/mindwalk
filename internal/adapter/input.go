@@ -31,10 +31,12 @@ func ParseJSONInput(raw string) map[string]any {
 	if trimmed == "" {
 		return map[string]any{}
 	}
+
 	var value any
 	if err := json.Unmarshal([]byte(trimmed), &value); err != nil {
 		return map[string]any{"_raw": raw}
 	}
+
 	switch v := value.(type) {
 	case map[string]any:
 		return v
@@ -42,6 +44,7 @@ func ParseJSONInput(raw string) map[string]any {
 		return ParseJSONInput(v)
 	default:
 		encoded, _ := json.Marshal(value)
+
 		return map[string]any{"_raw": string(encoded)}
 	}
 }

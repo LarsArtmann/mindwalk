@@ -31,139 +31,645 @@
         --warning: var(--color-yellow);
 
         --radius: 0px;
-        --font-heading: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        --font-body: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        --font-mono: ui-monospace, "Cascadia Code", "Source Code Pro", "JetBrains Mono", Menlo, Consolas, monospace;
+        --font-heading:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font-body:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        --font-mono:
+          ui-monospace, "Cascadia Code", "Source Code Pro", "JetBrains Mono",
+          Menlo, Consolas, monospace;
       }
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      html { scroll-behavior: smooth; }
-      section[id], [id] { scroll-margin-top: 60px; }
-      body { background: var(--surface); color: var(--text); font-family: var(--font-body); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
-      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-      a:focus-visible { outline-offset: -1px; }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      section[id],
+      [id] {
+        scroll-margin-top: 60px;
+      }
+      body {
+        background: var(--surface);
+        color: var(--text);
+        font-family: var(--font-body);
+        font-size: 15px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      a:focus-visible {
+        outline-offset: -1px;
+      }
 
-      .top-bar { background: var(--text); color: var(--surface); padding: 0.6rem 2rem; font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; }
-      .layout { display: flex; gap: 2.5rem; padding: 2rem; }
-      .sidebar { width: 220px; flex-shrink: 0; position: sticky; top: 1rem; align-self: flex-start; height: calc(100vh - 2rem); overflow-y: auto; display: none; }
-      .sidebar nav { display: flex; flex-direction: column; gap: 0; }
-      .sidebar .label { font-family: var(--font-mono); font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--border-strong); }
-      .sidebar a { font-size: 0.85rem; color: var(--text-muted); text-decoration: none; padding: 0.45rem 0.75rem; border-left: 2px solid transparent; transition: all 0.15s ease; line-height: 1.4; font-weight: 500; }
-      .sidebar a:hover, .sidebar a.active { color: var(--accent); border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
-      .main { flex: 1; min-width: 0; }
+      .top-bar {
+        background: var(--text);
+        color: var(--surface);
+        padding: 0.6rem 2rem;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .layout {
+        display: flex;
+        gap: 2.5rem;
+        padding: 2rem;
+      }
+      .sidebar {
+        width: 220px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 1rem;
+        align-self: flex-start;
+        height: calc(100vh - 2rem);
+        overflow-y: auto;
+        display: none;
+      }
+      .sidebar nav {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .sidebar .label {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid var(--border-strong);
+      }
+      .sidebar a {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-decoration: none;
+        padding: 0.45rem 0.75rem;
+        border-left: 2px solid transparent;
+        transition: all 0.15s ease;
+        line-height: 1.4;
+        font-weight: 500;
+      }
+      .sidebar a:hover,
+      .sidebar a.active {
+        color: var(--accent);
+        border-left-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 8%, transparent);
+      }
+      .main {
+        flex: 1;
+        min-width: 0;
+      }
 
-      h1, h2, h3, h4 { font-family: var(--font-heading); font-weight: 800; letter-spacing: -0.02em; }
-      h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.1; margin: 0 0 0.6rem; }
-      h2 { font-size: 1.4rem; margin: 2.5rem 0 1rem; padding-bottom: 0.4rem; border-bottom: 2px solid var(--border-strong); display: flex; align-items: baseline; gap: 0.6rem; }
-      h2 .num { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
-      h3 { font-size: 1.1rem; margin: 0 0 0.4rem; font-weight: 700; }
-      h4 { font-size: 0.98rem; margin: 0 0 0.3rem; font-weight: 700; }
-      p { margin: 0 0 1rem; }
+      h1,
+      h2,
+      h3,
+      h4 {
+        font-family: var(--font-heading);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      h1 {
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+        line-height: 1.1;
+        margin: 0 0 0.6rem;
+      }
+      h2 {
+        font-size: 1.4rem;
+        margin: 2.5rem 0 1rem;
+        padding-bottom: 0.4rem;
+        border-bottom: 2px solid var(--border-strong);
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+      }
+      h2 .num {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--accent);
+        font-weight: 700;
+        letter-spacing: 0.06em;
+      }
+      h3 {
+        font-size: 1.1rem;
+        margin: 0 0 0.4rem;
+        font-weight: 700;
+      }
+      h4 {
+        font-size: 0.98rem;
+        margin: 0 0 0.3rem;
+        font-weight: 700;
+      }
+      p {
+        margin: 0 0 1rem;
+      }
 
-      .hero { padding: 1.5rem 0 1.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-strong); }
-      .hero-badge { display: inline-block; font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--surface); background: var(--accent); padding: 0.3rem 0.7rem; margin-bottom: 0.9rem; }
-      .hero-subtitle { font-size: 1.05rem; color: var(--text-muted); max-width: 70ch; margin: 0; }
+      .hero {
+        padding: 1.5rem 0 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid var(--border-strong);
+      }
+      .hero-badge {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: var(--surface);
+        background: var(--accent);
+        padding: 0.3rem 0.7rem;
+        margin-bottom: 0.9rem;
+      }
+      .hero-subtitle {
+        font-size: 1.05rem;
+        color: var(--text-muted);
+        max-width: 70ch;
+        margin: 0;
+      }
 
-      .card { background: var(--surface-raised); border: 1px solid var(--border); padding: 1.1rem 1.3rem; margin-bottom: 1rem; border-left: 4px solid var(--border-strong); }
-      .card-problem { border-left-color: var(--problem); background: color-mix(in srgb, var(--problem) 8%, var(--surface-raised)); }
-      .card-solution { border-left-color: var(--solution); background: color-mix(in srgb, var(--solution) 8%, var(--surface-raised)); }
-      .card-warning { border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 8%, var(--surface-raised)); }
+      .card {
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        padding: 1.1rem 1.3rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid var(--border-strong);
+      }
+      .card-problem {
+        border-left-color: var(--problem);
+        background: color-mix(
+          in srgb,
+          var(--problem) 8%,
+          var(--surface-raised)
+        );
+      }
+      .card-solution {
+        border-left-color: var(--solution);
+        background: color-mix(
+          in srgb,
+          var(--solution) 8%,
+          var(--surface-raised)
+        );
+      }
+      .card-warning {
+        border-left-color: var(--warning);
+        background: color-mix(
+          in srgb,
+          var(--warning) 8%,
+          var(--surface-raised)
+        );
+      }
 
-      .issue { background: var(--surface-raised); border: 1px solid var(--border); padding: 1.1rem 1.3rem; margin-bottom: 1rem; border-left: 4px solid var(--border-strong); }
-      .issue-critical { border-left-color: var(--problem); background: color-mix(in srgb, var(--problem) 8%, var(--surface-raised)); }
-      .issue-important { border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 8%, var(--surface-raised)); }
-      .issue-nice { border-left-color: var(--solution); background: color-mix(in srgb, var(--solution) 8%, var(--surface-raised)); }
-      .issue h3 { margin-bottom: 0.3rem; }
-      .issue .where { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-faint); margin: 0.2rem 0 0.6rem; }
-      .issue p:last-child { margin-bottom: 0; }
+      .issue {
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        padding: 1.1rem 1.3rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid var(--border-strong);
+      }
+      .issue-critical {
+        border-left-color: var(--problem);
+        background: color-mix(
+          in srgb,
+          var(--problem) 8%,
+          var(--surface-raised)
+        );
+      }
+      .issue-important {
+        border-left-color: var(--warning);
+        background: color-mix(
+          in srgb,
+          var(--warning) 8%,
+          var(--surface-raised)
+        );
+      }
+      .issue-nice {
+        border-left-color: var(--solution);
+        background: color-mix(
+          in srgb,
+          var(--solution) 8%,
+          var(--surface-raised)
+        );
+      }
+      .issue h3 {
+        margin-bottom: 0.3rem;
+      }
+      .issue .where {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--text-faint);
+        margin: 0.2rem 0 0.6rem;
+      }
+      .issue p:last-child {
+        margin-bottom: 0;
+      }
 
-      .severity { display: inline-block; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.2rem 0.55rem; margin-bottom: 0.6rem; color: var(--surface); }
-      .severity-critical { background: var(--problem); }
-      .severity-important { background: var(--warning); }
-      .severity-nice { background: var(--solution); }
+      .severity {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.55rem;
+        margin-bottom: 0.6rem;
+        color: var(--surface);
+      }
+      .severity-critical {
+        background: var(--problem);
+      }
+      .severity-important {
+        background: var(--warning);
+      }
+      .severity-nice {
+        background: var(--solution);
+      }
 
-      .badge { display: inline-block; font-family: var(--font-mono); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.18rem 0.5rem; border: 1px solid var(--border-strong); color: var(--text-muted); }
-      .badge-critical { color: var(--problem); border-color: var(--problem); }
-      .badge-high { color: var(--warning); border-color: var(--warning); }
-      .badge-medium { color: var(--accent); border-color: var(--accent); }
-      .badge-low { color: var(--text-muted); }
-      .badge-fixed { color: var(--solution); border-color: var(--solution); }
+      .badge {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 0.18rem 0.5rem;
+        border: 1px solid var(--border-strong);
+        color: var(--text-muted);
+      }
+      .badge-critical {
+        color: var(--problem);
+        border-color: var(--problem);
+      }
+      .badge-high {
+        color: var(--warning);
+        border-color: var(--warning);
+      }
+      .badge-medium {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      .badge-low {
+        color: var(--text-muted);
+      }
+      .badge-fixed {
+        color: var(--solution);
+        border-color: var(--solution);
+      }
 
-      .callout { margin: 0.8rem 0 0; padding: 0.7rem 0.9rem; border-left: 3px solid var(--border-strong); background: color-mix(in srgb, var(--text) 5%, transparent); font-size: 0.9rem; }
-      .callout strong { display: inline-block; margin-right: 0.4rem; }
-      .callout-solution { border-left-color: var(--solution); background: color-mix(in srgb, var(--solution) 10%, transparent); }
-      .callout-warning { border-left-color: var(--warning); background: color-mix(in srgb, var(--warning) 10%, transparent); }
+      .callout {
+        margin: 0.8rem 0 0;
+        padding: 0.7rem 0.9rem;
+        border-left: 3px solid var(--border-strong);
+        background: color-mix(in srgb, var(--text) 5%, transparent);
+        font-size: 0.9rem;
+      }
+      .callout strong {
+        display: inline-block;
+        margin-right: 0.4rem;
+      }
+      .callout-solution {
+        border-left-color: var(--solution);
+        background: color-mix(in srgb, var(--solution) 10%, transparent);
+      }
+      .callout-warning {
+        border-left-color: var(--warning);
+        background: color-mix(in srgb, var(--warning) 10%, transparent);
+      }
 
-      .stat-grid, .scorecard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; margin: 1rem 0 1.5rem; }
-      .stat-card, .score-card { background: var(--surface-raised); border: 1px solid var(--border); padding: 1.1rem 1rem; position: relative; }
-      .stat-card::before, .score-card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--border-strong); }
-      .stat-bad::before, .score-bad::before { background: var(--problem); }
-      .stat-good::before, .score-good::before { background: var(--solution); }
-      .stat-warn::before, .score-warn::before { background: var(--warning); }
-      .stat-value, .score { font-family: var(--font-heading); font-size: 2rem; font-weight: 800; line-height: 1; letter-spacing: -0.03em; color: var(--text); }
-      .stat-bad .stat-value, .score-bad .score { color: var(--problem); }
-      .stat-good .stat-value, .score-good .score { color: var(--solution); }
-      .stat-warn .stat-value, .score-warn .score { color: var(--warning); }
-      .stat-label, .score-card .label { font-family: var(--font-mono); font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); margin-top: 0.5rem; }
+      .stat-grid,
+      .scorecard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+        margin: 1rem 0 1.5rem;
+      }
+      .stat-card,
+      .score-card {
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        padding: 1.1rem 1rem;
+        position: relative;
+      }
+      .stat-card::before,
+      .score-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--border-strong);
+      }
+      .stat-bad::before,
+      .score-bad::before {
+        background: var(--problem);
+      }
+      .stat-good::before,
+      .score-good::before {
+        background: var(--solution);
+      }
+      .stat-warn::before,
+      .score-warn::before {
+        background: var(--warning);
+      }
+      .stat-value,
+      .score {
+        font-family: var(--font-heading);
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.03em;
+        color: var(--text);
+      }
+      .stat-bad .stat-value,
+      .score-bad .score {
+        color: var(--problem);
+      }
+      .stat-good .stat-value,
+      .score-good .score {
+        color: var(--solution);
+      }
+      .stat-warn .stat-value,
+      .score-warn .score {
+        color: var(--warning);
+      }
+      .stat-label,
+      .score-card .label {
+        font-family: var(--font-mono);
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-faint);
+        margin-top: 0.5rem;
+      }
 
-      .strengths { display: grid; gap: 0.5rem; margin: 1rem 0 1.5rem; }
-      .strength { display: grid; grid-template-columns: auto 1fr; gap: 0.8rem; padding: 0.7rem 0; border-bottom: 1px solid var(--border); }
-      .strength .check { font-family: var(--font-mono); font-weight: 700; color: var(--solution); font-size: 1.1rem; line-height: 1.4; }
-      .strength .text strong { display: block; margin-bottom: 0.15rem; }
-      .strength .text span { color: var(--text-muted); font-size: 0.9rem; }
+      .strengths {
+        display: grid;
+        gap: 0.5rem;
+        margin: 1rem 0 1.5rem;
+      }
+      .strength {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.8rem;
+        padding: 0.7rem 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .strength .check {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        color: var(--solution);
+        font-size: 1.1rem;
+        line-height: 1.4;
+      }
+      .strength .text strong {
+        display: block;
+        margin-bottom: 0.15rem;
+      }
+      .strength .text span {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
 
-      .table-wrap { overflow-x: auto; }
-      table { width: 100%; border-collapse: collapse; margin: 1rem 0 1.5rem; font-size: 0.9rem; }
-      th { text-align: left; padding: 0.6rem 0.9rem; background: var(--surface-raised); color: var(--text-faint); font-family: var(--font-mono); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border-strong); }
-      td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); }
-      td.score-cell { font-family: var(--font-mono); font-weight: 700; font-size: 1.05rem; }
-      tr:hover td { background: var(--surface-raised); }
+      .table-wrap {
+        overflow-x: auto;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0 1.5rem;
+        font-size: 0.9rem;
+      }
+      th {
+        text-align: left;
+        padding: 0.6rem 0.9rem;
+        background: var(--surface-raised);
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        border-bottom: 1px solid var(--border-strong);
+      }
+      td {
+        padding: 0.6rem 0.9rem;
+        border-bottom: 1px solid var(--border);
+      }
+      td.score-cell {
+        font-family: var(--font-mono);
+        font-weight: 700;
+        font-size: 1.05rem;
+      }
+      tr:hover td {
+        background: var(--surface-raised);
+      }
 
-      .compare-header { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin: 1rem 0 0.5rem; }
-      .compare-before, .compare-after { font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.4rem 0.7rem; color: var(--surface); }
-      .compare-before { background: var(--problem); }
-      .compare-after { background: var(--solution); }
-      .compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
-      .compare-row pre { margin: 0; }
+      .compare-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin: 1rem 0 0.5rem;
+      }
+      .compare-before,
+      .compare-after {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 0.4rem 0.7rem;
+        color: var(--surface);
+      }
+      .compare-before {
+        background: var(--problem);
+      }
+      .compare-after {
+        background: var(--solution);
+      }
+      .compare-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .compare-row pre {
+        margin: 0;
+      }
 
-      pre { background: var(--surface-sunken); border: 1px solid var(--border); padding: 1rem 1.2rem; margin: 1rem 0; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.65; overflow-x: auto; }
-      code { font-family: var(--font-mono); }
-      p code, li code, td code { font-size: 0.88em; background: var(--surface-sunken); padding: 0.1rem 0.35rem; }
-      .tok-comment { color: var(--text-faint); font-style: italic; }
-      .tok-keyword { color: var(--accent); }
-      .tok-string { color: var(--solution); }
-      .tok-func { color: #74a9ff; }
+      pre {
+        background: var(--surface-sunken);
+        border: 1px solid var(--border);
+        padding: 1rem 1.2rem;
+        margin: 1rem 0;
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        line-height: 1.65;
+        overflow-x: auto;
+      }
+      code {
+        font-family: var(--font-mono);
+      }
+      p code,
+      li code,
+      td code {
+        font-size: 0.88em;
+        background: var(--surface-sunken);
+        padding: 0.1rem 0.35rem;
+      }
+      .tok-comment {
+        color: var(--text-faint);
+        font-style: italic;
+      }
+      .tok-keyword {
+        color: var(--accent);
+      }
+      .tok-string {
+        color: var(--solution);
+      }
+      .tok-func {
+        color: #74a9ff;
+      }
 
-      .dep-tree { background: var(--surface-sunken); border: 1px solid var(--border); padding: 1rem 1.2rem; margin: 1rem 0; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.7; white-space: pre; overflow-x: auto; }
-      .dep-tree .root { color: var(--accent); font-weight: 700; }
-      .dep-tree .ok { color: var(--solution); }
-      .dep-tree .unwanted { color: var(--problem); }
-      .dep-tree .warn { color: var(--warning); }
+      .dep-tree {
+        background: var(--surface-sunken);
+        border: 1px solid var(--border);
+        padding: 1rem 1.2rem;
+        margin: 1rem 0;
+        font-family: var(--font-mono);
+        font-size: 0.82rem;
+        line-height: 1.7;
+        white-space: pre;
+        overflow-x: auto;
+      }
+      .dep-tree .root {
+        color: var(--accent);
+        font-weight: 700;
+      }
+      .dep-tree .ok {
+        color: var(--solution);
+      }
+      .dep-tree .unwanted {
+        color: var(--problem);
+      }
+      .dep-tree .warn {
+        color: var(--warning);
+      }
 
-      .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin: 1rem 0; }
+      .grid-2 {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin: 1rem 0;
+      }
 
-      .toc { background: var(--surface-raised); border: 1px solid var(--border); border-left: 3px solid var(--accent); padding: 1rem 1.3rem; margin: 1rem 0 1.5rem; }
-      .toc h3 { margin-bottom: 0.5rem; }
-      .toc ul { list-style: none; padding: 0; }
-      .toc li { margin: 0.25rem 0; }
-      .toc a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; }
-      .toc a:hover { color: var(--accent); }
+      .toc {
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+        padding: 1rem 1.3rem;
+        margin: 1rem 0 1.5rem;
+      }
+      .toc h3 {
+        margin-bottom: 0.5rem;
+      }
+      .toc ul {
+        list-style: none;
+        padding: 0;
+      }
+      .toc li {
+        margin: 0.25rem 0;
+      }
+      .toc a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.9rem;
+      }
+      .toc a:hover {
+        color: var(--accent);
+      }
 
-      .migration-step { display: grid; grid-template-columns: 48px 1fr; gap: 1rem; margin: 1rem 0; padding: 1rem; background: var(--surface-raised); border: 1px solid var(--border); border-left: 3px solid var(--accent); }
-      .migration-num { font-family: var(--font-mono); font-weight: 800; font-size: 1.5rem; color: var(--accent); line-height: 1; }
-      .migration-content h4 { margin-bottom: 0.2rem; }
-      .migration-content p { margin-bottom: 0; color: var(--text-muted); font-size: 0.92rem; }
-      .migration-content .tag-row { margin-top: 0.5rem; }
+      .migration-step {
+        display: grid;
+        grid-template-columns: 48px 1fr;
+        gap: 1rem;
+        margin: 1rem 0;
+        padding: 1rem;
+        background: var(--surface-raised);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--accent);
+      }
+      .migration-num {
+        font-family: var(--font-mono);
+        font-weight: 800;
+        font-size: 1.5rem;
+        color: var(--accent);
+        line-height: 1;
+      }
+      .migration-content h4 {
+        margin-bottom: 0.2rem;
+      }
+      .migration-content p {
+        margin-bottom: 0;
+        color: var(--text-muted);
+        font-size: 0.92rem;
+      }
+      .migration-content .tag-row {
+        margin-top: 0.5rem;
+      }
 
-      .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-faint); font-family: var(--font-mono); }
+      .footer {
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border);
+        font-size: 0.8rem;
+        color: var(--text-faint);
+        font-family: var(--font-mono);
+      }
 
-      @media (min-width: 1024px) { .sidebar { display: block; } }
+      @media (min-width: 1024px) {
+        .sidebar {
+          display: block;
+        }
+      }
       @media (max-width: 768px) {
-        .layout { flex-direction: column; padding: 1rem; }
-        .top-bar { padding: 0.6rem 1rem; flex-wrap: wrap; gap: 0.3rem; }
-        .grid-2 { grid-template-columns: 1fr; }
-        .compare-header, .compare-row { grid-template-columns: 1fr; }
-        .stat-grid, .scorecard { grid-template-columns: repeat(2, 1fr); }
-        .migration-step { grid-template-columns: 1fr; }
+        .layout {
+          flex-direction: column;
+          padding: 1rem;
+        }
+        .top-bar {
+          padding: 0.6rem 1rem;
+          flex-wrap: wrap;
+          gap: 0.3rem;
+        }
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+        .compare-header,
+        .compare-row {
+          grid-template-columns: 1fr;
+        }
+        .stat-grid,
+        .scorecard {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .migration-step {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -193,9 +699,10 @@
           <div class="hero-badge">Architecture Audit</div>
           <h1>mindwalk Architecture Review</h1>
           <p class="hero-subtitle">
-            Evidence-based structural audit of the mindwalk codebase: coupling metrics, layering
-            analysis, domain alignment, and a prioritized action roadmap. Built from a full import-graph
-            trace of every production Go file and the React frontend.
+            Evidence-based structural audit of the mindwalk codebase: coupling
+            metrics, layering analysis, domain alignment, and a prioritized
+            action roadmap. Built from a full import-graph trace of every
+            production Go file and the React frontend.
           </p>
         </div>
 
@@ -238,15 +745,21 @@
         </div>
 
         <div class="card card-solution">
-          <h4>Verdict: Good &mdash; address cohesion, no urgent restructuring</h4>
+          <h4>
+            Verdict: Good &mdash; address cohesion, no urgent restructuring
+          </h4>
           <p>
-            mindwalk has a fundamentally sound layered architecture. The <code>model</code> package is a
-            pristine zero-dependency data contract layer. The instability gradient points the right way:
-            stable leaf packages (<code>model</code>, <code>textutil</code>) at the bottom, the maximally
-            unstable <code>server</code> at the top. The adapter boundary (<code>Source</code> interface)
-            cleanly isolates four heterogeneous agent log formats. There are no Go import cycles. The one
-            structural debt worth paying down: two god-files (<code>adapter.go</code>, <code>server.go</code>)
-            that mix multiple bounded contexts, and a conceptual judge&harr;adapter dependency inversion.
+            mindwalk has a fundamentally sound layered architecture. The
+            <code>model</code> package is a pristine zero-dependency data
+            contract layer. The instability gradient points the right way:
+            stable leaf packages (<code>model</code>, <code>textutil</code>) at
+            the bottom, the maximally unstable <code>server</code> at the top.
+            The adapter boundary (<code>Source</code> interface) cleanly
+            isolates four heterogeneous agent log formats. There are no Go
+            import cycles. The one structural debt worth paying down: two
+            god-files (<code>adapter.go</code>, <code>server.go</code>) that mix
+            multiple bounded contexts, and a conceptual judge&harr;adapter
+            dependency inversion.
           </p>
         </div>
 
@@ -255,78 +768,215 @@
 
         <h3>Production LOC per package</h3>
         <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Package</th><th>Prod LOC</th><th>Files</th><th>Role</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><code>internal/adapter/crush</code></td><td>2,338</td><td>7</td><td>Crush DB &rarr; trace</td></tr>
-            <tr><td><code>internal/server</code></td><td>1,905</td><td>5</td><td>HTTP + caches + scanning</td></tr>
-            <tr><td><code>internal/judge</code></td><td>1,558</td><td>8</td><td>LLM evaluation engine</td></tr>
-            <tr><td><code>internal/adapter</code></td><td>1,549</td><td>5</td><td>Interface contracts + tool classification</td></tr>
-            <tr><td><code>internal/adapter/codex</code></td><td>1,180</td><td>3</td><td>Codex JSONL &rarr; trace</td></tr>
-            <tr><td><code>cmd/mindwalk</code></td><td>729</td><td>1</td><td>CLI composition root</td></tr>
-            <tr><td><code>internal/adapter/claudecode</code></td><td>782</td><td>3</td><td>Claude Code JSONL &rarr; trace</td></tr>
-            <tr><td><code>internal/model</code></td><td>570</td><td>4</td><td>Pure data contracts (leaf)</td></tr>
-            <tr><td><code>internal/citymap</code></td><td>539</td><td>1</td><td>Deterministic repo layout</td></tr>
-            <tr><td><code>internal/adapter/pi</code></td><td>452</td><td>1</td><td>pi JSONL &rarr; trace</td></tr>
-            <tr><td><code>cmd/rubriceval</code></td><td>314</td><td>1</td><td>Rubric evaluation CLI</td></tr>
-            <tr><td><code>internal/textutil</code></td><td>30</td><td>1</td><td>Truncation helper (leaf)</td></tr>
-          </tbody>
-        </table>
+          <table>
+            <thead>
+              <tr>
+                <th>Package</th>
+                <th>Prod LOC</th>
+                <th>Files</th>
+                <th>Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>internal/adapter/crush</code></td>
+                <td>2,338</td>
+                <td>7</td>
+                <td>Crush DB &rarr; trace</td>
+              </tr>
+              <tr>
+                <td><code>internal/server</code></td>
+                <td>1,905</td>
+                <td>5</td>
+                <td>HTTP + caches + scanning</td>
+              </tr>
+              <tr>
+                <td><code>internal/judge</code></td>
+                <td>1,558</td>
+                <td>8</td>
+                <td>LLM evaluation engine</td>
+              </tr>
+              <tr>
+                <td><code>internal/adapter</code></td>
+                <td>1,549</td>
+                <td>5</td>
+                <td>Interface contracts + tool classification</td>
+              </tr>
+              <tr>
+                <td><code>internal/adapter/codex</code></td>
+                <td>1,180</td>
+                <td>3</td>
+                <td>Codex JSONL &rarr; trace</td>
+              </tr>
+              <tr>
+                <td><code>cmd/mindwalk</code></td>
+                <td>729</td>
+                <td>1</td>
+                <td>CLI composition root</td>
+              </tr>
+              <tr>
+                <td><code>internal/adapter/claudecode</code></td>
+                <td>782</td>
+                <td>3</td>
+                <td>Claude Code JSONL &rarr; trace</td>
+              </tr>
+              <tr>
+                <td><code>internal/model</code></td>
+                <td>570</td>
+                <td>4</td>
+                <td>Pure data contracts (leaf)</td>
+              </tr>
+              <tr>
+                <td><code>internal/citymap</code></td>
+                <td>539</td>
+                <td>1</td>
+                <td>Deterministic repo layout</td>
+              </tr>
+              <tr>
+                <td><code>internal/adapter/pi</code></td>
+                <td>452</td>
+                <td>1</td>
+                <td>pi JSONL &rarr; trace</td>
+              </tr>
+              <tr>
+                <td><code>cmd/rubriceval</code></td>
+                <td>314</td>
+                <td>1</td>
+                <td>Rubric evaluation CLI</td>
+              </tr>
+              <tr>
+                <td><code>internal/textutil</code></td>
+                <td>30</td>
+                <td>1</td>
+                <td>Truncation helper (leaf)</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <h3>Layer structure</h3>
-        <div class="dep-tree"><span class="root">cmd/mindwalk</span>
-├── <span class="ok">internal/server</span>          (HTTP, caches, scanning, static)
-│   ├── internal/adapter/{claudecode,codex,crush,pi}
-│   ├── internal/citymap          (repo &rarr; CityMap)
-│   ├── internal/judge            (trace &rarr; Report)
-│   └── internal/model            (data contracts)
-├── internal/adapter
-│   ├── internal/model
-│   └── internal/textutil
-├── internal/judge
-│   ├── <span class="warn">internal/adapter</span>       (HomePath, InjectedUserMessage)
-│   ├── internal/model
-│   └── internal/textutil
-└── internal/model               (leaf &mdash; zero deps)</div>
+        <div class="dep-tree">
+          <span class="root">cmd/mindwalk</span> ├──
+          <span class="ok">internal/server</span> (HTTP, caches, scanning,
+          static) │ ├── internal/adapter/{claudecode,codex,crush,pi} │ ├──
+          internal/citymap (repo &rarr; CityMap) │ ├── internal/judge (trace
+          &rarr; Report) │ └── internal/model (data contracts) ├──
+          internal/adapter │ ├── internal/model │ └── internal/textutil ├──
+          internal/judge │ ├──
+          <span class="warn">internal/adapter</span> (HomePath,
+          InjectedUserMessage) │ ├── internal/model │ └── internal/textutil └──
+          internal/model (leaf &mdash; zero deps)
+        </div>
 
         <div class="callout callout-warning">
           <strong>Note:</strong>
-          The <code>internal/adapter/codex</code> and <code>adapter/crush</code> sub-packages each import
-          <code>internal/judge</code> (detailed below). That edge is omitted from this tree to avoid
-          drawing a false cycle &mdash; Go forbids true cycles, and here <code>judge</code> imports the
-          parent <code>adapter</code> package, not the child sub-packages.
+          The <code>internal/adapter/codex</code> and
+          <code>adapter/crush</code> sub-packages each import
+          <code>internal/judge</code> (detailed below). That edge is omitted
+          from this tree to avoid drawing a false cycle &mdash; Go forbids true
+          cycles, and here <code>judge</code> imports the parent
+          <code>adapter</code> package, not the child sub-packages.
         </div>
 
         <!-- ========== DEPENDENCIES ========== -->
-        <h2 id="dependencies"><span class="num">02</span>Dependency Analysis</h2>
+        <h2 id="dependencies">
+          <span class="num">02</span>Dependency Analysis
+        </h2>
 
         <h3>Coupling metrics</h3>
         <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Package</th><th>Ca (importers)</th><th>Ce (deps)</th><th>Instability I</th><th>Verdict</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><code>model</code></td><td>9</td><td>0</td><td class="score-cell">0.00</td><td><span class="badge badge-fixed">Maximally stable</span></td></tr>
-            <tr><td><code>textutil</code></td><td>2</td><td>0</td><td class="score-cell">0.00</td><td><span class="badge badge-fixed">Stable leaf</span></td></tr>
-            <tr><td><code>adapter</code></td><td>8</td><td>2</td><td class="score-cell">0.20</td><td><span class="badge badge-fixed">Stable foundation</span></td></tr>
-            <tr><td><code>judge</code></td><td>4</td><td>3</td><td class="score-cell">0.43</td><td><span class="badge badge-medium">Mid-stack</span></td></tr>
-            <tr><td><code>citymap</code></td><td>1</td><td>1</td><td class="score-cell">0.50</td><td><span class="badge badge-medium">Balanced</span></td></tr>
-            <tr><td><code>adapter/claudecode</code></td><td>2</td><td>2</td><td class="score-cell">0.50</td><td><span class="badge badge-medium">Balanced</span></td></tr>
-            <tr><td><code>adapter/pi</code></td><td>2</td><td>2</td><td class="score-cell">0.50</td><td><span class="badge badge-medium">Balanced</span></td></tr>
-            <tr><td><code>adapter/crush</code></td><td>2</td><td>3</td><td class="score-cell">0.60</td><td><span class="badge badge-high">Depends on judge</span></td></tr>
-            <tr><td><code>adapter/codex</code></td><td>2</td><td>3</td><td class="score-cell">0.60</td><td><span class="badge badge-high">Depends on judge</span></td></tr>
-            <tr><td><code>server</code></td><td>1</td><td>8</td><td class="score-cell">0.89</td><td><span class="badge badge-low">Maximally unstable</span></td></tr>
-          </tbody>
-        </table>
+          <table>
+            <thead>
+              <tr>
+                <th>Package</th>
+                <th>Ca (importers)</th>
+                <th>Ce (deps)</th>
+                <th>Instability I</th>
+                <th>Verdict</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>model</code></td>
+                <td>9</td>
+                <td>0</td>
+                <td class="score-cell">0.00</td>
+                <td><span class="badge badge-fixed">Maximally stable</span></td>
+              </tr>
+              <tr>
+                <td><code>textutil</code></td>
+                <td>2</td>
+                <td>0</td>
+                <td class="score-cell">0.00</td>
+                <td><span class="badge badge-fixed">Stable leaf</span></td>
+              </tr>
+              <tr>
+                <td><code>adapter</code></td>
+                <td>8</td>
+                <td>2</td>
+                <td class="score-cell">0.20</td>
+                <td>
+                  <span class="badge badge-fixed">Stable foundation</span>
+                </td>
+              </tr>
+              <tr>
+                <td><code>judge</code></td>
+                <td>4</td>
+                <td>3</td>
+                <td class="score-cell">0.43</td>
+                <td><span class="badge badge-medium">Mid-stack</span></td>
+              </tr>
+              <tr>
+                <td><code>citymap</code></td>
+                <td>1</td>
+                <td>1</td>
+                <td class="score-cell">0.50</td>
+                <td><span class="badge badge-medium">Balanced</span></td>
+              </tr>
+              <tr>
+                <td><code>adapter/claudecode</code></td>
+                <td>2</td>
+                <td>2</td>
+                <td class="score-cell">0.50</td>
+                <td><span class="badge badge-medium">Balanced</span></td>
+              </tr>
+              <tr>
+                <td><code>adapter/pi</code></td>
+                <td>2</td>
+                <td>2</td>
+                <td class="score-cell">0.50</td>
+                <td><span class="badge badge-medium">Balanced</span></td>
+              </tr>
+              <tr>
+                <td><code>adapter/crush</code></td>
+                <td>2</td>
+                <td>3</td>
+                <td class="score-cell">0.60</td>
+                <td><span class="badge badge-high">Depends on judge</span></td>
+              </tr>
+              <tr>
+                <td><code>adapter/codex</code></td>
+                <td>2</td>
+                <td>3</td>
+                <td class="score-cell">0.60</td>
+                <td><span class="badge badge-high">Depends on judge</span></td>
+              </tr>
+              <tr>
+                <td><code>server</code></td>
+                <td>1</td>
+                <td>8</td>
+                <td class="score-cell">0.89</td>
+                <td><span class="badge badge-low">Maximally unstable</span></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <p style="font-size:0.85rem;color:var(--text-faint);">
-          Instability <code>I = Ce / (Ca + Ce)</code>. Stable packages (low I) belong at the bottom of the
-          dependency stack. The gradient is correct &mdash; except the two adapter sub-packages that reach
-          <em>down</em> into <code>judge</code>, an inversion of the intended direction.
+        <p style="font-size: 0.85rem; color: var(--text-faint)">
+          Instability <code>I = Ce / (Ca + Ce)</code>. Stable packages (low I)
+          belong at the bottom of the dependency stack. The gradient is correct
+          &mdash; except the two adapter sub-packages that reach
+          <em>down</em> into <code>judge</code>, an inversion of the intended
+          direction.
         </p>
 
         <h3>The judge &harr; adapter coupling</h3>
@@ -354,64 +1004,99 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           </div>
         </div>
         <p>
-          The adapter layer's job is <em>"convert source format to the shared model."</em> It should not
-          know the judge exists. <code>judge.IsWorkDir()</code> is a session-filtering concern (drop
-          mindwalk's own judge runs from the session rail) that belongs in the <code>server</code>, which
-          owns the session catalog. The reverse edge (<code>judge</code> &rarr; <code>adapter</code>) is
-          benign utility reuse (<code>HomePath</code>, <code>InjectedUserMessage</code>) but should ideally
-          live in a neutral package.
+          The adapter layer's job is
+          <em>"convert source format to the shared model."</em> It should not
+          know the judge exists. <code>judge.IsWorkDir()</code> is a
+          session-filtering concern (drop mindwalk's own judge runs from the
+          session rail) that belongs in the <code>server</code>, which owns the
+          session catalog. The reverse edge (<code>judge</code> &rarr;
+          <code>adapter</code>) is benign utility reuse (<code>HomePath</code>,
+          <code>InjectedUserMessage</code>) but should ideally live in a neutral
+          package.
         </p>
 
         <!-- ========== SCORES ========== -->
         <h2 id="scores"><span class="num">03</span>Dimension Scores</h2>
         <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Dimension</th><th>Score</th><th>Key Evidence</th></tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Coupling</td>
-              <td class="score-cell" style="color:var(--solution);">4</td>
-              <td>Interface-driven (<code>Source</code>, <code>Runner</code>); one conceptual judge&harr;adapter inversion</td>
-            </tr>
-            <tr>
-              <td>Cohesion</td>
-              <td class="score-cell" style="color:var(--warning);">3</td>
-              <td>Two god-files mix 4+ concerns each; <code>model</code> is exemplary</td>
-            </tr>
-            <tr>
-              <td>Modularity</td>
-              <td class="score-cell" style="color:var(--solution);">4</td>
-              <td>Clear bounded contexts; no horizontal adapter coupling; independently testable</td>
-            </tr>
-            <tr>
-              <td>Composability</td>
-              <td class="score-cell" style="color:var(--solution);">4</td>
-              <td>Pluggable adapters + injectable <code>buildCityMap</code> + mockable <code>Runner</code></td>
-            </tr>
-            <tr>
-              <td>Scalability</td>
-              <td class="score-cell" style="color:var(--solution);">4</td>
-              <td>New harness = 1 sub-package + 1 line; god-files will resist future growth</td>
-            </tr>
-            <tr>
-              <td>Service Orientation</td>
-              <td class="score-cell" style="color:var(--warning);">3</td>
-              <td>Monolith with clear internal boundaries; correct call for a local tool</td>
-            </tr>
-            <tr>
-              <td>Dependency Direction</td>
-              <td class="score-cell" style="color:var(--solution);">4</td>
-              <td>Correct gradient; two adapters reach into judge (violation); git not abstracted</td>
-            </tr>
-            <tr style="border-top: 2px solid var(--border-strong);">
-              <td><strong>Average</strong></td>
-              <td class="score-cell" style="color:var(--solution);"><strong>3.7</strong></td>
-              <td><strong>Good &mdash; address lowest dimensions (Cohesion, Service Orientation)</strong></td>
-            </tr>
-          </tbody>
-        </table>
+          <table>
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Score</th>
+                <th>Key Evidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Coupling</td>
+                <td class="score-cell" style="color: var(--solution)">4</td>
+                <td>
+                  Interface-driven (<code>Source</code>, <code>Runner</code>);
+                  one conceptual judge&harr;adapter inversion
+                </td>
+              </tr>
+              <tr>
+                <td>Cohesion</td>
+                <td class="score-cell" style="color: var(--warning)">3</td>
+                <td>
+                  Two god-files mix 4+ concerns each; <code>model</code> is
+                  exemplary
+                </td>
+              </tr>
+              <tr>
+                <td>Modularity</td>
+                <td class="score-cell" style="color: var(--solution)">4</td>
+                <td>
+                  Clear bounded contexts; no horizontal adapter coupling;
+                  independently testable
+                </td>
+              </tr>
+              <tr>
+                <td>Composability</td>
+                <td class="score-cell" style="color: var(--solution)">4</td>
+                <td>
+                  Pluggable adapters + injectable <code>buildCityMap</code> +
+                  mockable <code>Runner</code>
+                </td>
+              </tr>
+              <tr>
+                <td>Scalability</td>
+                <td class="score-cell" style="color: var(--solution)">4</td>
+                <td>
+                  New harness = 1 sub-package + 1 line; god-files will resist
+                  future growth
+                </td>
+              </tr>
+              <tr>
+                <td>Service Orientation</td>
+                <td class="score-cell" style="color: var(--warning)">3</td>
+                <td>
+                  Monolith with clear internal boundaries; correct call for a
+                  local tool
+                </td>
+              </tr>
+              <tr>
+                <td>Dependency Direction</td>
+                <td class="score-cell" style="color: var(--solution)">4</td>
+                <td>
+                  Correct gradient; two adapters reach into judge (violation);
+                  git not abstracted
+                </td>
+              </tr>
+              <tr style="border-top: 2px solid var(--border-strong)">
+                <td><strong>Average</strong></td>
+                <td class="score-cell" style="color: var(--solution)">
+                  <strong>3.7</strong>
+                </td>
+                <td>
+                  <strong
+                    >Good &mdash; address lowest dimensions (Cohesion, Service
+                    Orientation)</strong
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- ========== STRENGTHS ========== -->
@@ -421,42 +1106,71 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
             <div class="check">+</div>
             <div class="text">
               <strong>Pristine model layer</strong>
-              <span><code>internal/model</code> is pure data contracts with zero dependencies and zero behavior. The hardest layer to get right is the one that never changes &mdash; this one is correct.</span>
+              <span
+                ><code>internal/model</code> is pure data contracts with zero
+                dependencies and zero behavior. The hardest layer to get right
+                is the one that never changes &mdash; this one is correct.</span
+              >
             </div>
           </div>
           <div class="strength">
             <div class="check">+</div>
             <div class="text">
               <strong>Correct instability gradient</strong>
-              <span>Stable leaf packages (<code>model</code> I=0.00, <code>textutil</code> I=0.00) at the bottom; maximally unstable <code>server</code> (I=0.89) at the top. The dependency skeleton points the right way.</span>
+              <span
+                >Stable leaf packages (<code>model</code> I=0.00,
+                <code>textutil</code> I=0.00) at the bottom; maximally unstable
+                <code>server</code> (I=0.89) at the top. The dependency skeleton
+                points the right way.</span
+              >
             </div>
           </div>
           <div class="strength">
             <div class="check">+</div>
             <div class="text">
               <strong>Capability-based adapter interface</strong>
-              <span><code>Source</code>, <code>Closer</code>, <code>DiagnosticsSource</code>, <code>AgentGraphSource</code> are small, optional, composable interfaces &mdash; composition over inheritance done right.</span>
+              <span
+                ><code>Source</code>, <code>Closer</code>,
+                <code>DiagnosticsSource</code>,
+                <code>AgentGraphSource</code> are small, optional, composable
+                interfaces &mdash; composition over inheritance done
+                right.</span
+              >
             </div>
           </div>
           <div class="strength">
             <div class="check">+</div>
             <div class="text">
               <strong>No horizontal adapter coupling</strong>
-              <span>The four harness sub-packages (<code>claudecode</code>, <code>codex</code>, <code>crush</code>, <code>pi</code>) never import each other. New formats plug in without touching existing ones.</span>
+              <span
+                >The four harness sub-packages (<code>claudecode</code>,
+                <code>codex</code>, <code>crush</code>, <code>pi</code>) never
+                import each other. New formats plug in without touching existing
+                ones.</span
+              >
             </div>
           </div>
           <div class="strength">
             <div class="check">+</div>
             <div class="text">
               <strong>Sealed judge security boundary</strong>
-              <span>The judge subprocess gets no tools, no MCP, no user/project config (<code>cli.go:80-155</code>). Untrusted trace content cannot reach the local filesystem. Dependency injection via <code>Runner</code> makes it fully testable.</span>
+              <span
+                >The judge subprocess gets no tools, no MCP, no user/project
+                config (<code>cli.go:80-155</code>). Untrusted trace content
+                cannot reach the local filesystem. Dependency injection via
+                <code>Runner</code> makes it fully testable.</span
+              >
             </div>
           </div>
           <div class="strength">
             <div class="check">+</div>
             <div class="text">
               <strong>Injectable citymap builder</strong>
-              <span><code>Server.buildCityMap</code> is a function field, not a hardcoded call &mdash; tests swap it without mocking. A small but exemplary seam.</span>
+              <span
+                ><code>Server.buildCityMap</code> is a function field, not a
+                hardcoded call &mdash; tests swap it without mocking. A small
+                but exemplary seam.</span
+              >
             </div>
           </div>
         </div>
@@ -466,134 +1180,194 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
 
         <div class="issue issue-critical">
           <span class="severity severity-critical">P1 &middot; High</span>
-          <h3>God-file: <code>internal/adapter/adapter.go</code> (1,355 LOC, 51 functions)</h3>
-          <div class="where">internal/adapter/adapter.go &middot; 51 funcs across 4 distinct concerns</div>
+          <h3>
+            God-file: <code>internal/adapter/adapter.go</code> (1,355 LOC, 51
+            functions)
+          </h3>
+          <div class="where">
+            internal/adapter/adapter.go &middot; 51 funcs across 4 distinct
+            concerns
+          </div>
           <p>
-            This single file mixes four bounded contexts: (a) the <code>Source</code>/<code>Closer</code>/
-            <code>DiagnosticsSource</code> interface contracts, (b) path/file utilities
-            (<code>HomePath</code>, <code>OpenFile</code>, <code>NormalizePath</code>), (c) ~1,000 lines of
-            tool-call classification and command parsing (<code>actionFor</code>, <code>targetsFor</code>,
-            <code>verifyCommand</code>, <code>gitDiffTargets</code>, <code>parsePatchPaths</code>,
-            <code>searchCommand</code>, <code>readCommand</code>, JS-paren matching), and (d) agent-graph
-            presentation helpers (<code>OrderAgentNodesPreorder</code>, <code>AgentNodeID</code>).
+            This single file mixes four bounded contexts: (a) the
+            <code>Source</code>/<code>Closer</code>/
+            <code>DiagnosticsSource</code> interface contracts, (b) path/file
+            utilities (<code>HomePath</code>, <code>OpenFile</code>,
+            <code>NormalizePath</code>), (c) ~1,000 lines of tool-call
+            classification and command parsing (<code>actionFor</code>,
+            <code>targetsFor</code>, <code>verifyCommand</code>,
+            <code>gitDiffTargets</code>, <code>parsePatchPaths</code>,
+            <code>searchCommand</code>, <code>readCommand</code>, JS-paren
+            matching), and (d) agent-graph presentation helpers
+            (<code>OrderAgentNodesPreorder</code>, <code>AgentNodeID</code>).
           </p>
           <div class="callout callout-solution">
             <strong>Fix:</strong>
-            Extract the tool-classification subsystem (~1,000 LOC, lines 342&ndash;1354) into its own package,
-            e.g. <code>internal/toolclass</code> or <code>internal/event</code>. The interface contracts stay
-            in <code>adapter</code>; the classification logic becomes a dependency of every adapter sub-package.
-            This is a pure move refactor &mdash; no behavior change, and the existing tests pin the contract.
+            Extract the tool-classification subsystem (~1,000 LOC, lines
+            342&ndash;1354) into its own package, e.g.
+            <code>internal/toolclass</code> or <code>internal/event</code>. The
+            interface contracts stay in <code>adapter</code>; the classification
+            logic becomes a dependency of every adapter sub-package. This is a
+            pure move refactor &mdash; no behavior change, and the existing
+            tests pin the contract.
           </div>
         </div>
 
         <div class="issue issue-critical">
           <span class="severity severity-critical">P1 &middot; High</span>
-          <h3>God-file: <code>internal/server/server.go</code> (1,422 LOC, 31 methods)</h3>
-          <div class="where">internal/server/server.go &middot; Server struct holds 11 map fields</div>
+          <h3>
+            God-file: <code>internal/server/server.go</code> (1,422 LOC, 31
+            methods)
+          </h3>
+          <div class="where">
+            internal/server/server.go &middot; Server struct holds 11 map fields
+          </div>
           <p>
-            The <code>Server</code> struct owns five independent caches (traces, agent graphs, summaries,
-            repo maps, session catalog), each with bespoke TTL/eviction/inflight-dedup logic &mdash; 11 map
-            fields total. It also handles HTTP routing, session scanning, static asset serving, and adapter
-            construction. Every new endpoint or cache grows this file further.
+            The <code>Server</code> struct owns five independent caches (traces,
+            agent graphs, summaries, repo maps, session catalog), each with
+            bespoke TTL/eviction/inflight-dedup logic &mdash; 11 map fields
+            total. It also handles HTTP routing, session scanning, static asset
+            serving, and adapter construction. Every new endpoint or cache grows
+            this file further.
           </p>
           <div class="callout callout-solution">
             <strong>Fix:</strong>
-            Extract a generic <code>cache&lt;K, V&gt;</code> type (TTL + LRU eviction + inflight singleflight)
-            and give each cache its own small wrapper. Move the caching layer into
-            <code>internal/server/cache.go</code> or a dedicated <code>sessionstore</code> package. The HTTP
-            handlers and scanning logic can stay in <code>server.go</code> but call into the extracted store.
+            Extract a generic <code>cache&lt;K, V&gt;</code> type (TTL + LRU
+            eviction + inflight singleflight) and give each cache its own small
+            wrapper. Move the caching layer into
+            <code>internal/server/cache.go</code> or a dedicated
+            <code>sessionstore</code> package. The HTTP handlers and scanning
+            logic can stay in <code>server.go</code> but call into the extracted
+            store.
           </div>
         </div>
 
         <div class="issue issue-important">
           <span class="severity severity-important">P1 &middot; High</span>
           <h3>Dependency inversion: adapters depend on judge</h3>
-          <div class="where">internal/adapter/codex/adapter.go:163, internal/adapter/crush/sessions.go:199</div>
+          <div class="where">
+            internal/adapter/codex/adapter.go:163,
+            internal/adapter/crush/sessions.go:199
+          </div>
           <p>
-            <code>adapter/codex</code> and <code>adapter/crush</code> call <code>judge.IsWorkDir()</code> to
-            filter out mindwalk's own judge-run sessions from the rail. This makes the parsing layer depend on
-            the evaluation layer &mdash; a conceptual cycle between two bounded contexts. The adapter should
-            not know the judge exists.
+            <code>adapter/codex</code> and <code>adapter/crush</code> call
+            <code>judge.IsWorkDir()</code> to filter out mindwalk's own
+            judge-run sessions from the rail. This makes the parsing layer
+            depend on the evaluation layer &mdash; a conceptual cycle between
+            two bounded contexts. The adapter should not know the judge exists.
           </p>
           <div class="callout callout-solution">
             <strong>Fix:</strong>
-            Move <code>IsWorkDir</code> / <code>WorkDir</code> into a neutral package (e.g.
-            <code>internal/mindwalk</code> or the existing <code>internal/adapter</code> alongside
-            <code>MindwalkHome</code>), then filter self-sessions in the <code>server</code>'s
-            <code>scanSessions</code> (which already owns the catalog) rather than in each adapter.
-            Alternatively, expose a <code>SessionMeta.Auxiliary</code> flag the server sets post-scan.
+            Move <code>IsWorkDir</code> / <code>WorkDir</code> into a neutral
+            package (e.g. <code>internal/mindwalk</code> or the existing
+            <code>internal/adapter</code> alongside <code>MindwalkHome</code>),
+            then filter self-sessions in the <code>server</code>'s
+            <code>scanSessions</code> (which already owns the catalog) rather
+            than in each adapter. Alternatively, expose a
+            <code>SessionMeta.Auxiliary</code> flag the server sets post-scan.
           </div>
         </div>
 
         <div class="issue issue-important">
           <span class="severity severity-important">P2 &middot; Medium</span>
-          <h3>citymap shells out to <code>git</code> with no interface abstraction</h3>
+          <h3>
+            citymap shells out to <code>git</code> with no interface abstraction
+          </h3>
           <div class="where">internal/citymap/builder.go:91, 256, 262</div>
           <p>
-            <code>Builder.Build</code> calls <code>exec.Command("git", ...)</code> three times directly
-            (<code>ls-files</code>, <code>rev-parse</code>, <code>status</code>). There is no interface to
-            swap, so the builder cannot be tested without a real git repository, and a future "no-git" mode
-            (plain directory, SVN, etc.) would require editing the builder.
+            <code>Builder.Build</code> calls
+            <code>exec.Command("git", ...)</code> three times directly
+            (<code>ls-files</code>, <code>rev-parse</code>,
+            <code>status</code>). There is no interface to swap, so the builder
+            cannot be tested without a real git repository, and a future
+            "no-git" mode (plain directory, SVN, etc.) would require editing the
+            builder.
           </p>
           <div class="callout callout-solution">
             <strong>Fix:</strong>
-            Define a <code>FileLister</code> interface (<code>ListFiles(root) ([]string, error)</code>) and a
-            <code>VCSInfo</code> interface (<code>Commit(root) / Dirty(root)</code>). The default
-            implementation shells out to git; tests inject a fake. Keep the current git behavior as the
-            production default.
+            Define a <code>FileLister</code> interface (<code
+              >ListFiles(root) ([]string, error)</code
+            >) and a <code>VCSInfo</code> interface (<code
+              >Commit(root) / Dirty(root)</code
+            >). The default implementation shells out to git; tests inject a
+            fake. Keep the current git behavior as the production default.
           </div>
         </div>
 
         <div class="issue issue-important">
           <span class="severity severity-important">P2 &middot; Medium</span>
-          <h3>Frontend god-component: <code>App.tsx</code> (966 LOC, 74 hooks)</h3>
+          <h3>
+            Frontend god-component: <code>App.tsx</code> (966 LOC, 74 hooks)
+          </h3>
           <div class="where">web/src/App.tsx</div>
           <p>
-            <code>App.tsx</code> holds 74 <code>useState</code>/<code>useEffect</code>/<code>useMemo</code>/
-            <code>useCallback</code>/<code>useRef</code> calls in a single component. It manages session
-            loading, playback, agent graphs, report streaming, scene selection, and panel layout
-            simultaneously. The existing <code>state/store.ts</code> (Zustand) is only lightly used.
+            <code>App.tsx</code> holds 74
+            <code>useState</code>/<code>useEffect</code>/<code>useMemo</code>/
+            <code>useCallback</code>/<code>useRef</code> calls in a single
+            component. It manages session loading, playback, agent graphs,
+            report streaming, scene selection, and panel layout simultaneously.
+            The existing <code>state/store.ts</code> (Zustand) is only lightly
+            used.
           </p>
           <div class="callout callout-solution">
             <strong>Fix:</strong>
-            Migrate server-fetch and playback state into the Zustand store (already present at
-            <code>state/store.ts</code>). Extract <code>useSession</code>, <code>usePlayback</code>,
-            <code>useReportStream</code> custom hooks. Target &lt;300 LOC for <code>App.tsx</code>.
+            Migrate server-fetch and playback state into the Zustand store
+            (already present at
+            <code>state/store.ts</code>). Extract <code>useSession</code>,
+            <code>usePlayback</code>, <code>useReportStream</code> custom hooks.
+            Target &lt;300 LOC for <code>App.tsx</code>.
           </div>
         </div>
 
         <div class="issue issue-nice">
           <span class="severity severity-nice">P3 &middot; Low</span>
-          <h3><code>jsonschema</code> is a production dependency used only in tests</h3>
-          <div class="where">go.mod:6 &middot; only caller: internal/model/agent_schema_test.go</div>
+          <h3>
+            <code>jsonschema</code> is a production dependency used only in
+            tests
+          </h3>
+          <div class="where">
+            go.mod:6 &middot; only caller: internal/model/agent_schema_test.go
+          </div>
           <p>
-            <code>github.com/santhosh-tekuri/jsonschema/v6</code> is listed as a direct dependency but is
-            referenced exclusively by <code>agent_schema_test.go</code>. The <code>schema/</code> JSON files
-            are unvalidated at runtime &mdash; they are documentation contracts, not enforced. This inflates
-            the production dependency surface.
+            <code>github.com/santhosh-tekuri/jsonschema/v6</code> is listed as a
+            direct dependency but is referenced exclusively by
+            <code>agent_schema_test.go</code>. The <code>schema/</code> JSON
+            files are unvalidated at runtime &mdash; they are documentation
+            contracts, not enforced. This inflates the production dependency
+            surface.
           </p>
         </div>
 
         <div class="issue issue-nice">
           <span class="severity severity-nice">P3 &middot; Low</span>
           <h3>Adapter registration is hard-coded</h3>
-          <div class="where">internal/server/server.go:1391 (buildAdapters)</div>
+          <div class="where">
+            internal/server/server.go:1391 (buildAdapters)
+          </div>
           <p>
-            <code>buildAdapters</code> hard-codes the four-adapter list. Adding a fifth harness requires
-            editing <code>server.go</code> (and <code>cmd/mindwalk</code> flags). A registry/init pattern or
-            a constructor slice in <code>cmd/mindwalk</code> would keep the server agnostic. Minor &mdash; the
-            list is small and changes rarely.
+            <code>buildAdapters</code> hard-codes the four-adapter list. Adding
+            a fifth harness requires editing <code>server.go</code> (and
+            <code>cmd/mindwalk</code> flags). A registry/init pattern or a
+            constructor slice in <code>cmd/mindwalk</code> would keep the server
+            agnostic. Minor &mdash; the list is small and changes rarely.
           </p>
         </div>
 
         <div class="issue issue-nice">
-          <span class="severity severity-nice">Bug &middot; not architectural</span>
-          <h3>Unchecked <code>rows.Err()</code> after <code>rows.Next()</code> loop</h3>
+          <span class="severity severity-nice"
+            >Bug &middot; not architectural</span
+          >
+          <h3>
+            Unchecked <code>rows.Err()</code> after
+            <code>rows.Next()</code> loop
+          </h3>
           <div class="where">internal/adapter/crush/sessions.go:914-920</div>
           <p>
-            <code>gopls</code> flags a <code>sql.Rows</code> loop at <code>sessions.go:914</code> that never
-            checks <code>rows.Err()</code> after iteration. A silent DB error mid-scan would be swallowed.
-            Not an architecture issue, but surfaced during this review.
+            <code>gopls</code> flags a <code>sql.Rows</code> loop at
+            <code>sessions.go:914</code> that never checks
+            <code>rows.Err()</code> after iteration. A silent DB error mid-scan
+            would be swallowed. Not an architecture issue, but surfaced during
+            this review.
           </p>
         </div>
 
@@ -605,10 +1379,12 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           <div class="migration-content">
             <h4>Break the judge&harr;adapter inversion</h4>
             <p>
-              Move <code>WorkDir</code>/<code>IsWorkDir</code> to a neutral home (the <code>adapter</code>
-              package alongside <code>MindwalkHome</code>, or a new <code>internal/mindwalk</code>). Filter
-              self-sessions in <code>server.scanSessions</code> rather than in each adapter. Deletes two
-              <code>judge</code> imports from the adapter layer.
+              Move <code>WorkDir</code>/<code>IsWorkDir</code> to a neutral home
+              (the <code>adapter</code> package alongside
+              <code>MindwalkHome</code>, or a new
+              <code>internal/mindwalk</code>). Filter self-sessions in
+              <code>server.scanSessions</code> rather than in each adapter.
+              Deletes two <code>judge</code> imports from the adapter layer.
             </p>
             <div class="tag-row">
               <span class="badge badge-high">P1</span>
@@ -624,17 +1400,21 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           <div class="migration-content">
             <h4>Extract tool-classification into its own package</h4>
             <p>
-              Move ~1,000 LOC of tool-call semantics (<code>actionFor</code>, <code>targetsFor</code>,
-              <code>verifyCommand</code>, <code>gitDiffTargets</code>, <code>parsePatchPaths</code>,
-              <code>SummarizeTool</code>, <code>BuildEvent</code>) from <code>adapter.go</code> into
-              <code>internal/toolclass</code> (or <code>internal/event</code>). Pure move refactor; the
-              existing <code>adapter_test.go</code> suite pins every behavior.
+              Move ~1,000 LOC of tool-call semantics (<code>actionFor</code>,
+              <code>targetsFor</code>, <code>verifyCommand</code>,
+              <code>gitDiffTargets</code>, <code>parsePatchPaths</code>,
+              <code>SummarizeTool</code>, <code>BuildEvent</code>) from
+              <code>adapter.go</code> into <code>internal/toolclass</code> (or
+              <code>internal/event</code>). Pure move refactor; the existing
+              <code>adapter_test.go</code> suite pins every behavior.
             </p>
             <div class="tag-row">
               <span class="badge badge-high">P1</span>
               <span class="badge badge-low">Effort: M</span>
               <span class="badge badge-medium">Impact: High</span>
-              <span class="badge badge-low">After step 1 (cleaner import graph)</span>
+              <span class="badge badge-low"
+                >After step 1 (cleaner import graph)</span
+              >
             </div>
           </div>
         </div>
@@ -644,10 +1424,12 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           <div class="migration-content">
             <h4>Extract a cache layer from server.go</h4>
             <p>
-              Introduce a generic <code>cache[K, V]</code> with TTL + LRU + singleflight inflight dedup.
-              Wrap each of the five server caches (traces, agent graphs, summaries, repo maps, session
-              catalog) as a thin type over it. Cuts <code>server.go</code> from 1,422 to ~600 LOC and makes
-              cache behavior consistent and independently testable.
+              Introduce a generic <code>cache[K, V]</code> with TTL + LRU +
+              singleflight inflight dedup. Wrap each of the five server caches
+              (traces, agent graphs, summaries, repo maps, session catalog) as a
+              thin type over it. Cuts <code>server.go</code> from 1,422 to ~600
+              LOC and makes cache behavior consistent and independently
+              testable.
             </p>
             <div class="tag-row">
               <span class="badge badge-high">P1</span>
@@ -663,9 +1445,10 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           <div class="migration-content">
             <h4>Abstract the git dependency in citymap</h4>
             <p>
-              Define <code>FileLister</code> and <code>VCSInfo</code> interfaces in <code>citymap</code>.
-              Default implementation shells out to git (current behavior). Tests inject fakes. Enables a
-              future no-git directory mode.
+              Define <code>FileLister</code> and <code>VCSInfo</code> interfaces
+              in <code>citymap</code>. Default implementation shells out to git
+              (current behavior). Tests inject fakes. Enables a future no-git
+              directory mode.
             </p>
             <div class="tag-row">
               <span class="badge badge-medium">P2</span>
@@ -681,9 +1464,11 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           <div class="migration-content">
             <h4>Decompose App.tsx</h4>
             <p>
-              Migrate fetch/playback state into the existing Zustand store. Extract
-              <code>useSession</code>, <code>usePlayback</code>, <code>useReportStream</code> custom hooks.
-              Target &lt;300 LOC for <code>App.tsx</code>. Enables parallel frontend work without merge
+              Migrate fetch/playback state into the existing Zustand store.
+              Extract
+              <code>useSession</code>, <code>usePlayback</code>,
+              <code>useReportStream</code> custom hooks. Target &lt;300 LOC for
+              <code>App.tsx</code>. Enables parallel frontend work without merge
               conflicts.
             </p>
             <div class="tag-row">
@@ -700,8 +1485,9 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           <div class="migration-content">
             <h4>Move jsonschema to indirect / test-only</h4>
             <p>
-              Run <code>go mod tidy</code> to mark <code>jsonschema/v6</code> as indirect (it is only
-              imported by test code). Keeps the production dependency surface honest.
+              Run <code>go mod tidy</code> to mark <code>jsonschema/v6</code> as
+              indirect (it is only imported by test code). Keeps the production
+              dependency surface honest.
             </p>
             <div class="tag-row">
               <span class="badge badge-low">P3</span>
@@ -716,16 +1502,18 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
         <div class="card card-warning">
           <h4>Do not split into microservices</h4>
           <p>
-            mindwalk is a local single-binary tool. The monolith with clear internal module boundaries is the
-            correct architecture. Service extraction would add operational complexity with zero benefit.
-            The "Service Orientation: 3/5" score reflects the right design for the wrong question &mdash; a
-            local tool should not be service-oriented.
+            mindwalk is a local single-binary tool. The monolith with clear
+            internal module boundaries is the correct architecture. Service
+            extraction would add operational complexity with zero benefit. The
+            "Service Orientation: 3/5" score reflects the right design for the
+            wrong question &mdash; a local tool should not be service-oriented.
           </p>
         </div>
 
         <footer class="footer">
-          Generated 2026-08-04 &middot; All findings cite specific file paths and line numbers &middot;
-          Scores follow the architecture-review assessment rubric (1&ndash;5 per dimension)
+          Generated 2026-08-04 &middot; All findings cite specific file paths
+          and line numbers &middot; Scores follow the architecture-review
+          assessment rubric (1&ndash;5 per dimension)
         </footer>
       </main>
     </div>
@@ -740,7 +1528,9 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           return l.getAttribute("href").slice(1);
         });
         var sections = ids
-          .map(function (id) { return document.getElementById(id); })
+          .map(function (id) {
+            return document.getElementById(id);
+          })
           .filter(Boolean);
         if (!sections.length) return;
         var observer = new IntersectionObserver(
@@ -758,7 +1548,9 @@ adapter.<span class="tok-func">InjectedUserMessage</span>(text)</code></pre>
           },
           { rootMargin: "-80px 0px -60% 0px", threshold: 0 },
         );
-        sections.forEach(function (s) { observer.observe(s); });
+        sections.forEach(function (s) {
+          observer.observe(s);
+        });
       })();
     </script>
   </body>

@@ -126,16 +126,19 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 	if part.Type == "" || len(part.Data) == 0 || string(part.Data) == "null" {
 		return nil
 	}
+
 	switch part.Type {
 	case partText:
 		var t textData
 		if err := json.Unmarshal(part.Data, &t); err != nil {
 			return fmt.Errorf("decode text part: %w", err)
 		}
+
 		if t.Text != "" {
 			if p.text.Len() > 0 {
 				p.text.WriteString("\n")
 			}
+
 			p.text.WriteString(t.Text)
 		}
 	case partReasoning:
@@ -143,9 +146,11 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 		if err := json.Unmarshal(part.Data, &r); err != nil {
 			return fmt.Errorf("decode reasoning part: %w", err)
 		}
+
 		if r.Thinking != "" {
 			p.reasoningText = r.Thinking
 		}
+
 		if r.FinishedAt > r.StartedAt {
 			p.reasoningSecs = r.FinishedAt - r.StartedAt
 		}
@@ -154,16 +159,20 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 		if err := json.Unmarshal(part.Data, &sc); err != nil {
 			return fmt.Errorf("decode shell_command part: %w", err)
 		}
+
 		p.shellCommands = append(p.shellCommands, sc)
 	case partToolCall:
 		var tc toolCallData
 		if err := json.Unmarshal(part.Data, &tc); err != nil {
 			return fmt.Errorf("decode tool_call part: %w", err)
 		}
+
 		if tc.ID == "" || tc.Name == "" {
 			return nil
 		}
+
 		input := parseCrushInput(tc.Input)
+
 		call := adapter.ToolCall{
 			ID:               tc.ID,
 			Name:             tc.Name,
@@ -179,9 +188,11 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 				p.subagentNote = tc.Name
 			}
 		}
+
 		if _, exists := p.pending[tc.ID]; !exists {
 			p.pendingOrder = append(p.pendingOrder, tc.ID)
 		}
+
 		p.pending[tc.ID] = call
 		if tc.Name == "bash" || tc.Name == "Bash" {
 			if cmd, ok := input["command"].(string); ok && cmd != "" {
@@ -193,9 +204,11 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 		if err := json.Unmarshal(part.Data, &tr); err != nil {
 			return fmt.Errorf("decode tool_result part: %w", err)
 		}
+
 		if tr.ToolCallID == "" {
 			return nil
 		}
+
 		p.results[tr.ToolCallID] = adapter.ToolResult{
 			ToolCallID: tr.ToolCallID,
 			Content:    tr.Content,
@@ -207,9 +220,11 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 		if err := json.Unmarshal(part.Data, &f); err != nil {
 			return fmt.Errorf("decode finish part: %w", err)
 		}
+
 		if f.Reason == "stop" {
 			p.hasUserFinish = true
 		}
+
 		p.finishReason = f.Reason
 		p.finishMessage = f.Message
 	case partImageURL, partBinary:
@@ -220,6 +235,7 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 		// Unknown part types are ignored so a Crush schema bump
 		// never crashes an older mindwalk binary.
 	}
+
 	return nil
 }
 
@@ -234,6 +250,7 @@ func agentLabelFromInput(input map[string]any) string {
 			}
 		}
 	}
+
 	return ""
 }
 
@@ -292,6 +309,7 @@ func (p *partsParser) finish() finishResult {
 	paired := make(map[string]bool, len(p.results))
 	for _, id := range p.pendingOrder {
 		call := p.pending[id]
+
 		result.events = append(result.events, call)
 		if r, ok := p.results[id]; ok {
 			result.results = append(result.results, r)
@@ -309,6 +327,7 @@ func (p *partsParser) finish() finishResult {
 		if paired[callID] {
 			continue
 		}
+
 		result.results = append(result.results, p.results[callID])
 	}
 	// Emit bang-mode shell commands as exec events, but skip any
@@ -318,6 +337,7 @@ func (p *partsParser) finish() finishResult {
 		if sc.Command != "" && p.bashCommands[sc.Command] {
 			continue
 		}
+
 		call := adapter.ToolCall{
 			ID:        fmt.Sprintf("shell-%d", i),
 			Name:      "bash",
@@ -331,6 +351,7 @@ func (p *partsParser) finish() finishResult {
 			IsError:    sc.ExitCode != 0,
 		})
 	}
+
 	return result
 }
 
@@ -340,18 +361,22 @@ func (p *partsParser) finish() finishResult {
 // message.
 func decodeParts(raw string, timestamp string) (finishResult, error) {
 	parser := newPartsParser()
+
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" || trimmed == "[]" {
 		return parser.finish(), nil
 	}
+
 	var parts []rawPart
 	if err := json.Unmarshal([]byte(trimmed), &parts); err != nil {
 		return finishResult{}, fmt.Errorf("decode parts: %w", err)
 	}
+
 	for _, part := range parts {
 		if err := parser.add(part, timestamp); err != nil {
 			return finishResult{}, err
 		}
 	}
+
 	return parser.finish(), nil
 }

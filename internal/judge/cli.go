@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -37,6 +38,7 @@ func DetectCLI() (string, error) {
 	if clis := DetectCLIs(); len(clis) > 0 {
 		return clis[0], nil
 	}
+
 	return "", fmt.Errorf("no judge CLI found on PATH (looked for %s)", strings.Join(SupportedCLIs, ", "))
 }
 
@@ -44,11 +46,13 @@ func DetectCLI() (string, error) {
 // order; the UI offers the full list so the user can pick the judge.
 func DetectCLIs() []string {
 	var clis []string
+
 	for _, cli := range SupportedCLIs {
 		if _, err := exec.LookPath(cli); err == nil {
 			clis = append(clis, cli)
 		}
 	}
+
 	return clis
 }
 
@@ -63,17 +67,20 @@ func WorkDir() string {
 // IsWorkDir reports whether path is the judge working directory.
 func IsWorkDir(path string) bool {
 	dir := WorkDir()
+
 	return dir != "" && path != "" && filepath.Clean(path) == dir
 }
 
 func ensureWorkDir() (string, error) {
 	dir := WorkDir()
 	if dir == "" {
-		return "", fmt.Errorf("judge workdir: cannot resolve home directory")
+		return "", errors.New("judge workdir: cannot resolve home directory")
 	}
+
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("judge workdir: %w", err)
 	}
+
 	return dir, nil
 }
 
@@ -97,13 +104,16 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 	if err != nil {
 		return RunResult{}, err
 	}
+
 	var cmd *exec.Cmd
+
 	switch r.CLI {
 	case "claude":
 		// --output-format json wraps the reply in a result envelope whose
 		// modelUsage names the model that actually answered; see
 		// parseClaudeEnvelope.
-		args := []string{"-p",
+		args := []string{
+			"-p",
 			"--no-session-persistence", // never a session file for mindwalk to re-scan
 			"--tools", "",
 			"--strict-mcp-config",   // with no --mcp-config: zero MCP servers
@@ -113,6 +123,7 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		if r.Model != "" {
 			args = append(args, "--model", r.Model)
 		}
+
 		cmd = exec.CommandContext(ctx, "claude", append(args, prompt)...)
 		cmd.Stdin = strings.NewReader(input)
 	case "codex":
@@ -134,6 +145,7 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		if r.Model != "" {
 			args = append(args, "-c", "model="+r.Model)
 		}
+
 		cmd = exec.CommandContext(ctx, "codex", append(args, "-")...)
 		cmd.Stdin = strings.NewReader(prompt + "\n\n" + input)
 	case "crush":
@@ -148,26 +160,35 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		if r.Model != "" {
 			args = append(args, "-m", r.Model)
 		}
+
 		cmd = exec.CommandContext(ctx, "crush", args...)
 		cmd.Stdin = strings.NewReader(prompt + "\n\n" + input)
 	default:
 		return RunResult{}, fmt.Errorf("unsupported judge CLI %q", r.CLI)
 	}
+
 	cmd.Dir = workdir
+
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
+
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		detail := strings.TrimSpace(stderr.String())
 		if detail == "" {
 			detail = strings.TrimSpace(stdout.String())
 		}
+
 		detail = truncateFailureDetail(detail)
+
 		return RunResult{}, fmt.Errorf("%s failed: %w: %s", r.CLI, err, detail)
 	}
+
 	if r.CLI == "claude" {
 		return parseClaudeEnvelope(stdout.String()), nil
 	}
+
 	if r.CLI == "crush" {
 		// --verbose logs the model that answered on stderr as
 		// "model=<name>"; absent a match the model stays unrecorded.
@@ -179,6 +200,7 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 	if model == "" {
 		model = codexModel(stdout.String())
 	}
+
 	return RunResult{Text: stdout.String(), Model: model}, nil
 }
 
@@ -187,7 +209,8 @@ func truncateFailureDetail(detail string) string {
 }
 
 func codexExecArgs(workdir string) []string {
-	return []string{"exec",
+	return []string{
+		"exec",
 		"--ephemeral",          // no session file for mindwalk to re-scan
 		"--ignore-user-config", // no user MCP servers or profiles; auth stays
 		"--ignore-rules",       // no user/project execpolicy rules
@@ -232,8 +255,11 @@ func parseClaudeEnvelope(raw string) RunResult {
 	if err := json.Unmarshal([]byte(strings.TrimSpace(raw)), &envelope); err != nil || envelope.Result == "" {
 		return RunResult{Text: raw}
 	}
+
 	model := ""
+
 	var maxInput int64 = -1
+
 	for name, usage := range envelope.ModelUsage {
 		total := usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens
 		if total > maxInput {
@@ -241,6 +267,7 @@ func parseClaudeEnvelope(raw string) RunResult {
 			model = name
 		}
 	}
+
 	return RunResult{Text: envelope.Result, Model: model}
 }
 
@@ -252,6 +279,7 @@ func codexModel(raw string) string {
 	if match := codexModelLine.FindStringSubmatch(raw); match != nil {
 		return match[1]
 	}
+
 	return ""
 }
 
@@ -264,5 +292,6 @@ func crushModel(raw string) string {
 	if match := crushModelField.FindStringSubmatch(raw); match != nil {
 		return match[1]
 	}
+
 	return ""
 }

@@ -11,6 +11,8 @@ func requireGET(w http.ResponseWriter, r *http.Request) bool {
 	if r.Method == http.MethodGet {
 		return false
 	}
+
 	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+
 	return true
 }

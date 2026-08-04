@@ -42,8 +42,8 @@
 
   --font-display: "Fraunces Variable", "Songti SC", "Noto Serif SC", serif;
   --font-body:
-    "Schibsted Grotesk Variable", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", system-ui,
-    sans-serif;
+    "Schibsted Grotesk Variable", "PingFang SC", "Hiragino Sans GB",
+    "Noto Sans SC", system-ui, sans-serif;
 
   color: var(--ink);
   background: var(--sky);
@@ -1020,12 +1020,24 @@ dd {
   overflow: visible;
 }
 
-.spark-dot.spark-search { fill: var(--act-search); }
-.spark-dot.spark-read { fill: var(--act-read); }
-.spark-dot.spark-edit { fill: var(--act-edit); }
-.spark-dot.spark-verify { fill: var(--act-verify); }
-.spark-dot.spark-exec { fill: var(--act-exec); }
-.spark-dot.spark-other { fill: var(--muted); }
+.spark-dot.spark-search {
+  fill: var(--act-search);
+}
+.spark-dot.spark-read {
+  fill: var(--act-read);
+}
+.spark-dot.spark-edit {
+  fill: var(--act-edit);
+}
+.spark-dot.spark-verify {
+  fill: var(--act-verify);
+}
+.spark-dot.spark-exec {
+  fill: var(--act-exec);
+}
+.spark-dot.spark-other {
+  fill: var(--muted);
+}
 
 .history-list {
   display: grid;

@@ -7,26 +7,26 @@
 
 ## a) FULLY DONE (shipped, builds, Go tests pass)
 
-| Task | What was built | Files created/modified |
-| --- | --- | --- |
-| **T1** Event Summary Card | Rich playback readout showing tool, action badge, target paths, summary. Closes the core feedback loop. | `EventSummary.tsx` (new), `Timeline.tsx`, `styles.css` |
-| **T2** Command Palette (Cmd+P) | Fuzzy file search overlay with keyboard nav, touch-state dots, lang badges. | `CommandPalette.tsx` (new), `App.tsx`, `styles.css` |
-| **T3** Cheat-Sheet (?) | Modal listing all keyboard shortcuts grouped by Playback/Navigation/View. | `CheatSheet.tsx` (new), `App.tsx`, `styles.css` |
-| **T4** Collapsible HUD (H) | Toggle HUD visibility, persists in localStorage. | `store.ts`, `App.tsx` |
-| **T5** Coverage Gauge | SVG ring showing touched/total file %, animates on playhead change. | `Hud.tsx`, `styles.css` |
-| **T6** Copy Path + Readable Sizes | Clipboard button on file paths, `formatBytes()` replaces raw byte counts. | `Inspector.tsx`, `styles.css` |
-| **T7** Harness Color Dots | Colored dot per session source: claude=purple, codex=green, crush=blue, pi=amber. | `SessionRail.tsx`, `styles.css` |
-| **T8** Relative Timestamps | "2h ago" format with absolute time in tooltip. | `SessionRail.tsx` |
-| **T9** Error Markers on Strip | Red ticks on timeline for `isError` events, with hover tooltips. | `Timeline.tsx`, `styles.css` |
-| **T10** Report Summary Verdict | One-line overall assessment at top of report panel, color-coded by severity. | `ReportPanel.tsx`, `styles.css` |
-| **T11** SR Live Region | Visually-hidden `aria-live="polite"` region announcing event changes. | `Timeline.tsx`, `styles.css` |
-| **T12** Zoom-to-Fit Button | Scene-dispatched event triggers `fitView()` in both TreeScene and CityScene. | `TreeScene.tsx`, `CityScene.tsx`, `App.tsx`, `styles.css` |
-| **T13** Demo Session Fixture | Synthetic 20-event trace with realistic reads/edits/error/verify, loads from empty-state. | `demo.ts` (new), `App.tsx`, `styles.css` |
-| **T14** Date Grouping in Rail | Collapsible Today/Yesterday/This Week/Older sections with session counts. | `SessionRail.tsx`, `styles.css` |
-| **T15** Virtualized Session List | CSS `content-visibility: auto` with `contain-intrinsic-size` — no dependency added. | `SessionRail.tsx`, `styles.css` |
-| **T17** Zoomable Timeline | Wheel-zoom on strip, zoom in/out buttons, minimap with playhead and click-to-reset, zoomed bucket/mark/error recomputation, zoomed scrubber range. | `Timeline.tsx`, `styles.css` |
-| **T18** Event List View | Virtualized scrollable event list with filter chips (All/Search/Read/Edit/Verify/Exec/Errors), synced to playhead, click-to-jump. Registered as dock panel. | `EventList.tsx` (new), `App.tsx`, `styles.css` |
-| **T19** WebGL Fallback | `hasWebGL()` detection + SVG-based `Treemap2D` rendering the same touch-state coloring with click-to-select. | `Treemap2D.tsx` (new), `App.tsx`, `styles.css` |
+| Task                              | What was built                                                                                                                                              | Files created/modified                                    |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| **T1** Event Summary Card         | Rich playback readout showing tool, action badge, target paths, summary. Closes the core feedback loop.                                                     | `EventSummary.tsx` (new), `Timeline.tsx`, `styles.css`    |
+| **T2** Command Palette (Cmd+P)    | Fuzzy file search overlay with keyboard nav, touch-state dots, lang badges.                                                                                 | `CommandPalette.tsx` (new), `App.tsx`, `styles.css`       |
+| **T3** Cheat-Sheet (?)            | Modal listing all keyboard shortcuts grouped by Playback/Navigation/View.                                                                                   | `CheatSheet.tsx` (new), `App.tsx`, `styles.css`           |
+| **T4** Collapsible HUD (H)        | Toggle HUD visibility, persists in localStorage.                                                                                                            | `store.ts`, `App.tsx`                                     |
+| **T5** Coverage Gauge             | SVG ring showing touched/total file %, animates on playhead change.                                                                                         | `Hud.tsx`, `styles.css`                                   |
+| **T6** Copy Path + Readable Sizes | Clipboard button on file paths, `formatBytes()` replaces raw byte counts.                                                                                   | `Inspector.tsx`, `styles.css`                             |
+| **T7** Harness Color Dots         | Colored dot per session source: claude=purple, codex=green, crush=blue, pi=amber.                                                                           | `SessionRail.tsx`, `styles.css`                           |
+| **T8** Relative Timestamps        | "2h ago" format with absolute time in tooltip.                                                                                                              | `SessionRail.tsx`                                         |
+| **T9** Error Markers on Strip     | Red ticks on timeline for `isError` events, with hover tooltips.                                                                                            | `Timeline.tsx`, `styles.css`                              |
+| **T10** Report Summary Verdict    | One-line overall assessment at top of report panel, color-coded by severity.                                                                                | `ReportPanel.tsx`, `styles.css`                           |
+| **T11** SR Live Region            | Visually-hidden `aria-live="polite"` region announcing event changes.                                                                                       | `Timeline.tsx`, `styles.css`                              |
+| **T12** Zoom-to-Fit Button        | Scene-dispatched event triggers `fitView()` in both TreeScene and CityScene.                                                                                | `TreeScene.tsx`, `CityScene.tsx`, `App.tsx`, `styles.css` |
+| **T13** Demo Session Fixture      | Synthetic 20-event trace with realistic reads/edits/error/verify, loads from empty-state.                                                                   | `demo.ts` (new), `App.tsx`, `styles.css`                  |
+| **T14** Date Grouping in Rail     | Collapsible Today/Yesterday/This Week/Older sections with session counts.                                                                                   | `SessionRail.tsx`, `styles.css`                           |
+| **T15** Virtualized Session List  | CSS `content-visibility: auto` with `contain-intrinsic-size` — no dependency added.                                                                         | `SessionRail.tsx`, `styles.css`                           |
+| **T17** Zoomable Timeline         | Wheel-zoom on strip, zoom in/out buttons, minimap with playhead and click-to-reset, zoomed bucket/mark/error recomputation, zoomed scrubber range.          | `Timeline.tsx`, `styles.css`                              |
+| **T18** Event List View           | Virtualized scrollable event list with filter chips (All/Search/Read/Edit/Verify/Exec/Errors), synced to playhead, click-to-jump. Registered as dock panel. | `EventList.tsx` (new), `App.tsx`, `styles.css`            |
+| **T19** WebGL Fallback            | `hasWebGL()` detection + SVG-based `Treemap2D` rendering the same touch-state coloring with click-to-select.                                                | `Treemap2D.tsx` (new), `App.tsx`, `styles.css`            |
 
 **Total: 18 of 27 tasks fully shipped.**
 
@@ -34,23 +34,23 @@
 
 ## b) PARTIALLY DONE
 
-| Task | Status | What remains |
-| --- | --- | --- |
+| Task                        | Status                                                                                                                                                     | What remains                                                                                                                                                                                                                                                                             |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **T21** Session Sort + Cost | ~40% done — `sortBy` state and localStorage persistence added, `sortSessions` function referenced but NOT yet implemented. Sort dropdown NOT yet rendered. | Need to implement `sortSessions()`, add the dropdown UI to `SessionRail.tsx`, add `SortKey` type and `SessionGroup` interface (interface was accidentally deleted). **The file currently references `sortSessions` and `SortKey` which do not exist — this will cause a build failure.** |
 
 ---
 
 ## c) NOT STARTED
 
-| Task | Description |
-| --- | --- |
-| **T20** Context Tooltips | The `data-hint` CSS tooltip system already exists throughout the HUD. The task calls for adding more tooltips and a first-use micro-hint. Not explicitly started but the infrastructure is already there. |
-| **T22** Scene Minimap | Small corner overlay showing full repo layout with viewport rectangle. |
-| **T23** Timeline Presets + Loop | Visible speed chips, loop toggle, range-select. |
-| **T24** Visit Sparkline | Mini timeline in inspector showing when selected file was visited. |
-| **T25** Edit Heatmap Toggle | Scene layer painting heat by edit count. |
-| **T26** Dimension Radar Chart | Compact radar showing four evaluation dimensions. |
-| **T27** Scene Search Highlighting | Type a path/glob, matching files brighten. |
+| Task                              | Description                                                                                                                                                                                               |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **T20** Context Tooltips          | The `data-hint` CSS tooltip system already exists throughout the HUD. The task calls for adding more tooltips and a first-use micro-hint. Not explicitly started but the infrastructure is already there. |
+| **T22** Scene Minimap             | Small corner overlay showing full repo layout with viewport rectangle.                                                                                                                                    |
+| **T23** Timeline Presets + Loop   | Visible speed chips, loop toggle, range-select.                                                                                                                                                           |
+| **T24** Visit Sparkline           | Mini timeline in inspector showing when selected file was visited.                                                                                                                                        |
+| **T25** Edit Heatmap Toggle       | Scene layer painting heat by edit count.                                                                                                                                                                  |
+| **T26** Dimension Radar Chart     | Compact radar showing four evaluation dimensions.                                                                                                                                                         |
+| **T27** Scene Search Highlighting | Type a path/glob, matching files brighten.                                                                                                                                                                |
 
 ---
 

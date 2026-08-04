@@ -20,5 +20,6 @@ func MindwalkHome() string {
 	if override := os.Getenv(mindwalkHomeEnv); override != "" {
 		return override
 	}
+
 	return HomePath(".mindwalk")
 }

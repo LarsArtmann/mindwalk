@@ -17,6 +17,7 @@ func TestParseCodexSession(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	dir := t.TempDir()
 	session := filepath.Join(dir, "rollout-2026-07-09T00-00-00-codex-demo.jsonl")
 	index := filepath.Join(dir, "session_index.jsonl")
@@ -84,13 +85,16 @@ func TestParseCodexSession(t *testing.T) {
 	)
 
 	adapter := Adapter{Dir: dir, IndexPath: index}
+
 	meta, err := adapter.Summarize(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if meta.ID != "codex-demo" || meta.Harness != "codex" || meta.Title != "Codex demo trace" {
 		t.Fatalf("meta = %#v", meta)
 	}
+
 	if meta.Model != "gpt-5.5" || meta.GitBranch != "main" || meta.EventCount != 3 {
 		t.Fatalf("meta = %#v", meta)
 	}
@@ -99,33 +103,42 @@ func TestParseCodexSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if trace.Session.ID != "codex-demo" || trace.Session.Harness != "codex" || trace.Session.Commit != "abc123" {
 		t.Fatalf("session = %#v", trace.Session)
 	}
+
 	if trace.Session.Title != "Codex demo trace" || trace.Session.Model != "gpt-5.5" {
 		t.Fatalf("session = %#v", trace.Session)
 	}
+
 	if len(trace.Marks) != 1 || trace.Marks[0].Type != "user-message" || trace.Marks[0].Note != "inspect" {
 		t.Fatalf("marks = %#v", trace.Marks)
 	}
+
 	if len(trace.Events) != 3 {
 		t.Fatalf("events = %d", len(trace.Events))
 	}
+
 	if got := trace.Events[0]; got.Tool != "exec_command" || got.Action != "read" || len(got.Targets) != 1 ||
 		got.Targets[0].Path != "README.md" ||
 		got.Targets[0].Touch != "read" {
 		t.Fatalf("read event = %#v", got)
 	}
+
 	if got := trace.Events[1]; got.Tool != "apply_patch" || got.Action != "edit" || got.Targets[0].Touch != "edit" {
 		t.Fatalf("edit event = %#v", got)
 	}
+
 	if got := trace.Events[2]; got.Action != "verify" || !got.IsError {
 		t.Fatalf("verify event = %#v", got)
 	}
+
 	if trace.Stats.Edited != 1 || trace.Stats.EventsBeforeFirstEdit != 1 ||
 		math.Abs(trace.Stats.ErrorRate-1.0/3.0) > 0.0001 {
 		t.Fatalf("stats = %#v", trace.Stats)
 	}
+
 	want := model.Observability{Reads: model.ObservabilityEstimated, Errors: model.ObservabilityEstimated}
 	if trace.Stats.Observability != want {
 		t.Fatalf("observability = %#v", trace.Stats.Observability)
@@ -154,9 +167,11 @@ func TestParseCodexContextCompactedBecomesCompactionMark(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(trace.Marks) != 1 || trace.Marks[0].Type != "compaction" || trace.Marks[0].Seq != 1 {
 		t.Fatalf("marks = %#v", trace.Marks)
 	}
+
 	if trace.Stats.Compactions != 1 {
 		t.Fatalf("compactions = %d", trace.Stats.Compactions)
 	}
@@ -184,10 +199,12 @@ func TestParseCodexSpawnAgentBecomesSubagentMark(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(trace.Marks) != 1 || trace.Marks[0].Type != "subagent" || trace.Marks[0].Seq != 1 ||
 		trace.Marks[0].Note != "spawn_agent" {
 		t.Fatalf("marks = %#v", trace.Marks)
 	}
+
 	if trace.Stats.Subagents != 1 {
 		t.Fatalf("subagents = %d", trace.Stats.Subagents)
 	}
@@ -197,9 +214,11 @@ func TestParseCodexCustomCallsCanonicalizesOrderAndPatchResults(t *testing.T) {
 	root := t.TempDir()
 	readme := filepath.Join(root, "README.md")
 	added := filepath.Join(root, "added.go")
+
 	if err := os.WriteFile(readme, []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	session := filepath.Join(t.TempDir(), "custom.jsonl")
 	failed := false
 	succeeded := true
@@ -253,10 +272,12 @@ func TestParseCodexCustomCallsCanonicalizesOrderAndPatchResults(t *testing.T) {
 	)
 
 	a := Adapter{}
+
 	meta, err := a.Summarize(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if meta.EventCount != 3 {
 		t.Fatalf("event count = %d, want 3", meta.EventCount)
 	}
@@ -265,6 +286,7 @@ func TestParseCodexCustomCallsCanonicalizesOrderAndPatchResults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if trace.Session.EventCount != meta.EventCount || len(trace.Events) != 3 {
 		t.Fatalf(
 			"meta events = %d, trace session events = %d, events = %d",
@@ -273,25 +295,31 @@ func TestParseCodexCustomCallsCanonicalizesOrderAndPatchResults(t *testing.T) {
 			len(trace.Events),
 		)
 	}
+
 	if len(trace.Marks) != 3 || trace.Marks[0].Seq != 0 || trace.Marks[1].Seq != 1 || trace.Marks[2].Seq != 3 {
 		t.Fatalf("marks = %#v", trace.Marks)
 	}
+
 	patchEvent := trace.Events[0]
 	if patchEvent.Tool != "apply_patch" || patchEvent.Action != "edit" || !patchEvent.IsError ||
 		patchEvent.ResultBytes != len("first patch output") {
 		t.Fatalf("patch event = %#v", patchEvent)
 	}
+
 	if len(patchEvent.Targets) != 2 || patchEvent.Targets[0].Path != "README.md" ||
 		patchEvent.Targets[1].Path != "added.go" {
 		t.Fatalf("patch targets = %#v", patchEvent.Targets)
 	}
+
 	imageEvent := trace.Events[1]
 	if imageEvent.Tool != "view_image" || imageEvent.IsError || imageEvent.ResultBytes != len("first image output") {
 		t.Fatalf("image event = %#v", imageEvent)
 	}
+
 	if len(imageEvent.Targets) != 1 || imageEvent.Targets[0].Path != "README.md" {
 		t.Fatalf("image targets = %#v", imageEvent.Targets)
 	}
+
 	lateEvent := trace.Events[2]
 	if lateEvent.Tool != "exec_command" || lateEvent.Action != "verify" || lateEvent.ResultBytes != 0 ||
 		lateEvent.IsError {
@@ -331,6 +359,7 @@ func TestPatchApplyEndSuccessOverridesTextualFailure(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(trace.Events) != 1 || trace.Events[0].IsError {
 		t.Fatalf("events = %#v", trace.Events)
 	}
@@ -341,6 +370,7 @@ func TestParseCodexCustomExec(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	session := filepath.Join(t.TempDir(), "custom-exec.jsonl")
 	script := `const r = await tools.exec_command({"cmd":"sed -n '1,20p' README.md","workdir":` + mustJSON(
 		t,
@@ -366,23 +396,28 @@ func TestParseCodexCustomExec(t *testing.T) {
 	)
 
 	a := Adapter{}
+
 	meta, err := a.Summarize(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	trace, err := a.Parse(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if meta.EventCount != 1 || len(trace.Events) != 1 {
 		t.Fatalf("meta=%d events=%d", meta.EventCount, len(trace.Events))
 	}
+
 	event := trace.Events[0]
 	if event.Tool != "exec" || event.Action != "read" || len(event.Targets) != 1 ||
 		event.Targets[0].Path != "README.md" ||
 		event.Targets[0].Touch != "read" {
 		t.Fatalf("event = %#v", event)
 	}
+
 	if want := "sed -n '1,20p' README.md -> 1 targets, 0 outside"; event.Summary != want {
 		t.Fatalf("summary = %q, want %q", event.Summary, want)
 	}
@@ -390,10 +425,12 @@ func TestParseCodexCustomExec(t *testing.T) {
 
 func TestCallIDFallsBackToResponseID(t *testing.T) {
 	root := t.TempDir()
+
 	path := filepath.Join(root, "README.md")
 	if err := os.WriteFile(path, []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	session := filepath.Join(t.TempDir(), "fallback-id.jsonl")
 	writeJSONL(t, session,
 		map[string]any{
@@ -409,14 +446,17 @@ func TestCallIDFallsBackToResponseID(t *testing.T) {
 	)
 
 	a := Adapter{}
+
 	meta, err := a.Summarize(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	trace, err := a.Parse(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if meta.EventCount != 1 || len(trace.Events) != 1 || trace.Events[0].ResultBytes != 2 {
 		t.Fatalf("meta=%#v events=%#v", meta, trace.Events)
 	}
@@ -424,13 +464,16 @@ func TestCallIDFallsBackToResponseID(t *testing.T) {
 
 func TestParseCodexJSRepl(t *testing.T) {
 	root := t.TempDir()
+
 	path := filepath.Join(root, "packages", "db", "src", "index.ts")
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.WriteFile(path, []byte("export const db = {}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	session := filepath.Join(t.TempDir(), "js-repl.jsonl")
 	writeJSONL(t, session,
 		map[string]any{
@@ -449,9 +492,11 @@ func TestParseCodexJSRepl(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(trace.Events) != 1 {
 		t.Fatalf("events = %#v", trace.Events)
 	}
+
 	event := trace.Events[0]
 	if event.Tool != "js_repl" || event.Action != "exec" || len(event.Targets) != 1 ||
 		event.Targets[0].Path != "packages/db/src/index.ts" {
@@ -509,6 +554,7 @@ func TestListSessionsSkipsNonCodexJSONL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(sessions) != 1 || sessions[0].ID != "codex-list" {
 		t.Fatalf("sessions = %#v", sessions)
 	}
@@ -520,6 +566,7 @@ func TestListSessionsSkipsCodexSubagents(t *testing.T) {
 	legacySession := filepath.Join(dir, "legacy.jsonl")
 	subagentSession := filepath.Join(dir, "subagent.jsonl")
 	transitionalSubagentSession := filepath.Join(dir, "transitional-subagent.jsonl")
+
 	writeJSONL(t, mainSession,
 		map[string]any{
 			"timestamp": "2026-07-10T00:00:00Z",
@@ -593,37 +640,46 @@ func TestListSessionsSkipsCodexSubagents(t *testing.T) {
 	})
 
 	adapter := Adapter{Dir: dir}
+
 	mainMeta, err := adapter.Summarize(mainSession)
 	if err != nil || mainMeta.Auxiliary {
 		t.Fatalf("main meta = %#v, err = %v", mainMeta, err)
 	}
+
 	subagentMeta, err := adapter.Summarize(subagentSession)
 	if err != nil || !subagentMeta.Auxiliary || subagentMeta.ID != "child-thread" || subagentMeta.EventCount != 1 {
 		t.Fatalf("subagent meta = %#v, err = %v", subagentMeta, err)
 	}
+
 	subagentTrace, err := adapter.Parse(subagentSession)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if subagentTrace.Session.ID != subagentMeta.ID || subagentTrace.Session.Title != subagentMeta.Title ||
 		subagentTrace.Session.EndedAt != subagentMeta.EndedAt || subagentTrace.Session.EventCount != subagentMeta.EventCount {
 		t.Fatalf("subagent summary/trace mismatch: meta=%#v trace=%#v", subagentMeta, subagentTrace.Session)
 	}
+
 	transitionalMeta, err := adapter.Summarize(transitionalSubagentSession)
 	if err != nil || !transitionalMeta.Auxiliary {
 		t.Fatalf("transitional subagent meta = %#v, err = %v", transitionalMeta, err)
 	}
+
 	sessions, err := adapter.ListSessions()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(sessions) != 2 {
 		t.Fatalf("sessions = %#v", sessions)
 	}
+
 	visible := map[string]string{}
 	for _, session := range sessions {
 		visible[session.ID] = session.Path
 	}
+
 	if visible["main-thread"] != mainSession || visible["legacy-main"] != legacySession {
 		t.Fatalf("visible sessions = %#v", visible)
 	}
@@ -655,9 +711,11 @@ func TestSummarizePopulatesSubagentMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if !meta.Auxiliary || meta.Agent == nil {
 		t.Fatalf("meta = %#v", meta)
 	}
+
 	want := model.AgentSessionMeta{
 		SourceID:        "child-thread",
 		RootSessionID:   "root-thread",
@@ -704,6 +762,7 @@ func TestSessionMetaPayloadDetectsSubagentFormats(t *testing.T) {
 
 func call(ts, id, callID, name string, args map[string]any) map[string]any {
 	b, _ := json.Marshal(args)
+
 	return callRaw(ts, id, callID, name, string(b))
 }
 
@@ -776,6 +835,7 @@ func patchApplyEnd(ts, callID string, success *bool, changes map[string]string) 
 	for path, changeType := range changes {
 		payloadChanges[path] = map[string]any{"type": changeType}
 	}
+
 	return map[string]any{
 		"timestamp": ts,
 		"type":      "event_msg",
@@ -790,23 +850,29 @@ func patchApplyEnd(ts, callID string, success *bool, changes map[string]string) 
 
 func mustJSON(t *testing.T, value any) string {
 	t.Helper()
+
 	encoded, err := json.Marshal(value)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return string(encoded)
 }
 
 func writeJSONL(t *testing.T, path string, values ...any) {
 	t.Helper()
+
 	var content strings.Builder
+
 	for _, value := range values {
 		b, err := json.Marshal(value)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		content.WriteString(string(b) + "\n")
 	}
+
 	if err := os.WriteFile(path, []byte(content.String()), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -817,6 +883,7 @@ func TestSummarizeMarksJudgeWorkdirAuxiliary(t *testing.T) {
 	if workdir == "" {
 		t.Skip("no home directory available")
 	}
+
 	dir := t.TempDir()
 	session := filepath.Join(dir, "rollout-2026-07-14T00-00-00-judge-run.jsonl")
 	writeJSONL(t, session,
@@ -831,18 +898,23 @@ func TestSummarizeMarksJudgeWorkdirAuxiliary(t *testing.T) {
 			},
 		},
 	)
+
 	adapter := Adapter{Dir: dir}
+
 	meta, err := adapter.Summarize(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if !meta.Auxiliary {
 		t.Fatalf("session recorded in judge workdir %s should be auxiliary", workdir)
 	}
+
 	metas, err := adapter.ListSessions()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	for _, m := range metas {
 		if m.ID == "judge-run" {
 			t.Fatal("judge session leaked into ListSessions")
@@ -879,11 +951,14 @@ func TestParseSkipsInjectedUserMessages(t *testing.T) {
 		userMessage("<environment_context>shell: zsh</environment_context>"),
 		userMessage("the real task"),
 	)
+
 	trace, err := (Adapter{Dir: dir}).Parse(session)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	var notes []string
+
 	for _, mark := range trace.Marks {
 		if mark.Type == "user-message" {
 			notes = append(notes, mark.Note)
@@ -894,6 +969,7 @@ func TestParseSkipsInjectedUserMessages(t *testing.T) {
 	if len(notes) != 1 || notes[0] != "the real task" {
 		t.Fatalf("user-message notes = %#v", notes)
 	}
+
 	if trace.Stats.UserTurns != 1 {
 		t.Fatalf("userTurns = %d, want 1", trace.Stats.UserTurns)
 	}
@@ -903,6 +979,7 @@ func TestParseSkipsInjectedUserMessages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if meta.UserTurns != 1 {
 		t.Fatalf("summarized userTurns = %d, want 1", meta.UserTurns)
 	}
@@ -913,15 +990,18 @@ func TestParseRejectsRolelessMessageLines(t *testing.T) {
 	// under "message" with no top-level role; those files are not Codex's.
 	dir := t.TempDir()
 	path := filepath.Join(dir, "session.jsonl")
+
 	lines := `{"type":"session","version":3,"id":"s1","timestamp":"2026-07-21T14:34:07.238Z","cwd":"/tmp"}
 {"type":"message","id":"e1","parentId":null,"timestamp":"2026-07-21T14:34:22.963Z","message":{"role":"user","content":"hi"}}
 `
 	if err := os.WriteFile(path, []byte(lines), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	if _, err := (Adapter{}).Parse(path); err == nil {
 		t.Fatal("Parse claimed a roleless message file")
 	}
+
 	if _, err := (Adapter{}).Summarize(path); err == nil {
 		t.Fatal("Summarize claimed a roleless message file")
 	}

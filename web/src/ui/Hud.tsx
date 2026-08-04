@@ -1,5 +1,10 @@
 import { memo, useEffect, useRef, useState } from "react";
-import type { ActionCounts, CityMap, MetricObservability, Trace } from "../types";
+import type {
+  ActionCounts,
+  CityMap,
+  MetricObservability,
+  Trace,
+} from "../types";
 
 export interface ChurnEntry {
   path: string;
@@ -47,9 +52,15 @@ export const Hud = memo(function Hud({
 }: HudProps) {
   const stats = trace?.stats;
   const readFinal = stats ? stats.fovea - stats.edited : 0;
-  const unvisitedNow = stats ? Math.max(0, stats.filesInRepo - editedNow - readNow - seenNow) : 0;
-  const unvisitedFinal = stats ? Math.max(0, stats.filesInRepo - stats.fovea - stats.parafovea) : 0;
-  const ghostCount = city ? city.files.reduce((n, file) => n + (file.ghost ? 1 : 0), 0) : 0;
+  const unvisitedNow = stats
+    ? Math.max(0, stats.filesInRepo - editedNow - readNow - seenNow)
+    : 0;
+  const unvisitedFinal = stats
+    ? Math.max(0, stats.filesInRepo - stats.fovea - stats.parafovea)
+    : 0;
+  const ghostCount = city
+    ? city.files.reduce((n, file) => n + (file.ghost ? 1 : 0), 0)
+    : 0;
   const errorCount = stats ? countActions(stats.errors) : 0;
   const showReview = stats
     ? errorCount > 0 || stats.churnFiles > 0 || stats.actions.edit > 0
@@ -58,7 +69,10 @@ export const Hud = memo(function Hud({
   const hasTargets = !!trace && trace.events.some((e) => e.targets.length > 0);
   const hasFileActions =
     !!trace &&
-    trace.events.some((e) => (e.action === "read" || e.action === "edit") && !e.providerExecuted);
+    trace.events.some(
+      (e) =>
+        (e.action === "read" || e.action === "edit") && !e.providerExecuted,
+    );
   const showNoTargetsWarning = hasEvents && !hasTargets;
   const noTargetsIsMisconfigured = showNoTargetsWarning && hasFileActions;
 
@@ -73,7 +87,10 @@ export const Hud = memo(function Hud({
     if (!churnOpen) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (churnPanelRef.current?.contains(target) || churnToggleRef.current?.contains(target))
+      if (
+        churnPanelRef.current?.contains(target) ||
+        churnToggleRef.current?.contains(target)
+      )
         return;
       setChurnOpen(false);
     };
@@ -150,7 +167,10 @@ export const Hud = memo(function Hud({
           <>
             {/* the spectrum doubles as scene legend and live tally: each entry is
                 a touch state, counted at the playhead → across the whole walk */}
-            <div className="spectrum" data-hint="Coverage spectrum: each color is a touch state. Counts update live at the playhead. Hover any entry for details.">
+            <div
+              className="spectrum"
+              data-hint="Coverage spectrum: each color is a touch state. Counts update live at the playhead. Hover any entry for details."
+            >
               <SpectrumStat
                 kind="edit"
                 label="edited"
@@ -246,12 +266,15 @@ export const Hud = memo(function Hud({
                 {stats.churnFiles > 0 ? (
                   <button
                     ref={churnToggleRef}
-                    className={churnOpen ? "warn churn-toggle open" : "warn churn-toggle"}
+                    className={
+                      churnOpen ? "warn churn-toggle open" : "warn churn-toggle"
+                    }
                     aria-expanded={churnOpen}
                     onClick={() => setChurnOpen((open) => !open)}
                     data-hint={`Files edited in three or more separate events — the most-edited file changed ${stats.maxEditsPerFile} times. Click to list them.`}
                   >
-                    {stats.churnFiles} file{stats.churnFiles === 1 ? "" : "s"} edited 3+ times
+                    {stats.churnFiles} file{stats.churnFiles === 1 ? "" : "s"}{" "}
+                    edited 3+ times
                   </button>
                 ) : null}
                 {stats.actions.edit > 0 ? (
@@ -268,7 +291,8 @@ export const Hud = memo(function Hud({
                       data-hint={`Edit events after the session's last build or test run — ${verifyRuns(stats.actions.verify)} total; pass/fail is not tracked`}
                     >
                       {stats.editsAfterLastVerify} edit
-                      {stats.editsAfterLastVerify === 1 ? "" : "s"} after last verify
+                      {stats.editsAfterLastVerify === 1 ? "" : "s"} after last
+                      verify
                     </span>
                   ) : (
                     <span
@@ -299,7 +323,9 @@ export const Hud = memo(function Hud({
                   </button>
                 ))}
                 {churn.length > CHURN_PANEL_ROWS ? (
-                  <p className="churn-more">…and {churn.length - CHURN_PANEL_ROWS} more</p>
+                  <p className="churn-more">
+                    …and {churn.length - CHURN_PANEL_ROWS} more
+                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -332,7 +358,14 @@ function CoverageGauge({
       data-hint={`Coverage: ${touched} of ${total} files touched (${pct.toFixed(0)}%)`}
     >
       <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
-        <circle cx="10" cy="10" r={R} fill="none" stroke="var(--hairline)" strokeWidth="2.5" />
+        <circle
+          cx="10"
+          cy="10"
+          r={R}
+          fill="none"
+          stroke="var(--hairline)"
+          strokeWidth="2.5"
+        />
         <circle
           cx="10"
           cy="10"
@@ -402,14 +435,23 @@ function errorCaveat(observability: MetricObservability): string {
     : "";
 }
 
-const ACTION_ORDER = ["search", "read", "edit", "exec", "verify", "other"] as const;
+const ACTION_ORDER = [
+  "search",
+  "read",
+  "edit",
+  "exec",
+  "verify",
+  "other",
+] as const;
 
 function countActions(counts: ActionCounts): number {
   return ACTION_ORDER.reduce((sum, key) => sum + counts[key], 0);
 }
 
 function mixHint(counts: ActionCounts): string {
-  const parts = ACTION_ORDER.filter((key) => counts[key] > 0).map((key) => `${counts[key]} ${key}`);
+  const parts = ACTION_ORDER.filter((key) => counts[key] > 0).map(
+    (key) => `${counts[key]} ${key}`,
+  );
   return parts.length ? parts.join(" · ") : "none";
 }
 

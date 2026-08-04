@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"strings"
 	"testing"
 	"testing/quick"
 	"unicode/utf8"
@@ -12,15 +13,19 @@ import (
 func TestNormalizePathIdempotentRelative(t *testing.T) {
 	cwd := "/home/user/repo"
 	base := "/home/user/repo"
+
 	property := func(path string) bool {
 		if path == "" {
 			return true
 		}
+
 		rel, outside, ok := normalizePath(cwd, base, path)
 		if !ok || outside != nil || rel == "" {
 			return true
 		}
+
 		rel2, _, ok2 := normalizePath(cwd, base, rel)
+
 		return ok2 && rel2 == rel
 	}
 	if err := quick.Check(property, &quick.Config{MaxCount: 500}); err != nil {
@@ -32,15 +37,18 @@ func TestNormalizePathIdempotentRelative(t *testing.T) {
 // are always rejected.
 func TestNormalizePathRejectsEmpty(t *testing.T) {
 	property := func(s string) bool {
-		trimmed := ""
+		var trimmed strings.Builder
+
 		for _, r := range s {
 			if r == ' ' || r == '\t' || r == '\n' || r == '\r' || r == '"' || r == '\'' {
-				trimmed += ""
+				trimmed.WriteString("")
 			} else {
 				break
 			}
 		}
-		_, _, ok := normalizePath("/cwd", "/cwd", trimmed)
+
+		_, _, ok := normalizePath("/cwd", "/cwd", trimmed.String())
+
 		return !ok
 	}
 	if err := quick.Check(property, &quick.Config{MaxCount: 100}); err != nil {
@@ -52,6 +60,7 @@ func TestNormalizePathRejectsEmpty(t *testing.T) {
 func TestNormalizePathRejectsHTTP(t *testing.T) {
 	for _, prefix := range []string{"http://", "https://"} {
 		path := prefix + "example.com/file.go"
+
 		_, _, ok := normalizePath("/cwd", "/cwd", path)
 		if ok {
 			t.Fatalf("normalizePath accepted %q", path)
@@ -66,10 +75,12 @@ func TestTruncateNoteNeverExceedsMaxRunes(t *testing.T) {
 		if maxRunes == 0 {
 			return true
 		}
+
 		got := truncateNoteShim(s, int(maxRunes))
 		if utf8.RuneCountInString(got) > int(maxRunes)+1 { // +1 for ellipsis
 			return false
 		}
+
 		return true
 	}
 	if err := quick.Check(property, nil); err != nil {
@@ -85,7 +96,9 @@ func TestTruncateNotePreservesShortStrings(t *testing.T) {
 		if runeCount > 200 {
 			return true
 		}
+
 		got := truncateNoteShim(s, 200)
+
 		return got == s
 	}
 	if err := quick.Check(property, nil); err != nil {
@@ -101,5 +114,6 @@ func truncateNoteShim(s string, maxRunes int) string {
 	if len(runes) <= maxRunes {
 		return s
 	}
+
 	return string(runes[:maxRunes]) + "\u2026"
 }

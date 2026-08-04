@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -27,6 +28,7 @@ func (a Adapter) SessionDir() string {
 	if a.Dir != "" {
 		return a.Dir
 	}
+
 	return DefaultDir()
 }
 
@@ -40,6 +42,7 @@ func sessionIDFromPath(path, headerID string) string {
 	if headerID != "" {
 		id = headerID
 	}
+
 	return id
 }
 
@@ -48,26 +51,33 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	if !adapter.ReadableDir(dir) {
 		return nil, nil
 	}
+
 	var metas []model.SessionMeta
+
 	err := filepath.WalkDir(dir, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return nil
 		}
+
 		if entry.IsDir() || filepath.Ext(path) != ".jsonl" {
 			return nil
 		}
+
 		meta, err := a.Summarize(path)
 		if err == nil {
 			metas = append(metas, meta)
 		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	sort.Slice(metas, func(i, j int) bool {
 		return metas[i].EndedAt > metas[j].EndedAt
 	})
+
 	return metas, nil
 }
 
@@ -76,6 +86,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	if err != nil && !recognized {
 		return model.SessionMeta{}, err
 	}
+
 	if !recognized {
 		return model.SessionMeta{}, adapter.NotRecognizedErr(a.Harness(), path)
 	}
@@ -95,13 +106,16 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	// compares the two, and a whole-file count would mark every branched
 	// session's fresh report stale.
 	firstUserText := ""
+
 	for _, entry := range linearize(entries) {
 		if entry.Timestamp != "" {
 			if meta.StartedAt == "" {
 				meta.StartedAt = entry.Timestamp
 			}
+
 			meta.EndedAt = entry.Timestamp
 		}
+
 		switch entry.Type {
 		case "model_change":
 			if entry.ModelID != "" {
@@ -112,11 +126,13 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			if json.Unmarshal(entry.Message, &msg) != nil {
 				continue
 			}
+
 			switch msg.Role {
 			case "assistant":
 				if msg.Model != "" && meta.Model == "" {
 					meta.Model = msg.Model
 				}
+
 				meta.EventCount += countToolCalls(msg.Content)
 			case "user":
 				// mirrors Parse's user-message mark filter so the badge's
@@ -124,6 +140,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 				text := contentText(msg.Content)
 				if !adapter.InjectedUserMessage(text) {
 					meta.UserTurns++
+
 					if firstUserText == "" {
 						firstUserText = text
 					}
@@ -133,7 +150,9 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			}
 		}
 	}
+
 	meta.Title = sessionTitle(entries, firstUserText, path)
+
 	return meta, err
 }
 
@@ -142,6 +161,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	if err != nil && !recognized {
 		return nil, err
 	}
+
 	if !recognized {
 		return nil, adapter.NotRecognizedErr(a.Harness(), path)
 	}
@@ -164,13 +184,16 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	pending := map[string]adapter.ToolCall{}
 	pendingOrder := []string{}
 	firstUserText := ""
+
 	for _, entry := range linearize(entries) {
 		if entry.Timestamp != "" {
 			if trace.Session.StartedAt == "" {
 				trace.Session.StartedAt = entry.Timestamp
 			}
+
 			trace.Session.EndedAt = entry.Timestamp
 		}
+
 		switch entry.Type {
 		case "model_change":
 			// A model_change records a deliberate user switch, so it wins
@@ -197,6 +220,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if json.Unmarshal(entry.Message, &msg) != nil {
 				continue
 			}
+
 			switch msg.Role {
 			case "user":
 				text := contentText(msg.Content)
@@ -214,10 +238,12 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				if msg.Model != "" && trace.Session.Model == "" {
 					trace.Session.Model = msg.Model
 				}
+
 				for _, block := range contentBlocks(msg.Content) {
 					if block.Type != "toolCall" || block.ID == "" {
 						continue
 					}
+
 					call := adapter.ToolCall{
 						ID:        block.ID,
 						Name:      block.Name,
@@ -227,6 +253,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 					if _, exists := pending[call.ID]; !exists {
 						pendingOrder = append(pendingOrder, call.ID)
 					}
+
 					pending[call.ID] = call
 				}
 			case "toolResult":
@@ -234,6 +261,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				if !ok {
 					continue
 				}
+
 				delete(pending, msg.ToolCallID)
 				trace.Events = append(trace.Events, adapter.BuildEvent(trace, call, adapter.ToolResult{
 					Content: contentText(msg.Content),
@@ -254,15 +282,18 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			}
 		}
 	}
+
 	for _, id := range pendingOrder {
 		if call, ok := pending[id]; ok {
 			trace.Events = append(trace.Events, adapter.BuildEvent(trace, call, adapter.ToolResult{}))
 		}
 	}
+
 	trace.Session.Title = sessionTitle(entries, firstUserText, path)
 	trace.Session.EventCount = len(trace.Events)
 	// pi tool results carry an isError flag set by the harness.
 	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilitySignals{Errors: model.ObservabilityExact})
+
 	return trace, err
 }
 
@@ -273,36 +304,45 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 func linearize(entries []rawEntry) []rawEntry {
 	leaf := -1
 	index := map[string]int{}
+
 	for i, entry := range entries {
 		if entry.ID != "" {
 			leaf = i
 			index[entry.ID] = i
 		}
 	}
+
 	if leaf < 0 {
 		return entries
 	}
+
 	var path []int
+
 	visited := map[int]bool{}
+
 	cur := leaf
 	for !visited[cur] {
-
 		visited[cur] = true
 		path = append(path, cur)
+
 		parent := entries[cur].ParentID
 		if parent == "" {
 			break
 		}
+
 		next, ok := index[parent]
 		if !ok {
 			break
 		}
+
 		cur = next
 	}
+
 	ordered := make([]rawEntry, 0, len(path))
-	for i := len(path) - 1; i >= 0; i-- {
-		ordered = append(ordered, entries[path[i]])
+	for _, v := range slices.Backward(path) {
+		ordered = append(ordered, entries[v])
 	}
+
 	return ordered
 }
 
@@ -352,6 +392,7 @@ func isPiHeader(data []byte) bool {
 	if json.Unmarshal(data, &probe) != nil {
 		return false
 	}
+
 	return probe.Type == "session" && len(probe.ID) > 0 && probe.ID[0] == '"'
 }
 
@@ -377,20 +418,26 @@ func readSession(path string) (header rawEntry, entries []rawEntry, recognized b
 			// Valid JSON in a shape rawEntry cannot hold still counts as
 			// the first parsed entry for pi — and it is not a header.
 			sawEntry = true
+
 			return
 		}
+
 		if !sawEntry {
 			sawEntry = true
+
 			if isPiHeader(data) {
 				header = entry
 				recognized = true
 			}
+
 			return
 		}
+
 		if recognized && entry.Type != "" {
 			entries = append(entries, entry)
 		}
 	})
+
 	return header, entries, recognized, err
 }
 
@@ -399,18 +446,22 @@ func readSession(path string) (header rawEntry, entries []rawEntry, recognized b
 // Without one, the trunk's first user message names the session, then the
 // file name.
 func sessionTitle(entries []rawEntry, firstUserText, path string) string {
-	for i := len(entries) - 1; i >= 0; i-- {
-		if entries[i].Type != "session_info" {
+	for _, v := range slices.Backward(entries) {
+		if v.Type != "session_info" {
 			continue
 		}
-		if entries[i].Name != "" {
-			return entries[i].Name
+
+		if v.Name != "" {
+			return v.Name
 		}
+
 		break
 	}
+
 	if firstUserText != "" {
 		return adapter.AgentInstructionPreview(firstUserText)
 	}
+
 	return filepath.Base(path)
 }
 
@@ -418,24 +469,29 @@ func contentBlocks(raw json.RawMessage) []contentBlock {
 	if len(raw) == 0 {
 		return nil
 	}
+
 	var blocks []contentBlock
 	if json.Unmarshal(raw, &blocks) == nil {
 		return blocks
 	}
+
 	var s string
 	if json.Unmarshal(raw, &s) == nil && s != "" {
 		return []contentBlock{{Type: "text", Text: s}}
 	}
+
 	return nil
 }
 
 func contentText(raw json.RawMessage) string {
 	var parts []string
+
 	for _, block := range contentBlocks(raw) {
 		if block.Type == "text" && strings.TrimSpace(block.Text) != "" {
 			parts = append(parts, strings.TrimSpace(block.Text))
 		}
 	}
+
 	return strings.Join(parts, "\n")
 }
 
@@ -443,10 +499,12 @@ func contentText(raw json.RawMessage) string {
 // blocks without an id are skipped there too.
 func countToolCalls(raw json.RawMessage) int {
 	count := 0
+
 	for _, block := range contentBlocks(raw) {
 		if block.Type == "toolCall" && block.ID != "" {
 			count++
 		}
 	}
+
 	return count
 }

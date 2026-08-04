@@ -34,29 +34,37 @@ type projectDB struct {
 // the single resolved database).
 func loadProjectDBs() []projectDB {
 	registry := filepath.Join(DefaultDir(), "projects.json")
+
 	data, err := os.ReadFile(registry)
 	if err != nil {
 		return nil
 	}
+
 	var file crushProjectsFile
 	if err := json.Unmarshal(data, &file); err != nil {
 		return nil
 	}
+
 	var dbs []projectDB
+
 	seen := map[string]bool{}
+
 	for _, p := range file.Projects {
 		if p.DataDir == "" {
 			continue
 		}
+
 		dbPath := filepath.Join(p.DataDir, dbName)
 		if seen[dbPath] {
 			continue
 		}
+
 		if info, err := os.Stat(dbPath); err == nil && !info.IsDir() && info.Size() > 0 {
 			seen[dbPath] = true
 			dbs = append(dbs, projectDB{DBPath: dbPath, ProjectPath: p.Path})
 		}
 	}
+
 	return dbs
 }
 
@@ -85,14 +93,17 @@ func (a Adapter) projectPathForDB(dbPath string) string {
 	if dbPath == "" {
 		return ""
 	}
+
 	if a.projects != nil {
 		a.projects.once.Do(a.projects.init)
+
 		if v, ok := a.projects.cache.Load(dbPath); ok {
 			if s, ok := v.(string); ok && s != "" {
 				return s
 			}
 		}
 	}
+
 	return inferProjectPath(dbPath)
 }
 
@@ -104,9 +115,11 @@ func inferProjectPath(dbPath string) string {
 	if filepath.Base(dataDir) != dataDirName {
 		return ""
 	}
+
 	projectDir := filepath.Dir(dataDir)
 	if globalDir := DefaultDir(); globalDir != "" && projectDir == globalDir {
 		return ""
 	}
+
 	return projectDir
 }

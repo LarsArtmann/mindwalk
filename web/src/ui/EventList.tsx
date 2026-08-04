@@ -52,7 +52,9 @@ export const EventList = memo(function EventList({
 
   // scroll current event into view when it changes via external navigation
   useEffect(() => {
-    const el = scrollRef.current?.querySelector('[data-current="true"]') as HTMLElement | null;
+    const el = scrollRef.current?.querySelector(
+      '[data-current="true"]',
+    ) as HTMLElement | null;
     el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [currentSeq]);
 
@@ -62,7 +64,11 @@ export const EventList = memo(function EventList({
         {FILTERS.map((f) => (
           <button
             key={f.value}
-            className={filter === f.value ? "event-filter-chip active" : "event-filter-chip"}
+            className={
+              filter === f.value
+                ? "event-filter-chip active"
+                : "event-filter-chip"
+            }
             onClick={() => setFilter(f.value)}
           >
             {f.label}
@@ -81,7 +87,9 @@ export const EventList = memo(function EventList({
               return (
                 <button
                   key={event.seq}
-                  className={isCurrent ? "event-list-row current" : "event-list-row"}
+                  className={
+                    isCurrent ? "event-list-row current" : "event-list-row"
+                  }
                   data-current={isCurrent || undefined}
                   style={{ height: ROW_HEIGHT }}
                   onClick={() => onChange(event.seq)}
@@ -91,7 +99,9 @@ export const EventList = memo(function EventList({
                   <span className="event-list-seq">{event.seq + 1}</span>
                   <span className={`action-dot ${event.action}`} />
                   <span className="event-list-tool">{event.tool}</span>
-                  {event.isError ? <AlertTriangle size={12} className="event-list-err" /> : null}
+                  {event.isError ? (
+                    <AlertTriangle size={12} className="event-list-err" />
+                  ) : null}
                   <span className="event-list-summary">{event.summary}</span>
                 </button>
               );

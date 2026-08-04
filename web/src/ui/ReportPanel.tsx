@@ -81,7 +81,9 @@ function loadStoredChoice(): JudgeChoice {
 function resolveChoice(choice: JudgeChoice, clis: string[]): JudgeChoice {
   const cli = clis.includes(choice.cli) ? choice.cli : (clis[0] ?? "");
   const models = JUDGE_MODELS[cli] ?? [];
-  const model = models.some((m) => m.value === choice.model) ? choice.model : "";
+  const model = models.some((m) => m.value === choice.model)
+    ? choice.model
+    : "";
   return { cli, model };
 }
 
@@ -98,7 +100,8 @@ export function ReportPanel({
 }: ReportPanelProps) {
   // the judge choice persists across sessions and reloads; the picker shows
   // wherever a run can start (empty, failed, stale)
-  const [storedChoice, setStoredChoice] = useState<JudgeChoice>(loadStoredChoice);
+  const [storedChoice, setStoredChoice] =
+    useState<JudgeChoice>(loadStoredChoice);
   const clis = status?.judgeClis ?? (status?.judgeCli ? [status.judgeCli] : []);
   const choice = resolveChoice(storedChoice, clis);
   const changeChoice = useCallback((next: JudgeChoice) => {
@@ -119,12 +122,19 @@ export function ReportPanel({
           {status?.report ? (
             <div className="report-meta">
               judged by {status.report.judge.cli}
-              {status.report.judge.model ? ` · ${status.report.judge.model}` : ""} ·{" "}
-              {day(status.report.judge.generatedAt)}
+              {status.report.judge.model
+                ? ` · ${status.report.judge.model}`
+                : ""}{" "}
+              · {day(status.report.judge.generatedAt)}
             </div>
           ) : null}
         </div>
-        <button className="icon-btn" onClick={onClose} title="Close" aria-label="Close evaluation">
+        <button
+          className="icon-btn"
+          onClick={onClose}
+          title="Close"
+          aria-label="Close evaluation"
+        >
           <X size={15} />
         </button>
       </div>
@@ -154,7 +164,9 @@ function JudgePicker({
   choice: JudgeChoice;
   onChange: (choice: JudgeChoice) => void;
 }) {
-  const models = JUDGE_MODELS[choice.cli] ?? [{ value: "", label: "default model" }];
+  const models = JUDGE_MODELS[choice.cli] ?? [
+    { value: "", label: "default model" },
+  ];
   return (
     <div className="report-picker">
       <select
@@ -222,9 +234,9 @@ function RunningPanel({ progress }: { progress: JudgeProgress[] }) {
         </ul>
       )}
       <p className="report-progress-hint">
-        The judge first drafts task-specific criteria from your request, then scores the session
-        against them plus four process dimensions. Usually a minute or two; you can keep exploring
-        meanwhile.
+        The judge first drafts task-specific criteria from your request, then
+        scores the session against them plus four process dimensions. Usually a
+        minute or two; you can keep exploring meanwhile.
       </p>
     </div>
   );
@@ -272,17 +284,18 @@ function PanelBody({
     if (!status.judgeAvailable) {
       return (
         <p className="report-note">
-          Evaluation needs a local agent CLI as judge. Install <code>claude</code>,{" "}
-          <code>codex</code>, or <code>crush</code> and make it available on PATH.
+          Evaluation needs a local agent CLI as judge. Install{" "}
+          <code>claude</code>, <code>codex</code>, or <code>crush</code> and
+          make it available on PATH.
         </p>
       );
     }
     return (
       <div className="report-note">
         <p>
-          Ask an agent to evaluate this session: how it explored, whether the footprint matched the
-          task, where it wandered, and how it verified its work. Every finding links back to the
-          timeline.
+          Ask an agent to evaluate this session: how it explored, whether the
+          footprint matched the task, where it wandered, and how it verified its
+          work. Every finding links back to the timeline.
         </p>
         {picker}
         <button className="report-run" onClick={analyze}>
@@ -290,8 +303,9 @@ function PanelBody({
           Evaluate session
         </button>
         <p className="report-cost">
-          Runs the selected CLI under your own account and sends it a summary of this session — task
-          wording, file paths, event digests — for the model to read. About a minute.
+          Runs the selected CLI under your own account and sends it a summary of
+          this session — task wording, file paths, event digests — for the model
+          to read. About a minute.
         </p>
       </div>
     );
@@ -303,7 +317,8 @@ function PanelBody({
       <div className="report-controls">
         {status.stale ? (
           <p className="report-stale-note">
-            Based on {report.session.eventCount} events — the session has grown since.
+            Based on {report.session.eventCount} events — the session has grown
+            since.
           </p>
         ) : null}
         <div className="report-stale-actions">
@@ -328,10 +343,19 @@ function PanelBody({
           the report reads summary-first, details after */}
       <p className="report-task">{report.taskSummary}</p>
       <p className="report-narrative">{report.narrative}</p>
-      <RubricSection rubric={report.rubric} locked={locked} onJumpTo={onJumpTo} />
+      <RubricSection
+        rubric={report.rubric}
+        locked={locked}
+        onJumpTo={onJumpTo}
+      />
       <p className="report-chapter">Process</p>
       {report.dimensions.map((dimension) => (
-        <Dimension key={dimension.name} dimension={dimension} locked={locked} onJumpTo={onJumpTo} />
+        <Dimension
+          key={dimension.name}
+          dimension={dimension}
+          locked={locked}
+          onJumpTo={onJumpTo}
+        />
       ))}
       {report.notableMoments?.length ? (
         <section className="report-section">
@@ -368,7 +392,9 @@ function RubricSection({
 }) {
   if (!rubric) {
     return (
-      <p className="report-rubric-note">This report has no task rubric — re-evaluate to add one.</p>
+      <p className="report-rubric-note">
+        This report has no task rubric — re-evaluate to add one.
+      </p>
     );
   }
   if (rubric.status !== "scored" || !rubric.tasks?.length) {
@@ -392,8 +418,8 @@ function RubricSection({
       <p className="report-chapter">Tasks</p>
       {showHint ? (
         <p className="report-rubric-hint">
-          {thin.length} of {criteria.length} criteria had thin evidence — the log may not show
-          enough to judge them.
+          {thin.length} of {criteria.length} criteria had thin evidence — the
+          log may not show enough to judge them.
         </p>
       ) : null}
       {tasks.map((task, i) => (
@@ -441,19 +467,28 @@ function RubricTaskBlock({
           }}
           disabled={locked || startSeq === undefined}
           title={
-            startSeq !== undefined ? `Jump to this task's start (step ${startSeq + 1})` : undefined
+            startSeq !== undefined
+              ? `Jump to this task's start (step ${startSeq + 1})`
+              : undefined
           }
         >
           {/* no state dot here: each criterion below carries its own verdict
               chip, and severity dots stay the panel's only dot vocabulary */}
           <span className="rubric-task-title">
             {task.title}
-            {task.type ? <span className="rubric-task-type">{task.type}</span> : null}
+            {task.type ? (
+              <span className="rubric-task-type">{task.type}</span>
+            ) : null}
           </span>
         </button>
       ) : null}
       {task.criteria.map((criterion) => (
-        <Criterion key={criterion.id} criterion={criterion} locked={locked} onJumpTo={onJumpTo} />
+        <Criterion
+          key={criterion.id}
+          criterion={criterion}
+          locked={locked}
+          onJumpTo={onJumpTo}
+        />
       ))}
     </section>
   );
@@ -663,7 +698,13 @@ function RadarChart({ dimensions }: { dimensions: ReportDimension[] }) {
   const color = overallVerdictColor(dimensions);
   return (
     <div className="radar-chart">
-      <svg width={S} height={S} viewBox={`0 0 ${S} ${S}`} role="img" aria-label="Dimension radar chart">
+      <svg
+        width={S}
+        height={S}
+        viewBox={`0 0 ${S} ${S}`}
+        role="img"
+        aria-label="Dimension radar chart"
+      >
         {[0.25, 0.5, 0.75, 1].map((ring) => {
           const pts = axes.map((_, i) => pointAt(ring, i).join(",")).join(" ");
           return (
@@ -692,10 +733,19 @@ function RadarChart({ dimensions }: { dimensions: ReportDimension[] }) {
             />
           );
         })}
-        <polygon points={polygon} fill={color} fillOpacity={0.2} stroke={color} strokeWidth="1.5" />
+        <polygon
+          points={polygon}
+          fill={color}
+          fillOpacity={0.2}
+          stroke={color}
+          strokeWidth="1.5"
+        />
         {axes.map((dim, i) => {
           const [x, y] = pointAt(1.18, i);
-          const words = DIMENSION_WORDS[dim.name] ?? { title: dim.name, hint: "" };
+          const words = DIMENSION_WORDS[dim.name] ?? {
+            title: dim.name,
+            hint: "",
+          };
           return (
             <text
               key={dim.name}

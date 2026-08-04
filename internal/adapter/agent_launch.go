@@ -61,6 +61,7 @@ func UnlinkedLaunchStatus(launch AgentLaunch) string {
 	if launch.OutputObserved && trimmed != "" && !json.Valid([]byte(trimmed)) {
 		return model.AgentStatusFailed
 	}
+
 	return model.AgentStatusUnknown
 }
 
@@ -87,5 +88,6 @@ func ApplyLaunchNickname(node *model.AgentNode, output AgentLaunchOutput) {
 	if node.Label == "" {
 		node.Label = output.Nickname
 	}
+
 	ApplySubagentLabel(node)
 }

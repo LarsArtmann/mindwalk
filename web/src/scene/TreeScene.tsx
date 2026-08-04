@@ -32,11 +32,12 @@ interface TreeSceneProps {
 // One variable, one channel: leaf color says WHAT happened (touch state),
 // halo radius says HOW MUCH (visits), branch brightness says WHERE the
 // light is, and the selection is a shape (ring + beam), never a recolor.
-const colors: Record<Touch | "unvisited" | "ghost" | "selected", THREE.Color> = {
-  unvisited: new THREE.Color("#5a6375"),
-  ghost: new THREE.Color("#4d5464"),
-  ...touchColors,
-};
+const colors: Record<Touch | "unvisited" | "ghost" | "selected", THREE.Color> =
+  {
+    unvisited: new THREE.Color("#5a6375"),
+    ghost: new THREE.Color("#4d5464"),
+    ...touchColors,
+  };
 const EDGE_BASE = new THREE.Color("#3c424f");
 // branches leading to visited leaves brighten, but stay neutral: the branch
 // guides the eye, the leaf carries the classification
@@ -72,12 +73,14 @@ export function TreeScene({
   const leafMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const ghostMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const ghostIndexRef = useRef<Map<number, number>>(new Map());
-  const selectionRef = useRef<{ ring: THREE.Mesh; beam: THREE.Mesh } | null>(null);
+  const selectionRef = useRef<{ ring: THREE.Mesh; beam: THREE.Mesh } | null>(
+    null,
+  );
   const haloMeshRef = useRef<THREE.InstancedMesh | null>(null);
   const edgesRef = useRef<THREE.LineSegments | null>(null);
-  const edgeMetaRef = useRef<{ childPath?: string; childFileId?: number; vertexCount: number }[]>(
-    [],
-  );
+  const edgeMetaRef = useRef<
+    { childPath?: string; childFileId?: number; vertexCount: number }[]
+  >([]);
   const filesRef = useRef<CityFile[]>([]);
   const layoutRef = useRef<TreeLayout | null>(null);
   const slotsRef = useRef<HaloSlot[]>([]);
@@ -108,7 +111,8 @@ export function TreeScene({
   }, []);
 
   const layout = useMemo(
-    () => (city && city.files.length > 0 ? computeTreeLayout(city.files) : null),
+    () =>
+      city && city.files.length > 0 ? computeTreeLayout(city.files) : null,
     [city],
   );
 
@@ -163,7 +167,8 @@ export function TreeScene({
     const projected = new THREE.Vector3();
     const pickFile = (event: PointerEvent): CityFile | undefined => {
       const treeLayout = layoutRef.current;
-      if (!treeLayout || !cameraRef.current || !rendererRef.current) return undefined;
+      if (!treeLayout || !cameraRef.current || !rendererRef.current)
+        return undefined;
       const rect = rendererRef.current.domElement.getBoundingClientRect();
       const px = event.clientX - rect.left;
       const py = event.clientY - rect.top;
@@ -191,7 +196,10 @@ export function TreeScene({
     };
     const onPointerUp = (event: PointerEvent) => {
       if (!downAt) return;
-      const moved = Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y);
+      const moved = Math.hypot(
+        event.clientX - downAt.x,
+        event.clientY - downAt.y,
+      );
       downAt = null;
       if (moved > 5) return;
       onSelect(pickFile(event)?.path);
@@ -218,7 +226,12 @@ export function TreeScene({
         const meta = touch
           ? `${touchWord(touch)} · ${visits} visit${visits === 1 ? "" : "s"}`
           : touchWord(undefined);
-        tip.show(file.path, file.ghost ? `${meta} · ghost` : meta, event.clientX, event.clientY);
+        tip.show(
+          file.path,
+          file.ghost ? `${meta} · ghost` : meta,
+          event.clientX,
+          event.clientY,
+        );
       });
     };
     const onPointerLeave = () => {
@@ -245,7 +258,9 @@ export function TreeScene({
 
     const clock = new THREE.Clock();
     const matrix = new THREE.Matrix4();
-    const quaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
+    const quaternion = new THREE.Quaternion().setFromEuler(
+      new THREE.Euler(-Math.PI / 2, 0, 0),
+    );
     const render = () => {
       controls.update();
       labelSetRef.current?.updateTargets(
@@ -280,7 +295,11 @@ export function TreeScene({
           matrix.compose(
             new THREE.Vector3(pos.x, 0.06, pos.z),
             quaternion,
-            new THREE.Vector3(Math.max(cur, 0.01) * 2, Math.max(cur, 0.01) * 2, 1),
+            new THREE.Vector3(
+              Math.max(cur, 0.01) * 2,
+              Math.max(cur, 0.01) * 2,
+              1,
+            ),
           );
           halos.setMatrixAt(i, matrix);
         }
@@ -297,7 +316,11 @@ export function TreeScene({
       renderer.render(scene, camera);
       window.dispatchEvent(
         new CustomEvent("mindwalk:camera-state", {
-          detail: { tx: controls.target.x, tz: controls.target.z, dist: camera.position.distanceTo(controls.target) },
+          detail: {
+            tx: controls.target.x,
+            tz: controls.target.z,
+            dist: camera.position.distanceTo(controls.target),
+          },
         }),
       );
       frameRef.current = requestAnimationFrame(render);
@@ -371,7 +394,10 @@ export function TreeScene({
       });
     }
     const edgeGeo = new THREE.BufferGeometry();
-    edgeGeo.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+    edgeGeo.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(positions, 3),
+    );
     const edgeColors = new Float32Array(positions.length);
     edgeGeo.setAttribute("color", new THREE.BufferAttribute(edgeColors, 3));
     const edges = new THREE.LineSegments(
@@ -414,7 +440,10 @@ export function TreeScene({
         leaves.setMatrixAt(file.id, hidden);
         continue;
       }
-      const scale = Math.min(0.24 + Math.sqrt(Math.max(file.lines, 1)) * 0.045, 1.05);
+      const scale = Math.min(
+        0.24 + Math.sqrt(Math.max(file.lines, 1)) * 0.045,
+        1.05,
+      );
       matrix.compose(
         new THREE.Vector3(pos.x, LEAF_Y, pos.z),
         new THREE.Quaternion(),
@@ -452,7 +481,9 @@ export function TreeScene({
           ghosts.setMatrixAt(i, hidden);
           continue;
         }
-        const scale = Math.min(0.24 + Math.sqrt(Math.max(file.lines, 1)) * 0.045, 1.05) * 0.8;
+        const scale =
+          Math.min(0.24 + Math.sqrt(Math.max(file.lines, 1)) * 0.045, 1.05) *
+          0.8;
         matrix.compose(
           new THREE.Vector3(pos.x, LEAF_Y, pos.z),
           new THREE.Quaternion(),
@@ -523,7 +554,10 @@ export function TreeScene({
       toneMapped: false,
       fog: false,
     });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.5, 48), selectionMat);
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(1.2, 1.5, 48),
+      selectionMat,
+    );
     ring.rotation.x = -Math.PI / 2;
     ring.visible = false;
     ring.raycast = () => undefined;
@@ -653,7 +687,9 @@ export function TreeScene({
     slotsRef.current = slots;
 
     // brighten branches that lead to light
-    const colorAttr = edges.geometry.getAttribute("color") as THREE.BufferAttribute;
+    const colorAttr = edges.geometry.getAttribute(
+      "color",
+    ) as THREE.BufferAttribute;
     let vertex = 0;
     for (const meta of edgeMetaRef.current) {
       let lit = false;
@@ -674,7 +710,9 @@ export function TreeScene({
   useEffect(() => {
     const selection = selectionRef.current;
     if (!selection || !city || !layout) return;
-    const file = selectedPath ? city.files.find((f) => f.path === selectedPath) : undefined;
+    const file = selectedPath
+      ? city.files.find((f) => f.path === selectedPath)
+      : undefined;
     const pos = file ? layout.leaf.get(file.id) : undefined;
     if (pos) {
       selection.ring.position.set(pos.x, 0.1, pos.z);
@@ -710,8 +748,12 @@ export function TreeScene({
     // playback resolves fileId with the same path key the citymap uses, so a
     // target still missing one has no leaf to land on
     const targetFiles = playback.recentTargets
-      .map((target) => (target.fileId !== undefined ? city.files[target.fileId] : undefined))
-      .filter((file): file is CityFile => Boolean(file && layout.leaf.get(file.id)));
+      .map((target) =>
+        target.fileId !== undefined ? city.files[target.fileId] : undefined,
+      )
+      .filter((file): file is CityFile =>
+        Boolean(file && layout.leaf.get(file.id)),
+      );
 
     const firefly = fireflyRef.current;
     if (firefly) {

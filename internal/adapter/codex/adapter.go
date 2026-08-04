@@ -38,6 +38,7 @@ func (a Adapter) SessionDir() string {
 	if a.Dir != "" {
 		return a.Dir
 	}
+
 	return DefaultDir()
 }
 
@@ -46,29 +47,37 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	if !adapter.ReadableDir(dir) {
 		return nil, nil
 	}
+
 	var metas []model.SessionMeta
+
 	err := filepath.WalkDir(dir, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return nil
 		}
+
 		if entry.IsDir() {
 			return nil
 		}
+
 		if filepath.Ext(path) != ".jsonl" {
 			return nil
 		}
+
 		meta, err := a.Summarize(path)
 		if err == nil && !meta.Auxiliary {
 			metas = append(metas, meta)
 		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	sort.Slice(metas, func(i, j int) bool {
 		return metas[i].EndedAt > metas[j].EndedAt
 	})
+
 	return metas, nil
 }
 
@@ -89,15 +98,19 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		if json.Unmarshal(data, &line) != nil {
 			return
 		}
+
 		if line.Timestamp != "" {
 			if meta.StartedAt == "" {
 				meta.StartedAt = line.Timestamp
 			}
+
 			meta.EndedAt = line.Timestamp
 		}
+
 		switch line.Type {
 		case "session_meta":
 			recognized = true
+
 			var payload sessionMetaPayload
 			if json.Unmarshal(line.Payload, &payload) == nil {
 				firstSessionMeta := !sawSessionMeta
@@ -105,21 +118,25 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 					sawSessionMeta = true
 					meta.Auxiliary = payload.isSubagent()
 				}
+
 				applySessionMeta(&meta, payload, firstSessionMeta)
 			}
 		case "turn_context":
 			recognized = true
+
 			var payload turnContextPayload
 			if json.Unmarshal(line.Payload, &payload) == nil {
 				if payload.Cwd != "" && meta.Cwd == "" {
 					meta.Cwd = payload.Cwd
 				}
+
 				if payload.Model != "" && meta.Model == "" {
 					meta.Model = payload.Model
 				}
 			}
 		case "response_item":
 			recognized = true
+
 			var payload responseItemHeader
 			if json.Unmarshal(line.Payload, &payload) == nil {
 				if callID, ok := canonicalCallID(payload.Type, payload.ID, payload.CallID, payload.Name); ok &&
@@ -147,7 +164,9 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			if line.Role == "" {
 				return
 			}
+
 			recognized = true
+
 			if line.Role == "user" && line.Content.HasText() {
 				if !adapter.InjectedUserMessage(line.Content.Text()) {
 					meta.UserTurns++
@@ -160,19 +179,24 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			}
 		}
 	})
+
 	if judge.IsWorkDir(meta.Cwd) {
 		// Sessions recorded in the judge workdir are mindwalk's own judge
 		// runs (codex cannot disable session persistence), not user coding
 		// sessions; auxiliary keeps them out of every listing.
 		meta.Auxiliary = true
 	}
+
 	if meta.Title == "" {
 		meta.Title = a.titleFor(meta.ID)
 	}
+
 	adapter.FallbackSessionTitle(&meta, path)
+
 	if !recognized {
 		return model.SessionMeta{}, adapter.NotRecognizedErr(a.Harness(), path)
 	}
+
 	return meta, err
 }
 
@@ -207,58 +231,74 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		if json.Unmarshal(data, &line) != nil {
 			return
 		}
+
 		applyLineTime(trace, line.Timestamp)
+
 		switch line.Type {
 		case "session_meta":
 			recognized = true
+
 			var payload sessionMetaPayload
 			if json.Unmarshal(line.Payload, &payload) == nil {
 				firstSessionMeta := !sawSessionMeta
 				sawSessionMeta = true
+
 				applyTraceSessionMeta(trace, payload, firstSessionMeta)
 			}
 		case "turn_context":
 			recognized = true
+
 			var payload turnContextPayload
 			if json.Unmarshal(line.Payload, &payload) == nil {
 				if payload.Cwd != "" && trace.Session.Cwd == "" {
 					trace.Session.Cwd = payload.Cwd
 				}
+
 				if payload.Model != "" && trace.Session.Model == "" {
 					trace.Session.Model = payload.Model
 				}
 			}
 		case "response_item":
 			recognized = true
+
 			var payload responseItemPayload
 			if json.Unmarshal(line.Payload, &payload) != nil {
 				return
 			}
+
 			if call, source, ok := decodeCall(payload, line.Timestamp); ok {
 				if _, exists := calls[call.ID]; exists {
 					return
 				}
+
 				if call.Name == "spawn_agent" {
 					trace.Marks = append(
 						trace.Marks,
 						model.Mark{Seq: len(callOrder), Type: "subagent", Note: call.Name},
 					)
 				}
+
 				calls[call.ID] = call
 				callOrder = append(callOrder, call.ID)
 				directPatches[call.ID] = source == "custom_tool_call" && call.Name == "apply_patch"
+
 				return
 			}
+
 			if callID, result, ok := decodeOutput(payload); ok {
 				if _, exists := calls[callID]; !exists {
 					return
 				}
+
 				if _, exists := results[callID]; exists {
 					return
 				}
+
 				results[callID] = result
+
 				return
 			}
+
 			if payload.Type == "message" {
 				if payload.Role == "user" && payload.Content.HasText() {
 					if text := payload.Content.Text(); !adapter.InjectedUserMessage(text) {
@@ -276,7 +316,9 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if line.Role == "" {
 				return
 			}
+
 			recognized = true
+
 			if line.Role == "user" && line.Content.HasText() {
 				if text := line.Content.Text(); !adapter.InjectedUserMessage(text) {
 					trace.Marks = append(trace.Marks, model.Mark{
@@ -288,20 +330,26 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			}
 		case "event_msg":
 			recognized = true
+
 			var payload patchApplyEndPayload
 			if json.Unmarshal(line.Payload, &payload) != nil {
 				return
 			}
+
 			if payload.Type == "context_compacted" {
 				trace.Marks = append(trace.Marks, model.Mark{Seq: len(callOrder), Type: "compaction"})
+
 				return
 			}
+
 			if payload.Type != "patch_apply_end" || payload.CallID == "" {
 				return
 			}
+
 			if !directPatches[payload.CallID] {
 				return
 			}
+
 			if _, exists := patchResults[payload.CallID]; !exists {
 				patchResults[payload.CallID] = payload
 			}
@@ -312,8 +360,10 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			}
 		}
 	})
+
 	for _, id := range callOrder {
 		call := calls[id]
+
 		result := results[id]
 		if patchResult, ok := patchResults[id]; ok {
 			call.Input = applyPatchChanges(call.Input, patchResult.Changes)
@@ -321,23 +371,29 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				result.IsError = !*patchResult.Success
 			}
 		}
+
 		trace.Events = append(trace.Events, adapter.BuildEvent(trace, call, result))
 	}
+
 	for i := range trace.Events {
 		trace.Events[i].Seq = i
 	}
+
 	if trace.Session.Title == "" {
 		trace.Session.Title = a.titleFor(trace.Session.ID)
 	}
+
 	adapter.FallbackTraceSessionTitle(trace, path)
 	trace.Session.EventCount = len(trace.Events)
 	// Codex logs carry no structural error flag; failures are inferred from
 	// output text, and inner commands of the js exec runner surface only what
 	// the script chooses to print.
 	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilitySignals{Errors: model.ObservabilityEstimated})
+
 	if !recognized {
 		return nil, adapter.NotRecognizedErr(a.Harness(), path)
 	}
+
 	return trace, err
 }
 
@@ -371,6 +427,7 @@ func (p sessionMetaPayload) agentMeta() *model.AgentSessionMeta {
 	if !p.isSubagent() {
 		return nil
 	}
+
 	agent := &model.AgentSessionMeta{
 		SourceID:        p.ID,
 		RootSessionID:   p.SessionID,
@@ -379,33 +436,40 @@ func (p sessionMetaPayload) agentMeta() *model.AgentSessionMeta {
 		Label:           p.AgentNickname,
 		Role:            p.AgentRole,
 	}
-	var source struct {
-		Subagent json.RawMessage `json:"subagent"`
-	}
-	var subagent struct {
-		ThreadSpawn struct {
-			ParentThreadID string `json:"parent_thread_id"`
-			Depth          int    `json:"depth"`
-			AgentPath      string `json:"agent_path"`
-			AgentNickname  string `json:"agent_nickname"`
-			AgentRole      string `json:"agent_role"`
-		} `json:"thread_spawn"`
-	}
+
+	var (
+		source struct {
+			Subagent json.RawMessage `json:"subagent"`
+		}
+		subagent struct {
+			ThreadSpawn struct {
+				ParentThreadID string `json:"parent_thread_id"`
+				Depth          int    `json:"depth"`
+				AgentPath      string `json:"agent_path"`
+				AgentNickname  string `json:"agent_nickname"`
+				AgentRole      string `json:"agent_role"`
+			} `json:"thread_spawn"`
+		}
+	)
 	if json.Unmarshal(p.Source, &source) == nil && json.Unmarshal(source.Subagent, &subagent) == nil {
 		agent.Depth = subagent.ThreadSpawn.Depth
 		if agent.AgentPath == "" {
 			agent.AgentPath = subagent.ThreadSpawn.AgentPath
 		}
+
 		if agent.ParentSessionID == "" {
 			agent.ParentSessionID = subagent.ThreadSpawn.ParentThreadID
 		}
+
 		if agent.Label == "" {
 			agent.Label = subagent.ThreadSpawn.AgentNickname
 		}
+
 		if agent.Role == "" {
 			agent.Role = subagent.ThreadSpawn.AgentRole
 		}
 	}
+
 	return agent
 }
 
@@ -413,16 +477,20 @@ func (p sessionMetaPayload) isSubagent() bool {
 	if p.ThreadSource == "subagent" {
 		return true
 	}
+
 	if len(p.Source) == 0 {
 		return false
 	}
+
 	var source struct {
 		Subagent json.RawMessage `json:"subagent"`
 	}
 	if json.Unmarshal(p.Source, &source) != nil {
 		return false
 	}
+
 	subagent := strings.TrimSpace(string(source.Subagent))
+
 	return subagent != "" && subagent != "null"
 }
 
@@ -472,29 +540,37 @@ func (c *codexContentList) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || string(data) == "null" {
 		return nil
 	}
+
 	if data[0] == '"' {
 		var s string
 		if err := json.Unmarshal(data, &s); err != nil {
 			return err
 		}
+
 		c.Items = []codexContentItem{{Type: "text", Text: s}}
+
 		return nil
 	}
+
 	var items []codexContentItem
 	if err := json.Unmarshal(data, &items); err != nil {
 		return err
 	}
+
 	c.Items = items
+
 	return nil
 }
 
 func (c codexContentList) Text() string {
 	var parts []string
+
 	for _, item := range c.Items {
 		if strings.TrimSpace(item.Text) != "" {
 			parts = append(parts, strings.TrimSpace(item.Text))
 		}
 	}
+
 	return strings.Join(parts, "\n")
 }
 
@@ -504,6 +580,7 @@ func (c codexContentList) HasText() bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -519,18 +596,23 @@ func applySessionMeta(meta *model.SessionMeta, payload sessionMetaPayload, setId
 		} else if payload.SessionID != "" {
 			meta.ID = payload.SessionID
 		}
+
 		meta.Agent = payload.agentMeta()
 	}
+
 	if payload.Cwd != "" && meta.Cwd == "" {
 		meta.Cwd = payload.Cwd
 	}
+
 	if payload.Git.Branch != "" && meta.GitBranch == "" {
 		meta.GitBranch = payload.Git.Branch
 	}
+
 	if payload.Timestamp != "" {
 		if meta.StartedAt == "" {
 			meta.StartedAt = payload.Timestamp
 		}
+
 		if meta.EndedAt == "" {
 			meta.EndedAt = payload.Timestamp
 		}
@@ -545,12 +627,15 @@ func applyTraceSessionMeta(trace *model.Trace, payload sessionMetaPayload, setId
 			trace.Session.ID = payload.SessionID
 		}
 	}
+
 	if payload.Cwd != "" && trace.Session.Cwd == "" {
 		trace.Session.Cwd = payload.Cwd
 	}
+
 	if payload.Git.CommitHash != "" && trace.Session.Commit == "" {
 		trace.Session.Commit = payload.Git.CommitHash
 	}
+
 	if payload.Timestamp != "" && trace.Session.StartedAt == "" {
 		trace.Session.StartedAt = payload.Timestamp
 	}
@@ -560,9 +645,11 @@ func applyLineTime(trace *model.Trace, ts string) {
 	if ts == "" {
 		return
 	}
+
 	if trace.Session.StartedAt == "" {
 		trace.Session.StartedAt = ts
 	}
+
 	trace.Session.EndedAt = ts
 }
 
@@ -571,13 +658,16 @@ func decodeCall(payload responseItemPayload, timestamp string) (adapter.ToolCall
 	if !ok {
 		return adapter.ToolCall{}, "", false
 	}
+
 	var raw json.RawMessage
+
 	switch payload.Type {
 	case "function_call":
 		raw = payload.Arguments
 	case "custom_tool_call":
 		raw = payload.Input
 	}
+
 	return adapter.ToolCall{
 		ID:        callID,
 		Name:      payload.Name,
@@ -592,9 +682,11 @@ func canonicalCallID(callType, id, callID, name string) (string, bool) {
 	default:
 		return "", false
 	}
+
 	if callID == "" {
 		callID = id
 	}
+
 	return callID, callID != "" && name != ""
 }
 
@@ -604,10 +696,13 @@ func decodeOutput(payload responseItemPayload) (string, adapter.ToolResult, bool
 	default:
 		return "", adapter.ToolResult{}, false
 	}
+
 	if payload.CallID == "" {
 		return "", adapter.ToolResult{}, false
 	}
+
 	output := adapter.ContentToString(payload.Output)
+
 	return payload.CallID, adapter.ToolResult{
 		Content: output,
 		IsError: commandOutputFailed(output),
@@ -618,6 +713,7 @@ func parseInput(raw json.RawMessage) map[string]any {
 	if len(raw) == 0 || string(raw) == "null" {
 		return map[string]any{}
 	}
+
 	return adapter.ParseJSONInput(string(raw))
 }
 
@@ -625,34 +721,48 @@ func applyPatchChanges(input map[string]any, changes map[string]patchApplyChange
 	if len(changes) == 0 {
 		return input
 	}
+
 	merged := make(map[string]any, len(input)+1)
 	maps.Copy(merged, input)
+
 	patch := ""
+
 	for _, key := range []string{"patch", "input", "_raw"} {
 		if value, ok := input[key].(string); ok {
 			patch = value
+
 			break
 		}
 	}
+
 	if patch != "" && !strings.HasSuffix(patch, "\n") {
 		patch += "\n"
 	}
+
 	paths := make([]string, 0, len(changes))
 	for path := range changes {
 		paths = append(paths, path)
 	}
+
 	sort.Strings(paths)
+
+	var patchSb645 strings.Builder
 	for _, path := range paths {
 		operation := "Update"
+
 		switch strings.ToLower(changes[path].Type) {
 		case "add":
 			operation = "Add"
 		case "delete":
 			operation = "Delete"
 		}
-		patch += fmt.Sprintf("*** %s File: %s\n", operation, path)
+
+		patchSb645.WriteString(fmt.Sprintf("*** %s File: %s\n", operation, path))
 	}
+	patch += patchSb645.String()
+
 	merged["patch"] = patch
+
 	return merged
 }
 
@@ -660,6 +770,7 @@ var exitCodeRe = regexp.MustCompile(`(?im)^(?:Process exited with code|Exit code
 
 func commandOutputFailed(output string) bool {
 	trimmed := strings.TrimSpace(output)
+
 	var envelope struct {
 		ExitCode *int  `json:"exit_code"`
 		TimedOut *bool `json:"timed_out"`
@@ -671,20 +782,25 @@ func commandOutputFailed(output string) bool {
 		if envelope.ExitCode != nil {
 			return *envelope.ExitCode != 0
 		}
+
 		if envelope.Metadata.ExitCode != nil {
 			return *envelope.Metadata.ExitCode != 0
 		}
+
 		if envelope.TimedOut != nil && *envelope.TimedOut {
 			return true
 		}
 	}
+
 	if strings.HasPrefix(strings.ToLower(trimmed), "apply_patch verification failed") {
 		return true
 	}
+
 	firstLine := trimmed
 	if newline := strings.IndexByte(firstLine, '\n'); newline >= 0 {
 		firstLine = firstLine[:newline]
 	}
+
 	status := strings.ToLower(strings.TrimSpace(firstLine))
 	switch {
 	case strings.HasPrefix(status, "script completed"), strings.HasPrefix(status, "script running"):
@@ -692,18 +808,22 @@ func commandOutputFailed(output string) bool {
 	case strings.HasPrefix(status, "script failed"):
 		return true
 	}
+
 	header := trimmed
 	for _, marker := range []string{"\nOutput:\n", "\nFinal output:\n"} {
 		if index := strings.Index(header, marker); index >= 0 {
 			header = header[:index]
 		}
 	}
+
 	for line := range strings.SplitSeq(header, "\n") {
 		if strings.EqualFold(strings.TrimSpace(line), "aborted by user") {
 			return true
 		}
 	}
+
 	match := exitCodeRe.FindStringSubmatch(header)
+
 	return len(match) == 2 && match[1] != "0"
 }
 
@@ -711,16 +831,18 @@ func (a Adapter) titleFor(id string) string {
 	if id == "" {
 		return ""
 	}
+
 	index := a.indexPath()
 	if index == "" {
 		return ""
 	}
+
 	return loadTitleIndex(index)[id]
 }
 
 // titleIndexCache holds the parsed session index; summarizing a whole
 // sessions directory looks up a title per file, so re-reading the index
-// each time would make the scan quadratic
+// each time would make the scan quadratic.
 var titleIndexCache struct {
 	mu      sync.Mutex
 	path    string
@@ -734,12 +856,15 @@ func loadTitleIndex(path string) map[string]string {
 	if err != nil {
 		return nil
 	}
+
 	titleIndexCache.mu.Lock()
 	defer titleIndexCache.mu.Unlock()
+
 	if titleIndexCache.path == path && titleIndexCache.size == info.Size() &&
 		titleIndexCache.modTime.Equal(info.ModTime()) {
 		return titleIndexCache.titles
 	}
+
 	f, err := os.Open(path)
 	if err != nil {
 		return nil
@@ -760,6 +885,7 @@ func loadTitleIndex(path string) map[string]string {
 	titleIndexCache.size = info.Size()
 	titleIndexCache.modTime = info.ModTime()
 	titleIndexCache.titles = titles
+
 	return titles
 }
 
@@ -767,22 +893,28 @@ func (a Adapter) indexPath() string {
 	if a.IndexPath != "" {
 		return a.IndexPath
 	}
+
 	if a.Dir != "" {
 		dir := filepath.Clean(a.SessionDir())
+
 		candidate := filepath.Join(filepath.Dir(dir), "session_index.jsonl")
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
+
 	if candidate := DefaultIndexPath(); candidate != "" {
 		if _, err := os.Stat(candidate); err == nil {
 			return candidate
 		}
 	}
+
 	dir := filepath.Clean(a.SessionDir())
+
 	candidate := filepath.Join(filepath.Dir(dir), "session_index.jsonl")
 	if _, err := os.Stat(candidate); err == nil {
 		return candidate
 	}
+
 	return ""
 }

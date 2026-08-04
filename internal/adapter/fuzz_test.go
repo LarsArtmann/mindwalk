@@ -11,11 +11,13 @@ func FuzzGitDiffTargets(f *testing.F) {
 	f.Add("no diff content at all")
 	f.Fuzz(func(t *testing.T, text string) {
 		targets := gitDiffTargets(text)
+
 		seen := map[string]bool{}
 		for _, target := range targets {
 			if seen[target.path] {
 				t.Fatalf("duplicate path %q in gitDiffTargets output", target.path)
 			}
+
 			seen[target.path] = true
 		}
 	})

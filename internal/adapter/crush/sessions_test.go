@@ -18,15 +18,19 @@ import (
 // t.Cleanup for that.
 func createCrushDBAt(t *testing.T, dbPath string, seed func(*sql.DB)) *sql.DB {
 	t.Helper()
+
 	dir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	handle, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	handle.SetMaxOpenConns(1)
+
 	schema := `
 		CREATE TABLE IF NOT EXISTS sessions (
 			id TEXT PRIMARY KEY,
@@ -54,12 +58,16 @@ func createCrushDBAt(t *testing.T, dbPath string, seed func(*sql.DB)) *sql.DB {
 	`
 	if _, err := handle.Exec(schema); err != nil {
 		_ = handle.Close()
+
 		t.Fatal(err)
 	}
+
 	if seed != nil {
 		seed(handle)
 	}
+
 	t.Cleanup(func() { _ = handle.Close() })
+
 	return handle
 }
 
@@ -67,11 +75,14 @@ func createCrushDBAt(t *testing.T, dbPath string, seed func(*sql.DB)) *sql.DB {
 // global data dir that points to the provided project entries.
 func writeProjectsRegistry(t *testing.T, globalDir string, projects []crushProjectEntry) {
 	t.Helper()
+
 	regPath := filepath.Join(globalDir, "projects.json")
+
 	data, err := json.Marshal(crushProjectsFile{Projects: projects})
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.WriteFile(regPath, data, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -82,10 +93,12 @@ func writeProjectsRegistry(t *testing.T, globalDir string, projects []crushProje
 func TestEnumerateDBPathsExplicitDir(t *testing.T) {
 	dataDir, _ := newFixtureDB(t, nil)
 	a := NewAdapter(dataDir)
+
 	paths := a.enumerateDBPaths()
 	if len(paths) != 1 {
 		t.Fatalf("expected 1 path, got %d: %v", len(paths), paths)
 	}
+
 	expected := filepath.Join(dataDir, dbName)
 	if paths[0] != expected {
 		t.Fatalf("expected %s, got %s", expected, paths[0])
@@ -97,6 +110,7 @@ func TestEnumerateDBPathsExplicitDir(t *testing.T) {
 // database file does not exist — callers handle missing files.
 func TestEnumerateDBPathsExplicitDirMissingDB(t *testing.T) {
 	a := NewAdapter(t.TempDir())
+
 	paths := a.enumerateDBPaths()
 	if len(paths) != 1 {
 		t.Fatalf("expected 1 path (existence is caller's concern), got %d: %v", len(paths), paths)
@@ -121,6 +135,7 @@ func TestEnumerateDBPathsAutoDiscover(t *testing.T) {
 	})
 
 	a := NewAdapter("")
+
 	paths := a.enumerateDBPaths()
 	if len(paths) != 2 {
 		t.Fatalf("expected 2 paths, got %d: %v", len(paths), paths)
@@ -144,6 +159,7 @@ func TestEnumerateDBPathsAutoDiscoverIncludesGlobalDB(t *testing.T) {
 	createCrushDBAt(t, filepath.Join(globalDir, dataDirName, dbName), nil)
 
 	a := NewAdapter("")
+
 	paths := a.enumerateDBPaths()
 	if len(paths) != 2 {
 		t.Fatalf("expected 2 paths (project + global), got %d: %v", len(paths), paths)
@@ -173,10 +189,12 @@ func TestListAllProjectSessionsMultiDB(t *testing.T) {
 	})
 
 	a := NewAdapter("")
+
 	sessions, err := a.listAllProjectSessions()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(sessions) != 2 {
 		t.Fatalf("expected 2 sessions, got %d", len(sessions))
 	}
@@ -186,13 +204,16 @@ func TestListAllProjectSessionsMultiDB(t *testing.T) {
 	if !ok {
 		t.Fatal("dbIndex missing sess-alpha")
 	}
+
 	if alphaDB.(string) != filepath.Join(proj1DataDir, dbName) {
 		t.Fatalf("sess-alpha routed to wrong DB: got %v", alphaDB)
 	}
+
 	betaDB, ok := a.dbIndex.Load("sess-beta")
 	if !ok {
 		t.Fatal("dbIndex missing sess-beta")
 	}
+
 	if betaDB.(string) != filepath.Join(proj2DataDir, dbName) {
 		t.Fatalf("sess-beta routed to wrong DB: got %v", betaDB)
 	}
@@ -230,18 +251,22 @@ func TestOpenDBForPathRoutesToCorrectDB(t *testing.T) {
 	if err != nil || handle == nil {
 		t.Fatalf("openDBForPath(sess-alpha): handle=%v err=%v", handle, err)
 	}
+
 	if handle.path != filepath.Join(proj1DataDir, dbName) {
 		t.Fatalf("sess-alpha opened wrong DB: got %s, want %s", handle.path, filepath.Join(proj1DataDir, dbName))
 	}
+
 	_ = handle.close()
 
 	handle2, err := a.openDBForPath(SessionPath("sess-beta"))
 	if err != nil || handle2 == nil {
 		t.Fatalf("openDBForPath(sess-beta): handle=%v err=%v", handle2, err)
 	}
+
 	if handle2.path != filepath.Join(proj2DataDir, dbName) {
 		t.Fatalf("sess-beta opened wrong DB: got %s, want %s", handle2.path, filepath.Join(proj2DataDir, dbName))
 	}
+
 	_ = handle2.close()
 }
 
@@ -254,14 +279,17 @@ func TestOpenDBForPathExplicitDirIgnoresIndex(t *testing.T) {
 	})
 	_ = db
 	a := NewAdapter(dataDir)
+
 	handle, err := a.openDBForPath(SessionPath("sess-x"))
 	if err != nil || handle == nil {
 		t.Fatalf("openDBForPath failed: handle=%v err=%v", handle, err)
 	}
+
 	expected := filepath.Join(dataDir, dbName)
 	if handle.path != expected {
 		t.Fatalf("expected %s, got %s", expected, handle.path)
 	}
+
 	_ = handle.close()
 }
 
@@ -272,6 +300,7 @@ func TestProjectPathForDBInfersFromConventionalPath(t *testing.T) {
 	tmp := t.TempDir()
 	dbPath := filepath.Join(tmp, "myproject", dataDirName, dbName)
 	got := Adapter{}.projectPathForDB(dbPath)
+
 	expected := filepath.Join(tmp, "myproject")
 	if got != expected {
 		t.Fatalf("projectPathForDB(%q) = %q, want %q", dbPath, got, expected)
@@ -285,6 +314,7 @@ func TestProjectPathForDBRejectsGlobalDir(t *testing.T) {
 	globalDir := t.TempDir()
 	t.Setenv("CRUSH_GLOBAL_DATA", globalDir)
 	dbPath := filepath.Join(globalDir, dataDirName, dbName)
+
 	got := Adapter{}.projectPathForDB(dbPath)
 	if got != "" {
 		t.Fatalf("projectPathForDB(global DB) = %q, want empty", got)
@@ -309,12 +339,15 @@ func TestWarnIfOldSchemaDetectsMissingColumns(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	handle, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	handle.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = handle.Close() })
+
 	if _, err := handle.Exec(`
 		CREATE TABLE messages (
 			id TEXT PRIMARY KEY,
@@ -330,10 +363,12 @@ func TestWarnIfOldSchemaDetectsMissingColumns(t *testing.T) {
 
 	h := &sqlHandle{path: dbPath, db: handle}
 	a := NewAdapter("")
+
 	missing := schemaMissingColumns(h)
 	if len(missing) != 3 {
 		t.Fatalf("expected 3 missing columns, got %d: %v", len(missing), missing)
 	}
+
 	if a.warnIfOldSchema(h) != true {
 		t.Fatal("warnIfOldSchema should return true for old schema")
 	}
@@ -349,12 +384,15 @@ func TestWarnIfOldSchemaDetectsMissingColumns(t *testing.T) {
 func TestWarnIfOldSchemaSkipsGoodSchema(t *testing.T) {
 	tmp := t.TempDir()
 	dbPath := filepath.Join(tmp, "good.db")
+
 	handle, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	handle.SetMaxOpenConns(1)
 	t.Cleanup(func() { _ = handle.Close() })
+
 	if _, err := handle.Exec(`
 		CREATE TABLE messages (
 			id TEXT PRIMARY KEY,
@@ -373,10 +411,12 @@ func TestWarnIfOldSchemaSkipsGoodSchema(t *testing.T) {
 
 	h := &sqlHandle{path: dbPath, db: handle}
 	a := NewAdapter("")
+
 	missing := schemaMissingColumns(h)
 	if len(missing) != 0 {
 		t.Fatalf("expected 0 missing columns, got %d: %v", len(missing), missing)
 	}
+
 	if a.warnIfOldSchema(h) != false {
 		t.Fatal("warnIfOldSchema should return false for good schema")
 	}
@@ -388,10 +428,13 @@ func captureStderr(f func()) string {
 	old := os.Stderr
 	r, w, _ := os.Pipe()
 	os.Stderr = w
+
 	f()
+
 	_ = w.Close()
 	out, _ := io.ReadAll(r)
 	os.Stderr = old
+
 	return string(out)
 }
 
@@ -402,9 +445,11 @@ func TestRecordOldSchemaDedup(t *testing.T) {
 	if !a.recordOldSchema("/tmp/x") {
 		t.Fatal("first record should return true")
 	}
+
 	if a.recordOldSchema("/tmp/x") {
 		t.Fatal("second record should return false")
 	}
+
 	if !a.recordOldSchema("/tmp/y") {
 		t.Fatal("different path should return true")
 	}
@@ -417,6 +462,7 @@ func TestReportOldSchemaSummarySingle(t *testing.T) {
 	out := captureStderr(func() {
 		a.reportOldSchemaSummary([]string{"/tmp/foo/crush.db"}, []string{"parent_session_id"})
 	})
+
 	want := "mindwalk: warning: /tmp/foo/crush.db has an old schema (missing parent_session_id); upgrade Crush to get full trace coverage\n"
 	if out != want {
 		t.Fatalf("unexpected summary output:\n got: %q\nwant: %q", out, want)
@@ -431,6 +477,7 @@ func TestReportOldSchemaSummaryMultiple(t *testing.T) {
 	out := captureStderr(func() {
 		a.reportOldSchemaSummary(paths, []string{"parent_session_id"})
 	})
+
 	want := "mindwalk: warning: 4 Crush databases have an old schema (missing parent_session_id); upgrade Crush to get full trace coverage (e.g. /tmp/a/crush.db, /tmp/b/crush.db, /tmp/c/crush.db, ...)\n"
 	if out != want {
 		t.Fatalf("unexpected summary output:\n got: %q\nwant: %q", out, want)
@@ -442,10 +489,16 @@ func TestReportOldSchemaSummaryMultiple(t *testing.T) {
 // previously passed them to time.UnixMilli, sending every date to 1970.
 func TestTimestampsAreSecondsNotMillis(t *testing.T) {
 	known := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+
 	got := secondsToRFC3339(known)
 	if !strings.HasPrefix(got, "2026-") {
-		t.Fatalf("secondsToRFC3339(%d) = %q, want a 2026- date (if this shows 1970-, the value is being treated as milliseconds — see 3f547fc)", known, got)
+		t.Fatalf(
+			"secondsToRFC3339(%d) = %q, want a 2026- date (if this shows 1970-, the value is being treated as milliseconds — see 3f547fc)",
+			known,
+			got,
+		)
 	}
+
 	bad := time.UnixMilli(known).UTC().Format(time.RFC3339Nano)
 	if strings.HasPrefix(bad, "2026-") {
 		t.Fatalf("test invariant broken: %d via UnixMilli should land in 1970, got %q", known, bad)
@@ -468,15 +521,22 @@ func TestTimestampsSecondsEndToEnd(t *testing.T) {
 			t.Fatal(err)
 		}
 	})
+
 	a := NewAdapter(dir)
+
 	metas, err := a.ListSessions()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(metas) != 1 {
 		t.Fatalf("expected 1 session, got %d", len(metas))
 	}
+
 	if !strings.HasPrefix(metas[0].StartedAt, "2026-06-15") {
-		t.Fatalf("StartedAt = %q, want a 2026-06-15 date (timestamp decoded as milliseconds, not seconds — see 3f547fc)", metas[0].StartedAt)
+		t.Fatalf(
+			"StartedAt = %q, want a 2026-06-15 date (timestamp decoded as milliseconds, not seconds — see 3f547fc)",
+			metas[0].StartedAt,
+		)
 	}
 }

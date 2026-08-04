@@ -8,7 +8,14 @@ export function fireflyTexture(): THREE.Texture {
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  const g = ctx.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  );
   g.addColorStop(0, "rgba(255,255,255,1)");
   g.addColorStop(0.25, "rgba(255,210,160,0.55)");
   g.addColorStop(1, "rgba(255,158,94,0)");
@@ -27,7 +34,14 @@ export function haloTexture(): THREE.Texture {
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  const g = ctx.createRadialGradient(
+    size / 2,
+    size / 2,
+    0,
+    size / 2,
+    size / 2,
+    size / 2,
+  );
   g.addColorStop(0, "rgba(255,255,255,0.9)");
   g.addColorStop(0.4, "rgba(255,255,255,0.28)");
   g.addColorStop(1, "rgba(255,255,255,0)");
@@ -42,7 +56,8 @@ export function labelTexture(text: string): {
   texture: THREE.Texture;
   aspect: number;
 } {
-  const font = '500 30px "Schibsted Grotesk Variable", "PingFang SC", sans-serif';
+  const font =
+    '500 30px "Schibsted Grotesk Variable", "PingFang SC", sans-serif';
   const measure = document.createElement("canvas").getContext("2d")!;
   measure.font = font;
   const width = Math.ceil(measure.measureText(text).width) + 24;

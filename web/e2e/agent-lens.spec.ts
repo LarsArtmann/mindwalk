@@ -4,12 +4,21 @@ import { expect, test, type Page, type Route } from "playwright/test";
 
 const fixtures = JSON.parse(
   readFileSync(
-    fileURLToPath(new URL("../../testdata/agent-lens/browser-fixtures.json", import.meta.url)),
+    fileURLToPath(
+      new URL(
+        "../../testdata/agent-lens/browser-fixtures.json",
+        import.meta.url,
+      ),
+    ),
     "utf8",
   ),
 );
 
-type TraceRoute = (agentID: string, requestCount: number, route: Route) => Promise<void>;
+type TraceRoute = (
+  agentID: string,
+  requestCount: number,
+  route: Route,
+) => Promise<void>;
 
 interface MockAppRoutes {
   sessions?: (fresh: boolean, route: Route) => Promise<void>;
@@ -78,12 +87,17 @@ async function beginHeldExport(page: Page) {
   await page.getByRole("button", { name: "Export video" }).click();
   await page.waitForFunction(() => {
     return (
-      (window as Window & { __fakeRecordingStopped?: boolean }).__fakeRecordingStopped === true
+      (window as Window & { __fakeRecordingStopped?: boolean })
+        .__fakeRecordingStopped === true
     );
   });
 }
 
-async function mockApp(page: Page, traceRoute?: TraceRoute, routes: MockAppRoutes = {}) {
+async function mockApp(
+  page: Page,
+  traceRoute?: TraceRoute,
+  routes: MockAppRoutes = {},
+) {
   const requests = new Map<string, number>();
 
   await page.route("**/api/sessions**", async (route) => {
@@ -121,7 +135,9 @@ async function mockApp(page: Page, traceRoute?: TraceRoute, routes: MockAppRoute
       return;
     }
 
-    const match = path.match(/^\/api\/sessions\/synthetic-root\/agents\/([^/]+)\/trace$/);
+    const match = path.match(
+      /^\/api\/sessions\/synthetic-root\/agents\/([^/]+)\/trace$/,
+    );
     if (match) {
       const agentID = decodeURIComponent(match[1]);
       const count = (requests.get(agentID) ?? 0) + 1;
@@ -194,7 +210,9 @@ test("Agents shows truthful rows and switches lenses without letting missing row
   await atlas.click();
   await expect(page.locator(".hud-lens")).toHaveText("LensAtlas");
   await expect(page.locator(".deck-pos-count")).toHaveText("2 / 2");
-  await expect(page.getByRole("slider", { name: "Playback position" })).toHaveValue("1");
+  await expect(
+    page.getByRole("slider", { name: "Playback position" }),
+  ).toHaveValue("1");
 
   await page.getByRole("slider", { name: "Playback position" }).fill("0");
   await expect(page.locator(".deck-pos-count")).toHaveText("1 / 2");
@@ -208,7 +226,9 @@ test("Agents shows truthful rows and switches lenses without letting missing row
   await expect(page.locator(".hud-lens")).toHaveText("LensAtlas");
 });
 
-test("an available zero-event child opens an empty lens and returns to Main", async ({ page }) => {
+test("an available zero-event child opens an empty lens and returns to Main", async ({
+  page,
+}) => {
   await mockApp(page);
   await openFixture(page);
   const panel = await openAgents(page);
@@ -219,7 +239,9 @@ test("an available zero-event child opens an empty lens and returns to Main", as
   await nova.click();
   await expect(page.locator(".hud-lens")).toHaveText("LensNova");
   await expect(page.locator(".deck-pos-count")).toHaveText("0 / 0");
-  await expect(page.locator(".readout-summary")).toHaveText("No recorded activity for this agent.");
+  await expect(page.locator(".readout-summary")).toHaveText(
+    "No recorded activity for this agent.",
+  );
 
   await row(panel, "Main").click();
   await expect(page.locator(".hud-lens")).toHaveText("LensMain");
@@ -232,8 +254,9 @@ test("HUD entry points open compact two-line Agent rows with accessible details"
   await page.setViewportSize({ width: 1440, height: 900 });
   const graph = structuredClone(fixtures.graph);
   const longInstruction = "g".repeat(240);
-  graph.agents.find((agent: { id: string }) => agent.id === "child-a").instructionPreview =
-    longInstruction;
+  graph.agents.find(
+    (agent: { id: string }) => agent.id === "child-a",
+  ).instructionPreview = longInstruction;
   await mockApp(page, undefined, {
     graph: async (route) => {
       await route.fulfill({ json: graph });
@@ -241,12 +264,16 @@ test("HUD entry points open compact two-line Agent rows with accessible details"
   });
   await openFixture(page);
 
-  await page.getByRole("button", { name: "Open Agent lenses, current Main" }).click();
+  await page
+    .getByRole("button", { name: "Open Agent lenses, current Main" })
+    .click();
   const panel = page.getByLabel("Agent lenses", { exact: true });
   await expect(panel).toBeVisible();
   await panel.getByRole("button", { name: "Close agents" }).click();
 
-  await page.getByRole("button", { name: "Open 1 subagent in Agent lenses" }).click();
+  await page
+    .getByRole("button", { name: "Open 1 subagent in Agent lenses" })
+    .click();
   await expect(panel).toBeVisible();
 
   const atlas = row(panel, "Atlas");
@@ -274,7 +301,9 @@ test("HUD entry points open compact two-line Agent rows with accessible details"
         dockPanel.boundingBox(),
         detail.boundingBox(),
       ]);
-      return currentPanelBox!.x - (currentDetailBox!.x + currentDetailBox!.width);
+      return (
+        currentPanelBox!.x - (currentDetailBox!.x + currentDetailBox!.width)
+      );
     })
     .toBeGreaterThanOrEqual(0);
 });
@@ -284,8 +313,9 @@ test("pinned Agent details scroll without switching lenses and dismiss cleanly",
 }) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   const graph = structuredClone(fixtures.graph);
-  graph.agents.find((agent: { id: string }) => agent.id === "child-a").instructionPreview =
-    "p".repeat(4000);
+  graph.agents.find(
+    (agent: { id: string }) => agent.id === "child-a",
+  ).instructionPreview = "p".repeat(4000);
   await mockApp(page, undefined, {
     graph: async (route) => {
       await route.fulfill({ json: graph });
@@ -364,7 +394,9 @@ test("top child failure keeps its error and Retry row-local in a 12-row panel", 
   await expect(alert).toContainText("fictional top-row timeout");
   await expect(alert.getByRole("button", { name: "Retry" })).toBeVisible();
   await expect(
-    atlas.locator("xpath=ancestor::*[contains(@class, 'agent-row')]/following-sibling::*[1]"),
+    atlas.locator(
+      "xpath=ancestor::*[contains(@class, 'agent-row')]/following-sibling::*[1]",
+    ),
   ).toHaveAttribute("role", "alert");
   expect(await panel.evaluate((element) => element.scrollTop)).toBe(0);
   const box = await alert.boundingBox();
@@ -376,14 +408,20 @@ test("no session keeps the start-walk empty state", async ({ page }) => {
     sessions: async (_fresh, route) => route.fulfill({ json: [] }),
   });
   await page.goto("/");
-  await expect(page.locator(".readout-summary")).toHaveText("Select a session to start the walk.");
+  await expect(page.locator(".readout-summary")).toHaveText(
+    "Select a session to start the walk.",
+  );
 });
 
-test("subagent marks open Agents only and report evidence restores Main", async ({ page }) => {
+test("subagent marks open Agents only and report evidence restores Main", async ({
+  page,
+}) => {
   await mockApp(page);
   await openFixture(page);
 
-  await page.getByRole("button", { name: /Jump to fictional helper launch/ }).click();
+  await page
+    .getByRole("button", { name: /Jump to fictional helper launch/ })
+    .click();
   const agents = page.getByLabel("Agent lenses", { exact: true });
   await expect(agents).toBeVisible();
   await expect(row(agents, "Main")).toHaveAttribute("aria-pressed", "true");
@@ -394,8 +432,12 @@ test("subagent marks open Agents only and report evidence restores Main", async 
   await expect(page.locator(".hud-lens")).toHaveText("LensBorealis");
   await expect(page.locator(".deck-pos-count")).toHaveText("3 / 3");
 
-  await page.getByRole("button", { name: "Evaluation ready", exact: true }).click();
-  await page.getByRole("button", { name: "The fictional garden was verified." }).click();
+  await page
+    .getByRole("button", { name: "Evaluation ready", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "The fictional garden was verified." })
+    .click();
   await expect(page.locator(".hud-lens")).toHaveText("LensMain");
   await expect(page.locator(".deck-pos-count")).toHaveText("3 / 4");
 });
@@ -410,7 +452,9 @@ test("export locks evaluation navigation without changing the child lens or play
   const panel = await openAgents(page);
   await row(panel, "Borealis").click();
   await page.getByRole("slider", { name: "Playback position" }).fill("1");
-  await page.getByRole("button", { name: "Evaluation ready", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Evaluation ready", exact: true })
+    .click();
 
   await beginHeldExport(page);
 
@@ -433,20 +477,30 @@ test("export locks evaluation navigation without changing the child lens or play
   }
 
   await page.evaluate(() => {
-    (window as Window & { __finishFakeRecording?: () => void }).__finishFakeRecording?.();
+    (
+      window as Window & { __finishFakeRecording?: () => void }
+    ).__finishFakeRecording?.();
   });
-  await expect(page.getByRole("button", { name: "More playback controls" })).toBeEnabled();
+  await expect(
+    page.getByRole("button", { name: "More playback controls" }),
+  ).toBeEnabled();
   await expect(page.locator(".hud-lens")).toHaveText("LensBorealis");
   await expect(page.locator(".deck-pos-count")).toHaveText("2 / 3");
 });
 
-test("export locks Inspector history and guards forced history jumps", async ({ page }) => {
+test("export locks Inspector history and guards forced history jumps", async ({
+  page,
+}) => {
   await installHeldRecorder(page);
   await mockApp(page);
   await openFixture(page);
 
-  await page.getByRole("button", { name: "Evaluation ready", exact: true }).click();
-  await page.getByRole("button", { name: "The fictional garden was verified." }).click();
+  await page
+    .getByRole("button", { name: "Evaluation ready", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "The fictional garden was verified." })
+    .click();
   await page.getByRole("slider", { name: "Playback position" }).fill("3");
   await page.getByRole("button", { name: "Inspect the selected file" }).click();
   const visit = page.locator(".history-row").filter({ hasText: "#3" });
@@ -462,12 +516,17 @@ test("export locks Inspector history and guards forced history jumps", async ({ 
   await expect(page.locator(".deck-pos-count")).toHaveText("4 / 4");
 });
 
-test("export locks Rescan and guards forced refresh requests", async ({ page }) => {
+test("export locks Rescan and guards forced refresh requests", async ({
+  page,
+}) => {
   await installHeldRecorder(page);
   const sessionRequests: string[] = [];
   page.on("request", (request) => {
     const url = new URL(request.url());
-    if (url.pathname === "/api/sessions" || url.pathname.endsWith("/snapshot")) {
+    if (
+      url.pathname === "/api/sessions" ||
+      url.pathname.endsWith("/snapshot")
+    ) {
       sessionRequests.push(`${url.pathname}${url.search}`);
     }
   });
@@ -498,10 +557,14 @@ test("export locks Rescan and guards forced refresh requests", async ({ page }) 
   await expect(page.locator(".deck-pos-count")).toHaveText("3 / 3");
 });
 
-test("rescan invalidates child projections and preserves the actor playhead", async ({ page }) => {
+test("rescan invalidates child projections and preserves the actor playhead", async ({
+  page,
+}) => {
   let refreshed = false;
   const refreshedGraph = structuredClone(fixtures.graph);
-  refreshedGraph.agents.find((agent: { id: string }) => agent.id === "child-a").traceEventCount = 3;
+  refreshedGraph.agents.find(
+    (agent: { id: string }) => agent.id === "child-a",
+  ).traceEventCount = 3;
 
   const refreshedCity = structuredClone(fixtures.city);
   refreshedCity.files.push({
@@ -535,7 +598,8 @@ test("rescan invalidates child projections and preserves the actor playhead", as
     async (agentID, requestCount, route) => {
       if (agentID === "child-a") {
         await route.fulfill({
-          json: requestCount === 1 ? fixtures.traces["child-a"] : refreshedChild,
+          json:
+            requestCount === 1 ? fixtures.traces["child-a"] : refreshedChild,
         });
         return;
       }
@@ -627,7 +691,9 @@ test("a failed child load keeps Main visible and Retry starts a fresh request", 
   const panel = await openAgents(page);
 
   await row(panel, "Atlas").click();
-  await expect(panel.getByRole("alert")).toContainText("fictional child timeout");
+  await expect(panel.getByRole("alert")).toContainText(
+    "fictional child timeout",
+  );
   await expect(page.locator(".hud-lens")).toHaveText("LensMain");
   await expect(page.locator(".deck-pos-count")).toHaveText("4 / 4");
 
@@ -706,8 +772,12 @@ test("export locks lens controls, discards delayed child data, and allows a fres
   await expect(
     page.getByRole("button", { name: /Jump to fictional helper launch/ }),
   ).toBeDisabled();
-  await expect(page.getByRole("slider", { name: "Playback position" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "More playback controls" })).toBeEnabled({
+  await expect(
+    page.getByRole("slider", { name: "Playback position" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "More playback controls" }),
+  ).toBeEnabled({
     timeout: 3_000,
   });
 
@@ -724,7 +794,9 @@ test("export locks lens controls, discards delayed child data, and allows a fres
   borealisRelease.resolve();
   await borealisFulfilled.promise;
   await expect(page.locator(".hud-lens")).toHaveText("LensMain");
-  await expect(page.getByRole("button", { name: "More playback controls" })).toBeEnabled({
+  await expect(
+    page.getByRole("button", { name: "More playback controls" }),
+  ).toBeEnabled({
     timeout: 3_000,
   });
   await expect(page.locator(".hud-lens")).toHaveText("LensMain");

@@ -8,11 +8,16 @@ interface EventSummaryProps {
 
 /** Rich playback readout: surfaces the event under the playhead so scrubbing
  *  is not a guessing game. Shows tool, action, target file paths, and summary. */
-export const EventSummary = memo(function EventSummary({ event, total }: EventSummaryProps) {
+export const EventSummary = memo(function EventSummary({
+  event,
+  total,
+}: EventSummaryProps) {
   if (!event || total === 0) {
     return (
       <div className="event-summary empty">
-        <span className="readout-summary muted">No recorded activity at this position.</span>
+        <span className="readout-summary muted">
+          No recorded activity at this position.
+        </span>
       </div>
     );
   }
@@ -23,7 +28,9 @@ export const EventSummary = memo(function EventSummary({ event, total }: EventSu
     .slice(0, 4);
 
   return (
-    <div className={`event-summary action-${event.action}${event.isError ? " errored" : ""}`}>
+    <div
+      className={`event-summary action-${event.action}${event.isError ? " errored" : ""}`}
+    >
       <span className={`action-dot ${event.action}`} />
       <div className="event-summary-body">
         <div className="event-summary-head">
@@ -37,7 +44,9 @@ export const EventSummary = memo(function EventSummary({ event, total }: EventSu
                 </span>
               ))}
               {event.targets.length > 4 ? (
-                <span className="event-target-more">+{event.targets.length - 4}</span>
+                <span className="event-target-more">
+                  +{event.targets.length - 4}
+                </span>
               ) : null}
             </span>
           ) : null}

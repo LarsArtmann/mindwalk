@@ -19,6 +19,7 @@ func (a Adapter) SessionDir() string {
 	if a.Dir != "" {
 		return a.Dir
 	}
+
 	return DefaultDir()
 }
 
@@ -35,29 +36,37 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	if !adapter.ReadableDir(dir) {
 		return nil, nil
 	}
+
 	var metas []model.SessionMeta
+
 	err := filepath.WalkDir(dir, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return nil
 		}
+
 		if entry.IsDir() {
 			return nil
 		}
+
 		if filepath.Ext(path) != ".jsonl" || strings.HasPrefix(filepath.Base(path), "agent-") {
 			return nil
 		}
+
 		meta, err := a.Summarize(path)
 		if err == nil {
 			metas = append(metas, meta)
 		}
+
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	sort.Slice(metas, func(i, j int) bool {
 		return metas[i].EndedAt > metas[j].EndedAt
 	})
+
 	return metas, nil
 }
 
@@ -76,45 +85,56 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		if json.Unmarshal(data, &line) != nil {
 			return
 		}
+
 		if isClaudeLine(line) {
 			recognized = true
 		}
+
 		if line.IsSidechain {
 			meta.Auxiliary = true
 			if meta.Agent == nil {
 				meta.Agent = &model.AgentSessionMeta{}
 			}
+
 			if line.AgentID != "" {
 				meta.ID = line.AgentID
 				meta.Agent.SourceID = line.AgentID
 			}
+
 			if line.SessionID != "" {
 				meta.Agent.RootSessionID = line.SessionID
 			}
 		} else if line.SessionID != "" && !meta.Auxiliary {
 			meta.ID = line.SessionID
 		}
+
 		if line.Timestamp != "" {
 			if meta.StartedAt == "" {
 				meta.StartedAt = line.Timestamp
 			}
+
 			meta.EndedAt = line.Timestamp
 		}
+
 		if line.Type == "ai-title" && line.AITitle != "" {
 			meta.Title = line.AITitle
 		}
+
 		if line.Cwd != "" && meta.Cwd == "" {
 			meta.Cwd = line.Cwd
 		}
+
 		if line.GitBranch != "" && meta.GitBranch == "" {
 			meta.GitBranch = line.GitBranch
 		}
+
 		if len(line.Message) > 0 {
 			var msg message
 			if json.Unmarshal(line.Message, &msg) == nil {
 				if msg.Model != "" && meta.Model == "" {
 					meta.Model = msg.Model
 				}
+
 				meta.EventCount += countToolUses(msg.Content)
 				// mirrors Parse's user-message mark filter so the badge's
 				// staleness check counts the same turns the report will
@@ -125,6 +145,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			}
 		}
 	})
+
 	if meta.Auxiliary {
 		var childMeta struct {
 			AgentType   string `json:"agentType"`
@@ -132,6 +153,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			ToolUseID   string `json:"toolUseId"`
 			SpawnDepth  int    `json:"spawnDepth"`
 		}
+
 		data, readErr := os.ReadFile(strings.TrimSuffix(path, ".jsonl") + ".meta.json")
 		if readErr == nil && json.Unmarshal(data, &childMeta) == nil {
 			meta.Agent.Depth = childMeta.SpawnDepth
@@ -140,10 +162,13 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			meta.Agent.LaunchCallID = childMeta.ToolUseID
 		}
 	}
+
 	adapter.FallbackSessionTitle(&meta, path)
+
 	if !recognized {
 		return model.SessionMeta{}, adapter.NotRecognizedErr("Claude Code", path)
 	}
+
 	return meta, err
 }
 
@@ -174,17 +199,23 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		if json.Unmarshal(data, &line) != nil {
 			return
 		}
+
 		if isClaudeLine(line) {
 			recognized = true
 		}
+
 		applyLineMeta(trace, line)
+
 		if line.Type == "ai-title" && line.AITitle != "" {
 			trace.Session.Title = line.AITitle
+
 			return
 		}
+
 		if isCompaction(line) {
 			trace.Marks = append(trace.Marks, model.Mark{Seq: len(trace.Events), Type: "compaction"})
 		}
+
 		if len(line.Message) == 0 {
 			return
 		}
@@ -193,6 +224,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		if json.Unmarshal(line.Message, &msg) != nil {
 			return
 		}
+
 		if line.Type == "user" && hasUserMessage(msg.Content) {
 			if text := userMessageText(msg.Content); !adapter.InjectedUserMessage(text) {
 				trace.Marks = append(trace.Marks, model.Mark{
@@ -202,9 +234,11 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				})
 			}
 		}
+
 		if msg.Model != "" && trace.Session.Model == "" {
 			trace.Session.Model = msg.Model
 		}
+
 		for _, item := range msg.Content.Items {
 			switch item.Type {
 			case "tool_use":
@@ -220,38 +254,47 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 						model.Mark{Seq: len(trace.Events), Type: "subagent", Note: call.Name},
 					)
 				}
+
 				if _, exists := pending[call.ID]; !exists {
 					pendingOrder = append(pendingOrder, call.ID)
 				}
+
 				pending[call.ID] = call
 			case "tool_result":
 				call, ok := pending[item.ToolUseID]
 				if !ok {
 					continue
 				}
+
 				delete(pending, item.ToolUseID)
 				event := buildEvent(trace, call, item)
 				trace.Events = append(trace.Events, event)
 			}
 		}
 	})
+
 	for _, id := range pendingOrder {
 		if call, ok := pending[id]; ok {
 			trace.Events = append(trace.Events, buildEvent(trace, call, contentItem{}))
 		}
 	}
+
 	sort.Slice(trace.Events, func(i, j int) bool {
 		return trace.Events[i].Seq < trace.Events[j].Seq
 	})
+
 	for i := range trace.Events {
 		trace.Events[i].Seq = i
 	}
+
 	trace.Session.EventCount = len(trace.Events)
 	// Claude Code tool results carry an is_error flag set by the harness.
 	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilitySignals{Errors: model.ObservabilityExact})
+
 	if !recognized {
 		return nil, adapter.NotRecognizedErr("Claude Code", path)
 	}
+
 	return trace, err
 }
 
@@ -283,19 +326,25 @@ func (c *contentList) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || string(data) == "null" {
 		return nil
 	}
+
 	if data[0] == '"' {
 		var s string
 		if err := json.Unmarshal(data, &s); err != nil {
 			return err
 		}
+
 		c.Items = []contentItem{{Type: "text", Text: s}}
+
 		return nil
 	}
+
 	var items []contentItem
 	if err := json.Unmarshal(data, &items); err != nil {
 		return err
 	}
+
 	c.Items = items
+
 	return nil
 }
 
@@ -312,21 +361,25 @@ type contentItem struct {
 
 func countToolUses(content contentList) int {
 	count := 0
+
 	for _, item := range content.Items {
 		if item.Type == "tool_use" {
 			count++
 		}
 	}
+
 	return count
 }
 
 func userMessageText(content contentList) string {
 	var parts []string
+
 	for _, item := range content.Items {
 		if item.Type == "text" && strings.TrimSpace(item.Text) != "" {
 			parts = append(parts, strings.TrimSpace(item.Text))
 		}
 	}
+
 	return strings.Join(parts, "\n")
 }
 
@@ -334,14 +387,17 @@ func hasUserMessage(content contentList) bool {
 	if len(content.Items) == 0 {
 		return false
 	}
+
 	for _, item := range content.Items {
 		if item.Type == "tool_result" {
 			return false
 		}
+
 		if item.Type == "text" && strings.TrimSpace(item.Text) != "" {
 			return true
 		}
 	}
+
 	return true
 }
 
@@ -349,13 +405,16 @@ func applyLineMeta(trace *model.Trace, line rawLine) {
 	if line.SessionID != "" {
 		trace.Session.ID = line.SessionID
 	}
+
 	if line.Cwd != "" && trace.Session.Cwd == "" {
 		trace.Session.Cwd = line.Cwd
 	}
+
 	if line.Timestamp != "" {
 		if trace.Session.StartedAt == "" {
 			trace.Session.StartedAt = line.Timestamp
 		}
+
 		trace.Session.EndedAt = line.Timestamp
 	}
 }
@@ -368,6 +427,7 @@ func isClaudeLine(line rawLine) bool {
 	if line.SessionID != "" {
 		return true
 	}
+
 	switch line.Type {
 	case "user", "assistant", "system", "ai-title":
 		return line.Timestamp != "" || len(line.Message) > 0

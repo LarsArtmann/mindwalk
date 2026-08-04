@@ -11,7 +11,7 @@ package crush
 
 import (
 	"database/sql"
-	"fmt"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -91,15 +91,19 @@ func (a Adapter) Close() error {
 	if a.dbCache == nil {
 		return nil
 	}
+
 	var firstErr error
+
 	a.dbCache.Range(func(_, value any) bool {
 		if db, ok := value.(*sql.DB); ok && db != nil {
 			if err := db.Close(); err != nil && firstErr == nil {
 				firstErr = err
 			}
 		}
+
 		return true
 	})
+
 	return firstErr
 }
 
@@ -114,9 +118,11 @@ func DefaultDir() string {
 	if env := os.Getenv("CRUSH_GLOBAL_DATA"); env != "" {
 		return env
 	}
+
 	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
 		return filepath.Join(xdg, appName)
 	}
+
 	if runtime.GOOS == "windows" {
 		local := os.Getenv("LOCALAPPDATA")
 		if local == "" {
@@ -124,13 +130,16 @@ func DefaultDir() string {
 				local = filepath.Join(home, "AppData", "Local")
 			}
 		}
+
 		if local != "" {
 			return filepath.Join(local, appName)
 		}
 	}
+
 	if home, err := os.UserHomeDir(); err == nil {
 		return filepath.Join(home, ".local", "share", appName)
 	}
+
 	return ""
 }
 
@@ -148,17 +157,20 @@ func (a Adapter) SessionDir() string {
 	if a.Dir != "" {
 		return a.Dir
 	}
+
 	workdir := a.WorkingDir
 	if workdir == "" {
 		if cwd, err := os.Getwd(); err == nil {
 			workdir = cwd
 		}
 	}
+
 	if workdir != "" {
 		if resolved := lookupProjectDataDir(workdir); resolved != "" {
 			return resolved
 		}
 	}
+
 	return DefaultDir()
 }
 
@@ -169,6 +181,7 @@ func (a Adapter) dbPath() string {
 	if dir == "" {
 		return ""
 	}
+
 	return filepath.Join(dir, dbName)
 }
 
@@ -181,17 +194,21 @@ func lookupProjectDataDir(dir string) string {
 	if dir == "" {
 		return ""
 	}
+
 	boundary := projectBoundary(dir)
+
 	current := dir
 	for {
 		candidate := filepath.Join(current, dataDirName)
 		if isCrushDataDir(candidate) {
 			return candidate
 		}
+
 		parent := filepath.Dir(current)
 		if parent == current || (boundary != "" && current == boundary) {
 			return ""
 		}
+
 		current = parent
 	}
 }
@@ -204,7 +221,9 @@ func isCrushDataDir(dir string) bool {
 	if dir == "" {
 		return false
 	}
+
 	info, err := os.Stat(filepath.Join(dir, dbName))
+
 	return err == nil && !info.IsDir()
 }
 
@@ -217,13 +236,16 @@ func projectBoundary(dir string) string {
 	if dir == "" {
 		return ""
 	}
+
 	if root := worktreeRoot(dir); root != "" {
 		return root
 	}
+
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return dir
 	}
+
 	return abs
 }
 
@@ -244,29 +266,35 @@ func worktreeRoot(dir string) string {
 			return s
 		}
 	}
+
 	root := computeWorktreeRoot(dir)
 	worktreeRootCache.Store(dir, root)
+
 	return root
 }
 
 func computeWorktreeRoot(dir string) string {
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
 	cmd.Dir = dir
+
 	out, err := cmd.Output()
 	if err != nil {
 		return ""
 	}
+
 	root := strings.TrimSpace(string(out))
 	if root == "" {
 		return ""
 	}
+
 	if abs, err := filepath.Abs(root); err == nil {
 		return abs
 	}
+
 	return root
 }
 
 // errDBUnavailable is returned by Parse/Summarize when the database
 // is missing or unreadable. Callers fall back to "no sessions" when
 // the same condition is observed during ListSessions.
-var errDBUnavailable = fmt.Errorf("crush database not available")
+var errDBUnavailable = errors.New("crush database not available")

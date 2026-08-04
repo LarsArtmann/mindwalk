@@ -16,7 +16,14 @@ interface ViewPanelProps {
 // pop content for the dock's scene section: how the stage renders. Future
 // layer toggles (line-level lights, trail length, floor contrast) join this
 // panel instead of growing the strip.
-export function ViewPanel({ view, onViewChange, note, locked = false, heatMode = false, onHeatModeChange }: ViewPanelProps) {
+export function ViewPanel({
+  view,
+  onViewChange,
+  note,
+  locked = false,
+  heatMode = false,
+  onHeatModeChange,
+}: ViewPanelProps) {
   return (
     // toggle buttons rather than a radiogroup: the full radio pattern would
     // demand roving tabindex + arrow-key navigation these buttons don't have

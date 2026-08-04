@@ -46,7 +46,9 @@ func BuildRubricInput(trace *model.Trace) string {
 
 func buildDocument(trace *model.Trace, keep []userMessage) string {
 	var b strings.Builder
+
 	sess := trace.Session
+
 	b.WriteString("# Session under evaluation\n\n")
 	fmt.Fprintf(&b, "- harness: %s  model: %s\n", sess.Harness, orUnknown(sess.Model))
 	fmt.Fprintf(&b, "- cwd: %s  events: %d\n", sess.Cwd, sess.EventCount)
@@ -55,6 +57,7 @@ func buildDocument(trace *model.Trace, keep []userMessage) string {
 	writeMessages(&b, keep)
 	writeStats(&b, trace.Stats)
 	writeNarrative(&b, trace)
+
 	return b.String()
 }
 
@@ -63,6 +66,7 @@ func buildDocument(trace *model.Trace, keep []userMessage) string {
 // or stats change, so freshness checks see every input the judge saw.
 func InputDigest(trace *model.Trace) string {
 	sum := sha256.Sum256([]byte(BuildInput(trace)))
+
 	return hex.EncodeToString(sum[:])
 }
 
@@ -79,10 +83,12 @@ type userMessage struct {
 // evidence document, before the rendering budget is applied.
 func filteredUserMessages(marks []model.Mark) []userMessage {
 	var messages []userMessage
+
 	for _, mark := range marks {
 		if mark.Type != "user-message" {
 			continue
 		}
+
 		text := strings.TrimSpace(mark.Note)
 		// Adapters already drop injected wrappers before marks exist; the
 		// re-check here keeps judge input clean even for traces built by
@@ -90,8 +96,10 @@ func filteredUserMessages(marks []model.Mark) []userMessage {
 		if text == "" || adapter.InjectedUserMessage(text) {
 			continue
 		}
+
 		messages = append(messages, userMessage{ordinal: len(messages) + 1, seq: mark.Seq, text: text})
 	}
+
 	return messages
 }
 
@@ -101,6 +109,7 @@ func budgetMessages(messages []userMessage, budget int) []userMessage {
 	if len(messages) > budget {
 		messages = append([]userMessage{messages[0]}, messages[len(messages)-(budget-1):]...)
 	}
+
 	return messages
 }
 
@@ -118,15 +127,19 @@ func taskMessages(marks []model.Mark) []userMessage {
 
 func writeMessages(b *strings.Builder, keep []userMessage) {
 	b.WriteString("## User messages (the task; later ones are follow-ups/corrections)\n\n")
+
 	if len(keep) == 0 {
 		b.WriteString("(no user message text available)\n\n")
+
 		return
 	}
+
 	previous := 0
 	for _, message := range keep {
 		if message.ordinal != previous+1 {
 			fmt.Fprintf(b, "…%d intermediate user messages omitted.\n\n", message.ordinal-previous-1)
 		}
+
 		previous = message.ordinal
 		fmt.Fprintf(b, "[user #%d] %s\n\n", message.ordinal, truncateRunes(message.text, maxUserMessageLen))
 	}
@@ -139,6 +152,7 @@ func taskTextRunes(marks []model.Mark) int {
 	for _, message := range taskMessages(marks) {
 		total += len([]rune(message.text))
 	}
+
 	return total
 }
 
@@ -146,6 +160,7 @@ func taskTextRunes(marks []model.Mark) int {
 func taskSection(marks []model.Mark) string {
 	var b strings.Builder
 	writeMessages(&b, taskMessages(marks))
+
 	return b.String()
 }
 
@@ -160,15 +175,18 @@ func TaskDigest(trace *model.Trace, source string) string {
 		source,
 		strconv.Itoa(RubricPromptVersion),
 	}, "\n")))
+
 	return hex.EncodeToString(sum[:])
 }
 
 func writeStats(b *strings.Builder, stats model.Stats) {
 	b.WriteString("## Deterministic stats (precomputed, trust these numbers)\n\n")
+
 	encoded, err := json.MarshalIndent(stats, "", " ")
 	if err != nil {
 		encoded = []byte("{}")
 	}
+
 	b.WriteString("```json\n")
 	b.Write(encoded)
 	b.WriteString("\n```\n\n")
@@ -176,39 +194,49 @@ func writeStats(b *strings.Builder, stats model.Stats) {
 
 func writeNarrative(b *strings.Builder, trace *model.Trace) {
 	b.WriteString("## Event narrative (seq | action | targets | summary; ERR = tool errored)\n\n")
+
 	marksBySeq := map[int][]string{}
 	for _, mark := range trace.Marks {
 		marksBySeq[mark.Seq] = append(marksBySeq[mark.Seq], mark.Type)
 	}
+
 	seqs := make([]int, 0, len(marksBySeq))
 	for seq := range marksBySeq {
 		seqs = append(seqs, seq)
 	}
+
 	sort.Ints(seqs)
 
 	for i, event := range trace.Events {
 		if i >= maxNarrativeEvents {
 			fmt.Fprintf(b, "…%d later events omitted.\n", len(trace.Events)-maxNarrativeEvents)
+
 			break
 		}
+
 		for _, markType := range marksBySeq[event.Seq] {
 			fmt.Fprintf(b, "--- mark: %s ---\n", markType)
 		}
+
 		paths := make([]string, 0, 3)
 		for _, target := range event.Targets {
 			if len(paths) == 3 {
 				break
 			}
+
 			paths = append(paths, target.Path)
 		}
+
 		pathList := "-"
 		if len(paths) > 0 {
 			pathList = strings.Join(paths, ",")
 		}
+
 		errFlag := ""
 		if event.IsError {
 			errFlag = " ERR"
 		}
+
 		fmt.Fprintf(
 			b,
 			"%d | %s%s | %s | %s\n",
@@ -237,5 +265,6 @@ func orUnknown(s string) string {
 	if s == "" {
 		return "?"
 	}
+
 	return s
 }

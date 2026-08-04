@@ -115,24 +115,39 @@ export function Timeline({
     const timer = window.setInterval(() => {
       if (seqRef.current >= maxRef.current) {
         if (looping) {
-          const loopFrom = zoomStart > 0.001 ? Math.round(zoomStart * maxRef.current) : 0;
+          const loopFrom =
+            zoomStart > 0.001 ? Math.round(zoomStart * maxRef.current) : 0;
           onChange(loopFrom);
           return;
         }
         setPlaying(false);
         return;
       }
-      const loopTo = zoomEnd < 0.999 ? Math.min(maxRef.current, Math.round(zoomEnd * maxRef.current)) : maxRef.current;
+      const loopTo =
+        zoomEnd < 0.999
+          ? Math.min(maxRef.current, Math.round(zoomEnd * maxRef.current))
+          : maxRef.current;
       const next = seqRef.current + step;
       if (next > loopTo && looping) {
-        const loopFrom = zoomStart > 0.001 ? Math.round(zoomStart * maxRef.current) : 0;
+        const loopFrom =
+          zoomStart > 0.001 ? Math.round(zoomStart * maxRef.current) : 0;
         onChange(loopFrom);
         return;
       }
       onChange(Math.min(next, maxRef.current));
     }, interval);
     return () => window.clearInterval(timer);
-  }, [playing, speed, total, onChange, exporting, looping, zoomStart, zoomEnd, max]);
+  }, [
+    playing,
+    speed,
+    total,
+    onChange,
+    exporting,
+    looping,
+    zoomStart,
+    zoomEnd,
+    max,
+  ]);
 
   const togglePlay = useCallback(() => {
     if (!playingRef.current && seqRef.current >= maxRef.current) onChange(0);
@@ -153,7 +168,11 @@ export function Timeline({
   const jumpEvent = useCallback(
     (dir: 1 | -1, pred: (e: TraceEvent) => boolean) => {
       if (!trace) return;
-      for (let i = seqRef.current + dir; i >= 0 && i < trace.events.length; i += dir) {
+      for (
+        let i = seqRef.current + dir;
+        i >= 0 && i < trace.events.length;
+        i += dir
+      ) {
         if (pred(trace.events[i])) {
           onChange(i);
           return;
@@ -174,7 +193,9 @@ export function Timeline({
     (dir: 1 | -1) => {
       const cur = seqRef.current;
       const next =
-        dir === 1 ? markSeqs.find((s) => s > cur) : [...markSeqs].reverse().find((s) => s < cur);
+        dir === 1
+          ? markSeqs.find((s) => s > cur)
+          : [...markSeqs].reverse().find((s) => s < cur);
       if (next !== undefined) onChange(next);
     },
     [markSeqs, onChange],
@@ -187,7 +208,8 @@ export function Timeline({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const target = e.target as HTMLElement | null;
-      if (target?.closest("input, textarea, select, button, [contenteditable]")) return;
+      if (target?.closest("input, textarea, select, button, [contenteditable]"))
+        return;
       switch (e.key) {
         case " ":
           e.preventDefault();
@@ -227,7 +249,16 @@ export function Timeline({
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [trace, exporting, togglePlay, step, onChange, cycleSpeed, jumpEvent, jumpMark]);
+  }, [
+    trace,
+    exporting,
+    togglePlay,
+    step,
+    onChange,
+    cycleSpeed,
+    jumpEvent,
+    jumpMark,
+  ]);
 
   // transport + scrubber are inert with no trace, or while an export owns the playhead
   const locked = total === 0 || exporting;
@@ -305,7 +336,14 @@ export function Timeline({
       let dominant: Action = "other";
       let best = -1;
       // edits are rare but load-bearing: let them win the bucket color on ties
-      const priority: Action[] = ["edit", "verify", "read", "search", "exec", "other"];
+      const priority: Action[] = [
+        "edit",
+        "verify",
+        "read",
+        "search",
+        "exec",
+        "other",
+      ];
       for (const action of priority) {
         const count = byAction.get(action) ?? 0;
         if (count > best) {
@@ -318,7 +356,10 @@ export function Timeline({
     return out;
   }, [trace, total, zLo, zHi]);
 
-  const peak = useMemo(() => buckets.reduce((acc, b) => Math.max(acc, b.count), 1), [buckets]);
+  const peak = useMemo(
+    () => buckets.reduce((acc, b) => Math.max(acc, b.count), 1),
+    [buckets],
+  );
 
   const markGroups = useMemo<MarkGroup[]>(() => {
     if (!trace) return [];
@@ -434,11 +475,16 @@ export function Timeline({
             disabled={locked}
             onChange={(e) => onChange(Number(e.currentTarget.value))}
             aria-label="Playback position"
-            aria-valuetext={event ? `event ${event.seq}: ${event.tool}` : "empty"}
+            aria-valuetext={
+              event ? `event ${event.seq}: ${event.tool}` : "empty"
+            }
           />
         </div>
 
-        <div className="deck-pos" data-hint="Event position and wall-clock timestamp at the playhead">
+        <div
+          className="deck-pos"
+          data-hint="Event position and wall-clock timestamp at the playhead"
+        >
           {/* reserve the widest count for this session ("599 / 599") so the
               ticking digits never resize the strip beside them */}
           <span
@@ -449,7 +495,9 @@ export function Timeline({
           >
             {total > 0 ? `${seq + 1} / ${total}` : "0 / 0"}
           </span>
-          <span className="deck-pos-clock">{event?.ts ? clock(event.ts) : "—"}</span>
+          <span className="deck-pos-clock">
+            {event?.ts ? clock(event.ts) : "—"}
+          </span>
         </div>
 
         <div className="transport">
@@ -469,7 +517,11 @@ export function Timeline({
             title={playing ? "Pause (Space)" : "Play (Space)"}
             aria-label={playing ? "Pause playback" : "Play playback"}
           >
-            {playing ? <Pause size={16} /> : <Play size={16} className="play-glyph" />}
+            {playing ? (
+              <Pause size={16} />
+            ) : (
+              <Play size={16} className="play-glyph" />
+            )}
           </button>
           <button
             className="icon-btn"
@@ -498,7 +550,11 @@ export function Timeline({
           >
             <ZoomOut size={15} />
           </button>
-          <div className="transport-speed-chips" role="group" aria-label="Playback speed">
+          <div
+            className="transport-speed-chips"
+            role="group"
+            aria-label="Playback speed"
+          >
             {SPEEDS.map((s) => (
               <button
                 key={s}
@@ -516,7 +572,9 @@ export function Timeline({
             onClick={() => setLooping((v) => !v)}
             disabled={locked}
             title={looping ? "Loop on (wraps within zoom range)" : "Loop off"}
-            aria-label={looping ? "Disable loop playback" : "Enable loop playback"}
+            aria-label={
+              looping ? "Disable loop playback" : "Enable loop playback"
+            }
             aria-pressed={looping}
           >
             <Repeat size={15} />
@@ -549,7 +607,9 @@ export function Timeline({
                     {SPEEDS.map((s) => (
                       <button
                         key={s}
-                        className={s === speed ? "pop-chip engaged" : "pop-chip"}
+                        className={
+                          s === speed ? "pop-chip engaged" : "pop-chip"
+                        }
                         onClick={() => setSpeed(s)}
                         aria-pressed={s === speed}
                       >

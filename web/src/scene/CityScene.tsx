@@ -31,11 +31,12 @@ interface CitySceneProps {
 // Attention terrain: the map is a flat dark plain (fog of war); height is
 // earned by attention — touch depth × revisits — so mountains grow where the
 // walker lingered. Light is data: only touched terrain gets bright color.
-const colors: Record<Touch | "unvisited" | "ghost" | "selected", THREE.Color> = {
-  unvisited: new THREE.Color("#5b6372"),
-  ghost: new THREE.Color("#404551"),
-  ...touchColors,
-};
+const colors: Record<Touch | "unvisited" | "ghost" | "selected", THREE.Color> =
+  {
+    unvisited: new THREE.Color("#5b6372"),
+    ghost: new THREE.Color("#404551"),
+    ...touchColors,
+  };
 
 const TILE_H = 0.14;
 const LABEL_Y = 2.4;
@@ -131,7 +132,8 @@ export function CityScene({
   }, []);
 
   const bounds = useMemo(() => {
-    if (!city || city.files.length === 0) return { cx: 0, cz: 0, size: 120, halfW: 60, halfD: 60 };
+    if (!city || city.files.length === 0)
+      return { cx: 0, cz: 0, size: 120, halfW: 60, halfD: 60 };
     let minX = Infinity;
     let maxX = -Infinity;
     let minZ = Infinity;
@@ -223,7 +225,10 @@ export function CityScene({
     };
     const onPointerUp = (event: PointerEvent) => {
       if (!downAt) return;
-      const moved = Math.hypot(event.clientX - downAt.x, event.clientY - downAt.y);
+      const moved = Math.hypot(
+        event.clientX - downAt.x,
+        event.clientY - downAt.y,
+      );
       downAt = null;
       if (moved > 5) return;
       onSelect(pickFile(event)?.path);
@@ -250,7 +255,12 @@ export function CityScene({
         const meta = touch
           ? `${touchWord(touch)} · ${visits} visit${visits === 1 ? "" : "s"}`
           : touchWord(undefined);
-        tip.show(file.path, file.ghost ? `${meta} · ghost` : meta, event.clientX, event.clientY);
+        tip.show(
+          file.path,
+          file.ghost ? `${meta} · ghost` : meta,
+          event.clientX,
+          event.clientY,
+        );
       });
     };
     const onPointerLeave = () => {
@@ -334,7 +344,11 @@ export function CityScene({
       renderer.render(scene, camera);
       window.dispatchEvent(
         new CustomEvent("mindwalk:camera-state", {
-          detail: { tx: controls.target.x, tz: controls.target.z, dist: camera.position.distanceTo(controls.target) },
+          detail: {
+            tx: controls.target.x,
+            tz: controls.target.z,
+            dist: camera.position.distanceTo(controls.target),
+          },
         }),
       );
       frameRef.current = requestAnimationFrame(render);
@@ -387,14 +401,20 @@ export function CityScene({
     grid.position.y = -0.3;
     group.add(grid);
 
-    const plateDirs = city.dirs.filter((dir) => dir.depth <= 3 && dir.rect.w > 0 && dir.rect.d > 0);
+    const plateDirs = city.dirs.filter(
+      (dir) => dir.depth <= 3 && dir.rect.w > 0 && dir.rect.d > 0,
+    );
     if (plateDirs.length > 0) {
       const plateGeo = new THREE.BoxGeometry(1, 1, 1);
       const plateMat = new THREE.MeshStandardMaterial({
         roughness: 0.95,
         metalness: 0,
       });
-      const plates = new THREE.InstancedMesh(plateGeo, plateMat, plateDirs.length);
+      const plates = new THREE.InstancedMesh(
+        plateGeo,
+        plateMat,
+        plateDirs.length,
+      );
       const matrix = new THREE.Matrix4();
       const shade = new THREE.Color();
       plateDirs.forEach((dir, i) => {
@@ -410,7 +430,9 @@ export function CityScene({
           new THREE.Vector3(dir.rect.w, height, dir.rect.d),
         );
         plates.setMatrixAt(i, matrix);
-        shade.set("#1a1f29").lerp(new THREE.Color("#252b37"), Math.min(dir.depth, 3) / 3);
+        shade
+          .set("#1a1f29")
+          .lerp(new THREE.Color("#252b37"), Math.min(dir.depth, 3) / 3);
         plates.setColorAt(i, shade);
       });
       plates.instanceMatrix.needsUpdate = true;
@@ -463,7 +485,13 @@ export function CityScene({
     // range never buries the name of the district behind it
     labelSetRef.current = new DirLabelSet(
       city.dirs
-        .filter((dir) => dir.depth >= 1 && dir.fileCount > 0 && dir.rect.w > 0 && dir.rect.d > 0)
+        .filter(
+          (dir) =>
+            dir.depth >= 1 &&
+            dir.fileCount > 0 &&
+            dir.rect.w > 0 &&
+            dir.rect.d > 0,
+        )
         .map((dir) => ({
           name: dirBasename(dir.path),
           x: dir.rect.x + dir.rect.w / 2 - bounds.cx,
@@ -509,7 +537,9 @@ export function CityScene({
       const corners: THREE.Vector3[] = [];
       for (const sx of [-1, 1]) {
         for (const sz of [-1, 1]) {
-          corners.push(new THREE.Vector3(sx * bounds.halfW, 0, sz * bounds.halfD));
+          corners.push(
+            new THREE.Vector3(sx * bounds.halfW, 0, sz * bounds.halfD),
+          );
         }
       }
       const fitted = fitDistance(camera, dir, corners);
@@ -632,7 +662,9 @@ export function CityScene({
     // playback resolves fileId with the same path key the citymap uses, so a
     // target still missing one has no tile to land on
     const targetFiles = playback.recentTargets
-      .map((target) => (target.fileId !== undefined ? city.files[target.fileId] : undefined))
+      .map((target) =>
+        target.fileId !== undefined ? city.files[target.fileId] : undefined,
+      )
       .filter((file): file is CityFile => Boolean(file));
 
     const peakFor = (file: CityFile): number => {
@@ -662,7 +694,9 @@ export function CityScene({
     );
   }, [city, playback, bounds]);
 
-  return <div className="city-scene" ref={hostRef} aria-label="Attention terrain" />;
+  return (
+    <div className="city-scene" ref={hostRef} aria-label="Attention terrain" />
+  );
 }
 
 // Columns must read as phosphorescence, not paint: glow pools at the crest and
@@ -692,7 +726,10 @@ function baseColor(file: CityFile): THREE.Color {
   return colors.unvisited.clone().offsetHSL(0, 0, jitter * 0.05);
 }
 
-function centerFor(file: CityFile, bounds: { cx: number; cz: number }): THREE.Vector3 {
+function centerFor(
+  file: CityFile,
+  bounds: { cx: number; cz: number },
+): THREE.Vector3 {
   return new THREE.Vector3(
     file.rect.x + file.rect.w / 2 - bounds.cx,
     0,

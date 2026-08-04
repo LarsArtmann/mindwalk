@@ -39,9 +39,16 @@ export class DirLabelSet {
   // sprites start invisible and fade in once the first projection pass runs;
   // alwaysOnTop labels (terrain) skip the depth test so mountains never bury
   // the district names
-  constructor(entries: DirLabelEntry[], group: THREE.Group, y: number, alwaysOnTop = false) {
+  constructor(
+    entries: DirLabelEntry[],
+    group: THREE.Group,
+    y: number,
+    alwaysOnTop = false,
+  ) {
     this.y = y;
-    const budget = [...entries].sort((a, b) => b.fileCount - a.fileCount).slice(0, LABEL_BUDGET);
+    const budget = [...entries]
+      .sort((a, b) => b.fileCount - a.fileCount)
+      .slice(0, LABEL_BUDGET);
     for (const entry of budget) {
       const { texture, aspect } = labelTexture(entry.name);
       const sprite = new THREE.Sprite(
@@ -104,10 +111,18 @@ export class DirLabelSet {
       const sx = ((this.point.x + 1) / 2) * viewW;
       const sy = ((1 - this.point.y) / 2) * viewH;
       const onScreen =
-        this.point.z < 1 && sx > -60 && sx < viewW + 60 && sy > -40 && sy < viewH + 40;
+        this.point.z < 1 &&
+        sx > -60 &&
+        sx < viewW + 60 &&
+        sy > -40 &&
+        sy < viewH + 40;
       // too small to matter, or so large we're inside it — either way the
       // name would float over unrelated geometry
-      if (!onScreen || subtreePx < LABEL_MIN_SUBTREE_PX || subtreePx > maxDim * 1.6) {
+      if (
+        !onScreen ||
+        subtreePx < LABEL_MIN_SUBTREE_PX ||
+        subtreePx > maxDim * 1.6
+      ) {
         label.target = 0;
         continue;
       }
@@ -117,13 +132,17 @@ export class DirLabelSet {
       label.sprite.scale.set(worldH * label.aspect, worldH, 1);
       candidates.push({ label, sx, sy, pw: ph * label.aspect, ph });
     }
-    candidates.sort((a, b) => b.label.entry.fileCount - a.label.entry.fileCount);
+    candidates.sort(
+      (a, b) => b.label.entry.fileCount - a.label.entry.fileCount,
+    );
     const kept: Candidate[] = [];
     for (const candidate of candidates) {
       const clash = kept.some(
         (other) =>
-          Math.abs(other.sx - candidate.sx) < (other.pw + candidate.pw) / 2 + 14 &&
-          Math.abs(other.sy - candidate.sy) < (other.ph + candidate.ph) / 2 + 10,
+          Math.abs(other.sx - candidate.sx) <
+            (other.pw + candidate.pw) / 2 + 14 &&
+          Math.abs(other.sy - candidate.sy) <
+            (other.ph + candidate.ph) / 2 + 10,
       );
       candidate.label.target = clash ? 0 : 1;
       if (!clash) kept.push(candidate);
@@ -136,7 +155,9 @@ export class DirLabelSet {
       const material = label.sprite.material as THREE.SpriteMaterial;
       const diff = label.target - material.opacity;
       if (Math.abs(diff) > 0.02) {
-        material.opacity = reduced ? label.target : material.opacity + diff * 0.16;
+        material.opacity = reduced
+          ? label.target
+          : material.opacity + diff * 0.16;
       } else if (material.opacity !== label.target) {
         material.opacity = label.target;
       }

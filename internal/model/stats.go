@@ -32,10 +32,13 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 
 	for _, event := range trace.Events {
 		countAction(&stats.Actions, event.Action)
+
 		if event.IsError {
 			errors++
+
 			countAction(&stats.Errors, event.Action)
 		}
+
 		stats.ResultBytes += int64(event.ResultBytes)
 		switch event.Action {
 		case "verify":
@@ -43,27 +46,35 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 		case "edit":
 			stats.EditsAfterLastVerify++
 		}
+
 		for _, target := range event.Targets {
 			if target.Path == "" {
 				continue
 			}
+
 			prev := state[target.Path]
 			if RankTouch(target.Touch) > RankTouch(prev) {
 				state[target.Path] = target.Touch
 			}
+
 			if target.Touch == "edit" {
 				editVersion[target.Path]++
 			}
+
 			if target.Touch == "read" {
 				readEvents++
+
 				if target.Weak {
 					weakReads++
 				}
+
 				if version, ok := lastReadVersion[target.Path]; ok && version == editVersion[target.Path] {
 					repeatedReads++
 				}
+
 				lastReadVersion[target.Path] = editVersion[target.Path]
 			}
+
 			if target.Touch == "edit" && firstEdit == -1 {
 				firstEdit = event.Seq
 			}
@@ -87,14 +98,17 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 			stats.Parafovea++
 		}
 	}
+
 	for _, count := range editVersion {
 		if count > stats.MaxEditsPerFile {
 			stats.MaxEditsPerFile = count
 		}
+
 		if count >= 3 {
 			stats.ChurnFiles++
 		}
 	}
+
 	for _, mark := range trace.Marks {
 		switch mark.Type {
 		case "user-message":
@@ -105,9 +119,11 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 			stats.Subagents++
 		}
 	}
+
 	if readEvents > 0 {
 		stats.RegressionRate = float64(repeatedReads) / float64(readEvents)
 	}
+
 	if len(trace.Events) > 0 {
 		stats.ErrorRate = float64(errors) / float64(len(trace.Events))
 	}
@@ -125,12 +141,16 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 			readsSignal = ObservabilityEstimated
 		}
 	}
+
 	stats.Observability.Reads = readsSignal
+
 	errorSignal := signals.Errors
 	if errorSignal == "" {
 		errorSignal = ObservabilityEstimated
 	}
+
 	stats.Observability.Errors = errorSignal
+
 	return stats
 }
 

@@ -32,13 +32,16 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 		if session.Harness != harnessName || session.Agent == nil || session.Path == "" {
 			continue
 		}
+
 		paths[session.Path] = true
 	}
+
 	for _, dbPath := range a.enumerateDBPaths() {
 		db, err := openReadOnlyAt(dbPath)
 		if err != nil || db == nil {
 			continue
 		}
+
 		if rows, err := db.db.Query(buildAllSessionsQuery(db.cols)); err == nil {
 			for rows.Next() {
 				meta, err := scanSessionMeta(rows)
@@ -46,15 +49,20 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 					paths[meta.Path] = true
 				}
 			}
+
 			_ = rows.Close()
 		}
+
 		_ = db.close()
 	}
+
 	inputs := make([]string, 0, len(paths))
 	for path := range paths {
 		inputs = append(inputs, path)
 	}
+
 	sort.Strings(inputs)
+
 	return inputs, nil
 }
 
@@ -89,11 +97,13 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 	}
 
 	childrenByParent := indexChildrenByParent(catalog)
+
 	if extras, err := a.loadAgentChildren(); err == nil {
 		for _, child := range extras {
 			childrenByParent[child.Agent.RootSessionID] = append(childrenByParent[child.Agent.RootSessionID], child)
 		}
 	}
+
 	launches, err := a.readAgentLaunches(root.Path)
 	if err != nil {
 		return nil, err
@@ -101,29 +111,35 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 	addedNodes := map[string]bool{mainID: true}
 	visitedSessions := map[string]bool{root.Key: true}
+
 	queue := []crushGraphActor{{Session: root, NodeID: mainID, SourceID: root.ID}}
 	for len(queue) > 0 {
 		actor := queue[0]
 		queue = queue[1:]
 
 		linkedChildren := make(map[string]bool)
+
 		for _, launch := range launches {
 			output, hasIdentity := parseCrushLaunchOutput(launch.Output)
 			if hasIdentity && output.AgentID != "" {
 				var child *model.SessionMeta
+
 				for i := range childrenByParent[actor.SourceID] {
 					candidate := &childrenByParent[actor.SourceID][i]
 					if candidate.Agent != nil && candidate.Agent.SourceID == output.AgentID &&
 						!visitedSessions[candidate.Key] {
 						child = candidate
+
 						break
 					}
 				}
+
 				node := exactCrushAgentNode(harnessName, root.Key, actor, launch, output, child)
 				if !addedNodes[node.ID] {
 					graph.Agents = append(graph.Agents, node)
 					addedNodes[node.ID] = true
 				}
+
 				if child != nil {
 					linkedChildren[child.Key] = true
 					visitedSessions[child.Key] = true
@@ -134,8 +150,10 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 						SourceID: child.Agent.SourceID,
 					})
 				}
+
 				continue
 			}
+
 			node := unlinkedCrushLaunchNode(harnessName, root.Key, actor, launch)
 			if !addedNodes[node.ID] {
 				graph.Agents = append(graph.Agents, node)
@@ -153,10 +171,12 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 			if linkedChildren[child.Key] || visitedSessions[child.Key] {
 				continue
 			}
+
 			node := derivedCrushAgentNode(harnessName, root.Key, actor, child)
 			if addedNodes[node.ID] {
 				continue
 			}
+
 			graph.Agents = append(graph.Agents, node)
 			addedNodes[node.ID] = true
 			visitedSessions[child.Key] = true
@@ -170,6 +190,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 	}
 
 	graph.Agents = adapter.OrderAgentNodesPreorder(graph.Agents)
+
 	return graph, nil
 }
 
@@ -180,28 +201,35 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 // in is the source of truth, this is just a supplement.
 func (a Adapter) loadAgentChildren() ([]model.SessionMeta, error) {
 	var children []model.SessionMeta
+
 	for _, dbPath := range a.enumerateDBPaths() {
 		db, err := openReadOnlyAt(dbPath)
 		if err != nil || db == nil {
 			continue
 		}
+
 		rows, err := db.db.Query(buildAllSessionsQuery(db.cols))
 		if err != nil {
 			_ = db.close()
+
 			continue
 		}
+
 		for rows.Next() {
 			meta, err := scanSessionMeta(rows)
 			if err != nil {
 				continue
 			}
+
 			if meta.Agent != nil {
 				children = append(children, meta)
 			}
 		}
+
 		_ = rows.Close()
 		_ = db.close()
 	}
+
 	return children, nil
 }
 
@@ -211,17 +239,21 @@ func (a Adapter) loadAgentChildren() ([]model.SessionMeta, error) {
 // id directly, unlike codex, so no SourceID translation is required.
 func indexChildrenByParent(catalog []model.SessionMeta) map[string][]model.SessionMeta {
 	childrenByParent := make(map[string][]model.SessionMeta)
+
 	for _, session := range catalog {
 		if session.Agent == nil || session.Agent.RootSessionID == "" || session.Harness != harnessName {
 			continue
 		}
+
 		childrenByParent[session.Agent.RootSessionID] = append(childrenByParent[session.Agent.RootSessionID], session)
 	}
+
 	for parent := range childrenByParent {
 		sort.Slice(childrenByParent[parent], func(i, j int) bool {
 			return childrenByParent[parent][i].Key < childrenByParent[parent][j].Key
 		})
 	}
+
 	return childrenByParent
 }
 
@@ -236,6 +268,7 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	if path == "" {
 		return nil, nil
 	}
+
 	sessionID, _, ok := splitSessionID(path)
 	if !ok {
 		return nil, nil
@@ -245,6 +278,7 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if db == nil {
 		return nil, nil
 	}
@@ -261,11 +295,21 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	seenCalls := make(map[string]bool)
 	seenResults := make(map[string]bool)
 	seq := 0
+
 	for rows.Next() {
 		var msg messageRow
-		if err := rows.Scan(&msg.ID, &msg.Role, &msg.Parts, &msg.Model, &msg.Provider, &msg.CreatedAt, &msg.FinishedAt); err != nil {
+		if err := rows.Scan(
+			&msg.ID,
+			&msg.Role,
+			&msg.Parts,
+			&msg.Model,
+			&msg.Provider,
+			&msg.CreatedAt,
+			&msg.FinishedAt,
+		); err != nil {
 			return nil, err
 		}
+
 		parsed, err := decodeParts(msg.Parts, "")
 		if err != nil {
 			continue
@@ -277,9 +321,11 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 			if call.Name != "agent" || call.ID == "" {
 				continue
 			}
+
 			if seenCalls[call.ID] {
 				continue
 			}
+
 			seenCalls[call.ID] = true
 			launchByCallID[call.ID] = len(launches)
 			launches = append(launches, adapter.AgentLaunch{
@@ -297,18 +343,23 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 			if callID == "" || seenResults[callID] {
 				continue
 			}
+
 			seenResults[callID] = true
+
 			idx, ok := launchByCallID[callID]
 			if !ok {
 				continue
 			}
+
 			launches[idx].Output = result.Content
 			launches[idx].OutputObserved = true
 		}
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+
 	return launches, nil
 }
 
@@ -317,10 +368,12 @@ func parseCrushLaunchOutput(raw string) (adapter.AgentLaunchOutput, bool) {
 	if trimmed == "" {
 		return adapter.AgentLaunchOutput{}, false
 	}
+
 	var output adapter.AgentLaunchOutput
 	if err := json.Unmarshal([]byte(trimmed), &output); err != nil {
 		return adapter.AgentLaunchOutput{}, false
 	}
+
 	return output, output.AgentID != "" || output.Nickname != "" || output.TaskName != ""
 }
 
@@ -332,6 +385,7 @@ func exactCrushAgentNode(
 	child *model.SessionMeta,
 ) model.AgentNode {
 	seq := launch.Seq
+
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+output.AgentID),
 		ParentID:           actor.NodeID,
@@ -350,15 +404,19 @@ func exactCrushAgentNode(
 	if child != nil {
 		node.TraceAvailability = model.TraceAvailabilityAvailable
 		node.TraceSessionKey = child.Key
+
 		node.TraceEventCount = child.EventCount
 		if child.Agent != nil {
 			node.Depth = crushChildDepth(child.Agent.Depth, actor.Depth)
 		}
+
 		if child.Title != "" {
 			node.Label = child.Title
 		}
 	}
+
 	adapter.ApplyLaunchNickname(&node, output)
+
 	return node
 }
 
@@ -368,6 +426,7 @@ func unlinkedCrushLaunchNode(
 	launch adapter.AgentLaunch,
 ) model.AgentNode {
 	seq := launch.Seq
+
 	return model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+launch.CallID),
 		ParentID:           actor.NodeID,
@@ -402,6 +461,7 @@ func derivedCrushAgentNode(harness, rootKey string, actor crushGraphActor, child
 		LaunchCallID:      child.Agent.LaunchCallID,
 	}
 	adapter.ApplySubagentLabel(&node)
+
 	return node
 }
 
@@ -412,6 +472,7 @@ func crushChildDepth(recorded, parentDepth int) int {
 	if recorded > 0 {
 		return recorded
 	}
+
 	return parentDepth + 1
 }
 
@@ -421,10 +482,12 @@ func agentArgument(input map[string]any, key string) string {
 	if v, ok := input[key].(string); ok {
 		return strings.TrimSpace(v)
 	}
+
 	for _, alias := range []string{"task_title", "title", "description", "message"} {
 		if v, ok := input[alias].(string); ok && strings.TrimSpace(v) != "" {
 			return strings.TrimSpace(v)
 		}
 	}
+
 	return ""
 }

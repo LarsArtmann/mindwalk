@@ -19,13 +19,16 @@ func TestDecodePartsReasoning(t *testing.T) {
 		},
 		map[string]any{"type": "text", "data": map[string]any{"text": "Doing the thing."}},
 	)
+
 	result, err := decodeParts(raw, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if result.text != "Doing the thing." {
 		t.Fatalf("text = %q", result.text)
 	}
+
 	if len(result.events) != 0 {
 		t.Fatalf("reasoning should not emit events, got %+v", result.events)
 	}
@@ -39,13 +42,16 @@ func TestDecodePartsFinishStopSetsUserFinish(t *testing.T) {
 		map[string]any{"type": "text", "data": map[string]any{"text": "ship the fix"}},
 		map[string]any{"type": "finish", "data": map[string]any{"reason": "stop", "time": 0}},
 	)
+
 	result, err := decodeParts(raw, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if !result.userFinish {
 		t.Fatalf("userFinish = false, want true for finish.reason=stop")
 	}
+
 	if result.text != "ship the fix" {
 		t.Fatalf("text = %q", result.text)
 	}
@@ -61,10 +67,12 @@ func TestDecodePartsFinishOtherReasonsIgnored(t *testing.T) {
 				map[string]any{"type": "text", "data": map[string]any{"text": "irrelevant"}},
 				map[string]any{"type": "finish", "data": map[string]any{"reason": reason}},
 			)
+
 			result, err := decodeParts(raw, "")
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			if result.userFinish {
 				t.Fatalf("userFinish = true for reason %q, want false", reason)
 			}
@@ -84,22 +92,28 @@ func TestDecodePartsShellCommandEmitsExecEvent(t *testing.T) {
 			"exit_code": 0,
 		}},
 	)
+
 	result, err := decodeParts(raw, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(result.events) != 1 {
 		t.Fatalf("events = %d, want 1 (shell_command → bash exec)", len(result.events))
 	}
+
 	if result.events[0].Name != "bash" {
 		t.Fatalf("tool name = %q, want bash", result.events[0].Name)
 	}
+
 	if result.events[0].Input["command"] != "ls -la" {
 		t.Fatalf("command = %v", result.events[0].Input["command"])
 	}
+
 	if len(result.results) != 1 || result.results[0].Content != "total 0\n" {
 		t.Fatalf("results = %+v", result.results)
 	}
+
 	if result.results[0].IsError {
 		t.Fatalf("exit code 0 should not be an error")
 	}
@@ -122,13 +136,16 @@ func TestDecodePartsShellCommandDeduplicatedWithBash(t *testing.T) {
 			"exit_code": 0,
 		}},
 	)
+
 	result, err := decodeParts(raw, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(result.events) != 1 {
 		t.Fatalf("events = %d, want 1 (deduplicated)", len(result.events))
 	}
+
 	if result.events[0].ID != "call-1" {
 		t.Fatalf("event ID = %q, want call-1 (tool call wins)", result.events[0].ID)
 	}
@@ -146,10 +163,12 @@ func TestDecodePartsImageAndBinaryAreDropped(t *testing.T) {
 			"data": map[string]any{"data": "AAA=", "mime_type": "application/octet-stream"},
 		},
 	)
+
 	result, err := decodeParts(raw, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(result.events) != 0 || result.text != "" {
 		t.Fatalf("image/binary should produce no output, got %+v", result)
 	}
@@ -163,10 +182,12 @@ func TestDecodePartsUnknownTypeIgnored(t *testing.T) {
 		map[string]any{"type": "totally_new_part", "data": map[string]any{"anything": "goes"}},
 		map[string]any{"type": "text", "data": map[string]any{"text": "survives"}},
 	)
+
 	result, err := decodeParts(raw, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if result.text != "survives" {
 		t.Fatalf("text after unknown part = %q", result.text)
 	}
@@ -192,6 +213,7 @@ func TestDecodePartsEmptyAndNullParts(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+
 			if result.text != "" || len(result.events) != 0 {
 				t.Fatalf("expected empty result, got %+v", result)
 			}
@@ -207,14 +229,17 @@ func TestDecodePartsToolCallWithoutIDDropped(t *testing.T) {
 		{"type": "tool_call", "data": map[string]any{"name": "view", "input": "{}"}},
 		{"type": "tool_call", "data": map[string]any{"id": "missing-name", "input": "{}"}},
 	}
+
 	encoded, err := json.Marshal(cases)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	result, err := decodeParts(string(encoded), "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(result.events) != 0 {
 		t.Fatalf("malformed tool_call should be dropped, got %+v", result.events)
 	}
@@ -227,10 +252,12 @@ func TestDecodePartsToolResultWithoutIDDropped(t *testing.T) {
 	raw := writeParts(t,
 		map[string]any{"type": "tool_result", "data": map[string]any{"content": "stray"}},
 	)
+
 	result, err := decodeParts(raw, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(result.events) != 0 || len(result.results) != 0 {
 		t.Fatalf("expected empty result, got %+v", result)
 	}
@@ -255,16 +282,20 @@ func TestDecodePartsToolCallIDCollision(t *testing.T) {
 			"tool_call_id": "shared", "content": "second result",
 		}},
 	)
+
 	result, err := decodeParts(raw, "")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if len(result.events) != 1 {
 		t.Fatalf("events = %d, want 1 (id collision merges)", len(result.events))
 	}
+
 	if result.events[0].Input["file_path"] != "b.go" {
 		t.Fatalf("latest call wins, got file_path = %q", result.events[0].Input["file_path"])
 	}
+
 	if len(result.results) != 1 || result.results[0].Content != "second result" {
 		t.Fatalf("results = %+v", result.results)
 	}
@@ -279,10 +310,12 @@ func TestParseCrushInputNestedString(t *testing.T) {
 	// returns a Go string, which the parser then re-parses to
 	// recover the inner object.
 	inner := `{"file_path":"internal/server/server.go","limit":50}`
+
 	wrapped, err := json.Marshal(inner)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	got := parseCrushInput(string(wrapped))
 	if got["file_path"] != "internal/server/server.go" {
 		t.Fatalf("nested JSON not peeled, got %+v", got)
@@ -294,6 +327,7 @@ func TestParseCrushInputNestedString(t *testing.T) {
 // map[string]any containing the original raw string under "_raw".
 func TestParseCrushInputMalformedFallsBackToRaw(t *testing.T) {
 	raw := "not json {"
+
 	got := parseCrushInput(raw)
 	if got["_raw"] != raw {
 		t.Fatalf("expected _raw = %q, got %+v", raw, got)
@@ -333,6 +367,7 @@ func TestSplitAgentIDRoundTrip(t *testing.T) {
 	if !ok || msg != "msg-1" || call != "call-1" {
 		t.Fatalf("split = (%q, %q, %v)", msg, call, ok)
 	}
+
 	bad := []string{"", "$$", "a$$", "$$b", "no-separator"}
 	for _, b := range bad {
 		if _, _, ok := splitAgentID(b); ok {
@@ -351,6 +386,7 @@ func TestSplitSessionIDAcceptsBothFormats(t *testing.T) {
 			t.Fatalf("input %q -> (%q, %v)", input, id, ok)
 		}
 	}
+
 	if _, _, ok := splitSessionID(""); ok {
 		t.Fatalf("empty input should fail")
 	}
@@ -366,10 +402,12 @@ func TestSessionPathRoundTrip(t *testing.T) {
 		if !IsSessionPath(got) {
 			t.Fatalf("IsSessionPath(%q) = false", got)
 		}
+
 		if extracted := SessionIDFromPath(got); extracted != id {
 			t.Fatalf("SessionIDFromPath(%q) = %q, want %q", got, extracted, id)
 		}
 	}
+
 	if IsSessionPath("not a crush path") {
 		t.Fatalf("non-crush path should fail IsSessionPath")
 	}

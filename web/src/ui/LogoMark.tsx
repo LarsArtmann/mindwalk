@@ -4,7 +4,13 @@
 // Colors are literal so the mark stays identical to the favicon and README asset.
 export function LogoMark({ size = 22 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 64 64" width={size} height={size} aria-hidden focusable="false">
+    <svg
+      viewBox="0 0 64 64"
+      width={size}
+      height={size}
+      aria-hidden
+      focusable="false"
+    >
       <defs>
         <radialGradient id="logo-halo">
           <stop offset="0%" stopColor="#f1aa57" stopOpacity="0.55" />

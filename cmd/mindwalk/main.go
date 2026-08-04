@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -32,6 +33,7 @@ func run(args []string) error {
 	if len(args) == 0 {
 		return serve(args)
 	}
+
 	switch args[0] {
 	case "serve":
 		return serve(args[1:])
@@ -55,6 +57,7 @@ func run(args []string) error {
 		return manageCache(args[1:])
 	case "-h", "--help", "help":
 		usage()
+
 		return nil
 	default:
 		return fmt.Errorf("unknown command %q", args[0])
@@ -79,20 +82,25 @@ func bindServeFlags(fs *flag.FlagSet, withDev bool) *serveFlags {
 	sf := &serveFlags{}
 	fs.IntVar(&sf.port, "port", 0, "port to bind")
 	fs.StringVar(&sf.host, "host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
+
 	sf.adapter = parseAdapterFlags(fs)
 	if withDev {
 		fs.BoolVar(&sf.dev, "dev", false, "prefer web/dist from the working tree")
 	}
+
 	fs.BoolVar(&sf.noOpen, "no-open", false, "serve without opening a browser")
+
 	return sf
 }
 
 func serve(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
+
 	sf := bindServeFlags(fs, true)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
 	return server.New(serverConfigFromServeFlags(sf)).Start(!sf.noOpen)
 }
 
@@ -105,6 +113,7 @@ func open(args []string) error {
 		func(sf *serveFlags, target string) server.Config {
 			cfg := serverConfigFromServeFlags(sf)
 			cfg.OpenSession = target
+
 			return cfg
 		},
 	)
@@ -120,6 +129,7 @@ func openMap(args []string) error {
 			cfg := serverConfigFromServeFlags(sf)
 			cfg.RepoRoot = target
 			cfg.MapOnly = true
+
 			return cfg
 		},
 	)
@@ -138,23 +148,29 @@ func openSingle(
 	build func(sf *serveFlags, target string) server.Config,
 ) error {
 	fs := flag.NewFlagSet(name, flag.ExitOnError)
+
 	sf := bindServeFlags(fs, withDev)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
 	if fs.NArg() != 1 {
 		fmt.Fprintln(os.Stderr, usage)
+
 		return fmt.Errorf("usage: mindwalk %s <argument>", name)
 	}
+
 	target, err := filepath.Abs(fs.Arg(0))
 	if err != nil {
 		return err
 	}
+
 	return server.New(build(sf, target)).Start(!sf.noOpen)
 }
 
 func serverConfigFromServeFlags(sf *serveFlags) server.Config {
 	af := sf.adapter
+
 	return server.Config{
 		Port:         sf.port,
 		Host:         sf.host,
@@ -172,13 +188,16 @@ func build(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk build <repo> [-o out]")
+		return errors.New("usage: mindwalk build <repo> [-o out]")
 	}
+
 	city, err := citymap.Builder{}.Build(positional[0], nil)
 	if err != nil {
 		return err
 	}
+
 	return writeJSON(out, city)
 }
 
@@ -187,21 +206,27 @@ func trace(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	crushDir := ""
+
 	for i, arg := range positional {
 		if arg == "--crush-dir" && i+1 < len(positional) {
 			crushDir = positional[i+1]
 			positional = append(positional[:i], positional[i+2:]...)
+
 			break
 		}
 	}
+
 	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk trace [--crush-dir DIR] <session> [-o out]")
+		return errors.New("usage: mindwalk trace [--crush-dir DIR] <session> [-o out]")
 	}
+
 	tr, err := parseTrace(positional[0], crushDir)
 	if err != nil {
 		return err
 	}
+
 	return writeJSON(out, tr)
 }
 
@@ -214,9 +239,11 @@ func judgeMatches(report *model.Report, cli, modelName string) bool {
 	if cli != "" && report.Judge.CLI != cli {
 		return false
 	}
+
 	if modelName != "" && report.Judge.Model != modelName && report.Judge.RequestedModel != modelName {
 		return false
 	}
+
 	return true
 }
 
@@ -240,29 +267,36 @@ func analyze(args []string) error {
 	timeout := fs.Duration("timeout", judge.DefaultTimeout, "judge subprocess timeout")
 	// Accept flags after the positional argument, matching trace/build.
 	var positional []string
+
 	for {
 		if err := fs.Parse(args); err != nil {
 			return err
 		}
+
 		if fs.NArg() == 0 {
 			break
 		}
+
 		positional = append(positional, fs.Arg(0))
 		args = fs.Args()[1:]
 	}
+
 	if len(positional) != 1 {
-		return fmt.Errorf(
+		return errors.New(
 			"usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache] [--no-rubric]",
 		)
 	}
+
 	session := positional[0]
 	if !strings.HasPrefix(session, "crush://") {
 		var err error
+
 		session, err = filepath.Abs(positional[0])
 		if err != nil {
 			return err
 		}
 	}
+
 	tr, err := parseTrace(session, crushDirFor(*crushDir, *noCrush))
 	if err != nil {
 		return err
@@ -284,13 +318,16 @@ func analyze(args []string) error {
 		if judge.Fresh(cached, tr) && judgeMatches(cached, *judgeCLI, *judgeModel) &&
 			judge.RubricSatisfied(cached) {
 			fmt.Fprintln(os.Stderr, "mindwalk: using cached report (pass --no-cache to re-run)")
+
 			return writeJSON(*out, cached)
 		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
+
 	fmt.Fprintf(os.Stderr, "mindwalk: judging %d events, this can take a minute or two…\n", tr.Session.EventCount)
+
 	report, err := judge.Analyze(
 		ctx,
 		tr,
@@ -299,11 +336,13 @@ func analyze(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	if !*noRubric {
 		if err := cache.Store(key, report); err != nil {
 			fmt.Fprintln(os.Stderr, "mindwalk: report cache write failed:", err)
 		}
 	}
+
 	return writeJSON(*out, report)
 }
 
@@ -334,6 +373,7 @@ func parseAdapterFlags(fs *flag.FlagSet) *adapterFlags {
 		"Crush data directory override (containing crush.db); empty = auto-discover",
 	)
 	fs.BoolVar(&af.noCrush, "no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
+
 	return af
 }
 
@@ -346,9 +386,11 @@ func (f adapterFlags) sources() []adapter.Source {
 	if f.noCrush {
 		return sources
 	}
+
 	if f.crushDir == "" {
 		return append(sources, crush.NewAdapter(""))
 	}
+
 	return append(sources, crush.NewAdapter(f.crushDir))
 }
 
@@ -382,27 +424,35 @@ func listSessions(args []string) error {
 	af := parseAdapterFlags(fs)
 	jsonOut := fs.Bool("json", false, "output sessions as JSON")
 	harnessFilter := fs.String("harness", "", "filter by harness (claude-code, codex, pi, crush)")
+
 	limit := fs.Int("limit", 0, "maximum sessions to list (0 = all)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
 	srcs := af.sources()
 	defer closeSources(srcs)
+
 	entries := []sessionEntry{}
+
 	for _, src := range srcs {
 		h := src.Harness()
 		if *harnessFilter != "" && h != *harnessFilter {
 			continue
 		}
+
 		metas, err := src.ListSessions()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "mindwalk: %s: %v\n", h, err)
+
 			continue
 		}
+
 		for _, m := range metas {
 			if *limit > 0 && len(entries) >= *limit {
 				break
 			}
+
 			if *jsonOut {
 				entries = append(entries, sessionEntry{
 					Harness:    h,
@@ -417,16 +467,20 @@ func listSessions(args []string) error {
 				if m.Cwd != "" {
 					cwd = "  cwd=" + m.Cwd
 				}
+
 				fmt.Printf("%-8s  %s  %4d events  %s%s\n", h, m.StartedAt, m.EventCount, m.Title, cwd)
 			}
 		}
+
 		if *limit > 0 && len(entries) >= *limit {
 			break
 		}
 	}
+
 	if *jsonOut {
 		return writeJSON("", entries)
 	}
+
 	return nil
 }
 
@@ -435,23 +489,29 @@ func listSessions(args []string) error {
 // configuration and troubleshoot issues.
 func doctor(args []string) error {
 	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
+
 	af := parseAdapterFlags(fs)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
 	srcs := af.sources()
 	defer closeSources(srcs)
+
 	for _, src := range srcs {
 		h := src.Harness()
 		metas, err := src.ListSessions()
 		status := "ok"
 		count := 0
+
 		if err != nil {
 			status = "error: " + err.Error()
 		} else {
 			count = len(metas)
 		}
+
 		dirStatus := ""
+
 		if d := src.SessionDir(); d != "" {
 			if adapter.ReadableDir(d) {
 				dirStatus = " [dir ok]"
@@ -459,6 +519,7 @@ func doctor(args []string) error {
 				dirStatus = " [dir missing]"
 			}
 		}
+
 		fmt.Printf("%-8s  sessions=%-4d  %s%s\n", h, count, status, dirStatus)
 
 		if diag, ok := src.(adapter.DiagnosticsSource); ok {
@@ -467,11 +528,13 @@ func doctor(args []string) error {
 			}
 		}
 	}
+
 	fmt.Println()
 	fmt.Println("Data directories:")
 	fmt.Printf("  claude-dir  %s\n", af.claudeDir)
 	fmt.Printf("  codex-dir   %s\n", af.codexDir)
 	fmt.Printf("  pi-dir      %s\n", af.piDir)
+
 	if af.noCrush {
 		fmt.Printf("  crush       disabled\n")
 	} else if af.crushDir != "" {
@@ -479,6 +542,7 @@ func doctor(args []string) error {
 	} else {
 		fmt.Printf("  crush       auto-discover\n")
 	}
+
 	return nil
 }
 
@@ -488,10 +552,13 @@ func printVersion() error {
 	info, ok := debug.ReadBuildInfo()
 	if !ok {
 		fmt.Println("mindwalk (no build info)")
+
 		return nil
 	}
+
 	rev := "unknown"
 	dirty := ""
+
 	for _, setting := range info.Settings {
 		switch setting.Key {
 		case "vcs.revision":
@@ -506,19 +573,23 @@ func printVersion() error {
 			}
 		}
 	}
+
 	fmt.Printf("mindwalk %s%s\n", rev, dirty)
 	fmt.Printf("  go %s\n", info.GoVersion)
+
 	if info.Main.Version != "" && info.Main.Version != "(devel)" {
 		fmt.Printf("  module %s\n", info.Main.Version)
 	}
+
 	return nil
 }
 
 // manageCache handles the `mindwalk cache` subcommand: clear or status.
 func manageCache(args []string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("usage: mindwalk cache <clear|status>")
+		return errors.New("usage: mindwalk cache <clear|status>")
 	}
+
 	switch args[0] {
 	case "clear":
 		return clearCache()
@@ -540,14 +611,18 @@ func clearCache() error {
 	if err != nil {
 		return err
 	}
+
 	reportsDir, err := cacheSubdir("reports")
 	if err != nil {
 		return err
 	}
+
 	removedGraphs := clearDir(graphsDir)
 	removedReports := clearDir(reportsDir)
+
 	fmt.Printf("cleared %d file(s) from %s\n", removedGraphs, graphsDir)
 	fmt.Printf("cleared %d file(s) from %s\n", removedReports, reportsDir)
+
 	return nil
 }
 
@@ -556,14 +631,18 @@ func cacheStatus() error {
 	if err != nil {
 		return err
 	}
+
 	reportsDir, err := cacheSubdir("reports")
 	if err != nil {
 		return err
 	}
+
 	gCount, gSize := dirStats(graphsDir)
 	rCount, rSize := dirStats(reportsDir)
+
 	fmt.Printf("agent-graphs:  %d file(s), %s in %s\n", gCount, humanBytes(gSize), graphsDir)
 	fmt.Printf("reports:       %d file(s), %s in %s\n", rCount, humanBytes(rSize), reportsDir)
+
 	return nil
 }
 
@@ -577,14 +656,16 @@ func cacheSubdir(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return filepath.Join(home, name), nil
 }
 
 func requireCacheHome() (string, error) {
 	home := cacheHome()
 	if home == "" {
-		return "", fmt.Errorf("cannot resolve mindwalk home directory")
+		return "", errors.New("cannot resolve mindwalk home directory")
 	}
+
 	return home, nil
 }
 
@@ -593,12 +674,15 @@ func clearDir(dir string) int {
 	if err != nil {
 		return 0
 	}
+
 	var removed int
+
 	for _, entry := range entries {
 		if err := os.RemoveAll(filepath.Join(dir, entry.Name())); err == nil {
 			removed++
 		}
 	}
+
 	return removed
 }
 
@@ -607,17 +691,21 @@ func dirStats(dir string) (count int, size int64) {
 	if err != nil {
 		return 0, 0
 	}
+
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
+
 		info, err := entry.Info()
 		if err != nil {
 			continue
 		}
+
 		count++
 		size += info.Size()
 	}
+
 	return count, size
 }
 
@@ -636,17 +724,21 @@ func humanBytes(n int64) string {
 
 func parseTrace(path string, crushDir string) (*model.Trace, error) {
 	var lastErr error
+
 	for _, source := range traceSources(crushDir) {
 		trace, err := source.Parse(path)
 		if err == nil {
 			return trace, nil
 		}
+
 		lastErr = err
 	}
+
 	if lastErr != nil {
 		return nil, lastErr
 	}
-	return nil, fmt.Errorf("no session adapters configured")
+
+	return nil, errors.New("no session adapters configured")
 }
 
 // traceSources returns the adapter sources parseTrace will try, in
@@ -658,6 +750,7 @@ func traceSources(crushDir string) []adapter.Source {
 	if crushDir == "" {
 		return append(sources, crush.Adapter{})
 	}
+
 	return append(sources, crush.Adapter{Dir: crushDir})
 }
 
@@ -667,12 +760,16 @@ func crushDirFor(override string, noCrush bool) string {
 	if noCrush {
 		return "/dev/null/mindwalk-no-crush"
 	}
+
 	return override
 }
 
 func parseOutputArgs(args []string) ([]string, string, error) {
-	var out string
-	var positional []string
+	var (
+		out        string
+		positional []string
+	)
+
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "-o", "--output":
@@ -680,17 +777,22 @@ func parseOutputArgs(args []string) ([]string, string, error) {
 			if i >= len(args) {
 				return nil, "", fmt.Errorf("%s requires a value", args[i-1])
 			}
+
 			out = args[i]
 		default:
 			positional = append(positional, args[i])
 		}
 	}
+
 	return positional, out, nil
 }
 
 func writeJSON(out string, v any) error {
-	var f *os.File
-	var err error
+	var (
+		f   *os.File
+		err error
+	)
+
 	if out == "" {
 		f = os.Stdout
 	} else {
@@ -700,8 +802,10 @@ func writeJSON(out string, v any) error {
 		}
 		defer func() { _ = f.Close() }()
 	}
+
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
+
 	return enc.Encode(v)
 }
 

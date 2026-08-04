@@ -15,10 +15,12 @@ type codexGraphActor = adapter.GraphActor
 func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.SessionMeta) ([]string, error) {
 	paths := map[string]bool{root.Path: true}
 	childrenByParent := make(map[string][]model.SessionMeta)
+
 	for _, session := range catalog {
 		if session.Agent == nil || session.Agent.ParentSessionID == "" || session.Harness != a.Harness() {
 			continue
 		}
+
 		childrenByParent[session.Agent.ParentSessionID] = append(
 			childrenByParent[session.Agent.ParentSessionID],
 			session,
@@ -26,14 +28,17 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 	}
 
 	visitedSessions := map[string]bool{root.Key: true}
+
 	queue := []string{root.ID}
 	for len(queue) > 0 {
 		parentID := queue[0]
 		queue = queue[1:]
+
 		for _, child := range childrenByParent[parentID] {
 			if visitedSessions[child.Key] {
 				continue
 			}
+
 			visitedSessions[child.Key] = true
 			paths[child.Path] = true
 			queue = append(queue, codexSessionSourceID(child))
@@ -46,7 +51,9 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 			inputs = append(inputs, path)
 		}
 	}
+
 	sort.Strings(inputs)
+
 	return inputs, nil
 }
 
@@ -71,17 +78,21 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 	childrenByParent := make(map[string][]model.SessionMeta)
 	ambiguousRootID := false
+
 	for _, session := range catalog {
 		if session.Key != root.Key && session.Harness == a.Harness() && !session.Auxiliary && session.Agent == nil &&
 			session.ID == root.ID {
 			ambiguousRootID = true
 		}
+
 		if session.Agent == nil || session.Agent.ParentSessionID == "" {
 			continue
 		}
+
 		parentID := session.Agent.ParentSessionID
 		childrenByParent[parentID] = append(childrenByParent[parentID], session)
 	}
+
 	for parentID := range childrenByParent {
 		sort.Slice(childrenByParent[parentID], func(i, j int) bool {
 			return childrenByParent[parentID][i].Key < childrenByParent[parentID][j].Key
@@ -90,6 +101,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 	visitedSessions := map[string]bool{root.Key: true}
 	addedNodes := map[string]bool{mainID: true}
+
 	queue := []codexGraphActor{{Session: root, NodeID: mainID, SourceID: root.ID}}
 	for len(queue) > 0 {
 		actor := queue[0]
@@ -99,24 +111,30 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 		if err != nil {
 			return nil, err
 		}
+
 		children := childrenByParent[actor.SourceID]
 		linkedChildren := make(map[string]bool)
+
 		for _, launch := range launches {
 			launchOutput, hasIdentity := parseAgentLaunchOutput(launch.Output)
 			if hasIdentity && launchOutput.AgentID != "" {
 				var child *model.SessionMeta
+
 				for i := range children {
 					candidate := &children[i]
 					if candidate.Agent.SourceID == launchOutput.AgentID && !visitedSessions[candidate.Key] {
 						child = candidate
+
 						break
 					}
 				}
+
 				node := exactCodexAgentNode(a.Harness(), root.Key, actor, launch, launchOutput, child)
 				if !addedNodes[node.ID] {
 					graph.Agents = append(graph.Agents, node)
 					addedNodes[node.ID] = true
 				}
+
 				if child != nil {
 					linkedChildren[child.Key] = true
 					visitedSessions[child.Key] = true
@@ -127,22 +145,28 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 						SourceID: codexSessionSourceID(*child),
 					})
 				}
+
 				continue
 			}
+
 			if hasIdentity && launchOutput.TaskName != "" {
 				var child *model.SessionMeta
+
 				for i := range children {
 					candidate := &children[i]
 					if candidate.Agent.AgentPath == launchOutput.TaskName && !visitedSessions[candidate.Key] {
 						child = candidate
+
 						break
 					}
 				}
+
 				node := legacyCodexAgentNode(a.Harness(), root.Key, actor, launch, launchOutput, child)
 				if !addedNodes[node.ID] {
 					graph.Agents = append(graph.Agents, node)
 					addedNodes[node.ID] = true
 				}
+
 				if child != nil {
 					linkedChildren[child.Key] = true
 					visitedSessions[child.Key] = true
@@ -150,6 +174,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 						Session: *child, NodeID: node.ID, Depth: node.Depth, SourceID: codexSessionSourceID(*child),
 					})
 				}
+
 				continue
 			}
 
@@ -165,13 +190,16 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 			if linkedChildren[child.Key] || visitedSessions[child.Key] {
 				continue
 			}
+
 			if actor.Session.Key == root.Key && ambiguousRootID {
 				continue
 			}
+
 			node := derivedCodexAgentNode(a.Harness(), root.Key, actor, child)
 			if addedNodes[node.ID] {
 				continue
 			}
+
 			graph.Agents = append(graph.Agents, node)
 			addedNodes[node.ID] = true
 			visitedSessions[child.Key] = true
@@ -185,6 +213,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 	}
 
 	graph.Agents = adapter.OrderAgentNodesPreorder(graph.Agents)
+
 	return graph, nil
 }
 
@@ -204,14 +233,17 @@ func readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 		if json.Unmarshal(data, &line) != nil || line.Type != "response_item" {
 			return
 		}
+
 		var payload responseItemPayload
 		if json.Unmarshal(line.Payload, &payload) != nil {
 			return
 		}
+
 		if call, _, ok := decodeCall(payload, line.Timestamp); ok {
 			if seenCalls[call.ID] {
 				return
 			}
+
 			seenCalls[call.ID] = true
 			if call.Name == "spawn_agent" {
 				launchByCallID[call.ID] = len(launches)
@@ -221,20 +253,26 @@ func readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 					Arguments: call.Input,
 				})
 			}
+
 			seq++
+
 			return
 		}
+
 		callID, result, ok := decodeOutput(payload)
 		if !ok {
 			return
 		}
+
 		index, ok := launchByCallID[callID]
 		if !ok || launches[index].OutputObserved {
 			return
 		}
+
 		launches[index].Output = result.Content
 		launches[index].OutputObserved = true
 	})
+
 	return launches, err
 }
 
@@ -246,6 +284,7 @@ func exactCodexAgentNode(
 	child *model.SessionMeta,
 ) model.AgentNode {
 	seq := launch.Seq
+
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "codex-agent:"+output.AgentID),
 		ParentID:           actor.NodeID,
@@ -263,15 +302,19 @@ func exactCodexAgentNode(
 	}
 	if child != nil {
 		node.Depth = codexChildDepth(*child, actor.Depth)
+
 		node.Label = child.Agent.Label
 		if child.Agent.Role != "" {
 			node.Role = child.Agent.Role
 		}
+
 		node.TraceAvailability = model.TraceAvailabilityAvailable
 		node.TraceSessionKey = child.Key
 		node.TraceEventCount = child.EventCount
 	}
+
 	adapter.ApplyLaunchNickname(&node, output)
+
 	return node
 }
 
@@ -281,6 +324,7 @@ func unlinkedCodexLaunchNode(
 	launch adapter.AgentLaunch,
 ) model.AgentNode {
 	seq := launch.Seq
+
 	return model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "launch:"+actor.NodeID+":"+launch.CallID),
 		ParentID:           actor.NodeID,
@@ -306,10 +350,12 @@ func legacyCodexAgentNode(
 	child *model.SessionMeta,
 ) model.AgentNode {
 	seq := launch.Seq
+
 	label := filepath.Base(output.TaskName)
 	if label == "." || label == "/" || label == "" {
 		label = adapter.SubagentLabel
 	}
+
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "codex-task:"+output.TaskName),
 		ParentID:           actor.NodeID,
@@ -330,15 +376,18 @@ func legacyCodexAgentNode(
 		if child.Agent.Label != "" {
 			node.Label = child.Agent.Label
 		}
+
 		if child.Agent.Role != "" {
 			node.Role = child.Agent.Role
 		}
+
 		node.TraceAvailability = model.TraceAvailabilityAvailable
 		node.TraceSessionKey = child.Key
 		node.TraceEventCount = child.EventCount
 		node.LinkQuality = model.AgentLinkQualityDerived
 		node.LinkMethod = model.AgentLinkMethodCodexParentThreadID
 	}
+
 	return node
 }
 
@@ -347,6 +396,7 @@ func derivedCodexAgentNode(harness, rootKey string, actor codexGraphActor, child
 	if label == "" {
 		label = adapter.SubagentLabel
 	}
+
 	return model.AgentNode{
 		ID:                adapter.AgentNodeID(harness, rootKey, "session:"+child.Key),
 		ParentID:          actor.NodeID,
@@ -369,11 +419,13 @@ func parseAgentLaunchOutput(output string) (adapter.AgentLaunchOutput, bool) {
 		(parsed.AgentID == "" && parsed.TaskName == "") {
 		return adapter.AgentLaunchOutput{}, false
 	}
+
 	return parsed, true
 }
 
 func agentArgument(arguments map[string]any, key string) string {
 	value, _ := arguments[key].(string)
+
 	return value
 }
 
@@ -381,6 +433,7 @@ func codexChildDepth(child model.SessionMeta, parentDepth int) int {
 	if child.Agent.Depth > 0 {
 		return child.Agent.Depth
 	}
+
 	return parentDepth + 1
 }
 
@@ -388,5 +441,6 @@ func codexSessionSourceID(session model.SessionMeta) string {
 	if session.Agent != nil && session.Agent.SourceID != "" {
 		return session.Agent.SourceID
 	}
+
 	return session.ID
 }

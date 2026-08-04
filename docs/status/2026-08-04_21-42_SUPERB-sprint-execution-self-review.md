@@ -11,49 +11,49 @@
 
 ### Wave 1: Unblock Everything
 
-| Task | What shipped | Verification |
-|------|-------------|-------------|
-| **M1** Doc reconciliation | TODO_LIST rewritten (removed 16 shipped items), FEATURES.md gained 7 new feature rows + new "Session management" and "Testing and CI" rows, CHANGELOG gained 20 new entries | `go vet` clean |
-| **M10** Virtualized session list | Already done by prior session — `content-visibility: auto` in `styles.css:3174` | Verified in code |
+| Task                             | What shipped                                                                                                                                                                | Verification     |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| **M1** Doc reconciliation        | TODO_LIST rewritten (removed 16 shipped items), FEATURES.md gained 7 new feature rows + new "Session management" and "Testing and CI" rows, CHANGELOG gained 20 new entries | `go vet` clean   |
+| **M10** Virtualized session list | Already done by prior session — `content-visibility: auto` in `styles.css:3174`                                                                                             | Verified in code |
 
 ### Wave 2: Close Every Lint Gap
 
-| Task | What shipped | Verification |
-|------|-------------|-------------|
+| Task                               | What shipped                                                                                                                                                                                                                                    | Verification                                                                                                                                                                      |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **M2** Five code correctness fixes | `rows.Err()` at `sessions.go:932`, `writeSSE` error checks at `sse.go:93,130`, removed dead `finishData.Time` at `parts.go:62`, defensive comment at `secondsToRFC3339`, `gitDiffTargets` per-file `currentHasDiffGit` fix at `adapter.go:1071` | `go vet` clean, gopls `sqlrowserr` warning resolved, `TestTimestampsAreSecondsNotMillis` + `TestTimestampsSecondsEndToEnd` + `TestGitDiffTargetsMixedHeadersAndFallback` all pass |
 
 ### Wave 3: Test Foundation
 
-| Task | What shipped | Verification |
-|------|-------------|-------------|
-| **M3** Schema-validation test | `internal/model/schema_test.go` (4 tests: trace, report, report+rubric, citymap) + `internal/judge/progress_schema_test.go` (1 test, 7 cases). Uses `jsonschema/v6`, already in go.mod | All pass |
-| **M6** cmd/rubriceval tests | `cmd/rubriceval/main_test.go` — 13 tests: `taskRunes`, `reasonSuffix`, `recordError`, `stats`, `writeJSON`, `printSummary`, `timingRunner` classification/name/dump-dir, `TestMain` isolation. 0.0% → **45.8%** coverage | All pass |
-| **M7** Fixture builder | `testdata/crush/build.go` (`//go:build ignore`), regenerates `crush.db` from scratch with second-based timestamps, all messages, read_files table. Fixture regenerated and verified | All crush tests pass with regenerated fixture |
-| **M18** Property-based tests | `internal/adapter/property_test.go` (5 tests via `testing/quick`), `internal/citymap/property_test.go` (4 tests: determinism, empty-repo, single-file, ghost-file) | All pass |
-| **M19** Fuzz tests | `internal/adapter/fuzz_test.go` (`FuzzGitDiffTargets`), `internal/adapter/crush/fuzz_test.go` (`FuzzDecodeParts`, `FuzzSplitAgentID`) | All pass |
-| **M21** Stress tests | `internal/adapter/crush/stress_test.go`: `TestListSessionsLargeDatabase` (500 sessions), `TestParseLargeMessageHistory` (1000 messages), `BenchmarkListSessionsLargeDB` (2000 sessions) | All pass |
+| Task                          | What shipped                                                                                                                                                                                                             | Verification                                  |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| **M3** Schema-validation test | `internal/model/schema_test.go` (4 tests: trace, report, report+rubric, citymap) + `internal/judge/progress_schema_test.go` (1 test, 7 cases). Uses `jsonschema/v6`, already in go.mod                                   | All pass                                      |
+| **M6** cmd/rubriceval tests   | `cmd/rubriceval/main_test.go` — 13 tests: `taskRunes`, `reasonSuffix`, `recordError`, `stats`, `writeJSON`, `printSummary`, `timingRunner` classification/name/dump-dir, `TestMain` isolation. 0.0% → **45.8%** coverage | All pass                                      |
+| **M7** Fixture builder        | `testdata/crush/build.go` (`//go:build ignore`), regenerates `crush.db` from scratch with second-based timestamps, all messages, read_files table. Fixture regenerated and verified                                      | All crush tests pass with regenerated fixture |
+| **M18** Property-based tests  | `internal/adapter/property_test.go` (5 tests via `testing/quick`), `internal/citymap/property_test.go` (4 tests: determinism, empty-repo, single-file, ghost-file)                                                       | All pass                                      |
+| **M19** Fuzz tests            | `internal/adapter/fuzz_test.go` (`FuzzGitDiffTargets`), `internal/adapter/crush/fuzz_test.go` (`FuzzDecodeParts`, `FuzzSplitAgentID`)                                                                                    | All pass                                      |
+| **M21** Stress tests          | `internal/adapter/crush/stress_test.go`: `TestListSessionsLargeDatabase` (500 sessions), `TestParseLargeMessageHistory` (1000 messages), `BenchmarkListSessionsLargeDB` (2000 sessions)                                  | All pass                                      |
 
 ### Wave 4: Doc Truthfulness
 
-| Task | What shipped | Verification |
-|------|-------------|-------------|
-| **M8** docs/crush.md multi-DB | Added "Multi-database discovery" section documenting `enumerateDBPaths`, `sessionDBIndex`, `openDBForPath`, `projectPathForDB`, `fingerprintPath`. Rewrote test-fixture section to reference `build.go` | Docs match code |
-| **M9** DOMAIN_LANGUAGE.md | Built `docs/DOMAIN_LANGUAGE.md`: 3 primary artifacts, trace/session terms, file-coverage vocabulary, agent-graph terms, evaluation terms, bounded-context table. Linked from AGENTS.md | Complete |
-| **M17** Inline-annotate reports | 18 appendix-only status reports now carry `> **RESOLVED:**` banners at the top, making resolution status visible without scrolling to the appendix | `sed` applied to all 18 files |
+| Task                            | What shipped                                                                                                                                                                                            | Verification                  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| **M8** docs/crush.md multi-DB   | Added "Multi-database discovery" section documenting `enumerateDBPaths`, `sessionDBIndex`, `openDBForPath`, `projectPathForDB`, `fingerprintPath`. Rewrote test-fixture section to reference `build.go` | Docs match code               |
+| **M9** DOMAIN_LANGUAGE.md       | Built `docs/DOMAIN_LANGUAGE.md`: 3 primary artifacts, trace/session terms, file-coverage vocabulary, agent-graph terms, evaluation terms, bounded-context table. Linked from AGENTS.md                  | Complete                      |
+| **M17** Inline-annotate reports | 18 appendix-only status reports now carry `> **RESOLVED:**` banners at the top, making resolution status visible without scrolling to the appendix                                                      | `sed` applied to all 18 files |
 
 ### Wave 5: Features + Hardening
 
-| Task | What shipped | Verification |
-|------|-------------|-------------|
-| **M13** DiagnosticsSource on 3 adapters | `claudecode/diagnostics.go`, `codex/diagnostics.go`, `pi/diagnostics.go` + shared `adapter.FilesystemDiagnostics` helper. All four adapters now report to `doctor` | All adapter tests pass |
-| **M14** golangci-lint in CI | `.golangci.yml` config (errcheck, govet, staticcheck, unused, ineffassign, gocritic, revive), `golangci-lint-action@v8` step in `ci.yml` | YAML valid |
-| **M15** gitDiffTargets per-file tracking | Replaced global `hasDiffGit` bool with per-section `currentHasDiffGit` that resets on `---` lines. `TestGitDiffTargetsMixedHeadersAndFallback` proves headerless files after a `diff --git` are no longer suppressed | Test passes |
-| **M16** ObservabilitySignals struct | `ComputeStats` signature changed from `(trace, filesInRepo, errorSignal, readsSignal string)` to `(trace, filesInRepo, signals ObservabilitySignals)`. All 11 call sites (6 production, 5 test) updated | All tests pass |
+| Task                                     | What shipped                                                                                                                                                                                                         | Verification           |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **M13** DiagnosticsSource on 3 adapters  | `claudecode/diagnostics.go`, `codex/diagnostics.go`, `pi/diagnostics.go` + shared `adapter.FilesystemDiagnostics` helper. All four adapters now report to `doctor`                                                   | All adapter tests pass |
+| **M14** golangci-lint in CI              | `.golangci.yml` config (errcheck, govet, staticcheck, unused, ineffassign, gocritic, revive), `golangci-lint-action@v8` step in `ci.yml`                                                                             | YAML valid             |
+| **M15** gitDiffTargets per-file tracking | Replaced global `hasDiffGit` bool with per-section `currentHasDiffGit` that resets on `---` lines. `TestGitDiffTargetsMixedHeadersAndFallback` proves headerless files after a `diff --git` are no longer suppressed | Test passes            |
+| **M16** ObservabilitySignals struct      | `ComputeStats` signature changed from `(trace, filesInRepo, errorSignal, readsSignal string)` to `(trace, filesInRepo, signals ObservabilitySignals)`. All 11 call sites (6 production, 5 test) updated              | All tests pass         |
 
 ### Wave 6: Advanced Testing + Scale
 
-| Task | What shipped | Verification |
-|------|-------------|-------------|
+| Task                                   | What shipped                                                                                                                                                                                                           | Verification      |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | **M20** SSE Last-Event-ID reconnection | Server-side complete: `writeSSEWithID` emits `id:` lines, `parseLastEventID` parses the header, handler resumes from `Last-Event-ID` offset instead of 0. `TestParseLastEventID` (8 cases). Schema description updated | Server tests pass |
 
 ### Test Suite Verification
@@ -65,16 +65,16 @@ go vet ./... — CLEAN
 
 ### Coverage after this session
 
-| Package | Before | After | Delta |
-|---------|--------|-------|-------|
-| `cmd/mindwalk` | 39.7% | 40.3% | +0.6 |
-| `cmd/rubriceval` | **0.0%** | **45.8%** | **+45.8** |
-| `internal/adapter` | 73.8% | 72.4% | -1.4¹ |
-| `internal/adapter/crush` | 82.7% | 83.4% | +0.7 |
-| `internal/citymap` | 85.1% | 86.1% | +1.0 |
-| `internal/model` | 96.2% | 96.3% | +0.1 |
-| `internal/server` | 76.3% | 76.3% | 0 |
-| `internal/textutil` | 100.0% | 100.0% | 0 |
+| Package                  | Before   | After     | Delta     |
+| ------------------------ | -------- | --------- | --------- |
+| `cmd/mindwalk`           | 39.7%    | 40.3%     | +0.6      |
+| `cmd/rubriceval`         | **0.0%** | **45.8%** | **+45.8** |
+| `internal/adapter`       | 73.8%    | 72.4%     | -1.4¹     |
+| `internal/adapter/crush` | 82.7%    | 83.4%     | +0.7      |
+| `internal/citymap`       | 85.1%    | 86.1%     | +1.0      |
+| `internal/model`         | 96.2%    | 96.3%     | +0.1      |
+| `internal/server`        | 76.3%    | 76.3%     | 0         |
+| `internal/textutil`      | 100.0%   | 100.0%    | 0         |
 
 ¹ `internal/adapter` coverage dropped 1.4% because `FilesystemDiagnostics` + `countFilesBySuffix` are new untested helpers. The property tests cover `normalizePath` but not the new diagnostic helpers.
 
@@ -85,6 +85,7 @@ go vet ./... — CLEAN
 ### M20: SSE Last-Event-ID reconnection
 
 **What's done:** Server-side implementation is complete and tested:
+
 - `writeSSEWithID` emits `id: <n>` lines for progress events
 - `parseLastEventID` extracts the offset from the `Last-Event-ID` header
 - The handler resumes from the client's last-seen offset instead of 0
@@ -98,11 +99,11 @@ go vet ./... — CLEAN
 
 ## (c) NOT STARTED — 3 tasks (all blocked on npm)
 
-| Task | Why blocked | What's needed |
-|------|------------|---------------|
-| **M4** Vitest setup + reducer.ts test | npm not available | Install vitest + @testing-library/react + jsdom, create `vitest.config.ts`, add `test:unit` script, write `reducer.test.ts` |
-| **M5** filters.ts + treeLayout.ts tests | Depends on M4 (Vitest) | Write `filters.test.ts` and `treeLayout.test.ts` |
-| **M11** Guided tour system | npm not available | `GuidedTour.tsx` needs frontend build; `CheatSheet.tsx:6` has `onReplayTour` stub |
+| Task                                    | Why blocked            | What's needed                                                                                                               |
+| --------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **M4** Vitest setup + reducer.ts test   | npm not available      | Install vitest + @testing-library/react + jsdom, create `vitest.config.ts`, add `test:unit` script, write `reducer.test.ts` |
+| **M5** filters.ts + treeLayout.ts tests | Depends on M4 (Vitest) | Write `filters.test.ts` and `treeLayout.test.ts`                                                                            |
+| **M11** Guided tour system              | npm not available      | `GuidedTour.tsx` needs frontend build; `CheatSheet.tsx:6` has `onReplayTour` stub                                           |
 
 ---
 

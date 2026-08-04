@@ -50,7 +50,11 @@ export const Minimap = memo(function Minimap({
       if (frame % 6 === 0) setCam(detail);
     };
     window.addEventListener("mindwalk:camera-state", onCamera as EventListener);
-    return () => window.removeEventListener("mindwalk:camera-state", onCamera as EventListener);
+    return () =>
+      window.removeEventListener(
+        "mindwalk:camera-state",
+        onCamera as EventListener,
+      );
   }, []);
 
   const layout = useMemo(() => {
@@ -79,14 +83,18 @@ export const Minimap = memo(function Minimap({
 
   const S = 140;
   const pad = 4;
-  const scaleX = (x: number) => pad + ((x - layout.minX) / layout.w) * (S - 2 * pad);
-  const scaleZ = (z: number) => pad + ((z - layout.minZ) / layout.d) * (S - 2 * pad);
+  const scaleX = (x: number) =>
+    pad + ((x - layout.minX) / layout.w) * (S - 2 * pad);
+  const scaleZ = (z: number) =>
+    pad + ((z - layout.minZ) / layout.d) * (S - 2 * pad);
   const scaleW = (w: number) => (w / layout.w) * (S - 2 * pad);
   const scaleD = (d: number) => (d / layout.d) * (S - 2 * pad);
 
   const camX = cam ? scaleX(cam.tx) : null;
   const camZ = cam ? scaleZ(cam.tz) : null;
-  const camRadius = cam ? Math.max(6, Math.min(40, (cam.dist / layout.w) * S * 0.3)) : 0;
+  const camRadius = cam
+    ? Math.max(6, Math.min(40, (cam.dist / layout.w) * S * 0.3))
+    : 0;
 
   return (
     <div className="minimap-container" aria-label="Scene minimap">
@@ -140,7 +148,12 @@ export const Minimap = memo(function Minimap({
           let opacity: number;
           if (heatMode && edits > 0) {
             const intensity = edits / maxEdits;
-            fill = intensity > 0.66 ? "var(--alarm, #e05555)" : intensity > 0.33 ? "var(--amber, #e0a458)" : "var(--moss)";
+            fill =
+              intensity > 0.66
+                ? "var(--alarm, #e05555)"
+                : intensity > 0.33
+                  ? "var(--amber, #e0a458)"
+                  : "var(--moss)";
             opacity = (0.3 + intensity * 0.7) * (matched ? 1 : 0.15);
           } else {
             const colorKey = touch ?? "unvisited";
@@ -160,7 +173,8 @@ export const Minimap = memo(function Minimap({
               strokeWidth={isSelected ? 1 : 0}
             >
               <title>
-                {file.path} — {heatMode && edits > 0 ? `${edits} edits` : touchWord(touch)}
+                {file.path} —{" "}
+                {heatMode && edits > 0 ? `${edits} edits` : touchWord(touch)}
               </title>
             </rect>
           );

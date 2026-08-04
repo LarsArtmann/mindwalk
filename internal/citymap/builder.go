@@ -115,7 +115,9 @@ func (Builder) Build(repoRoot string, trace *model.Trace) (*model.CityMap, error
 	if err != nil {
 		return nil, err
 	}
+
 	touched := touchedPaths(trace)
+
 	candidates, truncated, err := listFiles(root, touched)
 	if err != nil {
 		return nil, err
@@ -130,6 +132,7 @@ func (Builder) Build(repoRoot string, trace *model.Trace) (*model.CityMap, error
 	// past maxMapFiles.
 	seen := map[string]bool{}
 	cityFiles := make([]model.CityFile, 0, min(len(candidates), maxMapFiles))
+
 	if trace != nil {
 		// Aggregate targets before seating anything: dedup by canonical
 		// path in first-appearance order (deterministic), with strength
@@ -142,29 +145,38 @@ func (Builder) Build(repoRoot string, trace *model.Trace) (*model.CityMap, error
 			rel    string
 			strong bool
 		}
+
 		var targets []touchedTarget
+
 		index := map[string]int{}
+
 		for _, event := range trace.Events {
 			for _, target := range event.Targets {
 				raw := target.Path
 				if raw == "" {
 					continue
 				}
+
 				rel := cleanRel(raw)
+
 				key := raw
 				if rel != "" {
 					key = rel
 				}
+
 				if i, ok := index[key]; ok {
 					if !target.Weak {
 						targets[i].strong = true
 					}
+
 					continue
 				}
+
 				index[key] = len(targets)
 				targets = append(targets, touchedTarget{raw: raw, rel: rel, strong: !target.Weak})
 			}
 		}
+
 		ghosts := make([]touchedTarget, 0, len(targets))
 		for _, tt := range targets {
 			if tt.rel != "" {
@@ -172,38 +184,50 @@ func (Builder) Build(repoRoot string, trace *model.Trace) (*model.CityMap, error
 				if err == nil {
 					seen[tt.rel] = true
 					seen[tt.raw] = true
+
 					if len(cityFiles) >= maxMapFiles {
 						truncated = true
+
 						continue
 					}
+
 					cityFiles = append(cityFiles, meta)
+
 					continue
 				}
+
 				if errors.Is(err, errNotRegular) {
 					// exists but is not city material — policy skip
 					continue
 				}
+
 				if !benignReadError(err) {
 					// timeout, permission — the file is not proven gone,
 					// so a ghost would lie; the map is just missing
 					// something it wanted to show.
 					truncated = true
+
 					continue
 				}
 			}
+
 			if tt.strong {
 				ghosts = append(ghosts, tt)
 			}
 		}
+
 		for _, tt := range ghosts {
 			if len(cityFiles) >= maxMapFiles {
 				truncated = true
+
 				break
 			}
+
 			seen[tt.raw] = true
 			if tt.rel != "" {
 				seen[tt.rel] = true
 			}
+
 			cityFiles = append(cityFiles, model.CityFile{
 				Path:  tt.raw,
 				Dir:   filepath.ToSlash(filepath.Dir(tt.raw)),
@@ -212,10 +236,12 @@ func (Builder) Build(repoRoot string, trace *model.Trace) (*model.CityMap, error
 			})
 		}
 	}
+
 	for _, rel := range candidates {
 		if seen[rel] {
 			continue
 		}
+
 		meta, err := inspectFileBounded(root, rel)
 		if err != nil {
 			// vanished files and policy-skipped non-regular entries never
@@ -224,20 +250,26 @@ func (Builder) Build(repoRoot string, trace *model.Trace) (*model.CityMap, error
 			if !benignReadError(err) && !errors.Is(err, errNotRegular) {
 				truncated = true
 			}
+
 			continue
 		}
+
 		if len(cityFiles) >= maxMapFiles {
 			// a genuinely mappable new file cannot fit
 			truncated = true
+
 			break
 		}
+
 		seen[rel] = true
+
 		cityFiles = append(cityFiles, meta)
 	}
 
 	sort.Slice(cityFiles, func(i, j int) bool {
 		return cityFiles[i].Path < cityFiles[j].Path
 	})
+
 	for i := range cityFiles {
 		cityFiles[i].ID = i
 	}
@@ -247,6 +279,7 @@ func (Builder) Build(repoRoot string, trace *model.Trace) (*model.CityMap, error
 	layoutNode(rootNode, model.Rect{X: 0, Z: 0, W: 120, D: 120}, &cityFiles, &dirs)
 
 	commit, dirty := repoState(root)
+
 	return &model.CityMap{
 		Version: 1,
 		Repo: model.RepoMeta{
@@ -272,7 +305,9 @@ func touchedPaths(trace *model.Trace) map[string]bool {
 	if trace == nil {
 		return nil
 	}
+
 	touched := map[string]bool{}
+
 	for _, event := range trace.Events {
 		for _, target := range event.Targets {
 			if target.Path != "" {
@@ -280,6 +315,7 @@ func touchedPaths(trace *model.Trace) map[string]bool {
 			}
 		}
 	}
+
 	return touched
 }
 
@@ -302,15 +338,19 @@ func listFiles(root string, touched map[string]bool) ([]string, bool, error) {
 	}
 
 	workspace := !hasProjectMarker(root)
+
 	var scanRoots []string
+
 	probeTruncated := false
 	if workspace {
 		scanRoots, probeTruncated = probeProjectRoots(root, touched)
 	}
+
 	files, walkTruncated := walkFiles(root, scanRoots, workspace)
 	if len(files) == 0 {
 		return nil, false, errors.New("no files found")
 	}
+
 	return orderCandidates(files), probeTruncated || walkTruncated, nil
 }
 
@@ -320,42 +360,57 @@ func listFiles(root string, touched map[string]bool) ([]string, bool, error) {
 func gitListFiles(root string) ([]string, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), gitTimeout)
 	defer cancel()
+
 	cmd := exec.CommandContext(ctx, "git", "-C", root, "ls-files", "-co", "--exclude-standard", "-z")
 	cmd.WaitDelay = time.Second
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, false, err
 	}
+
 	if err := cmd.Start(); err != nil {
 		return nil, false, err
 	}
+
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
 	scanner.Split(splitNul)
+
 	var files []string
+
 	overflow := false
+
 	for scanner.Scan() {
 		if len(files) >= maxGitListPaths {
 			overflow = true
+
 			break
 		}
+
 		if p := scanner.Text(); p != "" {
 			files = append(files, filepath.ToSlash(p))
 		}
 	}
+
 	if overflow {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
+
 		return files, true, nil
 	}
+
 	if err := scanner.Err(); err != nil {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
+
 		return nil, false, err
 	}
+
 	if err := cmd.Wait(); err != nil {
 		return nil, false, err
 	}
+
 	return files, false, nil
 }
 
@@ -363,9 +418,11 @@ func splitNul(data []byte, atEOF bool) (int, []byte, error) {
 	if i := bytes.IndexByte(data, 0); i >= 0 {
 		return i + 1, data[:i], nil
 	}
+
 	if atEOF && len(data) > 0 {
 		return len(data), data, nil
 	}
+
 	return 0, nil, nil
 }
 
@@ -374,11 +431,13 @@ func hasProjectMarker(root string) bool {
 	if err != nil {
 		return false
 	}
+
 	for _, entry := range entries {
 		if projectMarkerNames[entry.Name()] {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -393,12 +452,14 @@ func skipWalkDir(name string) bool {
 	if strings.HasPrefix(name, ".") || junkDirNames[name] {
 		return true
 	}
+
 	lower := strings.ToLower(name)
 	for _, suffix := range junkBundleSuffixes {
 		if strings.HasSuffix(lower, suffix) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -413,56 +474,71 @@ func skipWalkDir(name string) bool {
 // discovery: a root cap or a non-benign read failure.
 func probeProjectRoots(root string, touched map[string]bool) ([]string, bool) {
 	rootsSet := map[string]bool{}
+
 	for p := range touched {
 		rel := cleanRel(p)
 		if rel == "" || !strings.Contains(rel, "/") {
 			continue
 		}
+
 		rootsSet[path.Dir(rel)] = true
 	}
 
 	partial := false
 	touchedTop := touchedTopDirs(touched)
+
 	queue := []walkEntry{{}}
 	for len(queue) > 0 {
 		cur := queue[0]
 		queue = queue[1:]
+
 		entries, err := readDirBounded(filepath.Join(root, filepath.FromSlash(cur.rel)))
 		if err != nil {
 			if !benignReadError(err) {
 				// an unreadable directory may hide whole projects
 				partial = true
 			}
+
 			continue
 		}
+
 		if cur.rel != "" {
 			marker := false
+
 			for _, entry := range entries {
 				if projectMarkerNames[entry.Name()] {
 					marker = true
+
 					break
 				}
 			}
+
 			if marker {
 				// a project root is scanned by the walk, not the probe
 				rootsSet[cur.rel] = true
+
 				continue
 			}
 		}
+
 		if cur.depth >= probeDepth {
 			continue
 		}
+
 		for _, entry := range entries {
 			if !entry.IsDir() {
 				continue
 			}
+
 			name := entry.Name()
 			if skipWalkDir(name) {
 				continue
 			}
+
 			if cur.rel == "" && protectedDirNames[name] && !touchedTop[name] {
 				continue
 			}
+
 			queue = append(queue, walkEntry{rel: joinRel(cur.rel, name), depth: cur.depth + 1})
 		}
 	}
@@ -471,20 +547,25 @@ func probeProjectRoots(root string, touched map[string]bool) ([]string, bool) {
 	for rel := range rootsSet {
 		roots = append(roots, rel)
 	}
+
 	sort.Strings(roots)
 	kept := make([]string, 0, len(roots))
+
 	isRoot := map[string]bool{}
 	for _, rel := range roots {
 		if underAny(rel, isRoot) {
 			continue
 		}
+
 		isRoot[rel] = true
 		kept = append(kept, rel)
 	}
+
 	if len(kept) > maxScanRoots {
 		kept = kept[:maxScanRoots]
 		partial = true
 	}
+
 	return kept, partial
 }
 
@@ -494,12 +575,15 @@ func underAny(rel string, set map[string]bool) bool {
 		if set[rel[:i]] {
 			return true
 		}
+
 		next := strings.IndexByte(rel[i+1:], '/')
 		if next < 0 {
 			return false
 		}
+
 		i += 1 + next
 	}
+
 	return false
 }
 
@@ -513,6 +597,7 @@ func underAny(rel string, set map[string]bool) bool {
 // truncation. Unreadable directories are skipped, never fatal.
 func walkFiles(root string, scanRoots []string, workspace bool) ([]string, bool) {
 	var files []string
+
 	truncated := false
 
 	var queue []walkEntry
@@ -522,6 +607,7 @@ func walkFiles(root string, scanRoots []string, workspace bool) ([]string, bool)
 		for _, rel := range scanRoots {
 			queue = append(queue, walkEntry{rel: rel, depth: strings.Count(rel, "/") + 1})
 		}
+
 		if entries, err := readDirBounded(root); err == nil {
 			for _, entry := range entries {
 				if mappableFile(entry) {
@@ -538,19 +624,25 @@ func walkFiles(root string, scanRoots []string, workspace bool) ([]string, bool)
 			if queue[i].depth != queue[j].depth {
 				return queue[i].depth < queue[j].depth
 			}
+
 			return queue[i].rel < queue[j].rel
 		})
 		depth := queue[0].depth
+
 		wave := 0
 		for wave < len(queue) && queue[wave].depth == depth {
 			wave++
 		}
+
 		if len(files) >= maxMapFiles || depth > maxWalkDepth {
 			truncated = true
+
 			break
 		}
+
 		level := queue[:wave]
 		queue = queue[wave:]
+
 		for _, cur := range level {
 			entries, err := readDirBounded(filepath.Join(root, filepath.FromSlash(cur.rel)))
 			if err != nil {
@@ -560,8 +652,10 @@ func walkFiles(root string, scanRoots []string, workspace bool) ([]string, bool)
 				if !benignReadError(err) {
 					truncated = true
 				}
+
 				continue
 			}
+
 			for _, entry := range entries {
 				name := entry.Name()
 				if entry.IsDir() {
@@ -577,6 +671,7 @@ func walkFiles(root string, scanRoots []string, workspace bool) ([]string, bool)
 			}
 		}
 	}
+
 	return files, truncated
 }
 
@@ -588,13 +683,16 @@ func walkFiles(root string, scanRoots []string, workspace bool) ([]string, bool)
 func orderCandidates(files []string) []string {
 	if len(files) <= maxMapFiles {
 		sort.Strings(files)
+
 		return files
 	}
+
 	type ranked struct {
 		path  string
 		dot   bool
 		depth int
 	}
+
 	items := make([]ranked, len(files))
 	for i, p := range files {
 		items[i] = ranked{
@@ -603,19 +701,24 @@ func orderCandidates(files []string) []string {
 			dot:   strings.HasPrefix(p, ".") || strings.Contains(p, "/."),
 		}
 	}
+
 	sort.Slice(items, func(i, j int) bool {
 		a, b := items[i], items[j]
 		if a.depth != b.depth {
 			return a.depth < b.depth
 		}
+
 		if a.dot != b.dot {
 			return b.dot
 		}
+
 		return a.path < b.path
 	})
+
 	for i := range items {
 		files[i] = items[i].path
 	}
+
 	return files
 }
 
@@ -626,6 +729,7 @@ func cleanRel(p string) string {
 	if p == "" || p == "." || p == ".." || strings.HasPrefix(p, "/") || strings.HasPrefix(p, "../") {
 		return ""
 	}
+
 	return p
 }
 
@@ -633,6 +737,7 @@ func joinRel(dir, name string) string {
 	if dir == "" {
 		return name
 	}
+
 	return dir + "/" + name
 }
 
@@ -662,11 +767,14 @@ func readDirBounded(dir string) ([]os.DirEntry, error) {
 		entries []os.DirEntry
 		err     error
 	}
+
 	ch := make(chan result, 1)
+
 	go func() {
 		entries, err := os.ReadDir(dir)
 		ch <- result{entries, err}
 	}()
+
 	select {
 	case r := <-ch:
 		return r.entries, r.err
@@ -680,6 +788,7 @@ func readDirBounded(dir string) ([]os.DirEntry, error) {
 // later open() on a writerless FIFO blocks forever.
 func mappableFile(entry os.DirEntry) bool {
 	t := entry.Type()
+
 	return t.IsRegular() || t&os.ModeSymlink != 0
 }
 
@@ -687,12 +796,14 @@ func mappableFile(entry os.DirEntry) bool {
 // key that lets a walk enter an otherwise-gated protected directory.
 func touchedTopDirs(touched map[string]bool) map[string]bool {
 	out := map[string]bool{}
+
 	for p := range touched {
 		rel := cleanRel(p)
 		if i := strings.Index(rel, "/"); i > 0 {
 			out[rel[:i]] = true
 		}
 	}
+
 	return out
 }
 
@@ -705,11 +816,14 @@ func inspectFileBounded(root, rel string) (model.CityFile, error) {
 		meta model.CityFile
 		err  error
 	}
+
 	ch := make(chan result, 1)
+
 	go func() {
 		meta, err := inspectFile(root, rel)
 		ch <- result{meta, err}
 	}()
+
 	select {
 	case r := <-ch:
 		return r.meta, r.err
@@ -720,29 +834,35 @@ func inspectFileBounded(root, rel string) (model.CityFile, error) {
 
 func inspectFile(root, rel string) (model.CityFile, error) {
 	abs := filepath.Join(root, filepath.FromSlash(rel))
+
 	info, err := os.Stat(abs)
 	if err != nil {
 		return model.CityFile{}, err
 	}
+
 	if !info.Mode().IsRegular() {
 		// FIFOs, sockets, devices — opening these can block forever
 		return model.CityFile{}, errNotRegular
 	}
+
 	lines := 1
 	if info.Size() > maxLineCountBytes {
 		// too big to read end to end; fileWeight falls back to bytes
 		lines = 0
 	} else if !isBinaryLike(abs, rel) {
 		var err error
+
 		lines, err = countLines(abs)
 		if err != nil {
 			lines = 0
 		}
 	}
+
 	dir := filepath.ToSlash(filepath.Dir(rel))
 	if dir == "." {
 		dir = ""
 	}
+
 	return model.CityFile{
 		Path:  filepath.ToSlash(rel),
 		Dir:   dir,
@@ -774,16 +894,21 @@ func isBinaryLike(abs, path string) bool {
 		".otf":
 		return true
 	}
+
 	f, err := os.Open(abs)
 	if err != nil {
 		return false
 	}
+
 	defer func() { _ = f.Close() }()
+
 	buf := make([]byte, 8192)
+
 	n, err := f.Read(buf)
 	if err != nil && n == 0 {
 		return false
 	}
+
 	return bytes.Contains(buf[:n], []byte{0})
 }
 
@@ -796,7 +921,9 @@ func countLines(path string) (int, error) {
 
 	lines := 0
 	hasBytes := false
+
 	var last byte
+
 	buf := make([]byte, 64*1024)
 	for {
 		n, err := f.Read(buf)
@@ -805,16 +932,20 @@ func countLines(path string) (int, error) {
 			last = buf[n-1]
 			lines += bytes.Count(buf[:n], []byte{'\n'})
 		}
+
 		if err == io.EOF {
 			break
 		}
+
 		if err != nil {
 			return lines, err
 		}
 	}
+
 	if hasBytes && last != '\n' {
 		lines++
 	}
+
 	return lines, nil
 }
 
@@ -852,8 +983,10 @@ func langForPath(path string) string {
 func gitOutput(root string, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), gitTimeout)
 	defer cancel()
+
 	cmd := exec.CommandContext(ctx, "git", append([]string{"-C", root}, args...)...)
 	cmd.WaitDelay = time.Second
+
 	return cmd.Output()
 }
 
@@ -865,6 +998,7 @@ func repoState(root string) (string, bool) {
 
 	statusBytes, err := gitOutput(root, "status", "--porcelain")
 	dirty := err == nil && len(bytes.TrimSpace(statusBytes)) > 0
+
 	return commit, dirty
 }
 
@@ -881,8 +1015,10 @@ type node struct {
 
 func buildTree(files []model.CityFile) *node {
 	root := &node{name: "", children: map[string]*node{}}
+
 	for i, file := range files {
 		parts := splitPath(file.Path)
+
 		cur := root
 		for _, part := range parts[:len(parts)-1] {
 			next := cur.children[part]
@@ -891,28 +1027,36 @@ func buildTree(files []model.CityFile) *node {
 				if cur.path != "" {
 					nextPath = cur.path + "/" + part
 				}
+
 				next = &node{name: part, path: nextPath, children: map[string]*node{}}
 				cur.children[part] = next
 			}
+
 			cur = next
 		}
+
 		cur.files = append(cur.files, i)
 	}
+
 	computeWeight(root, files)
+
 	return root
 }
 
 func splitPath(path string) []string {
 	parts := strings.Split(filepath.ToSlash(path), "/")
+
 	out := parts[:0]
 	for _, part := range parts {
 		if part != "" && part != "." {
 			out = append(out, part)
 		}
 	}
+
 	if len(out) == 0 {
 		return []string{path}
 	}
+
 	return out
 }
 
@@ -923,14 +1067,17 @@ func computeWeight(n *node, files []model.CityFile) float64 {
 		n.fileCount++
 		n.lines += files[idx].Lines
 	}
+
 	for _, child := range sortedChildren(n.children) {
 		n.weight += computeWeight(child, files)
 		n.fileCount += child.fileCount
 		n.lines += child.lines
 	}
+
 	if n.weight <= 0 {
 		n.weight = 1
 	}
+
 	return n.weight
 }
 
@@ -959,16 +1106,19 @@ func layoutNode(n *node, rect model.Rect, files *[]model.CityFile, dirs *[]model
 	for _, child := range sortedChildren(n.children) {
 		items = append(items, layoutItem{name: child.name, kind: "dir", node: child, weight: child.weight})
 	}
+
 	for _, idx := range n.files {
 		items = append(
 			items,
 			layoutItem{name: (*files)[idx].Path, kind: "file", idx: idx, weight: fileWeight((*files)[idx])},
 		)
 	}
+
 	sort.Slice(items, func(i, j int) bool {
 		if items[i].weight == items[j].weight {
 			return items[i].name < items[j].name
 		}
+
 		return items[i].weight > items[j].weight
 	})
 
@@ -976,6 +1126,7 @@ func layoutNode(n *node, rect model.Rect, files *[]model.CityFile, dirs *[]model
 	for _, item := range items {
 		total += item.weight
 	}
+
 	if total <= 0 {
 		return
 	}
@@ -984,8 +1135,10 @@ func layoutNode(n *node, rect model.Rect, files *[]model.CityFile, dirs *[]model
 	for i := range items {
 		items[i].area = items[i].weight * scale
 	}
+
 	for _, placed := range squarify(rect, items) {
 		childRect := capAspect(inset(placed.rect, 0.08), 40)
+
 		item := placed.item
 		if item.kind == "dir" {
 			layoutNode(item.node, childRect, files, dirs)
@@ -1000,11 +1153,14 @@ func sortedChildren(children map[string]*node) []*node {
 	for name := range children {
 		names = append(names, name)
 	}
+
 	sort.Strings(names)
+
 	out := make([]*node, 0, len(names))
 	for _, name := range names {
 		out = append(out, children[name])
 	}
+
 	return out
 }
 
@@ -1012,6 +1168,7 @@ func capAspect(rect model.Rect, maxRatio float64) model.Rect {
 	if rect.W <= 0 || rect.D <= 0 || maxRatio <= 1 {
 		return rect
 	}
+
 	if rect.W/rect.D > maxRatio {
 		newW := rect.D * maxRatio
 		rect.X += (rect.W - newW) / 2
@@ -1021,6 +1178,7 @@ func capAspect(rect model.Rect, maxRatio float64) model.Rect {
 		rect.Z += (rect.D - newD) / 2
 		rect.D = newD
 	}
+
 	return rect
 }
 
@@ -1029,9 +1187,11 @@ func fileWeight(file model.CityFile) float64 {
 	if byteUnits := float64(file.Bytes) / 4096.0; byteUnits > units {
 		units = byteUnits
 	}
+
 	if units < 16 {
 		units = 16
 	}
+
 	return math.Sqrt(units)
 }
 
@@ -1042,26 +1202,36 @@ type placedItem struct {
 
 func squarify(rect model.Rect, items []layoutItem) []placedItem {
 	remaining := rect
-	var placed []placedItem
-	var row []layoutItem
+
+	var (
+		placed []placedItem
+		row    []layoutItem
+	)
+
 	for idx, item := range items {
 		if item.area <= 0 {
 			continue
 		}
+
 		side := math.Min(remaining.W, remaining.D)
 		if len(row) < 2 || idx == len(items)-1 || worstAspect(append(row, item), side) <= worstAspect(row, side) {
 			row = append(row, item)
+
 			continue
 		}
+
 		var rowPlaced []placedItem
+
 		rowPlaced, remaining = layoutRow(remaining, row)
 		placed = append(placed, rowPlaced...)
 		row = []layoutItem{item}
 	}
+
 	if len(row) > 0 {
 		rowPlaced, _ := layoutRow(remaining, row)
 		placed = append(placed, rowPlaced...)
 	}
+
 	return placed
 }
 
@@ -1069,19 +1239,24 @@ func worstAspect(row []layoutItem, side float64) float64 {
 	if len(row) == 0 || side <= 0 {
 		return math.Inf(1)
 	}
+
 	sum := 0.0
 	minArea := math.Inf(1)
 	maxArea := 0.0
+
 	for _, item := range row {
 		sum += item.area
 		minArea = math.Min(minArea, item.area)
 		maxArea = math.Max(maxArea, item.area)
 	}
+
 	if sum <= 0 || minArea <= 0 {
 		return math.Inf(1)
 	}
+
 	side2 := side * side
 	sum2 := sum * sum
+
 	return math.Max(side2*maxArea/sum2, sum2/(side2*minArea))
 }
 
@@ -1090,43 +1265,55 @@ func layoutRow(rect model.Rect, row []layoutItem) ([]placedItem, model.Rect) {
 	for _, item := range row {
 		sum += item.area
 	}
+
 	if sum <= 0 {
 		return nil, rect
 	}
+
 	placed := make([]placedItem, 0, len(row))
+
 	if rect.W >= rect.D {
 		rowD := sum / rect.W
 		x := rect.X
+
 		for i, item := range row {
 			w := item.area / rowD
 			if i == len(row)-1 {
 				w = rect.X + rect.W - x
 			}
+
 			placed = append(placed, placedItem{item: item, rect: model.Rect{X: x, Z: rect.Z, W: w, D: rowD}})
 			x += w
 		}
+
 		rect.Z += rowD
 		rect.D -= rowD
 	} else {
 		rowW := sum / rect.D
 		z := rect.Z
+
 		for i, item := range row {
 			d := item.area / rowW
 			if i == len(row)-1 {
 				d = rect.Z + rect.D - z
 			}
+
 			placed = append(placed, placedItem{item: item, rect: model.Rect{X: rect.X, Z: z, W: rowW, D: d}})
 			z += d
 		}
+
 		rect.X += rowW
 		rect.W -= rowW
 	}
+
 	if rect.W < 0 {
 		rect.W = 0
 	}
+
 	if rect.D < 0 {
 		rect.D = 0
 	}
+
 	return placed, rect
 }
 
@@ -1135,9 +1322,11 @@ func inset(rect model.Rect, pad float64) model.Rect {
 		rect.X += pad
 		rect.W -= pad * 2
 	}
+
 	if rect.D > pad*2 {
 		rect.Z += pad
 		rect.D -= pad * 2
 	}
+
 	return rect
 }

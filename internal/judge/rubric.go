@@ -65,6 +65,7 @@ func acquireRubric(
 	// evidence — the M1.5 bench caught exactly that.
 	if len(trace.Events) == 0 {
 		emitProgress(onProgress, Progress{Phase: "rubric", Step: "skip", Message: "No tool events — skipping rubric"})
+
 		return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonNoEvents}, nil
 	}
 	// One task-evidence contract: the generator's input, the anchor
@@ -73,32 +74,42 @@ func acquireRubric(
 	messages := taskMessages(trace.Marks)
 	if len(messages) == 0 {
 		emitProgress(onProgress, Progress{Phase: "rubric", Step: "skip", Message: "No task text — skipping rubric"})
+
 		return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonNoTaskText}, nil
 	}
+
 	if taskTextRunes(trace.Marks) < weakTaskTextRunes {
 		emitProgress(
 			onProgress,
 			Progress{Phase: "rubric", Step: "skip", Message: "Task text too short — skipping rubric"},
 		)
+
 		return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonWeakTaskText}, nil
 	}
+
 	digest := TaskDigest(trace, model.RubricSourceFull)
 	if reused := reusableRubric(cached, digest); reused != nil {
 		emitProgress(onProgress, Progress{Phase: "rubric", Step: "reuse", Message: "Reusing cached rubric criteria"})
+
 		return reused, nil
 	}
+
 	emitProgress(onProgress, Progress{Phase: "rubric", Step: "generate", Message: "Drafting task-specific criteria…"})
+
 	input := BuildRubricInput(trace)
 	for range 2 {
 		result, err := runner.Run(ctx, rubricPrompt, input)
 		if err != nil {
 			return nil, err
 		}
+
 		tasks, err := parseRubric(result.Text, messages)
 		if err != nil {
 			continue
 		}
+
 		emitProgress(onProgress, Progress{Phase: "rubric", Step: "complete", Message: "Rubric criteria drafted"})
+
 		return &model.Rubric{
 			Status:     model.RubricStatusScored,
 			Source:     model.RubricSourceFull,
@@ -106,10 +117,12 @@ func acquireRubric(
 			Tasks:      tasks,
 		}, nil
 	}
+
 	emitProgress(
 		onProgress,
 		Progress{Phase: "rubric", Step: "fail", Message: "Rubric generation failed — scoring dimensions only"},
 	)
+
 	return &model.Rubric{Status: model.RubricStatusUnavailable, Reason: model.RubricReasonGenerationFailed}, nil
 }
 
@@ -124,11 +137,13 @@ func reusableRubric(cached *model.Report, digest string) *model.Rubric {
 		cached.Judge.RubricPromptVersion != RubricPromptVersion {
 		return nil
 	}
+
 	tasks := make([]model.RubricTask, len(cached.Rubric.Tasks))
 	for i, task := range cached.Rubric.Tasks {
 		copied := task
 		copied.AnchorUserMessages = append([]int(nil), task.AnchorUserMessages...)
 		copied.AnchorSeqs = append([]int(nil), task.AnchorSeqs...)
+
 		copied.Criteria = make([]model.RubricCriterion, len(task.Criteria))
 		for j, criterion := range task.Criteria {
 			copied.Criteria[j] = model.RubricCriterion{
@@ -139,8 +154,10 @@ func reusableRubric(cached *model.Report, digest string) *model.Rubric {
 				Bad:   criterion.Bad,
 			}
 		}
+
 		tasks[i] = copied
 	}
+
 	return &model.Rubric{
 		Status:     model.RubricStatusScored,
 		Source:     cached.Rubric.Source,
@@ -158,13 +175,16 @@ func parseRubric(raw string, messages []userMessage) ([]model.RubricTask, error)
 	if err != nil {
 		return nil, err
 	}
+
 	if len(payload) > maxRubricJSONBytes {
 		return nil, fmt.Errorf("rubric: %d bytes exceeds the %d cap", len(payload), maxRubricJSONBytes)
 	}
+
 	var out llmRubric
 	if err := json.Unmarshal([]byte(payload), &out); err != nil {
 		return nil, fmt.Errorf("rubric JSON: %w", err)
 	}
+
 	if len(out.Tasks) == 0 || len(out.Tasks) > maxRubricTasks {
 		return nil, fmt.Errorf("rubric: %d tasks, want 1-%d", len(out.Tasks), maxRubricTasks)
 	}
@@ -173,34 +193,43 @@ func parseRubric(raw string, messages []userMessage) ([]model.RubricTask, error)
 	for _, message := range messages {
 		seqByOrdinal[message.ordinal] = message.seq
 	}
+
 	seenOrdinals := map[int]bool{}
 	seenIDs := map[string]bool{}
 	totalCriteria := 0
+
 	tasks := make([]model.RubricTask, 0, len(out.Tasks))
 	for _, task := range out.Tasks {
 		title := strings.TrimSpace(task.Title)
 		if title == "" || len([]rune(title)) > maxRubricTitleRunes {
 			return nil, fmt.Errorf("rubric: bad task title %q", task.Title)
 		}
+
 		if len(task.AnchorUserMessages) == 0 {
 			return nil, fmt.Errorf("rubric: task %q has no anchor user messages", title)
 		}
+
 		anchors := append([]int(nil), task.AnchorUserMessages...)
 		sort.Ints(anchors)
+
 		seqs := make([]int, 0, len(anchors))
 		for _, ordinal := range anchors {
 			seq, ok := seqByOrdinal[ordinal]
 			if !ok {
 				return nil, fmt.Errorf("rubric: task %q anchors unknown user message #%d", title, ordinal)
 			}
+
 			if seenOrdinals[ordinal] {
 				return nil, fmt.Errorf("rubric: user message #%d anchored by more than one task", ordinal)
 			}
+
 			seenOrdinals[ordinal] = true
+
 			if len(seqs) == 0 || seqs[len(seqs)-1] != seq {
 				seqs = append(seqs, seq)
 			}
 		}
+
 		if len(task.Criteria) == 0 || len(task.Criteria) > maxCriteriaPerTask {
 			return nil, fmt.Errorf(
 				"rubric: task %q has %d criteria, want 1-%d",
@@ -209,25 +238,31 @@ func parseRubric(raw string, messages []userMessage) ([]model.RubricTask, error)
 				maxCriteriaPerTask,
 			)
 		}
+
 		criteria := make([]model.RubricCriterion, 0, len(task.Criteria))
 		for _, criterion := range task.Criteria {
 			id := strings.TrimSpace(criterion.ID)
 			if len(id) > maxCriterionIDLen || !criterionIDPattern.MatchString(id) {
 				return nil, fmt.Errorf("rubric: bad criterion id %q", criterion.ID)
 			}
+
 			if seenIDs[id] {
 				return nil, fmt.Errorf("rubric: duplicate criterion id %q", id)
 			}
+
 			seenIDs[id] = true
+
 			ctitle := strings.TrimSpace(criterion.Title)
 			if ctitle == "" || len([]rune(ctitle)) > maxRubricTitleRunes {
 				return nil, fmt.Errorf("rubric: bad title for criterion %q", id)
 			}
+
 			for _, text := range []string{criterion.Why, criterion.Good, criterion.Bad} {
 				if len([]rune(text)) > maxRubricTextRunes {
 					return nil, fmt.Errorf("rubric: overlong text on criterion %q", id)
 				}
 			}
+
 			criteria = append(criteria, model.RubricCriterion{
 				ID:    id,
 				Title: ctitle,
@@ -236,6 +271,7 @@ func parseRubric(raw string, messages []userMessage) ([]model.RubricTask, error)
 				Bad:   strings.TrimSpace(criterion.Bad),
 			})
 		}
+
 		totalCriteria += len(criteria)
 		tasks = append(tasks, model.RubricTask{
 			Title:              title,
@@ -245,6 +281,7 @@ func parseRubric(raw string, messages []userMessage) ([]model.RubricTask, error)
 			Criteria:           criteria,
 		})
 	}
+
 	if totalCriteria < minRubricCriteria || totalCriteria > maxRubricCriteria {
 		return nil, fmt.Errorf(
 			"rubric: %d criteria total, want %d-%d",
@@ -253,6 +290,7 @@ func parseRubric(raw string, messages []userMessage) ([]model.RubricTask, error)
 			maxRubricCriteria,
 		)
 	}
+
 	return tasks, nil
 }
 
@@ -267,11 +305,13 @@ func scoringRubricJSON(rubric *model.Rubric) string {
 		Good  string `json:"good,omitempty"`
 		Bad   string `json:"bad,omitempty"`
 	}
+
 	type task struct {
 		Title    string      `json:"title"`
 		Type     string      `json:"type,omitempty"`
 		Criteria []criterion `json:"criteria"`
 	}
+
 	tasks := make([]task, 0, len(rubric.Tasks))
 	for _, t := range rubric.Tasks {
 		out := task{Title: t.Title, Type: t.Type}
@@ -281,12 +321,15 @@ func scoringRubricJSON(rubric *model.Rubric) string {
 				criterion{ID: c.ID, Title: c.Title, Why: c.Why, Good: c.Good, Bad: c.Bad},
 			)
 		}
+
 		tasks = append(tasks, out)
 	}
+
 	encoded, err := json.Marshal(map[string]any{"tasks": tasks})
 	if err != nil {
 		return `{"tasks":[]}`
 	}
+
 	return string(encoded)
 }
 
@@ -298,9 +341,11 @@ func RubricSatisfied(report *model.Report) bool {
 	if report == nil || report.Rubric == nil {
 		return false
 	}
+
 	if report.Rubric.Status == model.RubricStatusScored {
 		return true
 	}
+
 	return report.Rubric.Reason == model.RubricReasonNoTaskText ||
 		report.Rubric.Reason == model.RubricReasonWeakTaskText ||
 		report.Rubric.Reason == model.RubricReasonNoEvents

@@ -38,17 +38,21 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 	if requireGET(w, r) {
 		return
 	}
+
 	meta, err := s.findSession(selector)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return
 	}
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+
 		return
 	}
+
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -64,6 +68,7 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 	job, ok := s.analyze.snapshot(meta.Key)
 	if !ok || job.done {
 		s.sseSendStatus(w, flusher, meta)
+
 		return
 	}
 
@@ -72,6 +77,7 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 	// from that offset instead of replaying from the start.
 	offset := parseLastEventID(r.Header.Get("Last-Event-ID"))
 	lastWrite := time.Now()
+
 	for {
 		wrote := false
 		// Drain any new progress events since the last poll.
@@ -79,8 +85,10 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 			events, next := job.progress.since(offset)
 			for i, evt := range events {
 				writeSSEWithID(w, flusher, "progress", evt, offset+i)
+
 				wrote = true
 			}
+
 			offset = next
 		}
 
@@ -88,6 +96,7 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 		current, ok := s.analyze.snapshot(meta.Key)
 		if !ok || current.done {
 			s.sseSendStatus(w, flusher, meta)
+
 			return
 		}
 		// Refresh the progress handle from the latest snapshot so
@@ -101,7 +110,9 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 			if _, err := fmt.Fprintf(w, ": keep-alive\n\n"); err != nil {
 				return
 			}
+
 			flusher.Flush()
+
 			lastWrite = time.Now()
 		} else if wrote {
 			lastWrite = time.Now()
@@ -122,8 +133,10 @@ func (s *Server) sseSendStatus(w http.ResponseWriter, flusher http.Flusher, meta
 	trace, _, err := s.traceAndMapMeta(meta)
 	if err != nil {
 		writeSSE(w, flusher, "status", reportStatus{State: "failed", Error: err.Error()})
+
 		return
 	}
+
 	writeSSE(w, flusher, "status", s.buildReportStatus(meta, trace))
 }
 
@@ -142,6 +155,7 @@ func writeSSEWithID(w http.ResponseWriter, flusher http.Flusher, eventType strin
 	if err != nil {
 		return
 	}
+
 	if id >= 0 {
 		if _, err := fmt.Fprintf(w, "id: %d\nevent: %s\ndata: %s\n\n", id, eventType, data); err != nil {
 			return
@@ -151,6 +165,7 @@ func writeSSEWithID(w http.ResponseWriter, flusher http.Flusher, eventType strin
 			return
 		}
 	}
+
 	flusher.Flush()
 }
 
@@ -160,9 +175,11 @@ func parseLastEventID(header string) int {
 	if header == "" {
 		return 0
 	}
+
 	id, err := strconv.Atoi(header)
 	if err != nil || id < 0 {
 		return 0
 	}
+
 	return id
 }

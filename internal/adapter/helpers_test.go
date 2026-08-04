@@ -15,6 +15,7 @@ func TestParseJSONInputEmpty(t *testing.T) {
 		if got == nil {
 			t.Fatalf("ParseJSONInput(%q) returned nil", in)
 		}
+
 		if len(got) != 0 {
 			t.Fatalf("ParseJSONInput(%q) = %v, want empty map", in, got)
 		}
@@ -53,6 +54,7 @@ func TestFallbackTitleSetsOnlyWhenEmpty(t *testing.T) {
 	t.Run("empty gets basename", func(t *testing.T) {
 		title := ""
 		FallbackTitle(&title, "/some/where/session.jsonl")
+
 		if title != "session.jsonl" {
 			t.Fatalf("FallbackTitle empty = %q", title)
 		}
@@ -60,6 +62,7 @@ func TestFallbackTitleSetsOnlyWhenEmpty(t *testing.T) {
 	t.Run("non-empty preserved", func(t *testing.T) {
 		title := "Already Set"
 		FallbackTitle(&title, "/some/where/session.jsonl")
+
 		if title != "Already Set" {
 			t.Fatalf("FallbackTitle non-empty = %q", title)
 		}
@@ -69,6 +72,7 @@ func TestFallbackTitleSetsOnlyWhenEmpty(t *testing.T) {
 func TestFallbackSessionTitleDelegates(t *testing.T) {
 	meta := model.SessionMeta{Title: ""}
 	FallbackSessionTitle(&meta, "/a/b/foo.jsonl")
+
 	if meta.Title != "foo.jsonl" {
 		t.Fatalf("FallbackSessionTitle = %q", meta.Title)
 	}
@@ -77,6 +81,7 @@ func TestFallbackSessionTitleDelegates(t *testing.T) {
 func TestFallbackTraceSessionTitleDelegates(t *testing.T) {
 	trace := &model.Trace{Session: model.TraceSession{}}
 	FallbackTraceSessionTitle(trace, "/a/b/bar.jsonl")
+
 	if trace.Session.Title != "bar.jsonl" {
 		t.Fatalf("FallbackTraceSessionTitle = %q", trace.Session.Title)
 	}
@@ -86,6 +91,7 @@ func TestApplySubagentLabelOnlyWhenEmpty(t *testing.T) {
 	t.Run("empty gets Subagent", func(t *testing.T) {
 		node := &model.AgentNode{}
 		ApplySubagentLabel(node)
+
 		if node.Label != SubagentLabel {
 			t.Fatalf("label = %q", node.Label)
 		}
@@ -93,6 +99,7 @@ func TestApplySubagentLabelOnlyWhenEmpty(t *testing.T) {
 	t.Run("non-empty preserved", func(t *testing.T) {
 		node := &model.AgentNode{Label: "preset"}
 		ApplySubagentLabel(node)
+
 		if node.Label != "preset" {
 			t.Fatalf("label = %q", node.Label)
 		}
@@ -103,6 +110,7 @@ func TestApplyLaunchNicknamePreferenceOrder(t *testing.T) {
 	t.Run("nickname wins when label empty", func(t *testing.T) {
 		node := &model.AgentNode{}
 		ApplyLaunchNickname(node, AgentLaunchOutput{Nickname: "runner"})
+
 		if node.Label != "runner" {
 			t.Fatalf("label = %q", node.Label)
 		}
@@ -110,6 +118,7 @@ func TestApplyLaunchNicknamePreferenceOrder(t *testing.T) {
 	t.Run("existing label beats nickname", func(t *testing.T) {
 		node := &model.AgentNode{Label: "child"}
 		ApplyLaunchNickname(node, AgentLaunchOutput{Nickname: "runner"})
+
 		if node.Label != "child" {
 			t.Fatalf("label = %q", node.Label)
 		}
@@ -117,6 +126,7 @@ func TestApplyLaunchNicknamePreferenceOrder(t *testing.T) {
 	t.Run("falls back to Subagent when both empty", func(t *testing.T) {
 		node := &model.AgentNode{}
 		ApplyLaunchNickname(node, AgentLaunchOutput{})
+
 		if node.Label != SubagentLabel {
 			t.Fatalf("label = %q, want Subagent fallback", node.Label)
 		}
@@ -153,7 +163,9 @@ func TestNormalizePathCollapsesEquivalents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	abs := filepath.Join(cwd, "session.jsonl")
+
 	cases := []struct {
 		in, want string
 	}{
@@ -174,7 +186,9 @@ func TestSessionKeyUsesNormalizedPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	a := SessionKey("test", filepath.Join(base, "session.jsonl"))
+
 	b := SessionKey("test", "./session.jsonl")
 	if a != b {
 		t.Fatalf("SessionKey should normalise path: %q != %q", a, b)
@@ -183,6 +197,7 @@ func TestSessionKeyUsesNormalizedPath(t *testing.T) {
 
 func TestMindwalkHomeHonoursOverride(t *testing.T) {
 	t.Setenv("MINDWALK_HOME", "/tmp/custom-mindwalk")
+
 	if got := MindwalkHome(); got != "/tmp/custom-mindwalk" {
 		t.Fatalf("MindwalkHome = %q, want override", got)
 	}
@@ -191,6 +206,7 @@ func TestMindwalkHomeHonoursOverride(t *testing.T) {
 func TestMindwalkHomeFallsBackToHomePath(t *testing.T) {
 	t.Setenv("MINDWALK_HOME", "")
 	t.Setenv("HOME", "/tmp/fake-home")
+
 	if got := MindwalkHome(); got != filepath.Join("/tmp/fake-home", ".mindwalk") {
 		t.Fatalf("MindwalkHome = %q, want fallback under $HOME", got)
 	}
@@ -209,10 +225,12 @@ func TestMindwalkHomeEmptyWhenHomeDirUnset(t *testing.T) {
 
 func TestAgentLaunchOutputJSONRoundTrip(t *testing.T) {
 	in := AgentLaunchOutput{AgentID: "a1", Nickname: "n1", TaskName: "t1"}
+
 	data, err := json.Marshal(in)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	want := `{"agent_id":"a1","nickname":"n1","task_name":"t1"}`
 	if string(data) != want {
 		t.Fatalf("marshal = %s, want %s", data, want)

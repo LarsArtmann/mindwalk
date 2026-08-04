@@ -19,5 +19,6 @@ func TestMain(m *testing.M) {
 	_ = os.Setenv("MINDWALK_HOME", filepath.Join(isolated, "mindwalk"))
 	code := m.Run()
 	_ = os.RemoveAll(isolated)
+
 	os.Exit(code)
 }

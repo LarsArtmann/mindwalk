@@ -28,8 +28,10 @@ func (a Adapter) Diagnostics() []adapter.DiagnosticCheck {
 			Status: "error",
 			Detail: "no Crush data directory could be resolved",
 		})
+
 		return checks
 	}
+
 	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 		checks = append(checks, adapter.DiagnosticCheck{
 			Name:   "data-dir",
@@ -46,13 +48,14 @@ func (a Adapter) Diagnostics() []adapter.DiagnosticCheck {
 
 	if a.Dir == "" {
 		registry := filepath.Join(DefaultDir(), "projects.json")
+
 		dbs := loadProjectDBs()
 		if len(dbs) == 0 {
 			if _, err := os.Stat(registry); err != nil {
 				checks = append(checks, adapter.DiagnosticCheck{
 					Name:   "projects.json",
 					Status: "warn",
-					Detail: fmt.Sprintf("registry not found at %s", registry),
+					Detail: "registry not found at " + registry,
 				})
 			} else {
 				checks = append(checks, adapter.DiagnosticCheck{
@@ -72,6 +75,7 @@ func (a Adapter) Diagnostics() []adapter.DiagnosticCheck {
 
 	for _, dbPath := range a.enumerateDBPaths() {
 		label := dbLabel(dbPath)
+
 		h, err := openReadOnlyAt(dbPath)
 		if err != nil {
 			checks = append(checks, adapter.DiagnosticCheck{
@@ -79,23 +83,28 @@ func (a Adapter) Diagnostics() []adapter.DiagnosticCheck {
 				Status: "error",
 				Detail: fmt.Sprintf("cannot open: %v", err),
 			})
+
 			continue
 		}
+
 		if h == nil {
 			checks = append(checks, adapter.DiagnosticCheck{
 				Name:   "db:" + label,
 				Status: "warn",
 				Detail: "database file not found or empty",
 			})
+
 			continue
 		}
+
 		missing := schemaMissingColumns(h)
 		_ = h.close()
+
 		if len(missing) > 0 {
 			checks = append(checks, adapter.DiagnosticCheck{
 				Name:   "db:" + label,
 				Status: "warn",
-				Detail: fmt.Sprintf("missing columns: %s", strings.Join(missing, ", ")),
+				Detail: "missing columns: " + strings.Join(missing, ", "),
 			})
 		} else {
 			checks = append(checks, adapter.DiagnosticCheck{
@@ -114,9 +123,11 @@ func (a Adapter) Diagnostics() []adapter.DiagnosticCheck {
 // the doctor output.
 func dbLabel(dbPath string) string {
 	parent := filepath.Dir(dbPath)
+
 	base := filepath.Base(parent)
 	if base == "." || base == string(filepath.Separator) {
 		return filepath.Base(dbPath)
 	}
+
 	return base
 }

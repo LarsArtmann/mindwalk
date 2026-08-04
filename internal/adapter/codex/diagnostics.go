@@ -26,5 +26,6 @@ func (a Adapter) Diagnostics() []adapter.DiagnosticCheck {
 			})
 		}
 	}
+
 	return checks
 }

@@ -13,21 +13,28 @@ import (
 // returns the captured text. Restores the original stdout on return.
 func captureStdout(t *testing.T, fn func() error) (string, error) {
 	t.Helper()
+
 	old := os.Stdout
+
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	os.Stdout = w
 	runErr := fn()
+
 	if cerr := w.Close(); cerr != nil {
 		t.Fatal(cerr)
 	}
+
 	os.Stdout = old
+
 	out, err := io.ReadAll(r)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return string(out), runErr
 }
 
@@ -37,6 +44,7 @@ func captureStdout(t *testing.T, fn func() error) (string, error) {
 func emptyAdapterArgs(t *testing.T) []string {
 	t.Helper()
 	dir := t.TempDir()
+
 	return []string{
 		"--no-crush",
 		"--claude-dir", filepath.Join(dir, "claude"),
@@ -68,6 +76,7 @@ func TestRunDispatchesDoctor(t *testing.T) {
 // user just installed mindwalk and has no sessions yet).
 func TestListSessionsPrintsHeaders(t *testing.T) {
 	args := emptyAdapterArgs(t)
+
 	out, err := captureStdout(t, func() error { return listSessions(args) })
 	if err != nil {
 		t.Fatalf("listSessions error: %v", err)
@@ -83,10 +92,12 @@ func TestListSessionsPrintsHeaders(t *testing.T) {
 // empty array when no sessions exist).
 func TestListSessionsJSON(t *testing.T) {
 	args := append(emptyAdapterArgs(t), "--json")
+
 	out, err := captureStdout(t, func() error { return listSessions(args) })
 	if err != nil {
 		t.Fatalf("listSessions --json error: %v", err)
 	}
+
 	out = strings.TrimSpace(out)
 	if out != "[]" {
 		t.Fatalf("expected '[]' for empty --json output, got: %q", out)
@@ -97,10 +108,12 @@ func TestListSessionsJSON(t *testing.T) {
 // non-matching adapters without error.
 func TestListSessionsHarnessFilter(t *testing.T) {
 	args := append(emptyAdapterArgs(t), "--harness", "codex")
+
 	out, err := captureStdout(t, func() error { return listSessions(args) })
 	if err != nil {
 		t.Fatalf("listSessions --harness error: %v", err)
 	}
+
 	if out != "" {
 		t.Fatalf("expected empty output for filtered empty dirs, got:\n%s", out)
 	}
@@ -110,13 +123,16 @@ func TestListSessionsHarnessFilter(t *testing.T) {
 // the data directory paths.
 func TestDoctorPrintsDataDirectories(t *testing.T) {
 	args := emptyAdapterArgs(t)
+
 	out, err := captureStdout(t, func() error { return doctor(args) })
 	if err != nil {
 		t.Fatalf("doctor error: %v", err)
 	}
+
 	if !strings.Contains(out, "Data directories") {
 		t.Fatalf("expected 'Data directories' in output, got:\n%s", out)
 	}
+
 	if !strings.Contains(out, "crush") {
 		t.Fatalf("expected 'crush' in output, got:\n%s", out)
 	}
@@ -126,10 +142,12 @@ func TestDoctorPrintsDataDirectories(t *testing.T) {
 // directory readability status ([dir missing] for non-existent dirs).
 func TestDoctorShowsDirectoryStatus(t *testing.T) {
 	args := emptyAdapterArgs(t)
+
 	out, err := captureStdout(t, func() error { return doctor(args) })
 	if err != nil {
 		t.Fatalf("doctor error: %v", err)
 	}
+
 	if !strings.Contains(out, "[dir missing]") {
 		t.Fatalf("expected '[dir missing]' for empty dirs, got:\n%s", out)
 	}
@@ -150,6 +168,7 @@ func TestRunVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("run(version) error: %v", err)
 	}
+
 	if !strings.Contains(out, "mindwalk") {
 		t.Fatalf("expected output to contain 'mindwalk', got:\n%s", out)
 	}
@@ -165,9 +184,11 @@ func TestCacheStatusAndClear(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cache status error: %v", err)
 	}
+
 	if !strings.Contains(out, "agent-graphs") {
 		t.Fatalf("expected 'agent-graphs' in status output, got:\n%s", out)
 	}
+
 	if !strings.Contains(out, "reports") {
 		t.Fatalf("expected 'reports' in status output, got:\n%s", out)
 	}
@@ -177,9 +198,11 @@ func TestCacheStatusAndClear(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cache clear error: %v", err)
 	}
+
 	if !strings.Contains(out, "cleared") {
 		t.Fatalf("expected 'cleared' in clear output, got:\n%s", out)
 	}
+
 	if !strings.Contains(out, "reports") {
 		t.Fatalf("expected 'reports' in clear output, got:\n%s", out)
 	}
@@ -211,13 +234,16 @@ func TestHumanBytes(t *testing.T) {
 // a *string that is immediately dereferenced, capturing only the default.
 func TestParseAdapterFlagsRespectsNoCrush(t *testing.T) {
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+
 	af := parseAdapterFlags(fs)
 	if err := fs.Parse([]string{"--no-crush", "--crush-dir", "/tmp/custom"}); err != nil {
 		t.Fatal(err)
 	}
+
 	if !af.noCrush {
 		t.Fatal("expected --no-crush to set noCrush=true, got false (flag was not parsed)")
 	}
+
 	if af.crushDir != "/tmp/custom" {
 		t.Fatalf("expected crushDir=/tmp/custom, got %q", af.crushDir)
 	}
@@ -227,16 +253,20 @@ func TestParseAdapterFlagsRespectsNoCrush(t *testing.T) {
 // no flags are passed.
 func TestParseAdapterFlagsDefaults(t *testing.T) {
 	fs := flag.NewFlagSet("test", flag.ContinueOnError)
+
 	af := parseAdapterFlags(fs)
 	if err := fs.Parse(nil); err != nil {
 		t.Fatal(err)
 	}
+
 	if af.noCrush {
 		t.Fatal("expected noCrush=false by default")
 	}
+
 	if af.crushDir != "" {
 		t.Fatalf("expected crushDir empty by default, got %q", af.crushDir)
 	}
+
 	if af.claudeDir == "" {
 		t.Fatal("expected claudeDir to have a non-empty default")
 	}

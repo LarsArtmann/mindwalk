@@ -35,6 +35,7 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	if a.Dir == "" {
 		return a.listAllProjectSessions()
 	}
+
 	return a.listSingleDB()
 }
 
@@ -51,6 +52,7 @@ func allProjectDBs() []projectDB {
 			dbs = append(dbs, projectDB{DBPath: globalDB})
 		}
 	}
+
 	return dbs
 }
 
@@ -63,50 +65,66 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 	if len(projectDBs) == 0 {
 		return nil, nil
 	}
-	var all []model.SessionMeta
-	var oldSchema []string
-	var missingCols []string
+
+	var (
+		all         []model.SessionMeta
+		oldSchema   []string
+		missingCols []string
+	)
+
 	for _, pdb := range projectDBs {
 		h, err := a.openCached(pdb.DBPath)
 		if err != nil || h == nil {
 			continue
 		}
+
 		missing := schemaMissingColumns(h)
 		if len(missing) > 0 && a.recordOldSchema(pdb.DBPath) {
 			oldSchema = append(oldSchema, pdb.DBPath)
 			missingCols = unionStrings(missingCols, missing)
 		}
+
 		rows, err := h.db.QueryContext(context.Background(), buildListSessionsQuery(h.cols))
 		if err != nil {
 			_ = h.close()
+
 			continue
 		}
+
 		cwd := pdb.ProjectPath
 		if cwd == "" {
 			cwd = a.projectPathForDB(pdb.DBPath)
 		}
+
 		for rows.Next() {
 			meta, err := scanSessionMeta(rows)
 			if err != nil {
 				_ = rows.Close()
 				_ = h.close()
+
 				return nil, err
 			}
+
 			meta.Cwd = cwd
 			if a.dbIndex != nil {
 				a.dbIndex.Store(meta.ID, pdb.DBPath)
 			}
+
 			all = append(all, meta)
 		}
+
 		_ = rows.Close()
 		_ = h.close()
 	}
+
 	if len(oldSchema) > 0 {
 		a.reportOldSchemaSummary(oldSchema, missingCols)
 	}
+
 	sort.Slice(all, func(i, j int) bool {
 		return all[i].EndedAt > all[j].EndedAt
 	})
+
 	return all, nil
 }
 
@@ -115,6 +133,7 @@ func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if db == nil {
 		return nil, nil
 	}
@@ -122,27 +141,34 @@ func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 
 	a.warnIfOldSchema(db)
 	cwd := a.projectPathForDB(db.path)
+
 	rows, err := db.db.QueryContext(context.Background(), buildListSessionsQuery(db.cols))
 	if err != nil {
 		return nil, fmt.Errorf("list crush sessions: %w", err)
 	}
+
 	defer func() { _ = rows.Close() }()
 
 	var metas []model.SessionMeta
+
 	for rows.Next() {
 		meta, err := scanSessionMeta(rows)
 		if err != nil {
 			return nil, err
 		}
+
 		meta.Cwd = cwd
 		metas = append(metas, meta)
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
+
 	sort.Slice(metas, func(i, j int) bool {
 		return metas[i].EndedAt > metas[j].EndedAt
 	})
+
 	return metas, nil
 }
 
@@ -155,6 +181,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	if err != nil {
 		return model.SessionMeta{}, err
 	}
+
 	if db == nil {
 		return model.SessionMeta{}, errDBUnavailable
 	}
@@ -166,23 +193,28 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	}
 
 	row := db.db.QueryRowContext(context.Background(), buildSessionByIDQuery(db.cols), id)
+
 	meta, err := scanSessionMeta(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return model.SessionMeta{}, adapter.NotRecognizedErr("Crush", path)
 		}
+
 		return model.SessionMeta{}, err
 	}
+
 	meta.Cwd = a.projectPathForDB(db.path)
 	if isAgent || meta.Agent != nil {
 		meta.Auxiliary = true
 	}
+
 	if isAgent {
 		parts := strings.SplitN(id, agentIDSeparator, 2)
 		if len(parts) == 2 {
 			if meta.Agent == nil {
 				meta.Agent = &model.AgentSessionMeta{}
 			}
+
 			meta.Agent.SourceID = parts[0]
 			meta.Agent.LaunchCallID = parts[1]
 			// RootSessionID is the parent session id, not the
@@ -199,7 +231,9 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	if judge.IsWorkDir(meta.Cwd) {
 		meta.Auxiliary = true
 	}
+
 	adapter.FallbackSessionTitle(&meta, path)
+
 	return meta, nil
 }
 
@@ -214,6 +248,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if db == nil {
 		return nil, errDBUnavailable
 	}
@@ -236,13 +271,16 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	}
 
 	row := db.db.QueryRowContext(context.Background(), buildSessionByIDQuery(db.cols), id)
+
 	meta, err := scanSessionMeta(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, adapter.NotRecognizedErr("Crush", path)
 		}
+
 		return nil, err
 	}
+
 	applySessionMeta(trace, meta)
 	trace.Session.Cwd = a.projectPathForDB(db.path)
 
@@ -261,9 +299,18 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 
 	for rows.Next() {
 		var msg messageRow
-		if err := rows.Scan(&msg.ID, &msg.Role, &msg.Parts, &msg.Model, &msg.Provider, &msg.CreatedAt, &msg.FinishedAt); err != nil {
+		if err := rows.Scan(
+			&msg.ID,
+			&msg.Role,
+			&msg.Parts,
+			&msg.Model,
+			&msg.Provider,
+			&msg.CreatedAt,
+			&msg.FinishedAt,
+		); err != nil {
 			return nil, fmt.Errorf("scan crush message: %w", err)
 		}
+
 		recognized = true
 		ts := secondsToRFC3339(msg.CreatedAt)
 		applyMessageMeta(trace, msg, ts)
@@ -276,6 +323,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				Note: fmt.Sprintf("%s → %s", prevModel, msg.Model.String),
 			})
 		}
+
 		if msg.Provider.Valid && msg.Provider.String != "" && prevProvider != "" &&
 			msg.Provider.String != prevProvider {
 			trace.Marks = append(trace.Marks, model.Mark{
@@ -284,9 +332,11 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				Note: fmt.Sprintf("%s → %s", prevProvider, msg.Provider.String),
 			})
 		}
+
 		if msg.Model.Valid && msg.Model.String != "" {
 			prevModel = msg.Model.String
 		}
+
 		if msg.Provider.Valid && msg.Provider.String != "" {
 			prevProvider = msg.Provider.String
 		}
@@ -317,6 +367,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if note == "" {
 				note = parsed.text
 			}
+
 			trace.Marks = append(trace.Marks, model.Mark{
 				Seq:  len(pendingOrder),
 				Type: "subagent",
@@ -333,12 +384,14 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if duration == 0 && msg.FinishedAt.Valid && msg.FinishedAt.Int64 > msg.CreatedAt {
 				duration = msg.FinishedAt.Int64 - msg.CreatedAt
 			}
+
 			note := truncateNote(parsed.reasoningText, 200)
 			if duration > 0 {
 				note = fmt.Sprintf("thinking %ds: %s", duration, note)
 			} else {
 				note = "thinking: " + note
 			}
+
 			trace.Marks = append(trace.Marks, model.Mark{
 				Seq:      len(pendingOrder),
 				Type:     "thinking",
@@ -356,6 +409,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if parsed.finishMessage != "" {
 				note = fmt.Sprintf("%s: %s", parsed.finishReason, truncateNote(parsed.finishMessage, 200))
 			}
+
 			mk := model.Mark{
 				Seq:  len(pendingOrder),
 				Type: "finish-reason",
@@ -364,6 +418,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if msg.FinishedAt.Valid && msg.FinishedAt.Int64 > msg.CreatedAt {
 				mk.Duration = int(msg.FinishedAt.Int64 - msg.CreatedAt)
 			}
+
 			trace.Marks = append(trace.Marks, mk)
 		}
 
@@ -371,12 +426,14 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if _, exists := pending[call.ID]; !exists {
 				pendingOrder = append(pendingOrder, call.ID)
 			}
+
 			pending[call.ID] = call
 			if i < len(parsed.results) {
 				results[call.ID] = parsed.results[i]
 			}
 		}
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -386,12 +443,15 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		result := results[id]
 		trace.Events = append(trace.Events, adapter.BuildEvent(trace, call, result))
 	}
+
 	sort.SliceStable(trace.Events, func(i, j int) bool {
 		return trace.Events[i].Seq < trace.Events[j].Seq
 	})
+
 	for i := range trace.Events {
 		trace.Events[i].Seq = i
 	}
+
 	trace.Session.EventCount = len(trace.Events)
 	adapter.FallbackTraceSessionTitle(trace, path)
 	// Query the read_files table for exact read observability. The
@@ -409,6 +469,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			}
 		}
 	}
+
 	readsGrade := model.ObservabilityEstimated
 	if len(readPaths) > 0 {
 		readsGrade = model.ObservabilityExact
@@ -416,11 +477,16 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	// Crush's finish reasons carry no observability flags; the visualizer
 	// infers failures from tool_result.is_error the same way it does for
 	// Claude Code and Codex.
-	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilitySignals{Errors: model.ObservabilityEstimated, Reads: readsGrade})
+	trace.Stats = model.ComputeStats(
+		trace,
+		0,
+		model.ObservabilitySignals{Errors: model.ObservabilityEstimated, Reads: readsGrade},
+	)
 
 	if !recognized {
 		return nil, adapter.NotRecognizedErr("Crush", path)
 	}
+
 	return trace, nil
 }
 
@@ -436,6 +502,7 @@ func (a Adapter) openReadOnly() (*sqlHandle, error) {
 	if path == "" {
 		return nil, nil
 	}
+
 	return a.openCached(path)
 }
 
@@ -446,18 +513,23 @@ func openReadOnlyAt(path string) (*sqlHandle, error) {
 		if os.IsNotExist(err) {
 			return nil, nil
 		}
+
 		return nil, fmt.Errorf("inspect crush database at %s: %w", path, err)
 	}
+
 	if info.IsDir() {
 		return nil, fmt.Errorf("crush database path %s is a directory, not a file", path)
 	}
+
 	if info.Size() == 0 {
 		return nil, fmt.Errorf("crush database at %s is empty (size 0)", path)
 	}
+
 	db, err := openSQLite(path)
 	if err != nil {
 		return nil, fmt.Errorf("open crush database at %s: %w", path, err)
 	}
+
 	return &sqlHandle{path: path, db: db, cols: probeSchema(db)}, nil
 }
 
@@ -472,14 +544,17 @@ func (a Adapter) openCached(path string) (*sqlHandle, error) {
 			}
 		}
 	}
+
 	h, err := openReadOnlyAt(path)
 	if err != nil || h == nil {
 		return h, err
 	}
+
 	if a.dbCache != nil {
 		a.dbCache.Store(path, h.db)
 		h.cached = true
 	}
+
 	return h, nil
 }
 
@@ -525,6 +600,7 @@ func columnExists(db *sql.DB, table, column string) bool {
 		return false
 	}
 	defer func() { _ = rows.Close() }()
+
 	return rows.Next()
 }
 
@@ -558,14 +634,18 @@ func (a Adapter) warnIfOldSchema(h *sqlHandle) bool {
 	if h == nil || h.path == "" {
 		return false
 	}
+
 	missing := schemaMissingColumns(h)
 	if len(missing) == 0 {
 		return false
 	}
+
 	if !a.recordOldSchema(h.path) {
 		return true
 	}
+
 	a.reportOldSchemaSummary([]string{h.path}, missing)
+
 	return true
 }
 
@@ -580,22 +660,28 @@ func schemaMissingColumns(h *sqlHandle) []string {
 		return nil
 	}
 	defer func() { _ = rows.Close() }()
+
 	found := map[string]bool{}
+
 	for rows.Next() {
 		var col string
 		if rows.Scan(&col) == nil {
 			found[col] = true
 		}
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil
 	}
+
 	var missing []string
+
 	for _, col := range expectedSchemaColumns {
 		if !found[col] {
 			missing = append(missing, col)
 		}
 	}
+
 	return missing
 }
 
@@ -606,9 +692,11 @@ func (a Adapter) recordOldSchema(path string) bool {
 	if a.warnedOldSchema == nil {
 		return true
 	}
+
 	if _, already := a.warnedOldSchema.LoadOrStore(path, true); already {
 		return false
 	}
+
 	return true
 }
 
@@ -619,6 +707,7 @@ func (a Adapter) reportOldSchemaSummary(paths []string, missing []string) {
 	if len(paths) == 0 {
 		return
 	}
+
 	cols := strings.Join(missing, ", ")
 	if len(paths) == 1 {
 		fmt.Fprintf(
@@ -627,25 +716,32 @@ func (a Adapter) reportOldSchemaSummary(paths []string, missing []string) {
 			paths[0],
 			cols,
 		)
+
 		return
 	}
+
 	fmt.Fprintf(
 		os.Stderr,
 		"mindwalk: warning: %d Crush databases have an old schema (missing %s); upgrade Crush to get full trace coverage",
 		len(paths),
 		cols,
 	)
+
 	n := min(3, len(paths))
 	if n > 0 {
 		fmt.Fprintf(os.Stderr, " (e.g. %s", paths[0])
+
 		for i := 1; i < n; i++ {
 			fmt.Fprintf(os.Stderr, ", %s", paths[i])
 		}
+
 		if len(paths) > n {
 			fmt.Fprint(os.Stderr, ", ...")
 		}
+
 		fmt.Fprint(os.Stderr, ")")
 	}
+
 	fmt.Fprintln(os.Stderr)
 }
 
@@ -655,12 +751,14 @@ func unionStrings(a, b []string) []string {
 	for _, s := range a {
 		seen[s] = true
 	}
+
 	for _, s := range b {
 		if !seen[s] {
 			seen[s] = true
 			a = append(a, s)
 		}
 	}
+
 	return a
 }
 
@@ -673,13 +771,17 @@ func (a Adapter) enumerateDBPaths() []string {
 		if p := a.dbPath(); p != "" {
 			return []string{p}
 		}
+
 		return nil
 	}
+
 	dbs := allProjectDBs()
+
 	paths := make([]string, 0, len(dbs))
 	for _, db := range dbs {
 		paths = append(paths, db.DBPath)
 	}
+
 	return paths
 }
 
@@ -693,6 +795,7 @@ func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
 	if a.Dir != "" {
 		return a.openReadOnly()
 	}
+
 	id, _, ok := splitSessionID(path)
 	if ok && a.dbIndex != nil {
 		if cached, hit := a.dbIndex.Load(id); hit {
@@ -701,6 +804,7 @@ func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
 			}
 		}
 	}
+
 	return a.openReadOnly()
 }
 
@@ -718,6 +822,7 @@ func buildListSessionsQuery(sc schemaColumns) string {
 	if sc.sessionsCost {
 		costExpr = "cost"
 	}
+
 	return fmt.Sprintf(
 		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`,
 		costExpr,
@@ -729,6 +834,7 @@ func buildAllSessionsQuery(sc schemaColumns) string {
 	if sc.sessionsCost {
 		costExpr = "cost"
 	}
+
 	return fmt.Sprintf(
 		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`,
 		costExpr,
@@ -740,6 +846,7 @@ func buildSessionByIDQuery(sc schemaColumns) string {
 	if sc.sessionsCost {
 		costExpr = "cost"
 	}
+
 	return fmt.Sprintf(
 		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`,
 		costExpr,
@@ -751,6 +858,7 @@ func buildMessagesBySessionQuery(sc schemaColumns) string {
 	if sc.messagesFinishedAt {
 		finishedExpr = "finished_at"
 	}
+
 	return fmt.Sprintf(
 		`SELECT id, role, parts, model, provider, created_at, %s FROM messages WHERE session_id = ? ORDER BY created_at, id`,
 		finishedExpr,
@@ -804,6 +912,7 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 	); err != nil {
 		return model.SessionMeta{}, err
 	}
+
 	if sr.ParentSessionID.Valid && sr.ParentSessionID.String != "" {
 		// Non-null parent_session_id marks an agent-tool session.
 		// The Synthesized path is the agent-tool id (messageID$$toolCallID)
@@ -822,6 +931,7 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 			agent.LaunchCallID = callID
 			agent.SourceID = messageID
 		}
+
 		return model.SessionMeta{
 			Key:              SessionKey(sr.ID),
 			ID:               sr.ID,
@@ -839,6 +949,7 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 			Cost:             sr.Cost,
 		}, nil
 	}
+
 	return model.SessionMeta{
 		Key:              SessionKey(sr.ID),
 		ID:               sr.ID,
@@ -863,15 +974,19 @@ func applySessionMeta(trace *model.Trace, meta model.SessionMeta) {
 	if meta.Title != "" {
 		trace.Session.Title = meta.Title
 	}
+
 	if meta.StartedAt != "" {
 		trace.Session.StartedAt = meta.StartedAt
 	}
+
 	if meta.EndedAt != "" {
 		trace.Session.EndedAt = meta.EndedAt
 	}
+
 	if meta.Model != "" {
 		trace.Session.Model = meta.Model
 	}
+
 	if meta.Provider != "" {
 		trace.Session.Provider = meta.Provider
 	}
@@ -885,13 +1000,16 @@ func applyMessageMeta(trace *model.Trace, msg messageRow, ts string) {
 	if msg.Model.Valid && msg.Model.String != "" && trace.Session.Model == "" {
 		trace.Session.Model = msg.Model.String
 	}
+
 	if msg.Provider.Valid && msg.Provider.String != "" && trace.Session.Provider == "" {
 		trace.Session.Provider = msg.Provider.String
 	}
+
 	if ts != "" {
 		if trace.Session.StartedAt == "" {
 			trace.Session.StartedAt = ts
 		}
+
 		trace.Session.EndedAt = ts
 	}
 }
@@ -910,6 +1028,7 @@ func secondsToRFC3339(s int64) string {
 	if s <= 0 {
 		return ""
 	}
+
 	return time.Unix(s, 0).UTC().Format(time.RFC3339Nano)
 }
 
@@ -922,16 +1041,20 @@ func queryReadFiles(db *sql.DB, sessionID string) map[string]bool {
 		return nil
 	}
 	defer func() { _ = rows.Close() }()
+
 	paths := map[string]bool{}
+
 	for rows.Next() {
 		var p string
 		if rows.Scan(&p) == nil && p != "" {
 			paths[p] = true
 		}
 	}
+
 	if err := rows.Err(); err != nil {
 		return nil
 	}
+
 	return paths
 }
 
@@ -942,6 +1065,7 @@ func truncateNote(s string, maxRunes int) string {
 	if len(runes) <= maxRunes {
 		return s
 	}
+
 	return string(runes[:maxRunes]) + "…"
 }
 
@@ -978,6 +1102,7 @@ func SessionIDFromPath(path string) string {
 	if !ok {
 		return path
 	}
+
 	return id
 }
 
@@ -988,13 +1113,16 @@ func splitSessionID(path string) (string, bool, bool) {
 	if path == "" {
 		return "", false, false
 	}
+
 	id := SessionIDFromPath(path)
 	if id == "" {
 		return "", false, false
 	}
+
 	if messageID, callID, ok := splitAgentID(id); ok {
 		return messageID + agentIDSeparator + callID, true, true
 	}
+
 	return id, false, true
 }
 
@@ -1007,6 +1135,7 @@ func splitAgentID(id string) (string, string, bool) {
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return "", "", false
 	}
+
 	return parts[0], parts[1], true
 }
 

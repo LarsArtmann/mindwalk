@@ -17,12 +17,15 @@ func TestAgentNodeIDIsStableAndRootScoped(t *testing.T) {
 	if got != AgentNodeID("codex", "root-key", "codex-agent:child") {
 		t.Fatal("unstable")
 	}
+
 	if !regexp.MustCompile(`^agt_[0-9a-f]{24}$`).MatchString(got) {
 		t.Fatalf("id=%q", got)
 	}
+
 	if got == AgentNodeID("codex", "other-root", "codex-agent:child") {
 		t.Fatal("not root scoped")
 	}
+
 	if got == AgentNodeID("claude-code", "root-key", "codex-agent:child") {
 		t.Fatal("not harness scoped")
 	}
@@ -42,6 +45,7 @@ func TestAgentInstructionPreviewNormalizesAndTruncatesRunes(t *testing.T) {
 	if len([]rune(got)) != 240 {
 		t.Fatalf("truncated preview is %d runes, want 240", len([]rune(got)))
 	}
+
 	if !strings.HasSuffix(got, "…") {
 		t.Fatalf("truncated preview missing ellipsis: %q", got)
 	}
@@ -49,13 +53,16 @@ func TestAgentInstructionPreviewNormalizesAndTruncatesRunes(t *testing.T) {
 
 func TestSessionKeyIsStableAndSourceSpecific(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "session.jsonl")
+
 	first := SessionKey("codex", path)
 	if second := SessionKey("codex", path); second != first {
 		t.Fatalf("SessionKey changed: %q != %q", first, second)
 	}
+
 	if other := SessionKey("claude-code", path); other == first {
 		t.Fatalf("SessionKey ignored harness: %q", other)
 	}
+
 	if other := SessionKey("codex", path+".copy"); other == first {
 		t.Fatalf("SessionKey ignored path: %q", other)
 	}
@@ -63,13 +70,16 @@ func TestSessionKeyIsStableAndSourceSpecific(t *testing.T) {
 
 func TestUserMessageNoteStaysWithinRuneBudget(t *testing.T) {
 	long := strings.Repeat("字", userMessageNoteLimit+50)
+
 	note := UserMessageNote(long)
 	if got := len([]rune(note)); got != userMessageNoteLimit {
 		t.Fatalf("truncated note is %d runes, want %d (ellipsis must fit the budget)", got, userMessageNoteLimit)
 	}
+
 	if !strings.HasSuffix(note, "…") {
 		t.Fatalf("truncated note missing ellipsis marker: %q", note[len(note)-12:])
 	}
+
 	exact := strings.Repeat("a", userMessageNoteLimit)
 	if UserMessageNote(exact) != exact {
 		t.Fatal("text at the limit must pass through untouched")
@@ -83,6 +93,7 @@ func TestSummarizeToolTruncatesCommandAtRuneBoundary(t *testing.T) {
 	if !utf8.ValidString(summary) {
 		t.Fatalf("summary contains invalid UTF-8: %q", summary)
 	}
+
 	want := strings.Repeat("a", 92) + "界... -> 0 targets, 0 outside"
 	if summary != want {
 		t.Fatalf("summary = %q, want %q", summary, want)
@@ -177,6 +188,7 @@ func TestBuildEventKeepsExecAggregatedAndFindsSingleCommandTarget(t *testing.T) 
 	if event.Tool != "exec" || event.Action != "read" {
 		t.Fatalf("event = %#v", event)
 	}
+
 	if len(event.Targets) != 1 || event.Targets[0].Path != "README.md" || !event.Targets[0].Weak ||
 		event.Targets[0].Touch != "read" {
 		t.Fatalf("targets = %#v", event.Targets)
@@ -186,6 +198,7 @@ func TestBuildEventKeepsExecAggregatedAndFindsSingleCommandTarget(t *testing.T) 
 func TestBuildEventExtractsApplyPatchFromExec(t *testing.T) {
 	root := t.TempDir()
 	writeAdapterTestFile(t, root, "src/main.go")
+
 	patch := "*** Begin Patch\n*** Update File: src/main.go\n@@\n-old\n+new\n*** End Patch"
 	source := `const patch = ` + jsonString(t, patch) + `; text(await tools.apply_patch(patch));`
 
@@ -193,6 +206,7 @@ func TestBuildEventExtractsApplyPatchFromExec(t *testing.T) {
 	if event.Tool != "exec" || event.Action != "edit" {
 		t.Fatalf("event = %#v", event)
 	}
+
 	if len(event.Targets) != 1 || event.Targets[0].Path != "src/main.go" || event.Targets[0].Touch != "edit" ||
 		event.Targets[0].Weak {
 		t.Fatalf("targets = %#v", event.Targets)
@@ -214,9 +228,11 @@ func TestBuildEventExtractsPromiseAllCommandTargets(t *testing.T) {
 	if event.Tool != "exec" || event.Action != "exec" {
 		t.Fatalf("event = %#v", event)
 	}
+
 	if len(event.Targets) != 2 {
 		t.Fatalf("targets = %#v", event.Targets)
 	}
+
 	want := []struct {
 		path  string
 		touch string
@@ -232,6 +248,7 @@ func TestBuildEventDecodesEscapedExecStrings(t *testing.T) {
 	root := t.TempDir()
 	workdir := filepath.Join(root, `quoted"dir`)
 	writeAdapterTestFile(t, workdir, "src/main.go")
+
 	command := `sed -n "1,20p" src/main.go`
 	source := `tools.exec_command({cmd:` + jsonString(t, command) + `,workdir:` + jsonString(t, workdir) + `});`
 
@@ -320,6 +337,7 @@ func TestBuildEventClassifiesBashSearchCommands(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.command, func(t *testing.T) {
 			trace := &model.Trace{Session: model.TraceSession{Cwd: t.TempDir()}}
+
 			event := BuildEvent(
 				trace,
 				ToolCall{Name: "Bash", Input: map[string]any{"command": tt.command}},
@@ -334,6 +352,7 @@ func TestBuildEventClassifiesBashSearchCommands(t *testing.T) {
 
 func TestBuildEventExecActionAllSearchCommands(t *testing.T) {
 	source := `Promise.all([tools.exec_command({cmd:"rg TODO main.go"}), tools.exec_command({cmd:"ls src"})])`
+
 	event := buildExecEvent(t.TempDir(), map[string]any{"_raw": source})
 	if event.Tool != "exec" || event.Action != "search" {
 		t.Fatalf("event = %#v, want action %q", event, "search")
@@ -342,6 +361,7 @@ func TestBuildEventExecActionAllSearchCommands(t *testing.T) {
 
 func TestBuildEventExecActionAllReadCommands(t *testing.T) {
 	source := `Promise.all([tools.exec_command({cmd:"sed -n '1,20p' main.go"}), tools.exec_command({cmd:"cat README.md"})])`
+
 	event := buildExecEvent(t.TempDir(), map[string]any{"_raw": source})
 	if event.Tool != "exec" || event.Action != "read" {
 		t.Fatalf("event = %#v, want action %q", event, "read")
@@ -371,6 +391,7 @@ func TestCommandReadPaths(t *testing.T) {
 			if len(got) != len(tt.want) {
 				t.Fatalf("commandReadPaths(%q) = %#v, want %#v", tt.command, got, tt.want)
 			}
+
 			for i := range got {
 				if got[i] != tt.want[i] {
 					t.Fatalf("commandReadPaths(%q) = %#v, want %#v", tt.command, got, tt.want)
@@ -385,6 +406,7 @@ func diffTargetPaths(ts []diffTarget) []string {
 	for i, t := range ts {
 		paths[i] = t.path
 	}
+
 	return paths
 }
 
@@ -399,10 +421,12 @@ func TestGitDiffTargets(t *testing.T) {
 		"--- a/cmd/mindwalk/main.go\n" +
 		"+++ b/cmd/mindwalk/main.go\n"
 	got := diffTargetPaths(gitDiffTargets(diff))
+
 	want := []string{"cmd/mindwalk/main.go", "internal/server/server.go"}
 	if len(got) != len(want) {
 		t.Fatalf("gitDiffTargets paths = %#v, want %#v", got, want)
 	}
+
 	for i := range got {
 		if got[i] != want[i] {
 			t.Fatalf("gitDiffTargets paths = %#v, want %#v", got, want)
@@ -415,6 +439,7 @@ func TestGitDiffTargetsHandlesRenames(t *testing.T) {
 		"similarity index 95%\n" +
 		"rename from old/path.go\n" +
 		"rename to new/path.go\n"
+
 	got := diffTargetPaths(gitDiffTargets(diff))
 	if len(got) != 1 || got[0] != "new/path.go" {
 		t.Fatalf("gitDiffTargets = %#v, want [new/path.go]", got)
@@ -434,10 +459,12 @@ func TestGitDiffTargetsQuotedSpaces(t *testing.T) {
 		"+++ b/foo bar.go\n" +
 		"@@ -1,3 +1,4 @@\n" +
 		"+new line\n"
+
 	got := gitDiffTargets(diff)
 	if len(got) != 1 {
 		t.Fatalf("gitDiffTargets = %#v, want 1 target", got)
 	}
+
 	if got[0].path != "foo bar.go" {
 		t.Fatalf("path = %q, want %q", got[0].path, "foo bar.go")
 	}
@@ -448,6 +475,7 @@ func TestGitDiffTargetsPlusPlusFallback(t *testing.T) {
 		"+++ b/new/path.go\n" +
 		"@@ -1,3 +1,4 @@\n" +
 		"+added\n"
+
 	got := diffTargetPaths(gitDiffTargets(diff))
 	if len(got) != 1 || got[0] != "new/path.go" {
 		t.Fatalf("gitDiffTargets = %#v, want [new/path.go]", got)
@@ -465,10 +493,16 @@ func TestGitDiffTargetsMixedHeadersAndFallback(t *testing.T) {
 		"@@ -1,3 +1,4 @@\n" +
 		"+legacy\n"
 	got := diffTargetPaths(gitDiffTargets(diff))
+
 	want := []string{"legacy.go", "main.go"}
 	if len(got) != 2 {
-		t.Fatalf("gitDiffTargets = %#v, want %#v (headerless file should not be suppressed by earlier diff --git)", got, want)
+		t.Fatalf(
+			"gitDiffTargets = %#v, want %#v (headerless file should not be suppressed by earlier diff --git)",
+			got,
+			want,
+		)
 	}
+
 	for i, p := range want {
 		if got[i] != p {
 			t.Fatalf("got[%d] = %q, want %q", i, got[i], p)
@@ -482,14 +516,17 @@ func TestGitDiffTargetsHunkLineRanges(t *testing.T) {
 		"+++ b/main.go\n" +
 		"@@ -1,3 +10,5 @@\n" +
 		"@@ -20,1 +30,2 @@\n"
+
 	got := gitDiffTargets(diff)
 	if len(got) != 1 {
 		t.Fatalf("gitDiffTargets = %#v, want 1 target", got)
 	}
+
 	want := [][2]int{{10, 14}, {30, 31}}
 	if len(got[0].lines) != len(want) {
 		t.Fatalf("lines = %#v, want %#v", got[0].lines, want)
 	}
+
 	for i := range want {
 		if got[0].lines[i] != want[i] {
 			t.Fatalf("lines[%d] = %v, want %v", i, got[0].lines[i], want[i])
@@ -501,6 +538,7 @@ func TestBuildEventBashGitDiffProducesReadTargets(t *testing.T) {
 	root := t.TempDir()
 	writeAdapterTestFile(t, root, "internal/server/server.go")
 	writeAdapterTestFile(t, root, "cmd/mindwalk/main.go")
+
 	diff := "diff --git a/internal/server/server.go b/internal/server/server.go\n" +
 		"index abc..def 100644\n" +
 		"--- a/internal/server/server.go\n" +
@@ -511,6 +549,7 @@ func TestBuildEventBashGitDiffProducesReadTargets(t *testing.T) {
 		"--- a/cmd/mindwalk/main.go\n" +
 		"+++ b/cmd/mindwalk/main.go\n"
 	trace := &model.Trace{Session: model.TraceSession{Cwd: root}}
+
 	event := BuildEvent(trace, ToolCall{
 		Name:  "Bash",
 		Input: map[string]any{"command": "git diff"},
@@ -518,6 +557,7 @@ func TestBuildEventBashGitDiffProducesReadTargets(t *testing.T) {
 	if len(event.Targets) != 2 {
 		t.Fatalf("targets = %#v", event.Targets)
 	}
+
 	for _, target := range event.Targets {
 		if target.Touch != "read" || !target.Weak {
 			t.Fatalf("target %#v should be weak read", target)
@@ -528,12 +568,14 @@ func TestBuildEventBashGitDiffProducesReadTargets(t *testing.T) {
 func TestBuildEventDoesNotPairDistantExecWorkdir(t *testing.T) {
 	root := t.TempDir()
 	writeAdapterTestFile(t, root, "README.md")
+
 	source := `tools.exec_command({cmd:"sed README.md"}); const metadata = {workdir:"/tmp/not-the-command-workdir"};`
 
 	event := buildExecEvent(root, map[string]any{"_raw": source})
 	if len(event.Targets) != 1 || event.Targets[0].Path != "README.md" || !event.Targets[0].Weak {
 		t.Fatalf("targets = %#v", event.Targets)
 	}
+
 	if len(event.Outside) != 0 {
 		t.Fatalf("outside = %#v", event.Outside)
 	}
@@ -542,6 +584,7 @@ func TestBuildEventDoesNotPairDistantExecWorkdir(t *testing.T) {
 func TestBuildEventIgnoresExecExamplesInStringsAndComments(t *testing.T) {
 	root := t.TempDir()
 	writeAdapterTestFile(t, root, "README.md")
+
 	source := "const quoted = 'tools.exec_command({cmd:\"go test ./...\"})';\n" +
 		"const template = `tools.exec_command({cmd:\"sed README.md\"})`;\n" +
 		"// tools.exec_command({cmd:\"sed README.md\"})\n" +
@@ -552,6 +595,7 @@ func TestBuildEventIgnoresExecExamplesInStringsAndComments(t *testing.T) {
 	if event.Action != "exec" || len(event.Targets) != 0 {
 		t.Fatalf("event = %#v", event)
 	}
+
 	if event.Summary != "exec -> 0 targets, 0 outside" {
 		t.Fatalf("summary = %q", event.Summary)
 	}
@@ -560,15 +604,18 @@ func TestBuildEventIgnoresExecExamplesInStringsAndComments(t *testing.T) {
 func TestBuildEventExtractsJSReplTargets(t *testing.T) {
 	root := t.TempDir()
 	writeAdapterTestFile(t, root, "packages/db/src/index.ts")
+
 	code := `const db = await import("./packages/db/src/index.ts")`
 
 	for _, key := range []string{"code", "_raw"} {
 		t.Run(key, func(t *testing.T) {
 			trace := &model.Trace{Session: model.TraceSession{Cwd: root}}
+
 			event := BuildEvent(trace, ToolCall{Name: "js_repl", Input: map[string]any{key: code}}, ToolResult{})
 			if event.Tool != "js_repl" || event.Action != "exec" {
 				t.Fatalf("event = %#v", event)
 			}
+
 			if len(event.Targets) != 1 || event.Targets[0].Path != "packages/db/src/index.ts" ||
 				!event.Targets[0].Weak {
 				t.Fatalf("targets = %#v", event.Targets)
@@ -579,15 +626,18 @@ func TestBuildEventExtractsJSReplTargets(t *testing.T) {
 
 func buildExecEvent(cwd string, input map[string]any) model.Event {
 	trace := &model.Trace{Session: model.TraceSession{Cwd: cwd}}
+
 	return BuildEvent(trace, ToolCall{Name: "exec", Input: input}, ToolResult{})
 }
 
 func writeAdapterTestFile(t *testing.T, root, path string) {
 	t.Helper()
+
 	fullPath := filepath.Join(root, filepath.FromSlash(path))
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.WriteFile(fullPath, []byte("test\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -595,10 +645,12 @@ func writeAdapterTestFile(t *testing.T, root, path string) {
 
 func jsonString(t *testing.T, value string) string {
 	t.Helper()
+
 	encoded, err := json.Marshal(value)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	return string(encoded)
 }
 
@@ -641,16 +693,20 @@ func TestBuildEventClassifiesPiCoreTools(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.tool, func(t *testing.T) {
 			trace := &model.Trace{Session: model.TraceSession{Cwd: root}}
+
 			event := BuildEvent(trace, ToolCall{Name: tt.tool, Input: tt.input}, ToolResult{})
 			if event.Action != tt.action {
 				t.Fatalf("action = %q, want %q", event.Action, tt.action)
 			}
+
 			if tt.path == "" {
 				return
 			}
+
 			if len(event.Targets) != 1 {
 				t.Fatalf("targets = %#v", event.Targets)
 			}
+
 			target := event.Targets[0]
 			if target.Path != tt.path || target.Touch != tt.touch || target.Weak != tt.weak {
 				t.Fatalf("target = %#v", target)
@@ -662,10 +718,12 @@ func TestBuildEventClassifiesPiCoreTools(t *testing.T) {
 func TestBuildEventPiReadRecordsLineRange(t *testing.T) {
 	trace := &model.Trace{Session: model.TraceSession{Cwd: t.TempDir()}}
 	input := map[string]any{"path": "/abs/elsewhere.go", "offset": float64(10), "limit": float64(5)}
+
 	event := BuildEvent(trace, ToolCall{Name: "read", Input: input}, ToolResult{})
 	if event.Action != "read" {
 		t.Fatalf("action = %q", event.Action)
 	}
+
 	if len(event.Outside) != 1 {
 		t.Fatalf("outside = %#v", event.Outside)
 	}
@@ -676,21 +734,27 @@ func TestOpenFileSuccess(t *testing.T) {
 	if err := os.WriteFile(path, []byte("hello\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	f, close, err := OpenFile(path)
 	if err != nil {
 		t.Fatalf("OpenFile error: %v", err)
 	}
+
 	if f == nil {
 		t.Fatal("file is nil")
 	}
+
 	if close == nil {
 		t.Fatal("close is nil")
 	}
+
 	buf := make([]byte, 5)
+
 	n, _ := f.Read(buf)
 	if string(buf[:n]) != "hello" {
 		t.Fatalf("read = %q, want hello", buf[:n])
 	}
+
 	if err := close(); err != nil {
 		t.Fatalf("close error: %v", err)
 	}
@@ -701,9 +765,11 @@ func TestOpenFileNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing file")
 	}
+
 	if f != nil {
 		t.Fatal("file should be nil on error")
 	}
+
 	if close != nil {
 		t.Fatal("close should be nil on error")
 	}

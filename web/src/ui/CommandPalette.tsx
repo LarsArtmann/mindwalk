@@ -48,7 +48,12 @@ function scorePath(query: string, path: string): number {
   return score;
 }
 
-export function CommandPalette({ files, touchByPath, onSelect, onClose }: CommandPaletteProps) {
+export function CommandPalette({
+  files,
+  touchByPath,
+  onSelect,
+  onClose,
+}: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -68,7 +73,9 @@ export function CommandPalette({ files, touchByPath, onSelect, onClose }: Comman
       const score = scorePath(q, file.path);
       if (score >= 0) scored.push({ file, score });
     }
-    scored.sort((a, b) => b.score - a.score || (a.file.path < b.file.path ? -1 : 1));
+    scored.sort(
+      (a, b) => b.score - a.score || (a.file.path < b.file.path ? -1 : 1),
+    );
     return scored.slice(0, MAX_RESULTS);
   }, [query, files]);
 
@@ -147,7 +154,9 @@ export function CommandPalette({ files, touchByPath, onSelect, onClose }: Comman
               return (
                 <button
                   key={file.id}
-                  className={i === activeIdx ? "palette-result active" : "palette-result"}
+                  className={
+                    i === activeIdx ? "palette-result active" : "palette-result"
+                  }
                   onClick={() => {
                     onSelect(file.path);
                     onClose();
@@ -158,7 +167,9 @@ export function CommandPalette({ files, touchByPath, onSelect, onClose }: Comman
                   <FileCode size={13} aria-hidden />
                   <span className="palette-name">{name}</span>
                   <span className="palette-dir">{dir}</span>
-                  {file.lang ? <span className="palette-lang">{file.lang}</span> : null}
+                  {file.lang ? (
+                    <span className="palette-lang">{file.lang}</span>
+                  ) : null}
                 </button>
               );
             })

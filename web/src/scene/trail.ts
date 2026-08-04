@@ -12,7 +12,10 @@ export class TrailRenderer {
   private readonly positions: THREE.BufferAttribute;
   private readonly colors: THREE.BufferAttribute;
   private readonly lift: number;
-  private readonly arcPoints = Array.from({ length: SAMPLES + 1 }, () => new THREE.Vector3());
+  private readonly arcPoints = Array.from(
+    { length: SAMPLES + 1 },
+    () => new THREE.Vector3(),
+  );
   private readonly mid = new THREE.Vector3();
   private readonly curve = new THREE.QuadraticBezierCurve3();
   private readonly color = new THREE.Color();
@@ -21,9 +24,15 @@ export class TrailRenderer {
     this.lift = lift;
     const vertexCount = MAX_ARCS * SAMPLES * 2;
     const geometry = new THREE.BufferGeometry();
-    this.positions = new THREE.BufferAttribute(new Float32Array(vertexCount * 3), 3);
+    this.positions = new THREE.BufferAttribute(
+      new Float32Array(vertexCount * 3),
+      3,
+    );
     this.positions.setUsage(THREE.DynamicDrawUsage);
-    this.colors = new THREE.BufferAttribute(new Float32Array(vertexCount * 3), 3);
+    this.colors = new THREE.BufferAttribute(
+      new Float32Array(vertexCount * 3),
+      3,
+    );
     this.colors.setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute("position", this.positions);
     geometry.setAttribute("color", this.colors);

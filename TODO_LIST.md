@@ -17,17 +17,17 @@
 
 ## Blocked
 
-| Task                                                        | Status    | Impact | Effort | Evidence                                                                                                                                                                |
-| ----------------------------------------------------------- | --------- | ------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Set up Vitest frontend unit-test infrastructure             | 🔵 `BLOCKED` | Med  | 2h     | `web/` has zero unit tests and no runner. npm not available in current environment. Install vitest + @testing-library/react + jsdom when npm is available.               |
-| Write `filters.ts` + `treeLayout.ts` unit tests             | 🔵 `BLOCKED` | Low  | 1h     | Depends on Vitest setup. Two pure-logic modules with zero coverage.                                                                                                      |
-| Guided tour system (T16)                                    | 🔵 `BLOCKED` | Low  | 1h30m  | `CheatSheet.tsx:6` has an `onReplayTour` stub; `GuidedTour.tsx` does not exist yet. Requires frontend build to test.                                                      |
+| Task                                            | Status       | Impact | Effort | Evidence                                                                                                                                                   |
+| ----------------------------------------------- | ------------ | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Set up Vitest frontend unit-test infrastructure | 🔵 `BLOCKED` | Med    | 2h     | `web/` has zero unit tests and no runner. npm not available in current environment. Install vitest + @testing-library/react + jsdom when npm is available. |
+| Write `filters.ts` + `treeLayout.ts` unit tests | 🔵 `BLOCKED` | Low    | 1h     | Depends on Vitest setup. Two pure-logic modules with zero coverage.                                                                                        |
+| Guided tour system (T16)                        | 🔵 `BLOCKED` | Low    | 1h30m  | `CheatSheet.tsx:6` has an `onReplayTour` stub; `GuidedTour.tsx` does not exist yet. Requires frontend build to test.                                       |
 
 ## Low Impact
 
-| Task                                                                  | Status    | Impact | Effort | Evidence                                                                                                                            |
-| --------------------------------------------------------------------- | --------- | ------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------- |
-| SSE frontend deduplication on reconnect                               | 🔴 `TODO` | Low    | 30min  | Server now emits `id:` lines and honors `Last-Event-ID`, but `App.tsx:568` still blindly appends. Frontend dedup needed.            |
+| Task                                    | Status    | Impact | Effort | Evidence                                                                                                                 |
+| --------------------------------------- | --------- | ------ | ------ | ------------------------------------------------------------------------------------------------------------------------ |
+| SSE frontend deduplication on reconnect | 🔴 `TODO` | Low    | 30min  | Server now emits `id:` lines and honors `Last-Event-ID`, but `App.tsx:568` still blindly appends. Frontend dedup needed. |
 
 ---
 

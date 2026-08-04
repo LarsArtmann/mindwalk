@@ -56,11 +56,14 @@ func (p *progressLog) append(evt judge.Progress) {
 func (p *progressLog) since(start int) ([]judge.Progress, int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
 	if start >= len(p.data) {
 		return nil, len(p.data)
 	}
+
 	events := make([]judge.Progress, len(p.data)-start)
 	copy(events, p.data[start:])
+
 	return events, len(p.data)
 }
 
@@ -84,10 +87,12 @@ type analyzeState struct {
 func (a *analyzeState) snapshot(key string) (analyzeJob, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
 	job, ok := a.jobs[key]
 	if !ok {
 		return analyzeJob{}, false
 	}
+
 	return *job, true
 }
 
@@ -97,6 +102,7 @@ func (a *analyzeState) snapshot(key string) (analyzeJob, bool) {
 // parse — so the badge can be a touch more approximate than the panel.
 func (s *Server) reportStateFor(meta model.SessionMeta) string {
 	job, ok := s.analyze.snapshot(meta.Key)
+
 	var report *model.Report
 	switch {
 	case ok && !job.done:
@@ -108,6 +114,7 @@ func (s *Server) reportStateFor(meta model.SessionMeta) string {
 	default:
 		report = s.reportCache.Load(meta.Key)
 	}
+
 	if report == nil {
 		return ""
 	}
@@ -120,6 +127,7 @@ func (s *Server) reportStateFor(meta model.SessionMeta) string {
 		report.Judge.InputDigest == "" {
 		return "stale"
 	}
+
 	return "done"
 }
 
@@ -129,7 +137,9 @@ func (s *Server) judgeInfo() ([]string, bool) {
 	if s.analyze.runner != nil {
 		return []string{s.analyze.runner.Name()}, true
 	}
+
 	clis := judge.DetectCLIs()
+
 	return clis, len(clis) > 0
 }
 
@@ -151,16 +161,21 @@ func (s *Server) handleSessionReport(w http.ResponseWriter, r *http.Request, sel
 	if requireGET(w, r) {
 		return
 	}
+
 	meta, err := s.findSession(selector)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return
 	}
+
 	trace, _, err := s.traceAndMap(selector)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return
 	}
+
 	writeJSON(w, s.buildReportStatus(meta, trace))
 }
 
@@ -169,6 +184,7 @@ func (s *Server) handleSessionReport(w http.ResponseWriter, r *http.Request, sel
 // endpoint and the SSE stream's terminal event.
 func (s *Server) buildReportStatus(meta model.SessionMeta, trace *model.Trace) reportStatus {
 	status := reportStatus{State: "none"}
+
 	status.JudgeCLIs, status.JudgeAvailable = s.judgeInfo()
 	if status.JudgeAvailable {
 		status.JudgeCLI = status.JudgeCLIs[0]
@@ -192,27 +208,35 @@ func (s *Server) buildReportStatus(meta model.SessionMeta, trace *model.Trace) r
 			status.Stale = !judge.Fresh(cached, trace)
 		}
 	}
+
 	return status
 }
 
 func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, selector string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+
 		return
 	}
+
 	meta, err := s.findSession(selector)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return
 	}
+
 	trace, _, err := s.traceAndMap(selector)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return
 	}
+
 	clis, available := s.judgeInfo()
 	if !available {
 		http.Error(w, "no judge CLI found on PATH (looked for claude, codex)", http.StatusServiceUnavailable)
+
 		return
 	}
 
@@ -226,35 +250,42 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		// Rubric false skips the task-rubric layer; absent or true keeps it.
 		Rubric *bool `json:"rubric"`
 	}
+
 	if r.Body != nil {
 		decoder := json.NewDecoder(r.Body)
 		if err := decoder.Decode(&req); err != nil {
 			if !errors.Is(err, io.EOF) {
 				http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+
 				return
 			}
 		} else if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
 			// One JSON value and nothing after it — trailing garbage means a
 			// broken client, and this request starts an expensive run.
 			http.Error(w, "invalid request body: trailing data after JSON object", http.StatusBadRequest)
+
 			return
 		}
 	}
+
 	if req.CLI != "" && !slices.Contains(clis, req.CLI) {
 		http.Error(
 			w,
 			fmt.Sprintf("judge CLI %q is not available (installed: %v)", req.CLI, clis),
 			http.StatusBadRequest,
 		)
+
 		return
 	}
 
 	noRubric := req.Rubric != nil && !*req.Rubric
 	config := jobConfig(req.CLI, req.Model, noRubric)
+
 	s.analyze.mu.Lock()
 	if job := s.analyze.jobs[meta.Key]; job != nil && !job.done {
 		sameConfig := job.config == config
 		s.analyze.mu.Unlock()
+
 		if !sameConfig {
 			// The API must not pretend to accept a configuration it will not
 			// run: the in-flight job was asked for something else.
@@ -263,12 +294,16 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 				"an evaluation with a different judge configuration is already running for this session; wait for it to finish",
 				http.StatusConflict,
 			)
+
 			return
 		}
+
 		w.WriteHeader(http.StatusAccepted)
 		writeJSON(w, reportStatus{State: "running", JudgeAvailable: true})
+
 		return
 	}
+
 	if s.analyze.active >= maxConcurrentJudges {
 		s.analyze.mu.Unlock()
 		http.Error(
@@ -276,8 +311,10 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 			fmt.Sprintf("%d evaluations already running; wait for one to finish", maxConcurrentJudges),
 			http.StatusTooManyRequests,
 		)
+
 		return
 	}
+
 	job := &analyzeJob{config: config, progress: newProgressLog()}
 	s.analyze.jobs[meta.Key] = job
 	s.analyze.active++
@@ -302,6 +339,7 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli
 	if !noRubric {
 		cached = s.reportCache.Load(key)
 	}
+
 	report, err := judge.Analyze(ctx, trace, judge.Options{
 		Runner:       s.analyze.runner,
 		CLI:          cli,
@@ -320,13 +358,18 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli
 
 	s.analyze.mu.Lock()
 	defer s.analyze.mu.Unlock()
+
 	s.analyze.active--
+
 	job.done = true
 	if err != nil {
 		job.err = err.Error()
+
 		return
 	}
+
 	job.report = report
+
 	if persisted {
 		// The cache owns the report now; dropping the entry keeps the jobs map
 		// bounded. When the disk write failed the entry stays as the only copy —

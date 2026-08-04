@@ -18,19 +18,23 @@ func TestProgressSchemaAcceptsRepresentativeProgress(t *testing.T) {
 		{Phase: "error", Step: "fail", Message: "Judge CLI failed."},
 	}
 	compiler := jsonschema.NewCompiler()
+
 	schema, err := compiler.Compile("../../schema/progress.schema.json")
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	for i, p := range cases {
 		document, err := json.Marshal(p)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		var value any
 		if err := json.Unmarshal(document, &value); err != nil {
 			t.Fatal(err)
 		}
+
 		if err := schema.Validate(value); err != nil {
 			t.Fatalf("case %d (%+v) violates progress schema: %v\nJSON: %s", i, p, err, document)
 		}

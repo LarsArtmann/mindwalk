@@ -10,17 +10,17 @@
 
 ### This session's work
 
-| Task | Status | What was done |
-|------|--------|---------------|
-| **T21 fix** | DONE | Restored `SessionGroup` interface, defined `SortKey` type, implemented `sortSessions()`, added sort dropdown (Newest/Oldest/Most events/Highest cost) with localStorage persistence |
-| **CheatSheet cleanup** | DONE | Removed dead `onReplayTour` prop and tour footer markup |
-| **T20** | DONE | `data-hint` tooltips on ViewPanel buttons (tree/terrain), Timeline deck-pos, HUD spectrum container |
-| **T22** | DONE | New `Minimap.tsx` component: SVG repo overview in bottom-right corner, touch-state coloring, camera viewport circle via `mindwalk:camera-state` CustomEvent dispatched from both scenes' render loops |
-| **T23** | DONE | Visible speed chips (1x/4x/16x) in transport bar, loop toggle button (Repeat icon), loop-aware playback that wraps within zoom range |
-| **T24** | DONE | `VisitSparkline` sub-component in Inspector: SVG mini-timeline showing visit positions colored by action, playhead line, click-to-jump invisible hit targets |
-| **T25** | DONE | Edit heatmap toggle: "Heat" button in ViewPanel, `editCounts` computed from trace edit events, minimap recolors by edit density (moss → amber → alarm) |
-| **T26** | DONE | `RadarChart` sub-component in ReportPanel: SVG polygon with 4 axes (Exploration/Scope/Wandering/Verification), grid rings, verdict-based scoring (good=1.0, warning=0.5, problem=0.0), colored by overall verdict |
-| **T27** | DONE | Scene search highlighting: filter input in minimap dims non-matching files to 15% opacity, clear button, substring matching on file paths |
+| Task                   | Status | What was done                                                                                                                                                                                                     |
+| ---------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **T21 fix**            | DONE   | Restored `SessionGroup` interface, defined `SortKey` type, implemented `sortSessions()`, added sort dropdown (Newest/Oldest/Most events/Highest cost) with localStorage persistence                               |
+| **CheatSheet cleanup** | DONE   | Removed dead `onReplayTour` prop and tour footer markup                                                                                                                                                           |
+| **T20**                | DONE   | `data-hint` tooltips on ViewPanel buttons (tree/terrain), Timeline deck-pos, HUD spectrum container                                                                                                               |
+| **T22**                | DONE   | New `Minimap.tsx` component: SVG repo overview in bottom-right corner, touch-state coloring, camera viewport circle via `mindwalk:camera-state` CustomEvent dispatched from both scenes' render loops             |
+| **T23**                | DONE   | Visible speed chips (1x/4x/16x) in transport bar, loop toggle button (Repeat icon), loop-aware playback that wraps within zoom range                                                                              |
+| **T24**                | DONE   | `VisitSparkline` sub-component in Inspector: SVG mini-timeline showing visit positions colored by action, playhead line, click-to-jump invisible hit targets                                                      |
+| **T25**                | DONE   | Edit heatmap toggle: "Heat" button in ViewPanel, `editCounts` computed from trace edit events, minimap recolors by edit density (moss → amber → alarm)                                                            |
+| **T26**                | DONE   | `RadarChart` sub-component in ReportPanel: SVG polygon with 4 axes (Exploration/Scope/Wandering/Verification), grid rings, verdict-based scoring (good=1.0, warning=0.5, problem=0.0), colored by overall verdict |
+| **T27**                | DONE   | Scene search highlighting: filter input in minimap dims non-matching files to 15% opacity, clear button, substring matching on file paths                                                                         |
 
 ### Previously shipped (prior sessions, verified passing)
 
@@ -30,14 +30,14 @@ T1-T15, T17-T19 from Waves 1-5. These are all building and working.
 
 ## b) PARTIALLY DONE
 
-| Item | What's missing |
-|------|----------------|
-| **T22 minimap drag-to-pan** | The minimap shows the viewport circle but clicking it does not navigate the 3D camera. Click-to-navigate was described in the plan (T22.6) but not implemented — the minimap's SVG click targets only do file selection. |
-| **T22 camera viewport accuracy** | The viewport circle uses a rough heuristic (`dist / layout.w * S * 0.3`) rather than actual frustum projection. It's an approximation, not a precise viewport indicator. |
-| **T23 range-select loop** | Plan T23.3 asked for "shift-drag on the strip to set loop range (two handles)". Only a simple toggle was implemented — loop always wraps within the current zoom range, not a user-defined sub-range. |
-| **T25 heat in 3D scenes** | The heatmap toggle only recolors the minimap, not the actual 3D scene. The plan asked for heat gradient in `CityScene` and `TreeScene`. The minimap recoloring is a proxy, not the full feature. |
-| **T27 3D scene highlighting** | The search highlighting only affects the minimap, not the 3D scene itself. The plan asked for matching files to brighten and non-matches to dim in the actual scene. |
-| **T26 severity filter** | Plan T26.5 asked for "toggle to show only critical/high findings". The radar chart renders but has no severity filter on the findings list. |
+| Item                             | What's missing                                                                                                                                                                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **T22 minimap drag-to-pan**      | The minimap shows the viewport circle but clicking it does not navigate the 3D camera. Click-to-navigate was described in the plan (T22.6) but not implemented — the minimap's SVG click targets only do file selection. |
+| **T22 camera viewport accuracy** | The viewport circle uses a rough heuristic (`dist / layout.w * S * 0.3`) rather than actual frustum projection. It's an approximation, not a precise viewport indicator.                                                 |
+| **T23 range-select loop**        | Plan T23.3 asked for "shift-drag on the strip to set loop range (two handles)". Only a simple toggle was implemented — loop always wraps within the current zoom range, not a user-defined sub-range.                    |
+| **T25 heat in 3D scenes**        | The heatmap toggle only recolors the minimap, not the actual 3D scene. The plan asked for heat gradient in `CityScene` and `TreeScene`. The minimap recoloring is a proxy, not the full feature.                         |
+| **T27 3D scene highlighting**    | The search highlighting only affects the minimap, not the 3D scene itself. The plan asked for matching files to brighten and non-matches to dim in the actual scene.                                                     |
+| **T26 severity filter**          | Plan T26.5 asked for "toggle to show only critical/high findings". The radar chart renders but has no severity filter on the findings list.                                                                              |
 
 ---
 
@@ -49,12 +49,12 @@ Nothing from the sprint plan is unstarted. All 27 tasks have been addressed.
 
 ## d) TOTALLY FUCKED UP
 
-| Issue | Impact | Root cause |
-|-------|--------|------------|
-| **T21 was left broken** | Build was completely broken when this session started — `SortKey`, `SessionGroup`, `sortSessions` all undefined. A prior session was interrupted mid-edit and left the codebase in an uncompilable state. | Previous session was interrupted before completing T21 |
-| **No frontend tests exist** | Zero component tests, zero E2E tests, zero integration tests for the UI. All verification is `tsc` + `vite build` (compilation only). Runtime behavior is completely unverified. | No test infrastructure was ever set up for the frontend. The plan's "Verify" steps were all skipped or treated as "does it compile?" |
+| Issue                                        | Impact                                                                                                                                                                                                                                                                                                             | Root cause                                                                                                                                                                                    |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **T21 was left broken**                      | Build was completely broken when this session started — `SortKey`, `SessionGroup`, `sortSessions` all undefined. A prior session was interrupted mid-edit and left the codebase in an uncompilable state.                                                                                                          | Previous session was interrupted before completing T21                                                                                                                                        |
+| **No frontend tests exist**                  | Zero component tests, zero E2E tests, zero integration tests for the UI. All verification is `tsc` + `vite build` (compilation only). Runtime behavior is completely unverified.                                                                                                                                   | No test infrastructure was ever set up for the frontend. The plan's "Verify" steps were all skipped or treated as "does it compile?"                                                          |
 | **Wave 6 tasks are minimap-centric proxies** | T22, T25, and T27 were designed to work on the 3D scene. I implemented them on the minimap instead because the 3D scenes are complex Three.js imperative components that would need significant refactoring to accept reactive props like `heatMode` or `searchMatches`. This is a shortcut, not the full feature. | The 3D scenes manage all state via refs inside a single `useEffect`. Passing new props (heat mode, search filter) requires either ref-forwarding or a CustomEvent bridge — neither was built. |
-| **Camera state dispatch on every frame** | Both scenes dispatch `mindwalk:camera-state` CustomEvents on every `requestAnimationFrame` call (~60fps). The minimap only throttles to every 6th frame, but the dispatch itself fires every frame regardless. This is wasteful. | I put the dispatch inside the render loop without throttling at the source. |
+| **Camera state dispatch on every frame**     | Both scenes dispatch `mindwalk:camera-state` CustomEvents on every `requestAnimationFrame` call (~60fps). The minimap only throttles to every 6th frame, but the dispatch itself fires every frame regardless. This is wasteful.                                                                                   | I put the dispatch inside the render loop without throttling at the source.                                                                                                                   |
 
 ---
 
