@@ -76,7 +76,7 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 			oldSchema = append(oldSchema, pdb.DBPath)
 			missingCols = unionStrings(missingCols, missing)
 		}
-		rows, err := h.db.QueryContext(context.Background(), listSessionsQuery)
+		rows, err := h.db.QueryContext(context.Background(), buildListSessionsQuery(h.cols))
 		if err != nil {
 			_ = h.close()
 			continue
@@ -122,7 +122,7 @@ func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 
 	a.warnIfOldSchema(db)
 	cwd := a.projectPathForDB(db.path)
-	rows, err := db.db.QueryContext(context.Background(), listSessionsQuery)
+	rows, err := db.db.QueryContext(context.Background(), buildListSessionsQuery(db.cols))
 	if err != nil {
 		return nil, fmt.Errorf("list crush sessions: %w", err)
 	}
@@ -165,7 +165,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 		return model.SessionMeta{}, fmt.Errorf("invalid Crush session id in path %q", path)
 	}
 
-	row := db.db.QueryRowContext(context.Background(), sessionByIDQuery, id)
+	row := db.db.QueryRowContext(context.Background(), buildSessionByIDQuery(db.cols), id)
 	meta, err := scanSessionMeta(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -235,7 +235,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		Marks:  []model.Mark{},
 	}
 
-	row := db.db.QueryRowContext(context.Background(), sessionByIDQuery, id)
+	row := db.db.QueryRowContext(context.Background(), buildSessionByIDQuery(db.cols), id)
 	meta, err := scanSessionMeta(row)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -246,7 +246,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	applySessionMeta(trace, meta)
 	trace.Session.Cwd = a.projectPathForDB(db.path)
 
-	rows, err := db.db.QueryContext(context.Background(), messagesBySessionQuery, id)
+	rows, err := db.db.QueryContext(context.Background(), buildMessagesBySessionQuery(db.cols), id)
 	if err != nil {
 		return nil, fmt.Errorf("read crush messages: %w", err)
 	}
@@ -327,9 +327,15 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		// Reasoning marks surface the agent's inner monologue with
 		// duration so the timeline can show thinking vs acting phases.
 		if parsed.reasoningText != "" {
+			duration := parsed.reasoningSecs
+			// Fall back to the message-level wall-clock duration when
+			// the reasoning part doesn't carry its own timestamps.
+			if duration == 0 && msg.FinishedAt.Valid && msg.FinishedAt.Int64 > msg.CreatedAt {
+				duration = (msg.FinishedAt.Int64 - msg.CreatedAt) / 1000
+			}
 			note := truncateNote(parsed.reasoningText, 200)
-			if parsed.reasoningSecs > 0 {
-				note = fmt.Sprintf("thinking %ds: %s", parsed.reasoningSecs, note)
+			if duration > 0 {
+				note = fmt.Sprintf("thinking %ds: %s", duration, note)
 			} else {
 				note = "thinking: " + note
 			}
@@ -452,7 +458,7 @@ func openReadOnlyAt(path string) (*sqlHandle, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open crush database at %s: %w", path, err)
 	}
-	return &sqlHandle{path: path, db: db}, nil
+	return &sqlHandle{path: path, db: db, cols: probeSchema(db)}, nil
 }
 
 // openCached opens a database at path, using the adapter's dbCache
@@ -462,7 +468,7 @@ func (a Adapter) openCached(path string) (*sqlHandle, error) {
 	if a.dbCache != nil {
 		if v, ok := a.dbCache.Load(path); ok {
 			if db, ok := v.(*sql.DB); ok && db != nil {
-				return &sqlHandle{path: path, db: db, cached: true}, nil
+				return &sqlHandle{path: path, db: db, cached: true, cols: probeSchema(db)}, nil
 			}
 		}
 	}
@@ -698,12 +704,13 @@ func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
 	return a.openReadOnly()
 }
 
-// listSessionsQuery, sessionByIDQuery, allSessionsQuery and
-// messagesBySessionQuery match the schema shipped in
-// charmbracelet/crush's initial migration plus every later
+// The build*Query functions construct SELECTs that match the schema
+// shipped in charmbracelet/crush's initial migration plus every later
 // addition we care about. Stable identifiers (id, role, parts,
 // created_at) come from the initial schema; model and provider come
-// from the 2025-06-27 migration.
+// from the 2025-06-27 migration; cost and finished_at from later
+// migrations. When the database predates a migration, the builder
+// substitutes a literal default so the scan never fails.
 // buildListSessionsQuery constructs the sessions SELECT, substituting
 // a zero literal for the cost column when it is absent on old schemas.
 func buildListSessionsQuery(sc schemaColumns) string {
@@ -711,7 +718,10 @@ func buildListSessionsQuery(sc schemaColumns) string {
 	if sc.sessionsCost {
 		costExpr = "cost"
 	}
-	return fmt.Sprintf(`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`, costExpr)
+	return fmt.Sprintf(
+		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`,
+		costExpr,
+	)
 }
 
 func buildAllSessionsQuery(sc schemaColumns) string {
@@ -719,7 +729,10 @@ func buildAllSessionsQuery(sc schemaColumns) string {
 	if sc.sessionsCost {
 		costExpr = "cost"
 	}
-	return fmt.Sprintf(`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`, costExpr)
+	return fmt.Sprintf(
+		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`,
+		costExpr,
+	)
 }
 
 func buildSessionByIDQuery(sc schemaColumns) string {
@@ -727,7 +740,10 @@ func buildSessionByIDQuery(sc schemaColumns) string {
 	if sc.sessionsCost {
 		costExpr = "cost"
 	}
-	return fmt.Sprintf(`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`, costExpr)
+	return fmt.Sprintf(
+		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`,
+		costExpr,
+	)
 }
 
 func buildMessagesBySessionQuery(sc schemaColumns) string {
@@ -735,7 +751,10 @@ func buildMessagesBySessionQuery(sc schemaColumns) string {
 	if sc.messagesFinishedAt {
 		finishedExpr = "finished_at"
 	}
-	return fmt.Sprintf(`SELECT id, role, parts, model, provider, created_at, %s FROM messages WHERE session_id = ? ORDER BY created_at, id`, finishedExpr)
+	return fmt.Sprintf(
+		`SELECT id, role, parts, model, provider, created_at, %s FROM messages WHERE session_id = ? ORDER BY created_at, id`,
+		finishedExpr,
+	)
 }
 
 const readFilesQuery = `SELECT path FROM read_files WHERE session_id = ?`

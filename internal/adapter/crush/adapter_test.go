@@ -755,3 +755,136 @@ func TestListSessionsPopulatesUsageAndCost(t *testing.T) {
 		t.Fatalf("cost = %f, want 0.42", m.Cost)
 	}
 }
+
+// createOldSchemaDB creates a Crush database with the pre-migration
+// schema — no cost column on sessions, no finished_at on messages.
+// This simulates a database from an older Crush version.
+func createOldSchemaDB(t *testing.T, dbPath string) *sql.DB {
+	t.Helper()
+	dir := filepath.Dir(dbPath)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	handle, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle.SetMaxOpenConns(1)
+	oldSchema := `
+		CREATE TABLE sessions (
+			id TEXT PRIMARY KEY,
+			parent_session_id TEXT,
+			title TEXT NOT NULL,
+			message_count INTEGER NOT NULL DEFAULT 0,
+			prompt_tokens INTEGER NOT NULL DEFAULT 0,
+			completion_tokens INTEGER NOT NULL DEFAULT 0,
+			updated_at INTEGER NOT NULL,
+			created_at INTEGER NOT NULL,
+			todos TEXT
+		);
+		CREATE TABLE messages (
+			id TEXT PRIMARY KEY,
+			session_id TEXT NOT NULL,
+			role TEXT NOT NULL,
+			parts TEXT NOT NULL DEFAULT '[]',
+			model TEXT,
+			provider TEXT,
+			created_at INTEGER NOT NULL,
+			updated_at INTEGER NOT NULL
+		);
+	`
+	if _, err := handle.Exec(oldSchema); err != nil {
+		_ = handle.Close()
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = handle.Close() })
+	return handle
+}
+
+// TestOldSchemaListSessionsDoesNotCrash verifies that a database
+// without the cost column (pre-migration Crush) does not crash
+// ListSessions. The dynamic query builder should substitute a
+// literal zero for the missing column.
+func TestOldSchemaListSessionsDoesNotCrash(t *testing.T) {
+	dir := t.TempDir()
+	dataDir := filepath.Join(dir, ".crush")
+	dbPath := filepath.Join(dataDir, dbName)
+	db := createOldSchemaDB(t, dbPath)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	if _, err := db.Exec(`INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at) VALUES (?, ?, 0, 0, 0, ?, ?)`,
+		"s1", "Old schema", base.UnixMilli(), base.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+
+	metas, err := Adapter{Dir: dataDir}.ListSessions()
+	if err != nil {
+		t.Fatalf("ListSessions on old schema should not error: %v", err)
+	}
+	if len(metas) != 1 {
+		t.Fatalf("metas = %d, want 1", len(metas))
+	}
+	if metas[0].Cost != 0 {
+		t.Fatalf("cost should default to 0 on old schema, got %f", metas[0].Cost)
+	}
+}
+
+// TestOldSchemaParseDoesNotCrash verifies that Parse works on a
+// database without the finished_at column.
+func TestOldSchemaParseDoesNotCrash(t *testing.T) {
+	dir := t.TempDir()
+	dataDir := filepath.Join(dir, ".crush")
+	dbPath := filepath.Join(dataDir, dbName)
+	db := createOldSchemaDB(t, dbPath)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	if _, err := db.Exec(`INSERT INTO sessions (id, title, message_count, prompt_tokens, completion_tokens, updated_at, created_at) VALUES (?, ?, 1, 0, 0, ?, ?)`,
+		"s1", "Old schema parse", base.UnixMilli(), base.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		"m1", "s1", "assistant",
+		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "hello"}}),
+		"claude-sonnet-4", base.UnixMilli(), base.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+
+	trace, err := Adapter{Dir: dataDir}.Parse(SessionPath("s1"))
+	if err != nil {
+		t.Fatalf("Parse on old schema should not error: %v", err)
+	}
+	if trace.Session.ID != "s1" {
+		t.Fatalf("session id = %q", trace.Session.ID)
+	}
+}
+
+// TestThinkingMarkUsesMessageDuration verifies that when a reasoning
+// part lacks started_at/finished_at timestamps, the thinking mark
+// falls back to the message-level finished_at - created_at duration.
+func TestThinkingMarkUsesMessageDuration(t *testing.T) {
+	data, db := newFixtureDB(t, nil)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	insertSession(t, db, "s1", "", "Thinking duration test", base, 1)
+	// Message with finished_at = created + 7 seconds
+	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, created_at, updated_at, finished_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		"m1", "s1", "assistant",
+		writeParts(t, map[string]any{"type": "reasoning", "data": map[string]any{"thinking": "I need to think about this"}}),
+		"claude-sonnet-4", base.UnixMilli(), base.UnixMilli(), base.Add(7*time.Second).UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("s1"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	var sawThinking bool
+	for _, m := range trace.Marks {
+		if m.Type == "thinking" {
+			sawThinking = true
+			if !strings.Contains(m.Note, "7s") {
+				t.Fatalf("thinking note should contain duration 7s (from finished_at), got %q", m.Note)
+			}
+		}
+	}
+	if !sawThinking {
+		t.Fatalf("expected a thinking mark, marks = %+v", trace.Marks)
+	}
+}

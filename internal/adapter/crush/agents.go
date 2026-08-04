@@ -39,7 +39,7 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 		if err != nil || db == nil {
 			continue
 		}
-		if rows, err := db.db.Query(allSessionsQuery); err == nil {
+		if rows, err := db.db.Query(buildAllSessionsQuery(db.cols)); err == nil {
 			for rows.Next() {
 				meta, err := scanSessionMeta(rows)
 				if err == nil && meta.Agent != nil {
@@ -185,7 +185,7 @@ func (a Adapter) loadAgentChildren() ([]model.SessionMeta, error) {
 		if err != nil || db == nil {
 			continue
 		}
-		rows, err := db.db.Query(allSessionsQuery)
+		rows, err := db.db.Query(buildAllSessionsQuery(db.cols))
 		if err != nil {
 			_ = db.close()
 			continue
@@ -250,7 +250,7 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	}
 	defer db.closeDiscard()
 
-	rows, err := db.db.Query(messagesBySessionQuery, sessionID)
+	rows, err := db.db.Query(buildMessagesBySessionQuery(db.cols), sessionID)
 	if err != nil {
 		return nil, err
 	}
