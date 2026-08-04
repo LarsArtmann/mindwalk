@@ -8,22 +8,22 @@
 
 ## a) FULLY DONE (verified, working, tested)
 
-| # | Task | Verification | Files changed |
-|---|------|-------------|---------------|
-| M1 | Wire `providerExecuted` into HUD warning | Go tests pass; TypeScript types correct; `Hud.tsx` predicate excludes provider-executed events | `web/src/ui/Hud.tsx`, `web/src/ui/Timeline.tsx` |
-| M2 | `schema/progress.schema.json` | JSON validated with `python3 -m json.tool`; follows `report.schema.json` convention | `schema/progress.schema.json` |
-| M3 | `cache clear` clears reports + `humanBytes` GB | `TestCacheStatusAndClear` + `TestHumanBytes` pass; both assert new behaviour | `cmd/mindwalk/main.go`, `cmd/mindwalk/cli_test.go` |
-| M4 | `gitDiffTargets` handles spaces + `+++`/`---` fallback | 6 new tests pass (`TestGitDiffTargets*`) | `internal/adapter/adapter.go`, `internal/adapter/adapter_test.go` |
-| M5 | `evictAgentGraphCache` test | `TestEvictAgentGraphCacheN` + `TestEvictAgentGraphCacheNUnderCap` pass | `internal/server/server.go`, `internal/server/server_test.go` |
-| M6 | `crush.Adapter.Diagnostics()` test | 3 tests pass (`TestDiagnosticsFullSchema`, `...MissingColumns`, `...DataDirMissing`) | `internal/adapter/crush/diagnostics_test.go` |
-| M7 | `adapter.OpenFile` test | 2 tests pass (`TestOpenFileSuccess`, `TestOpenFileNotFound`) | `internal/adapter/adapter_test.go` |
-| M8 | Crush judge e2e verified | Manual run produced valid report (4 dimensions, 6 findings, judge model `glm-5.2`); `crush://` URI bug fixed | `cmd/mindwalk/main.go` |
-| M9 | Test fixture enriched | `TestFixtureTokenEconomics` + `TestFixtureReadObservability` pass; all 7 fixture tests green | `testdata/crush/crush.db`, `internal/adapter/crush/fixture_test.go` |
-| M10 | Per-message duration on marks | `model.Mark.Duration` added; crush adapter populates it; schema + TS type updated | `internal/model/model.go`, `internal/adapter/crush/sessions.go`, `schema/trace.schema.json`, `web/src/types.ts`, `web/src/ui/Timeline.tsx` |
-| M11 | `ComputeStats` reads refactor | New `readsSignal` parameter eliminates post-hoc override; all 10 call sites updated; all packages green | `internal/model/stats.go`, `internal/adapter/crush/sessions.go`, all adapter + server callers |
-| M12 | SSE heartbeat keep-alive | `TestAnalyzeStreamHeartbeat` passes; 100ms test heartbeat, 15s production default | `internal/server/sse.go`, `internal/server/analyze_test.go` |
-| M13 | Hunk line ranges into `Target.Lines` | Bundled with M4; `TestGitDiffTargetsHunkLineRanges` verifies `@@ -1,3 +10,5 @@` produces `{10,14}` | `internal/adapter/adapter.go`, `internal/adapter/adapter_test.go` |
-| Docs | CHANGELOG + TODO_LIST updated | All changes logged under `[Unreleased]`; TODO_LIST cleared | `CHANGELOG.md`, `TODO_LIST.md` |
+| #    | Task                                                   | Verification                                                                                                 | Files changed                                                                                                                              |
+| ---- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| M1   | Wire `providerExecuted` into HUD warning               | Go tests pass; TypeScript types correct; `Hud.tsx` predicate excludes provider-executed events               | `web/src/ui/Hud.tsx`, `web/src/ui/Timeline.tsx`                                                                                            |
+| M2   | `schema/progress.schema.json`                          | JSON validated with `python3 -m json.tool`; follows `report.schema.json` convention                          | `schema/progress.schema.json`                                                                                                              |
+| M3   | `cache clear` clears reports + `humanBytes` GB         | `TestCacheStatusAndClear` + `TestHumanBytes` pass; both assert new behaviour                                 | `cmd/mindwalk/main.go`, `cmd/mindwalk/cli_test.go`                                                                                         |
+| M4   | `gitDiffTargets` handles spaces + `+++`/`---` fallback | 6 new tests pass (`TestGitDiffTargets*`)                                                                     | `internal/adapter/adapter.go`, `internal/adapter/adapter_test.go`                                                                          |
+| M5   | `evictAgentGraphCache` test                            | `TestEvictAgentGraphCacheN` + `TestEvictAgentGraphCacheNUnderCap` pass                                       | `internal/server/server.go`, `internal/server/server_test.go`                                                                              |
+| M6   | `crush.Adapter.Diagnostics()` test                     | 3 tests pass (`TestDiagnosticsFullSchema`, `...MissingColumns`, `...DataDirMissing`)                         | `internal/adapter/crush/diagnostics_test.go`                                                                                               |
+| M7   | `adapter.OpenFile` test                                | 2 tests pass (`TestOpenFileSuccess`, `TestOpenFileNotFound`)                                                 | `internal/adapter/adapter_test.go`                                                                                                         |
+| M8   | Crush judge e2e verified                               | Manual run produced valid report (4 dimensions, 6 findings, judge model `glm-5.2`); `crush://` URI bug fixed | `cmd/mindwalk/main.go`                                                                                                                     |
+| M9   | Test fixture enriched                                  | `TestFixtureTokenEconomics` + `TestFixtureReadObservability` pass; all 7 fixture tests green                 | `testdata/crush/crush.db`, `internal/adapter/crush/fixture_test.go`                                                                        |
+| M10  | Per-message duration on marks                          | `model.Mark.Duration` added; crush adapter populates it; schema + TS type updated                            | `internal/model/model.go`, `internal/adapter/crush/sessions.go`, `schema/trace.schema.json`, `web/src/types.ts`, `web/src/ui/Timeline.tsx` |
+| M11  | `ComputeStats` reads refactor                          | New `readsSignal` parameter eliminates post-hoc override; all 10 call sites updated; all packages green      | `internal/model/stats.go`, `internal/adapter/crush/sessions.go`, all adapter + server callers                                              |
+| M12  | SSE heartbeat keep-alive                               | `TestAnalyzeStreamHeartbeat` passes; 100ms test heartbeat, 15s production default                            | `internal/server/sse.go`, `internal/server/analyze_test.go`                                                                                |
+| M13  | Hunk line ranges into `Target.Lines`                   | Bundled with M4; `TestGitDiffTargetsHunkLineRanges` verifies `@@ -1,3 +10,5 @@` produces `{10,14}`           | `internal/adapter/adapter.go`, `internal/adapter/adapter_test.go`                                                                          |
+| Docs | CHANGELOG + TODO_LIST updated                          | All changes logged under `[Unreleased]`; TODO_LIST cleared                                                   | `CHANGELOG.md`, `TODO_LIST.md`                                                                                                             |
 
 ### Test count: 20 new test functions across 6 files
 
@@ -37,6 +37,7 @@
 ### Auto-git daemon commit history
 
 The daemon captured work in 4 commits during the session:
+
 - `8cb2da2` — feat(sprint): close every Pareto-ordered TODO (M1-M9, M11)
 - `3b7d00f` — feat(adapter): extract per-hunk line ranges from git diff output (M4/M13)
 - `3e02d1b` — feat: surface reports cache, harden analyze path, and add fixture coverage (M3, M8)
