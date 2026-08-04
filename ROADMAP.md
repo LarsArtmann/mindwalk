@@ -27,15 +27,14 @@ Raw ideas:
   each Crush release. The parser was built from a frozen snapshot; new part
   types or renamed discriminators would be silently swallowed by the
   "unknown part type ignored" path.
-- Investigate the Crush `provider_executed` flag — server-side tool calls are
-  currently ignored, which can leave the tool-target list empty for models
-  that execute tools server-side.
+- Surface the Crush `files` table as a before/after diff viewer. The data
+  (versioned file content) is rich, but the UX is a separate project.
 
 ### 2. Performance at scale
 
-The read path works at fixture scale (~280μs/parse) but is untested beyond a
-20KB database. With 196 real sessions across ~100 project databases, cold
-scans take noticeable time, and every request re-opens the database.
+The read path works at fixture scale (~280μs/parse) and the DB connection
+cache keeps `*sql.DB` handles open across requests, but the system is
+untested beyond a 20KB database and ~200 real sessions.
 
 Raw ideas:
 
@@ -48,38 +47,53 @@ Raw ideas:
 - Cache the `projects.json` parse with a TTL instead of re-reading it on
   every `ListSessions` call.
 
-### 3. Test infrastructure
+### 3. Real-time streaming infrastructure
 
-The server package takes 217s because tests scan the host's real Crush data.
-There is no CI matrix, no property-based path-normalization tests, and the
-committed fixture cannot exercise path normalization (it has no file-touching
-tool calls).
+The SSE judge-progress stream works but was built from scratch with
+`net/http`. It has no heartbeat, no reconnection support, and no rate
+limiting.
 
 Raw ideas:
 
-- Split server tests into fast and slow groups (build tag or separate
-  package) so the fast subset runs in seconds during development.
+- Add SSE reconnection support — track event IDs, replay missed events on
+  reconnect via `Last-Event-ID`.
+- Use a dedicated SSE library (e.g. `github.com/larsartmann/go-sse`) instead
+  of hand-rolled SSE — gets heartbeats, reconnection, and broadcaster for
+  free.
+- Generalize SSE infrastructure for other long-running operations (citymap
+  building, agent graph computation, trace parsing).
+
+### 4. Test infrastructure
+
+Server tests now run in ~0.3s after isolation fixes (`TestMain` redirects
+data dirs). The fixture has file-touching tool calls. But there is no CI
+matrix, no property-based path-normalization tests, and no E2E browser test
+beyond a single agent-lens spec.
+
+Raw ideas:
+
 - CI matrix that runs tests with and without real Crush/Claude/Codex data.
 - Property-based tests for `normalizePath` (absolute, relative, with/without
   cwd, symlinks).
 - A richer fixture with multiple tool types (read, edit, bash, grep) covering
   path-normalization edge cases and cross-project agent graphs.
+- Split server tests into fast and slow groups (build tag or separate
+  package) if the suite grows significantly.
 
-### 4. Frontend observability
+### 5. Frontend observability
 
-The web UI trusts the API. When an adapter is misconfigured (empty Cwd,
-zero targets), the only signal is an all-dark citymap with no explanation.
+The web UI trusts the API. When an adapter is misconfigured, the only signals
+are the HUD's 0-target warning and the Cwd display. Adapter health is not
+surfaced.
 
 Raw ideas:
 
 - Surface adapter health in the UI — a status panel backed by `/api/adapters`
   showing which adapters are wired, their data directories, and session
   counts.
-- Console warning when a trace loads with 0 targets but non-zero events —
-  the smoke signal for a misconfigured adapter.
-- Show the session Cwd in the HUD or inspector so users can verify the
-  adapter resolved the right project root.
 - Group sessions by project in the rail sidebar (derived from `projects.json`).
+- Add a thinking lane in the Timeline for visual duration bars (requires
+  per-message duration wiring).
 
 ## Open questions
 
@@ -121,6 +135,3 @@ Things this fork is deliberately NOT pursuing and why:
 - **Generalizing the synthetic-path scheme before a second DB-backed
   adapter exists** — YAGNI; one consumer and four guarded call sites do not
   justify a generic abstraction yet.
-- **A `Makefile`** — this fork follows the `flake.nix` convention for build
-  automation (where applicable) and `make` for the upstream-compatible
-  commands only.

@@ -110,6 +110,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
     to temp dirs, preventing tests from scanning the host filesystem.
   - **CI improvements** — `go vet ./...` step, `-race` flag on tests,
     and a frontend `tsc --noEmit` typecheck step.
+  - **Real-time judge progress via SSE** — the evaluation panel now
+    streams step-by-step judge progress to the browser over
+    Server-Sent Events (`GET /api/sessions/{key}/analyze/stream`),
+    replacing the opaque 2.5s polling loop. Users see the current
+    phase (rubric drafting, reuse, scoring, retry, done, error) and a
+    log of completed steps as the judge runs.
+  - **Crush provider, token usage, and cost** — the trace session and
+    session metadata now carry `provider`, `promptTokens`,
+    `completionTokens`, and `cost`, populated from the Crush
+    `sessions` and `messages` tables. The session rail shows token
+    counts and cost per session; the HUD shows the provider alongside
+    the model.
+  - **Exact read observability for Crush** — the `read_files` table is
+    now queried to upgrade read tracking from `estimated` to `exact`
+    for Crush sessions that have the table, with a graceful fallback
+    when it is absent.
+  - **Richer trace marks for Crush** — `thinking` marks (with duration
+    from reasoning timestamps), `finish-reason` marks (error,
+    content_filter, canceled, max_tokens), and `model-switch` marks
+    (mid-session model or provider changes) are now emitted, with
+    timeline glyphs and legend entries for thinking and finish-reason.
+  - **Shell command (bang-mode) events for Crush** — bang-mode
+    `shell_command` parts are now decoded into deduplicated bash exec
+    events, skipping when an equivalent bash tool call already exists
+    in the same message.
+  - **Provider-executed flag** — tool calls with
+    `provider_executed=true` now carry the flag on the trace event so
+    the UI can distinguish server-side execution from local.
+  - **Crush-specific agent link constant** — `crush-agent-id` replaces
+    the misnomer codex constant in the agent graph link method enum.
 
 ### Fixed
 
@@ -139,6 +169,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   directory from the `crush.db` path (via `projects.json`, then path
   inference) and stamps `Cwd` in `Parse`, `Summarize`, and both
   `ListSessions` paths.
+- **Old Crush databases crashed on `cost`/`finished_at` queries** —
+  the `listSessionsQuery`, `sessionByIDQuery`, and
+  `messagesBySessionQuery` unconditionally selected columns that
+  older Crush databases do not have, causing `SQL logic error: no
+  such column`. Dynamic `build*Query()` functions now probe the schema
+  once per database handle and substitute `0 AS cost` / `0 AS
+  finished_at` when the columns are absent.
 
 ### Changed
 
@@ -146,6 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   auto-discovers many project databases, all old-schema notices are
   collapsed into a single summary line (with a count and a few example
   paths) instead of one line per database.
+- `adapter.ToolResult` now carries a `ToolCallID` field, letting
   the cross-message tool-call/result pairing happen at the type
   level instead of through a fragile parallel-slice
   (`finishResult.resultIDs`) that the consumer had to index in

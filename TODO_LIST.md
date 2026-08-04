@@ -17,38 +17,34 @@
 
 ## High Impact
 
-| Task                                                                | Status    | Impact | Effort | Evidence                                                                                                                                 |
-| ------------------------------------------------------------------- | --------- | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| Fix `agents.go` multi-DB routing                                    | 🟢 `DONE` | High   | 30min  | `agents.go` now uses `enumerateDBPaths()` / `openDBForPath()` instead of single-DB `openReadOnly()`                                      |
-| Commit the uncommitted judge-CLI docs (AGENTS.md + ReportPanel.tsx) | 🟢 `DONE` | High   | 5min   | already committed in `c9fe352` (working tree was clean)                                                                                  |
-| Add regression tests for the two round-2 server bugs                | 🟢 `DONE` | High   | 40min  | `TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths` + `TestLoadTraceAndMapDoesNotGarbageRootCrushPaths`                          |
-| Fix server test isolation                                           | 🟢 `DONE` | High   | 45min  | `go test ./internal/server/` 79s → 0.28s; `TestMain` redirects `CRUSH_GLOBAL_DATA`/`XDG_DATA_HOME`; analyze tests now set `DisableCrush` |
+| Task                                                         | Status    | Impact | Effort | Evidence                                                                                                       |
+| ------------------------------------------------------------ | --------- | ------ | ------ | -------------------------------------------------------------------------------------------------------------- |
+| Add `schema/progress.schema.json` for the SSE `Progress` wire format | 🔴 `TODO` | High   | 20min  | `internal/judge/progress.go:6`; AGENTS.md line 79 says "update schema when JSON shapes change"; file missing   |
+| Wire `providerExecuted` into the HUD 0-target warning        | 🔴 `TODO` | High   | 30min  | `model.Event.ProviderExecuted` populated in Go, typed in `web/src/types.ts:152`, but `web/src/ui/Hud.tsx` never reads it |
+| Add `model-switch` glyph to the Timeline legend              | 🔴 `TODO` | High   | 10min  | `MARK_LABEL` entry exists (`web/src/ui/Timeline.tsx:51`) but the rendered legend (`Timeline.tsx:457`) omits it |
+| Add test for `evictAgentGraphCache()`                        | 🔴 `TODO` | High   | 30min  | `internal/server/server.go:1034`; zero test coverage on the eviction path                                      |
+| Add test for `crush.Adapter.Diagnostics()`                   | 🔴 `TODO` | High   | 30min  | `internal/adapter/crush/diagnostics.go:21`; only exercised indirectly via CLI against empty temp dirs          |
 
 ## Medium Impact
 
-| Task                                                  | Status    | Impact | Effort | Evidence                                                                                                                                                                      |
-| ----------------------------------------------------- | --------- | ------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Add tests for multi-DB discovery                      | 🟢 `DONE` | Med    | 1h     | `sessions_test.go`: 11 tests covering `enumerateDBPaths`, `listAllProjectSessions`, `openDBForPath`, `projectPathForDB`                                                       |
-| Verify the web UI renders Crush sessions in a browser | 🟢 `DONE` | Med    | 30min  | API endpoints verified: sessions, trace (4 events), agent graph all return correct data; frontend HTML loads; browser-level visual verification deferred (requires GPU/WebGL) |
-| Add `--host` flag to `open` and `map` commands        | 🟢 `DONE` | Med    | 15min  | both commands now accept `--host` and pass it to `server.Config`                                                                                                              |
-| Enrich the test fixture with file-touching tool calls | 🟢 `DONE` | Med    | 30min  | `testdata/crush/crush.db` now has read, write, and bash tool calls with file_path inputs; `TestFixtureFileTouchingEventsHaveTargets` verifies extraction                      |
-| Fix errcheck warnings                                 | 🟢 `DONE` | Med    | 30min  | all errcheck findings resolved; `go vet` clean, LSP shows 0 warnings                                                                                                          |
-| Modernize Go idioms                                   | 🟢 `DONE` | Med    | 30min  | `b.Loop()`, `slices.ContainsFunc`, `min()`, `strings.Cut`, `WaitGroup.Go`, `maps.Copy`, `strings.SplitSeq`, `range int`, `new(value)`                                         |
-| Cache `crush.db` reads across requests                | 🟢 `DONE` | Med    | 45min  | `dbCache *sync.Map` on `Adapter`; `openCached()` reuses `*sql.DB` handles; `sqlHandle.cached` prevents premature close                                                        |
+| Task                                                         | Status    | Impact | Effort | Evidence                                                                                                       |
+| ------------------------------------------------------------ | --------- | ------ | ------ | -------------------------------------------------------------------------------------------------------------- |
+| Surface per-message duration from `finished_at`              | 🔴 `TODO` | Med    | 1h     | `finished_at` column scanned (`sessions.go:750`) but value discarded; no per-message duration on events or marks |
+| Add test for `adapter.OpenFile` (3-return signature)         | 🔴 `TODO` | Med    | 20min  | `internal/adapter/adapter.go:92`; public API, zero direct tests                                                |
+| Fix `humanBytes` to handle GB and add test                   | 🔴 `TODO` | Med    | 15min  | `cmd/mindwalk/main.go:607`; caps at MB; no test                                                                |
+| Make `mindwalk cache clear` also clear reports               | 🔴 `TODO` | Med    | 15min  | `cmd/mindwalk/main.go:53`; clears `agent-graphs/` only, ignores `~/.mindwalk/reports/`                         |
+| Refactor read_files observability to pass grade through `ComputeStats` | 🔴 `TODO` | Med    | 45min  | Current post-hoc override of `ComputeStats` output is fragile; a future change could silently undo it          |
+| Update committed test fixture with non-zero tokens/cost and `read_files` table | 🔴 `TODO` | Med    | 30min  | `testdata/crush/crush.db` has all-zero tokens/cost and no `read_files` table; exact observability path untestable via fixture |
 
 ## Low Impact
 
-| Task                                                                 | Status    | Impact | Effort | Evidence                                                                                                                                     |
-| -------------------------------------------------------------------- | --------- | ------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Persist the agent-graph cache to disk                                | 🟢 `DONE` | Low    | 90min  | `~/.mindwalk/agent-graphs/<digest>.json`; `loadAgentGraphFromDisk`/`storeAgentGraphToDisk`; digest excludes `freshGen` for restart stability |
-| `mindwalk doctor` subcommand                                         | 🟢 `DONE` | Low    | 90min  | prints adapter status, session counts, data-dir paths; `doctor()` in `main.go`                                                               |
-| `mindwalk sessions` CLI subcommand                                   | 🟢 `DONE` | Low    | 45min  | lists all sessions across adapters without starting the server; `listSessions()` in `main.go`                                                |
-| Add CI workflow                                                      | 🟢 `DONE` | Low    | 30min  | `.github/workflows/ci.yml` runs `go test ./...` + embedded frontend verification on every push; bumped to Go 1.26.5                          |
-| Schema coverage warning at startup                                   | 🟢 `DONE` | Low    | 30min  | `warnIfOldSchema()` checks for `model` column via `pragma_table_info`; warns when Crush DB predates the 2025-06-27 migration                 |
-| Make `sessionDBIndex` a field on `Adapter`                           | 🟢 `DONE` | Low    | 30min  | `dbIndex *sync.Map` field on `Adapter`; `NewAdapter(dir)` constructor; `crushAdapter()` wired in server.go                                   |
-| Frontend: warn when a trace loads with 0 targets but non-zero events | 🟢 `DONE` | Low    | 30min  | `showNoTargetsWarning` computed in `Hud.tsx`; `.hud-warning` CSS banner displayed when events exist but none have targets                    |
-| Show session Cwd in the HUD/inspector                                | 🟢 `DONE` | Low    | 30min  | `trace.session.cwd` displayed in `hud-commit` section with tooltip; Inspector is file-level so HUD is the session-level view                 |
-| Mention `--host 0.0.0.0` in README Quick Start                       | 🟢 `DONE` | Low    | 10min  | README Quick Start documents `--host 0.0.0.0` for LAN access                                                                                 |
+| Task                                                         | Status    | Impact | Effort | Evidence                                                                                                       |
+| ------------------------------------------------------------ | --------- | ------ | ------ | -------------------------------------------------------------------------------------------------------------- |
+| Add SSE heartbeat/keep-alive pings                           | 🔴 `TODO` | Low    | 30min  | `internal/server/sse.go`; long judge runs (~2min) could trigger proxy timeouts without keep-alive              |
+| Fix `gitDiffPaths` regex for paths with spaces               | 🔴 `TODO` | Low    | 15min  | `internal/adapter/adapter.go`; regex fails on quoted `"a/path with space.go"` format                           |
+| Extract hunk line ranges from `@@` headers into `Target.Lines` | 🔴 `TODO` | Low    | 30min  | `internal/adapter/adapter.go`; `Lines` is nil for diff-extracted targets                                       |
+| Parse `---`/`+++` fallback diff lines                        | 🔴 `TODO` | Low    | 15min  | `internal/adapter/adapter.go`; catches diffs without `diff --git` headers                                      |
+| Verify `mindwalk analyze --judge crush` end-to-end           | 🔴 `TODO` | Low    | 15min  | Crush judge CLI wired (`cli.go:151`) but never fired against a real trace; see [ROADMAP.md](ROADMAP.md) Open Questions |
 
 ---
 
