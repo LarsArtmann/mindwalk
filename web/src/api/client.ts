@@ -2,6 +2,7 @@ import type {
 	AgentGraph,
 	CityMap,
 	JudgeChoice,
+	JudgeProgress,
 	ReportStatus,
 	SessionMeta,
 	Trace,
@@ -88,6 +89,36 @@ export async function startSessionAnalyze(
 		throw new Error(detail || `${res.status} ${res.statusText}`);
 	}
 	return res.json() as Promise<ReportStatus>;
+}
+
+// opens an SSE connection that streams judge progress events while an
+// evaluation runs. The callbacks fire on each "progress" event (one per
+// judge milestone) and once on the terminal "status" event. Returns the
+// EventSource so the caller can close it when the session changes or the
+// component unmounts.
+export function openAnalyzeStream(
+	key: string,
+	onProgress: (p: JudgeProgress) => void,
+	onStatus: (s: ReportStatus) => void,
+): EventSource {
+	const es = new EventSource(
+		`/api/sessions/${encodeURIComponent(key)}/analyze/stream`,
+	);
+	es.addEventListener("progress", (e: MessageEvent) => {
+		try {
+			onProgress(JSON.parse(e.data) as JudgeProgress);
+		} catch {
+			// ignore malformed events
+		}
+	});
+	es.addEventListener("status", (e: MessageEvent) => {
+		try {
+			onStatus(JSON.parse(e.data) as ReportStatus);
+		} catch {
+			// ignore malformed events
+		}
+	});
+	return es;
 }
 
 // backs the static full-repo map view: the citymap for a repo, with no session

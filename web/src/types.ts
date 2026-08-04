@@ -290,6 +290,13 @@ export interface ReportMoment {
 	note: string;
 }
 
+/** one step-level update from the judge during an evaluation run */
+export interface JudgeProgress {
+	phase: "start" | "rubric" | "scoring" | "done" | "error";
+	step?: string;
+	message: string;
+}
+
 export interface ReportStatus {
 	state: "none" | "running" | "done" | "failed";
 	/** done, but generated from fewer events than the trace now has */

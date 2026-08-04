@@ -273,6 +273,10 @@ func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
 		s.handleSessionAgentTrace(w, r, parts[0], parts[2])
 		return
 	}
+	if len(parts) == 3 && parts[1] == "analyze" && parts[2] == "stream" {
+		s.handleSessionAnalyzeStream(w, r, parts[0])
+		return
+	}
 	if len(parts) != 2 {
 		http.NotFound(w, r)
 		return

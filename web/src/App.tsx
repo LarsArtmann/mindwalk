@@ -8,6 +8,7 @@ import {
 	getSessionReport,
 	getSessionSnapshot,
 	listSessions,
+	openAnalyzeStream,
 	startSessionAnalyze,
 } from "./api/client";
 import { Crosshair, Sparkles, Mountain, TreePine, Users } from "lucide-react";
@@ -15,6 +16,7 @@ import type {
 	AgentGraph,
 	CityMap,
 	JudgeChoice,
+	JudgeProgress,
 	ReportStatus,
 	Trace,
 } from "./types";
@@ -101,6 +103,7 @@ export default function App() {
 	const [openSheet, setOpenSheet] = useState<string | null>(null);
 	const [openPop, setOpenPop] = useState<string | null>(null);
 	const [reportStatus, setReportStatus] = useState<ReportStatus | undefined>();
+	const [judgeProgress, setJudgeProgress] = useState<JudgeProgress[]>([]);
 	const [agentGraph, setAgentGraph] = useState<AgentGraph | undefined>();
 	const [activeAgentID, setActiveAgentID] = useState<string | null>(null);
 	const [agentGraphLoading, setAgentGraphLoading] = useState(false);
@@ -564,6 +567,7 @@ export default function App() {
 		setOpenSheet(null);
 		setOpenPop(null);
 		setReportStatus(undefined);
+		setJudgeProgress([]);
 		if (activeSessionKey && !mapOnly) void refreshReport(activeSessionKey);
 	}, [activeSessionKey, mapOnly, refreshReport]);
 
@@ -590,23 +594,31 @@ export default function App() {
 		});
 	}, [scan, refreshReport, mapOnly]);
 
+	// While an evaluation is running, stream real-time progress via SSE and
+	// poll the rail badges for other sessions' evaluations. The SSE
+	// connection delivers progress events (one per judge milestone) and a
+	// terminal "status" event that replaces the need to poll the report
+	// endpoint for the active session.
 	useEffect(() => {
 		if (reportStatus?.state !== "running" || !activeSessionKey) return;
-		const timer = setInterval(() => {
-			void refreshReport(activeSessionKey);
-			void refreshSessionList();
-		}, 2500);
+		setJudgeProgress([]);
+		const es = openAnalyzeStream(
+			activeSessionKey,
+			(p) => setJudgeProgress((prev) => [...prev, p]),
+			(s) => {
+				if (activeSessionKeyRef.current === activeSessionKey) {
+					setReportStatus(s);
+				}
+				es.close();
+			},
+		);
+		const timer = setInterval(() => void refreshSessionList(), 5000);
 		return () => {
+			es.close();
 			clearInterval(timer);
-			// one more list pass so the rail badge leaves "evaluating" promptly
 			void refreshSessionList();
 		};
-	}, [
-		reportStatus?.state,
-		activeSessionKey,
-		refreshReport,
-		refreshSessionList,
-	]);
+	}, [reportStatus?.state, activeSessionKey, refreshSessionList]);
 
 	// while the report status is unknown (first request failed or still on its
 	// way), keep asking — otherwise a single dropped request would pin the
@@ -990,6 +1002,7 @@ export default function App() {
 													<ReportPanel
 														status={reportStatus}
 														analyzing={reportStatus?.state === "running"}
+														progress={judgeProgress}
 														locked={exporting}
 														onAnalyze={(choice) => void analyzeSession(choice)}
 														onClose={closeSheet}
