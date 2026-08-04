@@ -258,15 +258,39 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	pending := map[string]adapter.ToolCall{}
 	pendingOrder := []string{}
 	results := map[string]adapter.ToolResult{}
+	prevModel := ""
+	prevProvider := ""
 
 	for rows.Next() {
 		var msg messageRow
-		if err := rows.Scan(&msg.ID, &msg.Role, &msg.Parts, &msg.Model, &msg.Provider, &msg.CreatedAt); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.Role, &msg.Parts, &msg.Model, &msg.Provider, &msg.CreatedAt, &msg.FinishedAt); err != nil {
 			return nil, fmt.Errorf("scan crush message: %w", err)
 		}
 		recognized = true
 		ts := millisToRFC3339(msg.CreatedAt)
 		applyMessageMeta(trace, msg, ts)
+
+		// Track model/provider switches mid-session.
+		if msg.Model.Valid && msg.Model.String != "" && prevModel != "" && msg.Model.String != prevModel {
+			trace.Marks = append(trace.Marks, model.Mark{
+				Seq:  len(pendingOrder),
+				Type: "model-switch",
+				Note: fmt.Sprintf("%s → %s", prevModel, msg.Model.String),
+			})
+		}
+		if msg.Provider.Valid && msg.Provider.String != "" && prevProvider != "" && msg.Provider.String != prevProvider {
+			trace.Marks = append(trace.Marks, model.Mark{
+				Seq:  len(pendingOrder),
+				Type: "model-switch",
+				Note: fmt.Sprintf("%s → %s", prevProvider, msg.Provider.String),
+			})
+		}
+		if msg.Model.Valid && msg.Model.String != "" {
+			prevModel = msg.Model.String
+		}
+		if msg.Provider.Valid && msg.Provider.String != "" {
+			prevProvider = msg.Provider.String
+		}
 
 		parsed, err := decodeParts(msg.Parts, ts)
 		if err != nil {
@@ -301,6 +325,38 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			})
 		}
 
+		// Reasoning marks surface the agent's inner monologue with
+		// duration so the timeline can show thinking vs acting phases.
+		if parsed.reasoningText != "" {
+			note := truncateNote(parsed.reasoningText, 200)
+			if parsed.reasoningSecs > 0 {
+				note = fmt.Sprintf("thinking %ds: %s", parsed.reasoningSecs, note)
+			} else {
+				note = "thinking: " + note
+			}
+			trace.Marks = append(trace.Marks, model.Mark{
+				Seq:  len(pendingOrder),
+				Type: "thinking",
+				Note: note,
+			})
+		}
+
+		// Non-normal finish reasons are quality signals — error,
+		// content_filter, canceled, max_tokens — and get a mark so
+		// the timeline shows why a turn ended unexpectedly.
+		switch parsed.finishReason {
+		case "error", "content_filter", "canceled", "max_tokens":
+			note := parsed.finishReason
+			if parsed.finishMessage != "" {
+				note = fmt.Sprintf("%s: %s", parsed.finishReason, truncateNote(parsed.finishMessage, 200))
+			}
+			trace.Marks = append(trace.Marks, model.Mark{
+				Seq:  len(pendingOrder),
+				Type: "finish-reason",
+				Note: note,
+			})
+		}
+
 		for i, call := range parsed.events {
 			if _, exists := pending[call.ID]; !exists {
 				pendingOrder = append(pendingOrder, call.ID)
@@ -330,10 +386,34 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	if trace.Session.Title == "" {
 		trace.Session.Title = filepath.Base(path)
 	}
+	// Query the read_files table for exact read observability. The
+	// table was added in a later Crush migration, so older databases
+	// will return "no such table" — catch that and fall back to
+	// estimated reads.
+	readPaths := queryReadFiles(db.db, id)
+	if len(readPaths) > 0 {
+		for i := range trace.Events {
+			for j := range trace.Events[i].Targets {
+				t := &trace.Events[i].Targets[j]
+				if t.Touch == "read" && readPaths[t.Path] {
+					t.Weak = false
+				}
+			}
+		}
+	}
+	readsGrade := model.ObservabilityEstimated
+	if len(readPaths) > 0 {
+		readsGrade = model.ObservabilityExact
+	}
 	// Crush's finish reasons carry no observability flags; the visualizer
 	// infers failures from tool_result.is_error the same way it does for
 	// Claude Code and Codex.
 	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilityEstimated)
+	// Override the reads grade: ComputeStats derives it from weak
+	// targets, but the read_files table is the structural truth.
+	if readsGrade == model.ObservabilityExact {
+		trace.Stats.Observability.Reads = model.ObservabilityExact
+	}
 
 	if !recognized {
 		return nil, adapter.NotRecognizedErr("Crush", path)
@@ -582,13 +662,15 @@ func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
 // addition we care about. Stable identifiers (id, role, parts,
 // created_at) come from the initial schema; model and provider come
 // from the 2025-06-27 migration.
-const listSessionsQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`
+const listSessionsQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`
 
-const allSessionsQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`
+const allSessionsQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`
 
-const sessionByIDQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`
+const sessionByIDQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`
 
-const messagesBySessionQuery = `SELECT id, role, parts, model, provider, created_at FROM messages WHERE session_id = ? ORDER BY created_at, id`
+const messagesBySessionQuery = `SELECT id, role, parts, model, provider, created_at, finished_at FROM messages WHERE session_id = ? ORDER BY created_at, id`
+
+const readFilesQuery = `SELECT path FROM read_files WHERE session_id = ?`
 
 // sessionRow is the scan target for every row in the sessions table.
 // The pointer fields are required because parent_session_id and todos
@@ -601,18 +683,20 @@ type sessionRow struct {
 	MessageCount     int64
 	PromptTokens     int64
 	CompletionTokens int64
+	Cost             float64
 	UpdatedAt        int64
 	CreatedAt        int64
 	Todos            sql.NullString
 }
 
 type messageRow struct {
-	ID        string
-	Role      string
-	Parts     string
-	Model     sql.NullString
-	Provider  sql.NullString
-	CreatedAt int64
+	ID         string
+	Role       string
+	Parts      string
+	Model      sql.NullString
+	Provider   sql.NullString
+	CreatedAt  int64
+	FinishedAt sql.NullInt64
 }
 
 // scanTarget is implemented by both *sql.Row and *sql.Rows so
@@ -629,7 +713,7 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 	var sr sessionRow
 	if err := row.Scan(
 		&sr.ID, &sr.Title, &sr.ParentSessionID, &sr.MessageCount,
-		&sr.PromptTokens, &sr.CompletionTokens, &sr.UpdatedAt, &sr.CreatedAt, &sr.Todos,
+		&sr.PromptTokens, &sr.CompletionTokens, &sr.Cost, &sr.UpdatedAt, &sr.CreatedAt, &sr.Todos,
 	); err != nil {
 		return model.SessionMeta{}, err
 	}
@@ -652,28 +736,34 @@ func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
 			agent.SourceID = messageID
 		}
 		return model.SessionMeta{
-			Key:        SessionKey(sr.ID),
-			ID:         sr.ID,
-			Harness:    harnessName,
-			Path:       SessionPath(sr.ID),
-			Title:      sr.Title,
-			StartedAt:  millisToRFC3339(sr.CreatedAt),
-			EndedAt:    millisToRFC3339(sr.UpdatedAt),
-			EventCount: int(sr.MessageCount),
-			UserTurns:  0,
-			Auxiliary:  true,
-			Agent:      agent,
+			Key:              SessionKey(sr.ID),
+			ID:               sr.ID,
+			Harness:          harnessName,
+			Path:             SessionPath(sr.ID),
+			Title:            sr.Title,
+			StartedAt:        millisToRFC3339(sr.CreatedAt),
+			EndedAt:          millisToRFC3339(sr.UpdatedAt),
+			EventCount:       int(sr.MessageCount),
+			UserTurns:        0,
+			Auxiliary:        true,
+			Agent:            agent,
+			PromptTokens:     sr.PromptTokens,
+			CompletionTokens: sr.CompletionTokens,
+			Cost:             sr.Cost,
 		}, nil
 	}
 	return model.SessionMeta{
-		Key:        SessionKey(sr.ID),
-		ID:         sr.ID,
-		Harness:    harnessName,
-		Path:       SessionPath(sr.ID),
-		Title:      sr.Title,
-		StartedAt:  millisToRFC3339(sr.CreatedAt),
-		EndedAt:    millisToRFC3339(sr.UpdatedAt),
-		EventCount: int(sr.MessageCount),
+		Key:              SessionKey(sr.ID),
+		ID:               sr.ID,
+		Harness:          harnessName,
+		Path:             SessionPath(sr.ID),
+		Title:            sr.Title,
+		StartedAt:        millisToRFC3339(sr.CreatedAt),
+		EndedAt:          millisToRFC3339(sr.UpdatedAt),
+		EventCount:       int(sr.MessageCount),
+		PromptTokens:     sr.PromptTokens,
+		CompletionTokens: sr.CompletionTokens,
+		Cost:             sr.Cost,
 	}, nil
 }
 
@@ -692,14 +782,24 @@ func applySessionMeta(trace *model.Trace, meta model.SessionMeta) {
 	if meta.EndedAt != "" {
 		trace.Session.EndedAt = meta.EndedAt
 	}
+	if meta.Model != "" {
+		trace.Session.Model = meta.Model
+	}
+	if meta.Provider != "" {
+		trace.Session.Provider = meta.Provider
+	}
 }
 
 // applyMessageMeta updates the trace's running cwd/model window from
 // one row. Only assistant messages carry a model — every other row's
-// model column is NULL — so the first non-null assignment wins.
+// model column is NULL — so the first non-null assignment wins. The
+// same pattern applies to provider.
 func applyMessageMeta(trace *model.Trace, msg messageRow, ts string) {
 	if msg.Model.Valid && msg.Model.String != "" && trace.Session.Model == "" {
 		trace.Session.Model = msg.Model.String
+	}
+	if msg.Provider.Valid && msg.Provider.String != "" && trace.Session.Provider == "" {
+		trace.Session.Provider = msg.Provider.String
 	}
 	if ts != "" {
 		if trace.Session.StartedAt == "" {
@@ -718,6 +818,35 @@ func millisToRFC3339(ms int64) string {
 		return ""
 	}
 	return time.UnixMilli(ms).UTC().Format(time.RFC3339Nano)
+}
+
+// queryReadFiles returns the set of file paths the agent actually
+// opened, according to the read_files table. When the table does not
+// exist (older Crush databases), it returns nil.
+func queryReadFiles(db *sql.DB, sessionID string) map[string]bool {
+	rows, err := db.QueryContext(context.Background(), readFilesQuery, sessionID)
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = rows.Close() }()
+	paths := map[string]bool{}
+	for rows.Next() {
+		var p string
+		if rows.Scan(&p) == nil && p != "" {
+			paths[p] = true
+		}
+	}
+	return paths
+}
+
+// truncateNote clips s to maxRunes runes, appending an ellipsis when
+// truncation occurs. Used for mark notes that carry user text.
+func truncateNote(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+	return string(runes[:maxRunes]) + "…"
 }
 
 // sessionPathScheme is the synthetic-path prefix the server uses to

@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cosmtrek/mindwalk/internal/model"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -507,5 +509,249 @@ func TestOpenReadOnlyReportsUnderlyingError(t *testing.T) {
 	_, err = Adapter{Dir: filepath.Dir(dirAsFile)}.ListSessions()
 	if err == nil || !strings.Contains(err.Error(), "is a directory") {
 		t.Fatalf("directory-as-file error = %v", err)
+	}
+}
+
+// insertMessageWithProvider writes one row to the messages table with
+// the provider column set, for tests that verify provider tracking.
+func insertMessageWithProvider(
+	t *testing.T,
+	db *sql.DB,
+	sessionID string,
+	id string,
+	role string,
+	parts string,
+	model string,
+	provider string,
+	createdAt time.Time,
+) {
+	t.Helper()
+	if _, err := db.Exec(`INSERT INTO messages (id, session_id, role, parts, model, provider, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, sessionID, role, parts, nullableString(model), nullableString(provider), createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// insertSessionWithUsage writes a session row with non-zero token and
+// cost values, for tests that verify usage metadata.
+func insertSessionWithUsage(
+	t *testing.T,
+	db *sql.DB,
+	id string,
+	title string,
+	createdAt time.Time,
+	promptTokens int64,
+	completionTokens int64,
+	cost float64,
+) {
+	t.Helper()
+	if _, err := db.Exec(`INSERT INTO sessions (id, parent_session_id, title, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at) VALUES (?, NULL, ?, 0, ?, ?, ?, ?, ?)`,
+		id, title, promptTokens, completionTokens, cost, createdAt.UnixMilli(), createdAt.UnixMilli()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestParsePopulatesProvider verifies the provider field is populated
+// from the first non-null provider in the messages table.
+func TestParsePopulatesProvider(t *testing.T) {
+	data, db := newFixtureDB(t, nil)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	insertSession(t, db, "s1", "", "Provider test", base, 2)
+	insertMessageWithProvider(t, db, "s1", "m1", "user",
+		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "hello"}}),
+		"", "anthropic", base)
+	insertMessageWithProvider(t, db, "s1", "m2", "assistant",
+		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "hi back"}}),
+		"claude-sonnet-4", "anthropic", base.Add(time.Second))
+
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("s1"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if trace.Session.Provider != "anthropic" {
+		t.Fatalf("provider = %q, want anthropic", trace.Session.Provider)
+	}
+	if trace.Session.Model != "claude-sonnet-4" {
+		t.Fatalf("model = %q, want claude-sonnet-4", trace.Session.Model)
+	}
+}
+
+// TestParseEmitsModelSwitchMark verifies a model-switch mark is
+// emitted when the model changes mid-session.
+func TestParseEmitsModelSwitchMark(t *testing.T) {
+	data, db := newFixtureDB(t, nil)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	insertSession(t, db, "s1", "", "Switch test", base, 3)
+	insertMessageWithProvider(t, db, "s1", "m1", "assistant",
+		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "first"}}),
+		"model-a", "anthropic", base)
+	insertMessageWithProvider(t, db, "s1", "m2", "assistant",
+		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "second"}}),
+		"model-b", "anthropic", base.Add(time.Second))
+
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("s1"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	var sawSwitch bool
+	for _, m := range trace.Marks {
+		if m.Type == "model-switch" {
+			sawSwitch = true
+			if !strings.Contains(m.Note, "model-a") || !strings.Contains(m.Note, "model-b") {
+				t.Fatalf("switch note = %q", m.Note)
+			}
+		}
+	}
+	if !sawSwitch {
+		t.Fatalf("expected a model-switch mark, marks = %+v", trace.Marks)
+	}
+}
+
+// TestReadFilesUpgradesObservability verifies the read_files table
+// upgrades the read observability grade from estimated to exact.
+func TestReadFilesUpgradesObservability(t *testing.T) {
+	data, db := newFixtureDB(t, func(db *sql.DB) {
+		if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS read_files (session_id TEXT NOT NULL, path TEXT NOT NULL, read_at INTEGER NOT NULL)`); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := db.Exec(`INSERT INTO read_files (session_id, path, read_at) VALUES ('s1', 'main.go', 0)`); err != nil {
+			t.Fatal(err)
+		}
+	})
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	insertSession(t, db, "s1", "", "Read files test", base, 1)
+	insertMessage(t, db, "s1", "m1", "assistant",
+		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "working"}}),
+		"claude-sonnet-4", base)
+
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("s1"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if trace.Stats.Observability.Reads != model.ObservabilityExact {
+		t.Fatalf("reads observability = %q, want exact", trace.Stats.Observability.Reads)
+	}
+}
+
+// TestReadFilesMissingTableFallsBack verifies that when the read_files
+// table does not exist (older Crush databases), the observability
+// stays at estimated without crashing.
+func TestReadFilesMissingTableFallsBack(t *testing.T) {
+	data, db := newFixtureDB(t, nil)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	insertSession(t, db, "s1", "", "No read_files", base, 1)
+	insertMessage(t, db, "s1", "m1", "assistant",
+		writeParts(t, map[string]any{"type": "text", "data": map[string]any{"text": "working"}}),
+		"claude-sonnet-4", base)
+
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("s1"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	// No read events at all → unavailable; but the important thing is
+	// it doesn't crash. If there were reads, it would be estimated.
+	if trace.Stats.Observability.Reads == model.ObservabilityExact {
+		t.Fatalf("reads should not be exact without read_files table")
+	}
+}
+
+// TestParseEmitsFinishReasonMarks verifies non-normal finish reasons
+// (error, content_filter, canceled, max_tokens) produce finish-reason
+// marks in the trace.
+func TestParseEmitsFinishReasonMarks(t *testing.T) {
+	for _, reason := range []string{"error", "content_filter", "canceled", "max_tokens"} {
+		t.Run(reason, func(t *testing.T) {
+			data, db := newFixtureDB(t, nil)
+			base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+			insertSession(t, db, "s1", "", "Finish test", base, 1)
+			insertMessage(t, db, "s1", "m1", "assistant",
+				writeParts(t,
+					map[string]any{"type": "text", "data": map[string]any{"text": "trying"}},
+					map[string]any{"type": "finish", "data": map[string]any{"reason": reason}},
+				),
+				"claude-sonnet-4", base)
+
+			trace, err := Adapter{Dir: data}.Parse(SessionPath("s1"))
+			if err != nil {
+				t.Fatalf("Parse: %v", err)
+			}
+			var saw bool
+			for _, m := range trace.Marks {
+				if m.Type == "finish-reason" {
+					saw = true
+					if !strings.Contains(m.Note, reason) {
+						t.Fatalf("note = %q, want to contain %q", m.Note, reason)
+					}
+				}
+			}
+			if !saw {
+				t.Fatalf("expected finish-reason mark for %q, marks = %+v", reason, trace.Marks)
+			}
+		})
+	}
+}
+
+// TestParseEmitsThinkingMark verifies a reasoning part produces a
+// thinking mark with the thinking text and duration.
+func TestParseEmitsThinkingMark(t *testing.T) {
+	data, db := newFixtureDB(t, nil)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	insertSession(t, db, "s1", "", "Thinking test", base, 1)
+	insertMessage(t, db, "s1", "m1", "assistant",
+		writeParts(t,
+			map[string]any{"type": "reasoning", "data": map[string]any{
+				"thinking":    "I should check the file first",
+				"started_at":  1000,
+				"finished_at": 1012,
+			}},
+			map[string]any{"type": "text", "data": map[string]any{"text": "Let me check."}},
+		),
+		"claude-sonnet-4", base)
+
+	trace, err := Adapter{Dir: data}.Parse(SessionPath("s1"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	var sawThinking bool
+	for _, m := range trace.Marks {
+		if m.Type == "thinking" {
+			sawThinking = true
+			if !strings.Contains(m.Note, "12s") {
+				t.Fatalf("thinking note should contain duration 12s, got %q", m.Note)
+			}
+			if !strings.Contains(m.Note, "check the file") {
+				t.Fatalf("thinking note should contain text, got %q", m.Note)
+			}
+		}
+	}
+	if !sawThinking {
+		t.Fatalf("expected a thinking mark, marks = %+v", trace.Marks)
+	}
+}
+
+// TestListSessionsPopulatesUsageAndCost verifies the SessionMeta
+// carries prompt_tokens, completion_tokens, and cost from the
+// sessions table.
+func TestListSessionsPopulatesUsageAndCost(t *testing.T) {
+	data, db := newFixtureDB(t, nil)
+	base := time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC)
+	insertSessionWithUsage(t, db, "s1", "Usage test", base, 5000, 12000, 0.42)
+
+	metas, err := Adapter{Dir: data}.ListSessions()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(metas) != 1 {
+		t.Fatalf("metas = %d, want 1", len(metas))
+	}
+	m := metas[0]
+	if m.PromptTokens != 5000 {
+		t.Fatalf("promptTokens = %d, want 5000", m.PromptTokens)
+	}
+	if m.CompletionTokens != 12000 {
+		t.Fatalf("completionTokens = %d, want 12000", m.CompletionTokens)
+	}
+	if m.Cost != 0.42 {
+		t.Fatalf("cost = %f, want 0.42", m.Cost)
 	}
 }

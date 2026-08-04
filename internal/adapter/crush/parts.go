@@ -73,7 +73,9 @@ type textData struct {
 // only when the upstream reasoning is non-empty and only the `Thinking`
 // field is read by the trace today.
 type reasoningData struct {
-	Thinking string `json:"thinking"`
+	Thinking   string `json:"thinking"`
+	StartedAt  int64  `json:"started_at"`
+	FinishedAt int64  `json:"finished_at"`
 }
 
 // shellCommandData mirrors message.ShellCommand — Crush encodes bang
@@ -102,13 +104,20 @@ type partsParser struct {
 	subagentNote  string
 	subagentSeen  bool
 	hasUserFinish bool
+	reasoningText string
+	reasoningSecs int64
+	finishReason  string
+	finishMessage string
+	shellCommands []shellCommandData
+	bashCommands  map[string]bool
 }
 
 // newPartsParser constructs an empty parser ready for one message.
 func newPartsParser() *partsParser {
 	return &partsParser{
-		pending: map[string]adapter.ToolCall{},
-		results: map[string]adapter.ToolResult{},
+		pending:      map[string]adapter.ToolCall{},
+		results:      map[string]adapter.ToolResult{},
+		bashCommands: map[string]bool{},
 	}
 }
 
@@ -131,22 +140,22 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 			p.text.WriteString(t.Text)
 		}
 	case partReasoning:
-		// Reasoning parts are surfaced in the trace only as a
-		// subagent cue for now; the visualizer does not have a
-		// dedicated thinking lane. Decode to validate the
-		// payload but ignore the contents.
 		var r reasoningData
 		if err := json.Unmarshal(part.Data, &r); err != nil {
 			return fmt.Errorf("decode reasoning part: %w", err)
 		}
+		if r.Thinking != "" {
+			p.reasoningText = r.Thinking
+		}
+		if r.FinishedAt > r.StartedAt {
+			p.reasoningSecs = r.FinishedAt - r.StartedAt
+		}
 	case partShellCommand:
-		// Bash commands that originated from Crush's bang-mode shell
-		// hook land here. The visualizer already knows about bash
-		// tool calls; decode the part purely for schema coverage.
 		var sc shellCommandData
 		if err := json.Unmarshal(part.Data, &sc); err != nil {
 			return fmt.Errorf("decode shell_command part: %w", err)
 		}
+		p.shellCommands = append(p.shellCommands, sc)
 	case partToolCall:
 		var tc toolCallData
 		if err := json.Unmarshal(part.Data, &tc); err != nil {
@@ -157,10 +166,11 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 		}
 		input := parseCrushInput(tc.Input)
 		call := adapter.ToolCall{
-			ID:        tc.ID,
-			Name:      tc.Name,
-			Input:     input,
-			Timestamp: timestamp,
+			ID:               tc.ID,
+			Name:             tc.Name,
+			Input:            input,
+			Timestamp:        timestamp,
+			ProviderExecuted: tc.ProviderExecuted,
 		}
 		if tc.Name == "agent" {
 			p.subagentSeen = true
@@ -174,6 +184,11 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 			p.pendingOrder = append(p.pendingOrder, tc.ID)
 		}
 		p.pending[tc.ID] = call
+		if tc.Name == "bash" || tc.Name == "Bash" {
+			if cmd, ok := input["command"].(string); ok && cmd != "" {
+				p.bashCommands[cmd] = true
+			}
+		}
 	case partToolResult:
 		var tr toolResultData
 		if err := json.Unmarshal(part.Data, &tr); err != nil {
@@ -196,6 +211,8 @@ func (p *partsParser) add(part rawPart, timestamp string) error {
 		if f.Reason == "stop" {
 			p.hasUserFinish = true
 		}
+		p.finishReason = f.Reason
+		p.finishMessage = f.Message
 	case partImageURL, partBinary:
 		// Image and binary attachments are dropped from the trace —
 		// the visualizer renders file edits, not base64 previews —
@@ -264,20 +281,28 @@ func parseCrushInput(raw string) map[string]any {
 //     of `stop`, matching Crush's user-typed prompt shape
 //     (the assistant finishes the user turn with `stop`).
 type finishResult struct {
-	text         string
-	events       []adapter.ToolCall
-	results      []adapter.ToolResult
-	subagent     bool
-	subagentNote string
-	userFinish   bool
+	text          string
+	events        []adapter.ToolCall
+	results       []adapter.ToolResult
+	subagent      bool
+	subagentNote  string
+	userFinish    bool
+	reasoningText string
+	reasoningSecs int64
+	finishReason  string
+	finishMessage string
 }
 
 func (p *partsParser) finish() finishResult {
 	result := finishResult{
-		text:         strings.TrimSpace(p.text.String()),
-		subagent:     p.subagentSeen,
-		subagentNote: p.subagentNote,
-		userFinish:   p.hasUserFinish,
+		text:          strings.TrimSpace(p.text.String()),
+		subagent:      p.subagentSeen,
+		subagentNote:  p.subagentNote,
+		userFinish:    p.hasUserFinish,
+		reasoningText: p.reasoningText,
+		reasoningSecs: p.reasoningSecs,
+		finishReason:  p.finishReason,
+		finishMessage: p.finishMessage,
 	}
 	// Surface every tool_call that landed in this message, paired
 	// with its result when one was observed in the same message.
@@ -306,6 +331,26 @@ func (p *partsParser) finish() finishResult {
 			continue
 		}
 		result.results = append(result.results, p.results[callID])
+	}
+	// Emit bang-mode shell commands as exec events, but skip any
+	// whose command string was already captured by a bash tool call
+	// in the same message to avoid duplicates.
+	for i, sc := range p.shellCommands {
+		if sc.Command != "" && p.bashCommands[sc.Command] {
+			continue
+		}
+		call := adapter.ToolCall{
+			ID:        fmt.Sprintf("shell-%d", i),
+			Name:      "bash",
+			Input:     map[string]any{"command": sc.Command},
+			Timestamp: "",
+		}
+		result.events = append(result.events, call)
+		result.results = append(result.results, adapter.ToolResult{
+			ToolCallID: call.ID,
+			Content:    sc.Output,
+			IsError:    sc.ExitCode != 0,
+		})
 	}
 	return result
 }

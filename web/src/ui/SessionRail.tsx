@@ -285,6 +285,13 @@ export const SessionRail = memo(function SessionRail({
 							<span className="session-meta-text">
 								{harnessLabel(session.harness)} · {session.eventCount}{" "}
 								{session.eventCount === 1 ? "call" : "calls"}
+								{session.provider ? ` · ${session.provider}` : ""}
+								{session.promptTokens || session.completionTokens
+									? ` · ${formatTokens(session.promptTokens || 0)}/${formatTokens(session.completionTokens || 0)} tok`
+									: ""}
+								{session.cost && session.cost > 0
+									? ` · $${session.cost.toFixed(2)}`
+									: ""}
 								{session.gitBranch ? ` · ${session.gitBranch}` : ""}
 								{session.endedAt ? ` · ${shortDate(session.endedAt)}` : ""}
 							</span>
@@ -360,4 +367,9 @@ function shortDate(iso: string): string {
 	const md = `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 	const hm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 	return sameYear ? `${md} ${hm}` : `${d.getFullYear()}-${md}`;
+}
+
+function formatTokens(n: number): string {
+	if (n >= 1000) return `${(n / 1000).toFixed(0)}k`;
+	return String(n);
 }

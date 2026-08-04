@@ -274,7 +274,7 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	seq := 0
 	for rows.Next() {
 		var msg messageRow
-		if err := rows.Scan(&msg.ID, &msg.Role, &msg.Parts, &msg.Model, &msg.Provider, &msg.CreatedAt); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.Role, &msg.Parts, &msg.Model, &msg.Provider, &msg.CreatedAt, &msg.FinishedAt); err != nil {
 			return nil, err
 		}
 		parsed, err := decodeParts(msg.Parts, "")
@@ -356,7 +356,7 @@ func exactCrushAgentNode(
 		Status:             model.AgentStatusLaunched,
 		TraceAvailability:  model.TraceAvailabilityMissing,
 		LinkQuality:        model.AgentLinkQualityExact,
-		LinkMethod:         model.AgentLinkMethodCodexAgentID,
+		LinkMethod:         model.AgentLinkMethodCrushAgentID,
 	}
 	if child != nil {
 		node.TraceAvailability = model.TraceAvailabilityAvailable

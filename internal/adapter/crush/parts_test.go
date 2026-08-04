@@ -72,12 +72,11 @@ func TestDecodePartsFinishOtherReasonsIgnored(t *testing.T) {
 	}
 }
 
-// TestDecodePartsShellCommandAcceptsPayload verifies the parser
-// decodes a shell_command part without emitting it as an event.
-// Crush encodes bang-mode commands this way; the visualizer relies on
-// the parallel bash tool call for replay, so the shell_command part
-// exists only for schema coverage.
-func TestDecodePartsShellCommandAcceptsPayload(t *testing.T) {
+// TestDecodePartsShellCommandEmitsExecEvent verifies the parser
+// converts a shell_command part into a bash exec event with the
+// command, output, and exit code. This surfaces bang-mode commands
+// in the timeline.
+func TestDecodePartsShellCommandEmitsExecEvent(t *testing.T) {
 	raw := writeParts(t,
 		map[string]any{"type": "shell_command", "data": map[string]any{
 			"command":   "ls -la",
@@ -89,8 +88,49 @@ func TestDecodePartsShellCommandAcceptsPayload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.events) != 0 {
-		t.Fatalf("shell_command should not emit events, got %+v", result.events)
+	if len(result.events) != 1 {
+		t.Fatalf("events = %d, want 1 (shell_command → bash exec)", len(result.events))
+	}
+	if result.events[0].Name != "bash" {
+		t.Fatalf("tool name = %q, want bash", result.events[0].Name)
+	}
+	if result.events[0].Input["command"] != "ls -la" {
+		t.Fatalf("command = %v", result.events[0].Input["command"])
+	}
+	if len(result.results) != 1 || result.results[0].Content != "total 0\n" {
+		t.Fatalf("results = %+v", result.results)
+	}
+	if result.results[0].IsError {
+		t.Fatalf("exit code 0 should not be an error")
+	}
+}
+
+// TestDecodePartsShellCommandDeduplicatedWithBash verifies that when
+// a message has both a bash tool call and a shell_command part for
+// the same command, only one event is emitted (the tool call wins).
+func TestDecodePartsShellCommandDeduplicatedWithBash(t *testing.T) {
+	raw := writeParts(t,
+		map[string]any{"type": "tool_call", "data": map[string]any{
+			"id": "call-1", "name": "bash", "input": `{"command":"ls -la"}`,
+		}},
+		map[string]any{"type": "tool_result", "data": map[string]any{
+			"tool_call_id": "call-1", "content": "total 0\n",
+		}},
+		map[string]any{"type": "shell_command", "data": map[string]any{
+			"command":   "ls -la",
+			"output":    "total 0\n",
+			"exit_code": 0,
+		}},
+	)
+	result, err := decodeParts(raw, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.events) != 1 {
+		t.Fatalf("events = %d, want 1 (deduplicated)", len(result.events))
+	}
+	if result.events[0].ID != "call-1" {
+		t.Fatalf("event ID = %q, want call-1 (tool call wins)", result.events[0].ID)
 	}
 }
 

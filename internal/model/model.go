@@ -58,6 +58,7 @@ type TraceSession struct {
 	ID         string `json:"id"`
 	Harness    string `json:"harness"`
 	Model      string `json:"model,omitempty"`
+	Provider   string `json:"provider,omitempty"`
 	Title      string `json:"title,omitempty"`
 	Cwd        string `json:"cwd,omitempty"`
 	Commit     string `json:"commit,omitempty"`
@@ -77,6 +78,10 @@ type Event struct {
 	ResultBytes int            `json:"resultBytes"`
 	IsError     bool           `json:"isError"`
 	Summary     string         `json:"summary"`
+	// ProviderExecuted is true when the tool was executed server-side
+	// by the model provider rather than locally by the harness. Only
+	// the crush adapter sets this today.
+	ProviderExecuted bool `json:"providerExecuted,omitempty"`
 }
 
 type Target struct {
@@ -163,9 +168,15 @@ type SessionMeta struct {
 	Path      string `json:"path"`
 	Cwd       string `json:"cwd,omitempty"`
 	Model     string `json:"model,omitempty"`
+	Provider  string `json:"provider,omitempty"`
 	GitBranch string `json:"gitBranch,omitempty"`
 	StartedAt string `json:"startedAt,omitempty"`
 	EndedAt   string `json:"endedAt,omitempty"`
+	// PromptTokens and CompletionTokens are the session-level token
+	// economics from the harness's session table, when available.
+	PromptTokens     int64   `json:"promptTokens,omitempty"`
+	CompletionTokens int64   `json:"completionTokens,omitempty"`
+	Cost             float64 `json:"cost,omitempty"`
 	// EventCount and UserTurns together are the cheap staleness signal for
 	// report badges: user messages land on marks, not events, so the count
 	// alone misses exactly the follow-ups that matter most.

@@ -36,6 +36,9 @@
 	--act-exec: oklch(0.58 0.02 255);
 	--mark-compaction: oklch(0.66 0.2 32);
 	--mark-subagent: oklch(0.74 0.09 300);
+	--mark-thinking: oklch(0.72 0.12 200);
+	--mark-finish-reason: oklch(0.62 0.22 25);
+	--mark-model-switch: oklch(0.70 0.15 160);
 
 	--font-display: "Fraunces Variable", "Songti SC", "Noto Serif SC", serif;
 	--font-body:
@@ -1371,6 +1374,23 @@ dd {
 	border-color: var(--ink);
 }
 
+.strip-mark.thinking {
+	border-color: var(--mark-thinking);
+	border-radius: 50%;
+	background: var(--mark-thinking);
+	opacity: 0.6;
+}
+
+.strip-mark.finish-reason {
+	border-color: var(--mark-finish-reason);
+	background: var(--mark-finish-reason);
+}
+
+.strip-mark.model-switch {
+	border-color: var(--mark-model-switch);
+	border-radius: 50%;
+}
+
 .strip-bars {
 	position: absolute;
 	left: 0;
@@ -1552,6 +1572,29 @@ dd {
 	border-bottom: 0;
 	transform: rotate(45deg);
 	margin-right: 2px;
+}
+
+.legend-glyph.thinking {
+	width: 6px;
+	height: 6px;
+	border: 1px solid var(--mark-thinking);
+	border-radius: 50%;
+	background: var(--mark-thinking);
+	opacity: 0.6;
+}
+
+.legend-glyph.finish-reason {
+	width: 6px;
+	height: 6px;
+	border: 1px solid var(--mark-finish-reason);
+	background: var(--mark-finish-reason);
+}
+
+.legend-glyph.model-switch {
+	width: 6px;
+	height: 6px;
+	border: 1px solid var(--mark-model-switch);
+	border-radius: 50%;
 }
 
 /* ---------- toast ---------- */

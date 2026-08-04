@@ -46,6 +46,9 @@ const MARK_LABEL: Record<Mark["type"], string> = {
 	compaction: "context compaction",
 	"user-message": "user message",
 	subagent: "subagent",
+	thinking: "agent thinking",
+	"finish-reason": "turn ended",
+	"model-switch": "model switched",
 };
 
 const STRIP_ACTIONS: Action[] = ["search", "read", "edit", "verify", "exec"];
@@ -508,6 +511,14 @@ export function Timeline({
 						<span className="legend-item">
 							<span className="legend-glyph user-message" />
 							user turn
+						</span>
+						<span className="legend-item">
+							<span className="legend-glyph thinking" />
+							thinking
+						</span>
+						<span className="legend-item">
+							<span className="legend-glyph finish-reason" />
+							turn ended
 						</span>
 					</span>
 				</div>

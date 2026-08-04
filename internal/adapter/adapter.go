@@ -121,6 +121,9 @@ type ToolCall struct {
 	Name      string
 	Input     map[string]any
 	Timestamp string
+	// ProviderExecuted is true when the tool was executed server-side
+	// by the model provider (e.g. computer use) rather than locally.
+	ProviderExecuted bool
 }
 
 type ToolResult struct {
@@ -278,15 +281,16 @@ func BuildEvent(trace *model.Trace, call ToolCall, result ToolResult) model.Even
 		targets = []model.Target{}
 	}
 	return model.Event{
-		Seq:         len(trace.Events),
-		Timestamp:   call.Timestamp,
-		Tool:        call.Name,
-		Action:      action,
-		Targets:     targets,
-		Outside:     outside,
-		ResultBytes: len(result.Content),
-		IsError:     result.IsError,
-		Summary:     SummarizeTool(call.Name, call.Input, targets, outside, result.IsError),
+		Seq:              len(trace.Events),
+		Timestamp:        call.Timestamp,
+		Tool:             call.Name,
+		Action:           action,
+		Targets:          targets,
+		Outside:          outside,
+		ResultBytes:      len(result.Content),
+		IsError:          result.IsError,
+		Summary:          SummarizeTool(call.Name, call.Input, targets, outside, result.IsError),
+		ProviderExecuted: call.ProviderExecuted,
 	}
 }
 

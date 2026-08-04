@@ -121,7 +121,12 @@ export const Hud = memo(function Hud({
 					<div className="hud-commit">
 						<span>{city.repo.commit || "worktree"}</span>
 						{city.repo.dirty ? <span className="dirty">● dirty</span> : null}
-						{trace?.session.model ? <span>{trace.session.model}</span> : null}
+						{trace?.session.model ? (
+							<span>
+								{trace.session.model}
+								{trace.session.provider ? ` (${trace.session.provider})` : ""}
+							</span>
+						) : null}
 						{trace?.session.cwd ? (
 							<span data-hint="Working directory the adapter resolved for this session">
 								{truncatePath(trace.session.cwd)}
