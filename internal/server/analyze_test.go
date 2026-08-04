@@ -435,6 +435,70 @@ func TestAnalyzeStreamSendsProgressAndTerminalStatus(t *testing.T) {
 	}
 }
 
+func TestAnalyzeStreamHeartbeat(t *testing.T) {
+	claudeDir := t.TempDir()
+	writeServerSession(
+		t,
+		filepath.Join(claudeDir, "eval.jsonl"),
+		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
+		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
+		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
+	)
+	s := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
+	gate := gateJudge{release: make(chan struct{}), output: stubJudgeOutput}
+	s.analyze.runner = gate
+	s.reportCache.Dir = t.TempDir()
+
+	// Shorten the heartbeat so the test runs fast.
+	prevHeartbeat := sseHeartbeat
+	sseHeartbeat = 100 * time.Millisecond
+	t.Cleanup(func() { sseHeartbeat = prevHeartbeat })
+
+	// Start the analyze job.
+	postResp := httptest.NewRecorder()
+	s.handleSessionResource(postResp, httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", nil))
+	if postResp.Code != http.StatusAccepted {
+		t.Fatalf("analyze status = %d", postResp.Code)
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.handleSessionResource(w, r)
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+"/api/sessions/eval/analyze/stream", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	// Scan for the keep-alive comment before releasing the gate.
+	scanner := bufio.NewScanner(resp.Body)
+	sawHeartbeat := false
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, ": keep-alive") {
+			sawHeartbeat = true
+			break
+		}
+	}
+	// Release the gate so the judge can complete and the handler returns.
+	close(gate.release)
+	if !sawHeartbeat {
+		t.Fatal("SSE stream did not send a keep-alive comment within the heartbeat interval")
+	}
+}
+
 func TestAnalyzeStreamNoJobReturnsStatusImmediately(t *testing.T) {
 	claudeDir := t.TempDir()
 	writeServerSession(

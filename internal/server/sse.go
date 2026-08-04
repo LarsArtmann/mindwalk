@@ -18,8 +18,9 @@ const ssePollInterval = 200 * time.Millisecond
 // keep-alive comment. Long judge runs (~2 min) can sit idle between phases;
 // without periodic traffic, reverse proxies (nginx, Cloudflare) may drop the
 // connection. SSE comment lines (": ...") are ignored by EventSource clients
-// but count as traffic to intermediary proxies.
-const sseHeartbeat = 15 * time.Second
+// but count as traffic to intermediary proxies. A var (not const) so tests
+// can shorten it.
+var sseHeartbeat = 15 * time.Second
 
 // handleSessionAnalyzeStream streams judge progress events to the browser
 // via Server-Sent Events. The frontend opens an EventSource on this endpoint
@@ -62,12 +63,15 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 
 	// Tail the progress log until the job finishes.
 	offset := 0
+	lastWrite := time.Now()
 	for {
+		wrote := false
 		// Drain any new progress events since the last poll.
 		if job.progress != nil {
 			events, next := job.progress.since(offset)
 			for _, evt := range events {
 				writeSSE(w, flusher, "progress", evt)
+				wrote = true
 			}
 			offset = next
 		}
@@ -77,6 +81,20 @@ func (s *Server) handleSessionAnalyzeStream(w http.ResponseWriter, r *http.Reque
 		if !ok || current.done {
 			s.sseSendStatus(w, flusher, meta)
 			return
+		}
+		// Refresh the progress handle from the latest snapshot so
+		// events queued after the initial connection are not missed.
+		job = current
+
+		// Send a keep-alive comment when no data has flowed for the
+		// heartbeat interval, keeping intermediary proxies from
+		// timing out the connection during long judge phases.
+		if !wrote && time.Since(lastWrite) >= sseHeartbeat {
+			fmt.Fprintf(w, ": keep-alive\n\n")
+			flusher.Flush()
+			lastWrite = time.Now()
+		} else if wrote {
+			lastWrite = time.Now()
 		}
 
 		select {
