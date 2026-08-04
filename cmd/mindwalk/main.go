@@ -527,36 +527,48 @@ func manageCache(args []string) error {
 // cacheHome resolves the ~/.mindwalk base directory (or MINDWALK_HOME
 // override) shared by the server's caches.
 func cacheHome() string {
-	if override := os.Getenv("MINDWALK_HOME"); override != "" {
-		return override
-	}
-	dir, err := os.UserHomeDir()
-	if err != nil || dir == "" {
-		return ""
-	}
-	return filepath.Join(dir, ".mindwalk")
+	return adapter.MindwalkHome()
 }
 
 func clearCache() error {
-	home := cacheHome()
-	if home == "" {
-		return fmt.Errorf("cannot resolve mindwalk home directory")
+	graphsDir, err := cacheSubdir("agent-graphs")
+	if err != nil {
+		return err
 	}
-	graphsDir := filepath.Join(home, "agent-graphs")
 	removed := clearDir(graphsDir)
 	fmt.Printf("cleared %d file(s) from %s\n", removed, graphsDir)
 	return nil
 }
 
 func cacheStatus() error {
-	home := cacheHome()
-	if home == "" {
-		return fmt.Errorf("cannot resolve mindwalk home directory")
+	graphsDir, err := cacheSubdir("agent-graphs")
+	if err != nil {
+		return err
 	}
-	graphsDir := filepath.Join(home, "agent-graphs")
 	count, size := dirStats(graphsDir)
 	fmt.Printf("agent-graphs:  %d file(s), %s in %s\n", count, humanBytes(size), graphsDir)
 	return nil
+}
+
+// cacheSubdir resolves the mindwalk base directory and joins a
+// relative subdirectory underneath it. Both the clear and the status
+// subcommands need to talk about the agent-graphs cache the same way,
+// and both must surface the same "no home dir" error so users see one
+// consistent message regardless of which subcommand they ran.
+func cacheSubdir(name string) (string, error) {
+	home, err := requireCacheHome()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, name), nil
+}
+
+func requireCacheHome() (string, error) {
+	home := cacheHome()
+	if home == "" {
+		return "", fmt.Errorf("cannot resolve mindwalk home directory")
+	}
+	return home, nil
 }
 
 func clearDir(dir string) int {

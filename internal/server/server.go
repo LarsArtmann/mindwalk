@@ -420,9 +420,7 @@ func (s *Server) handleRepoMap(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) repoCityMap(repo string) (*model.CityMap, error) {
-	if abs, err := filepath.Abs(repo); err == nil {
-		repo = abs
-	}
+	repo = adapter.NormalizePath(repo)
 	s.repoMapMu.Lock()
 	defer s.repoMapMu.Unlock()
 	if entry, ok := s.repoMaps[repo]; ok && time.Since(entry.builtAt) < repoMapTTL {
@@ -968,14 +966,11 @@ const maxAgentGraphCacheBytes = 100 * 1024 * 1024 // 100 MB
 // graphs. Created lazily on first store. When MINDWALK_HOME is set
 // (e.g. to /dev/null in tests), the cache lives there instead.
 func agentGraphCacheDir() string {
-	if override := os.Getenv("MINDWALK_HOME"); override != "" {
-		return filepath.Join(override, "agent-graphs")
-	}
-	dir, err := os.UserHomeDir()
-	if err != nil || dir == "" {
+	home := adapter.MindwalkHome()
+	if home == "" {
 		return ""
 	}
-	return filepath.Join(dir, ".mindwalk", "agent-graphs")
+	return filepath.Join(home, "agent-graphs")
 }
 
 // loadAgentGraphFromDisk tries to read a previously persisted agent

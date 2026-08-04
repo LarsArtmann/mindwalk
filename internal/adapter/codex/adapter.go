@@ -169,9 +169,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	if meta.Title == "" {
 		meta.Title = a.titleFor(meta.ID)
 	}
-	if meta.Title == "" {
-		meta.Title = filepath.Base(path)
-	}
+	adapter.FallbackSessionTitle(&meta, path)
 	if !recognized {
 		return model.SessionMeta{}, adapter.NotRecognizedErr(a.Harness(), path)
 	}
@@ -331,9 +329,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	if trace.Session.Title == "" {
 		trace.Session.Title = a.titleFor(trace.Session.ID)
 	}
-	if trace.Session.Title == "" {
-		trace.Session.Title = filepath.Base(path)
-	}
+	adapter.FallbackTraceSessionTitle(trace, path)
 	trace.Session.EventCount = len(trace.Events)
 	// Codex logs carry no structural error flag; failures are inferred from
 	// output text, and inner commands of the js exec runner surface only what
@@ -619,42 +615,10 @@ func decodeOutput(payload responseItemPayload) (string, adapter.ToolResult, bool
 }
 
 func parseInput(raw json.RawMessage) map[string]any {
-	input := map[string]any{}
 	if len(raw) == 0 || string(raw) == "null" {
-		return input
+		return map[string]any{}
 	}
-	var value any
-	if json.Unmarshal(raw, &value) != nil {
-		input["_raw"] = string(raw)
-		return input
-	}
-	switch value := value.(type) {
-	case map[string]any:
-		return value
-	case string:
-		return parseInputText(value)
-	default:
-		encoded, _ := json.Marshal(value)
-		input["_raw"] = string(encoded)
-		return input
-	}
-}
-
-func parseInputText(text string) map[string]any {
-	input := map[string]any{}
-	trimmed := strings.TrimSpace(text)
-	if trimmed == "" {
-		return input
-	}
-	if json.Unmarshal([]byte(trimmed), &input) == nil {
-		return input
-	}
-	var nested string
-	if json.Unmarshal([]byte(trimmed), &nested) == nil && nested != text {
-		return parseInputText(nested)
-	}
-	input["_raw"] = text
-	return input
+	return adapter.ParseJSONInput(string(raw))
 }
 
 func applyPatchChanges(input map[string]any, changes map[string]patchApplyChange) map[string]any {

@@ -15,19 +15,19 @@ type Adapter struct {
 	Dir string
 }
 
+func (a Adapter) SessionDir() string {
+	if a.Dir != "" {
+		return a.Dir
+	}
+	return DefaultDir()
+}
+
 func DefaultDir() string {
 	return adapter.HomePath(".claude", "projects")
 }
 
 func (a Adapter) Harness() string {
 	return "claude-code"
-}
-
-func (a Adapter) SessionDir() string {
-	if a.Dir != "" {
-		return a.Dir
-	}
-	return DefaultDir()
 }
 
 func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
@@ -140,9 +140,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			meta.Agent.LaunchCallID = childMeta.ToolUseID
 		}
 	}
-	if meta.Title == "" {
-		meta.Title = filepath.Base(path)
-	}
+	adapter.FallbackSessionTitle(&meta, path)
 	if !recognized {
 		return model.SessionMeta{}, adapter.NotRecognizedErr("Claude Code", path)
 	}

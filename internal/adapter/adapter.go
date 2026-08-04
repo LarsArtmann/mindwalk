@@ -136,12 +136,20 @@ type ToolResult struct {
 // session ID. Codex resume rollouts can share an ID across multiple files, so
 // IDs are display metadata rather than safe routing or cache keys.
 func SessionKey(harness, path string) string {
+	path = NormalizePath(path)
+	sum := sha256.Sum256([]byte(harness + "\x00" + path))
+	return fmt.Sprintf("%s-%x", harness, sum[:12])
+}
+
+// NormalizePath returns the absolute, cleaned form of path. Callers
+// that want to route or hash a path use this so equivalent inputs
+// ("./foo", "foo", absolute paths to the same file) collapse to the
+// same string.
+func NormalizePath(path string) string {
 	if abs, err := filepath.Abs(path); err == nil {
 		path = abs
 	}
-	path = filepath.Clean(path)
-	sum := sha256.Sum256([]byte(harness + "\x00" + path))
-	return fmt.Sprintf("%s-%x", harness, sum[:12])
+	return filepath.Clean(path)
 }
 
 func AgentNodeID(harness, rootSessionKey, actorIdentity string) string {

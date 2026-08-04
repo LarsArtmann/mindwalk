@@ -10,18 +10,7 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
-type agentLaunchOutput struct {
-	AgentID  string `json:"agent_id"`
-	Nickname string `json:"nickname"`
-	TaskName string `json:"task_name"`
-}
-
-type codexGraphActor struct {
-	session  model.SessionMeta
-	nodeID   string
-	depth    int
-	sourceID string
-}
+type codexGraphActor = adapter.GraphActor
 
 func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.SessionMeta) ([]string, error) {
 	paths := map[string]bool{root.Path: true}
@@ -101,16 +90,16 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 	visitedSessions := map[string]bool{root.Key: true}
 	addedNodes := map[string]bool{mainID: true}
-	queue := []codexGraphActor{{session: root, nodeID: mainID, sourceID: root.ID}}
+	queue := []codexGraphActor{{Session: root, NodeID: mainID, SourceID: root.ID}}
 	for len(queue) > 0 {
 		actor := queue[0]
 		queue = queue[1:]
 
-		launches, err := readAgentLaunches(actor.session.Path)
+		launches, err := readAgentLaunches(actor.Session.Path)
 		if err != nil {
 			return nil, err
 		}
-		children := childrenByParent[actor.sourceID]
+		children := childrenByParent[actor.SourceID]
 		linkedChildren := make(map[string]bool)
 		for _, launch := range launches {
 			launchOutput, hasIdentity := parseAgentLaunchOutput(launch.Output)
@@ -132,10 +121,10 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 					linkedChildren[child.Key] = true
 					visitedSessions[child.Key] = true
 					queue = append(queue, codexGraphActor{
-						session:  *child,
-						nodeID:   node.ID,
-						depth:    node.Depth,
-						sourceID: codexSessionSourceID(*child),
+						Session:  *child,
+						NodeID:   node.ID,
+						Depth:    node.Depth,
+						SourceID: codexSessionSourceID(*child),
 					})
 				}
 				continue
@@ -158,7 +147,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 					linkedChildren[child.Key] = true
 					visitedSessions[child.Key] = true
 					queue = append(queue, codexGraphActor{
-						session: *child, nodeID: node.ID, depth: node.Depth, sourceID: codexSessionSourceID(*child),
+						Session: *child, NodeID: node.ID, Depth: node.Depth, SourceID: codexSessionSourceID(*child),
 					})
 				}
 				continue
@@ -176,7 +165,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 			if linkedChildren[child.Key] || visitedSessions[child.Key] {
 				continue
 			}
-			if actor.session.Key == root.Key && ambiguousRootID {
+			if actor.Session.Key == root.Key && ambiguousRootID {
 				continue
 			}
 			node := derivedCodexAgentNode(a.Harness(), root.Key, actor, child)
@@ -187,10 +176,10 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 			addedNodes[node.ID] = true
 			visitedSessions[child.Key] = true
 			queue = append(queue, codexGraphActor{
-				session:  child,
-				nodeID:   node.ID,
-				depth:    node.Depth,
-				sourceID: codexSessionSourceID(child),
+				Session:  child,
+				NodeID:   node.ID,
+				Depth:    node.Depth,
+				SourceID: codexSessionSourceID(child),
 			})
 		}
 	}
@@ -253,14 +242,14 @@ func exactCodexAgentNode(
 	harness, rootKey string,
 	actor codexGraphActor,
 	launch adapter.AgentLaunch,
-	output agentLaunchOutput,
+	output adapter.AgentLaunchOutput,
 	child *model.SessionMeta,
 ) model.AgentNode {
 	seq := launch.Seq
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "codex-agent:"+output.AgentID),
-		ParentID:           actor.nodeID,
-		Depth:              actor.depth + 1,
+		ParentID:           actor.NodeID,
+		Depth:              actor.Depth + 1,
 		Kind:               model.AgentKindSubagent,
 		Label:              output.Nickname,
 		Role:               agentArgument(launch.Arguments, "agent_type"),
@@ -273,7 +262,7 @@ func exactCodexAgentNode(
 		LinkMethod:         model.AgentLinkMethodCodexAgentID,
 	}
 	if child != nil {
-		node.Depth = codexChildDepth(*child, actor.depth)
+		node.Depth = codexChildDepth(*child, actor.Depth)
 		node.Label = child.Agent.Label
 		if child.Agent.Role != "" {
 			node.Role = child.Agent.Role
@@ -282,10 +271,7 @@ func exactCodexAgentNode(
 		node.TraceSessionKey = child.Key
 		node.TraceEventCount = child.EventCount
 	}
-	if node.Label == "" {
-		node.Label = output.Nickname
-	}
-	adapter.ApplySubagentLabel(&node)
+	adapter.ApplyLaunchNickname(&node, output)
 	return node
 }
 
@@ -296,9 +282,9 @@ func unlinkedCodexLaunchNode(
 ) model.AgentNode {
 	seq := launch.Seq
 	return model.AgentNode{
-		ID:                 adapter.AgentNodeID(harness, rootKey, "launch:"+actor.nodeID+":"+launch.CallID),
-		ParentID:           actor.nodeID,
-		Depth:              actor.depth + 1,
+		ID:                 adapter.AgentNodeID(harness, rootKey, "launch:"+actor.NodeID+":"+launch.CallID),
+		ParentID:           actor.NodeID,
+		Depth:              actor.Depth + 1,
 		Kind:               model.AgentKindSubagent,
 		Label:              adapter.SubagentLabel,
 		Role:               agentArgument(launch.Arguments, "agent_type"),
@@ -316,7 +302,7 @@ func legacyCodexAgentNode(
 	harness, rootKey string,
 	actor codexGraphActor,
 	launch adapter.AgentLaunch,
-	output agentLaunchOutput,
+	output adapter.AgentLaunchOutput,
 	child *model.SessionMeta,
 ) model.AgentNode {
 	seq := launch.Seq
@@ -326,8 +312,8 @@ func legacyCodexAgentNode(
 	}
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "codex-task:"+output.TaskName),
-		ParentID:           actor.nodeID,
-		Depth:              actor.depth + 1,
+		ParentID:           actor.NodeID,
+		Depth:              actor.Depth + 1,
 		Kind:               model.AgentKindSubagent,
 		Label:              label,
 		Role:               agentArgument(launch.Arguments, "agent_type"),
@@ -340,7 +326,7 @@ func legacyCodexAgentNode(
 		LinkMethod:         model.AgentLinkMethodUnavailable,
 	}
 	if child != nil {
-		node.Depth = codexChildDepth(*child, actor.depth)
+		node.Depth = codexChildDepth(*child, actor.Depth)
 		if child.Agent.Label != "" {
 			node.Label = child.Agent.Label
 		}
@@ -363,8 +349,8 @@ func derivedCodexAgentNode(harness, rootKey string, actor codexGraphActor, child
 	}
 	return model.AgentNode{
 		ID:                adapter.AgentNodeID(harness, rootKey, "session:"+child.Key),
-		ParentID:          actor.nodeID,
-		Depth:             codexChildDepth(child, actor.depth),
+		ParentID:          actor.NodeID,
+		Depth:             codexChildDepth(child, actor.Depth),
 		Kind:              model.AgentKindSubagent,
 		Label:             label,
 		Role:              child.Agent.Role,
@@ -377,11 +363,11 @@ func derivedCodexAgentNode(harness, rootKey string, actor codexGraphActor, child
 	}
 }
 
-func parseAgentLaunchOutput(output string) (agentLaunchOutput, bool) {
-	var parsed agentLaunchOutput
+func parseAgentLaunchOutput(output string) (adapter.AgentLaunchOutput, bool) {
+	var parsed adapter.AgentLaunchOutput
 	if json.Unmarshal([]byte(strings.TrimSpace(output)), &parsed) != nil ||
 		(parsed.AgentID == "" && parsed.TaskName == "") {
-		return agentLaunchOutput{}, false
+		return adapter.AgentLaunchOutput{}, false
 	}
 	return parsed, true
 }

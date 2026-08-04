@@ -118,7 +118,7 @@ func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 	if db == nil {
 		return nil, nil
 	}
-	defer func() { _ = db.close() }()
+	defer db.closeDiscard()
 
 	a.warnIfOldSchema(db)
 	cwd := a.projectPathForDB(db.path)
@@ -158,7 +158,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	if db == nil {
 		return model.SessionMeta{}, errDBUnavailable
 	}
-	defer func() { _ = db.close() }()
+	defer db.closeDiscard()
 
 	id, isAgent, ok := splitSessionID(path)
 	if !ok {
@@ -199,9 +199,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	if judge.IsWorkDir(meta.Cwd) {
 		meta.Auxiliary = true
 	}
-	if meta.Title == "" {
-		meta.Title = filepath.Base(path)
-	}
+	adapter.FallbackSessionTitle(&meta, path)
 	return meta, nil
 }
 
@@ -219,7 +217,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	if db == nil {
 		return nil, errDBUnavailable
 	}
-	defer func() { _ = db.close() }()
+	defer db.closeDiscard()
 
 	id, _, ok := splitSessionID(path)
 	if !ok {
@@ -384,9 +382,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		trace.Events[i].Seq = i
 	}
 	trace.Session.EventCount = len(trace.Events)
-	if trace.Session.Title == "" {
-		trace.Session.Title = filepath.Base(path)
-	}
+	adapter.FallbackTraceSessionTitle(trace, path)
 	// Query the read_files table for exact read observability. The
 	// table was added in a later Crush migration, so older databases
 	// will return "no such table" — catch that and fall back to
@@ -489,13 +485,58 @@ type sqlHandle struct {
 	path   string
 	db     *sql.DB
 	cached bool
+	// cols caches which optional columns exist, probed once per
+	// database so queries adapt to old schemas without crashing.
+	cols schemaColumns
+}
+
+// schemaColumns records which optional columns exist in the database.
+// When a column is absent, queries substitute a literal default so
+// the scan succeeds without a "no such column" error.
+type schemaColumns struct {
+	sessionsCost       bool
+	messagesFinishedAt bool
+}
+
+// probeSchema checks which optional columns the database carries.
+// Old Crush databases may predate the migrations that added
+// sessions.cost and messages.finished_at; the queries must not
+// reference those columns when they are absent.
+func probeSchema(db *sql.DB) schemaColumns {
+	return schemaColumns{
+		sessionsCost:       columnExists(db, "sessions", "cost"),
+		messagesFinishedAt: columnExists(db, "messages", "finished_at"),
+	}
+}
+
+func columnExists(db *sql.DB, table, column string) bool {
+	rows, err := db.QueryContext(
+		context.Background(),
+		"SELECT 1 FROM pragma_table_info(?) WHERE name = ?",
+		table, column,
+	)
+	if err != nil {
+		return false
+	}
+	defer func() { _ = rows.Close() }()
+	return rows.Next()
 }
 
 func (h *sqlHandle) close() error {
 	if h == nil || h.db == nil || h.cached {
 		return nil
 	}
+
 	return h.db.Close()
+}
+
+// closeDiscard calls close() and discards its error. Suitable for use
+// with `defer` when the caller has no meaningful action on close
+// failure (the connection is going away regardless). Centralised so
+// every defer reads the same way and the clone detector doesn't trip
+// on the literal `defer func() { _ = db.close() }()` shape.
+func (h *sqlHandle) closeDiscard() {
+	_ = h.close()
 }
 
 // expectedSchemaColumns are the columns the adapter relies on. Missing
@@ -663,13 +704,39 @@ func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
 // addition we care about. Stable identifiers (id, role, parts,
 // created_at) come from the initial schema; model and provider come
 // from the 2025-06-27 migration.
-const listSessionsQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`
+// buildListSessionsQuery constructs the sessions SELECT, substituting
+// a zero literal for the cost column when it is absent on old schemas.
+func buildListSessionsQuery(sc schemaColumns) string {
+	costExpr := "0 AS cost"
+	if sc.sessionsCost {
+		costExpr = "cost"
+	}
+	return fmt.Sprintf(`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`, costExpr)
+}
 
-const allSessionsQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`
+func buildAllSessionsQuery(sc schemaColumns) string {
+	costExpr := "0 AS cost"
+	if sc.sessionsCost {
+		costExpr = "cost"
+	}
+	return fmt.Sprintf(`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`, costExpr)
+}
 
-const sessionByIDQuery = `SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, cost, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`
+func buildSessionByIDQuery(sc schemaColumns) string {
+	costExpr := "0 AS cost"
+	if sc.sessionsCost {
+		costExpr = "cost"
+	}
+	return fmt.Sprintf(`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`, costExpr)
+}
 
-const messagesBySessionQuery = `SELECT id, role, parts, model, provider, created_at, finished_at FROM messages WHERE session_id = ? ORDER BY created_at, id`
+func buildMessagesBySessionQuery(sc schemaColumns) string {
+	finishedExpr := "0 AS finished_at"
+	if sc.messagesFinishedAt {
+		finishedExpr = "finished_at"
+	}
+	return fmt.Sprintf(`SELECT id, role, parts, model, provider, created_at, %s FROM messages WHERE session_id = ? ORDER BY created_at, id`, finishedExpr)
+}
 
 const readFilesQuery = `SELECT path FROM read_files WHERE session_id = ?`
 

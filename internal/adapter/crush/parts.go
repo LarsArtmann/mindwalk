@@ -244,27 +244,7 @@ func agentLabelFromInput(input map[string]any) string {
 // blocks on a malformed payload: it falls back to a single "_raw"
 // entry so downstream heuristics can still mine it.
 func parseCrushInput(raw string) map[string]any {
-	input := map[string]any{}
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
-		return input
-	}
-	var value any
-	if err := json.Unmarshal([]byte(trimmed), &value); err != nil {
-		input["_raw"] = raw
-		return input
-	}
-	switch v := value.(type) {
-	case map[string]any:
-		return v
-	case string:
-		// Nested JSON string is a frequent Crush shape (e.g. the
-		// view tool stores a one-key object as a JSON literal).
-		return parseCrushInput(v)
-	}
-	encoded, _ := json.Marshal(value)
-	input["_raw"] = string(encoded)
-	return input
+	return adapter.ParseJSONInput(raw)
 }
 
 // finish drains the parser and returns the materialised trace pieces:

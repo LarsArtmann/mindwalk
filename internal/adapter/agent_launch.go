@@ -63,3 +63,29 @@ func UnlinkedLaunchStatus(launch AgentLaunch) string {
 	}
 	return model.AgentStatusUnknown
 }
+
+// GraphActor records the parent's session metadata and its position
+// in the agent graph while a BFS layer is being processed. Both the
+// codex and crush adapters build their agent graph with the same
+// shape (session → nodeID → depth → harness-specific source ID), so
+// the struct lives here to keep both adapters' build loops on the
+// same shape.
+type GraphActor struct {
+	Session  model.SessionMeta
+	NodeID   string
+	Depth    int
+	SourceID string
+}
+
+// ApplyLaunchNickname sets node.Label to the launch output's nickname
+// when the current label is empty, then falls back to the shared
+// SubagentLabel if neither the caller nor the launch provided one.
+// Adapters call this at the tail of every exact-link agent-node
+// builder so the visible label follows the same precedence
+// (child-provided > launch nickname > "Subagent") across harnesses.
+func ApplyLaunchNickname(node *model.AgentNode, output AgentLaunchOutput) {
+	if node.Label == "" {
+		node.Label = output.Nickname
+	}
+	ApplySubagentLabel(node)
+}

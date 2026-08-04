@@ -16,18 +16,7 @@ import (
 // assistant performed during that turn; the matching child row in the
 // sessions table is then read by SourceID/LaunchCallID.
 
-type agentLaunchOutput struct {
-	AgentID  string `json:"agent_id"`
-	Nickname string `json:"nickname"`
-	TaskName string `json:"task_name"`
-}
-
-type crushGraphActor struct {
-	session  model.SessionMeta
-	nodeID   string
-	depth    int
-	sourceID string
-}
+type crushGraphActor = adapter.GraphActor
 
 func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.SessionMeta) ([]string, error) {
 	// The Crush adapter stores every trace in a database, so
@@ -112,7 +101,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 	addedNodes := map[string]bool{mainID: true}
 	visitedSessions := map[string]bool{root.Key: true}
-	queue := []crushGraphActor{{session: root, nodeID: mainID, sourceID: root.ID}}
+	queue := []crushGraphActor{{Session: root, NodeID: mainID, SourceID: root.ID}}
 	for len(queue) > 0 {
 		actor := queue[0]
 		queue = queue[1:]
@@ -122,8 +111,8 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 			output, hasIdentity := parseCrushLaunchOutput(launch.Output)
 			if hasIdentity && output.AgentID != "" {
 				var child *model.SessionMeta
-				for i := range childrenByParent[actor.sourceID] {
-					candidate := &childrenByParent[actor.sourceID][i]
+				for i := range childrenByParent[actor.SourceID] {
+					candidate := &childrenByParent[actor.SourceID][i]
 					if candidate.Agent != nil && candidate.Agent.SourceID == output.AgentID &&
 						!visitedSessions[candidate.Key] {
 						child = candidate
@@ -139,10 +128,10 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 					linkedChildren[child.Key] = true
 					visitedSessions[child.Key] = true
 					queue = append(queue, crushGraphActor{
-						session:  *child,
-						nodeID:   node.ID,
-						depth:    node.Depth,
-						sourceID: child.Agent.SourceID,
+						Session:  *child,
+						NodeID:   node.ID,
+						Depth:    node.Depth,
+						SourceID: child.Agent.SourceID,
 					})
 				}
 				continue
@@ -159,8 +148,8 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 		// always represent the same session launched via a path the
 		// trace didn't capture (e.g. the spawn happened before the
 		// cursor was saved).
-		for i := range childrenByParent[actor.sourceID] {
-			child := &childrenByParent[actor.sourceID][i]
+		for i := range childrenByParent[actor.SourceID] {
+			child := &childrenByParent[actor.SourceID][i]
 			if linkedChildren[child.Key] || visitedSessions[child.Key] {
 				continue
 			}
@@ -172,10 +161,10 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 			addedNodes[node.ID] = true
 			visitedSessions[child.Key] = true
 			queue = append(queue, crushGraphActor{
-				session:  *child,
-				nodeID:   node.ID,
-				depth:    node.Depth,
-				sourceID: child.Agent.SourceID,
+				Session:  *child,
+				NodeID:   node.ID,
+				Depth:    node.Depth,
+				SourceID: child.Agent.SourceID,
 			})
 		}
 	}
@@ -259,7 +248,7 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	if db == nil {
 		return nil, nil
 	}
-	defer func() { _ = db.close() }()
+	defer db.closeDiscard()
 
 	rows, err := db.db.Query(messagesBySessionQuery, sessionID)
 	if err != nil {
@@ -323,14 +312,14 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	return launches, nil
 }
 
-func parseCrushLaunchOutput(raw string) (agentLaunchOutput, bool) {
+func parseCrushLaunchOutput(raw string) (adapter.AgentLaunchOutput, bool) {
 	trimmed := strings.TrimSpace(raw)
 	if trimmed == "" {
-		return agentLaunchOutput{}, false
+		return adapter.AgentLaunchOutput{}, false
 	}
-	var output agentLaunchOutput
+	var output adapter.AgentLaunchOutput
 	if err := json.Unmarshal([]byte(trimmed), &output); err != nil {
-		return agentLaunchOutput{}, false
+		return adapter.AgentLaunchOutput{}, false
 	}
 	return output, output.AgentID != "" || output.Nickname != "" || output.TaskName != ""
 }
@@ -339,14 +328,14 @@ func exactCrushAgentNode(
 	harness, rootKey string,
 	actor crushGraphActor,
 	launch adapter.AgentLaunch,
-	output agentLaunchOutput,
+	output adapter.AgentLaunchOutput,
 	child *model.SessionMeta,
 ) model.AgentNode {
 	seq := launch.Seq
 	node := model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+output.AgentID),
-		ParentID:           actor.nodeID,
-		Depth:              actor.depth + 1,
+		ParentID:           actor.NodeID,
+		Depth:              actor.Depth + 1,
 		Kind:               model.AgentKindSubagent,
 		Label:              output.Nickname,
 		Role:               agentArgument(launch.Arguments, "agent_type"),
@@ -363,16 +352,13 @@ func exactCrushAgentNode(
 		node.TraceSessionKey = child.Key
 		node.TraceEventCount = child.EventCount
 		if child.Agent != nil {
-			node.Depth = crushChildDepth(child.Agent.Depth, actor.depth)
+			node.Depth = crushChildDepth(child.Agent.Depth, actor.Depth)
 		}
 		if child.Title != "" {
 			node.Label = child.Title
 		}
 	}
-	if node.Label == "" {
-		node.Label = output.Nickname
-	}
-	adapter.ApplySubagentLabel(&node)
+	adapter.ApplyLaunchNickname(&node, output)
 	return node
 }
 
@@ -384,8 +370,8 @@ func unlinkedCrushLaunchNode(
 	seq := launch.Seq
 	return model.AgentNode{
 		ID:                 adapter.AgentNodeID(harness, rootKey, "crush-agent:"+launch.CallID),
-		ParentID:           actor.nodeID,
-		Depth:              actor.depth + 1,
+		ParentID:           actor.NodeID,
+		Depth:              actor.Depth + 1,
 		Kind:               model.AgentKindSubagent,
 		Label:              launch.CallID,
 		Role:               agentArgument(launch.Arguments, "agent_type"),
@@ -402,8 +388,8 @@ func unlinkedCrushLaunchNode(
 func derivedCrushAgentNode(harness, rootKey string, actor crushGraphActor, child *model.SessionMeta) model.AgentNode {
 	node := model.AgentNode{
 		ID:                adapter.AgentNodeID(harness, rootKey, "crush-child:"+child.Agent.SourceID),
-		ParentID:          actor.nodeID,
-		Depth:             actor.depth + 1,
+		ParentID:          actor.NodeID,
+		Depth:             actor.Depth + 1,
 		Kind:              model.AgentKindSubagent,
 		Label:             child.Title,
 		Role:              child.Agent.Role,

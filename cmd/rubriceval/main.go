@@ -146,13 +146,17 @@ func reasonSuffix(r sessionResult) string {
 	return "/" + r.Reason
 }
 
+func recordError(result *sessionResult, err error) sessionResult {
+	result.Status = "error"
+	result.Error = err.Error()
+	return *result
+}
+
 func evalSession(path, cliName, modelName, outDir string, dumpRaw bool) sessionResult {
 	result := sessionResult{Session: filepath.Base(path)}
 	trace, err := parseTrace(path)
 	if err != nil {
-		result.Status = "error"
-		result.Error = err.Error()
-		return result
+		return recordError(&result, err)
 	}
 	result.Harness = trace.Session.Harness
 	result.Events = trace.Session.EventCount
@@ -172,9 +176,7 @@ func evalSession(path, cliName, modelName, outDir string, dumpRaw bool) sessionR
 	result.TotalSec = time.Since(start).Seconds()
 	result.Calls = runner.calls
 	if err != nil {
-		result.Status = "error"
-		result.Error = err.Error()
-		return result
+		return recordError(&result, err)
 	}
 	writeJSON(filepath.Join(outDir, strings.TrimSuffix(result.Session, ".jsonl")+".report.json"), report)
 
