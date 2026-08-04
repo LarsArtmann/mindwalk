@@ -22,7 +22,7 @@ func TestComputeStatsFactCounters(t *testing.T) {
 		},
 	}
 
-	stats := ComputeStats(trace, 10, ObservabilityExact)
+	stats := ComputeStats(trace, 10, ObservabilityExact, "")
 
 	if stats.Actions != (ActionCounts{Search: 1, Read: 1, Edit: 4, Exec: 1, Verify: 1}) {
 		t.Fatalf("actions = %#v", stats.Actions)
@@ -51,7 +51,7 @@ func TestComputeStatsEditsAfterLastVerifyWithoutVerify(t *testing.T) {
 			{Seq: 1, Action: "edit", Targets: []Target{{Path: "b.go", Touch: "edit"}}},
 		},
 	}
-	if stats := ComputeStats(trace, 0, ObservabilityExact); stats.EditsAfterLastVerify != 2 {
+	if stats := ComputeStats(trace, 0, ObservabilityExact, ""); stats.EditsAfterLastVerify != 2 {
 		t.Fatalf("editsAfterLastVerify = %d", stats.EditsAfterLastVerify)
 	}
 }
@@ -94,7 +94,7 @@ func TestComputeStatsObservability(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stats := ComputeStats(&Trace{Events: tt.events}, 0, tt.errorSignal)
+			stats := ComputeStats(&Trace{Events: tt.events}, 0, tt.errorSignal, "")
 			if stats.Observability.Reads != tt.wantReads || stats.Observability.Errors != tt.wantErrors {
 				t.Fatalf(
 					"observability = %#v, want reads %q errors %q",

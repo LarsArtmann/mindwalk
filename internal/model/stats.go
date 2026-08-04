@@ -4,7 +4,10 @@ package model
 // adapter's grade for its own error detection (ObservabilityExact when the
 // source log flags failures structurally, ObservabilityEstimated when they
 // are inferred from output text); an empty value falls back to estimated.
-func ComputeStats(trace *Trace, filesInRepo int, errorSignal string) Stats {
+// readsSignal overrides the reads grade when non-empty (used by adapters
+// that have a structural read_files table); empty falls back to deriving
+// from weak target flags.
+func ComputeStats(trace *Trace, filesInRepo int, errorSignal, readsSignal string) Stats {
 	state := map[string]string{}
 	lastReadVersion := map[string]int{}
 	editVersion := map[string]int{}
@@ -97,16 +100,20 @@ func ComputeStats(trace *Trace, filesInRepo int, errorSignal string) Stats {
 	if len(trace.Events) > 0 {
 		stats.ErrorRate = float64(errors) / float64(len(trace.Events))
 	}
-	// Weak read targets are inferred from command text, so any of them in the
-	// mix downgrades the re-read rate; no reads at all leaves it undefined.
-	switch {
-	case readEvents == 0:
-		stats.Observability.Reads = ObservabilityUnavailable
-	case weakReads == 0:
-		stats.Observability.Reads = ObservabilityExact
-	default:
-		stats.Observability.Reads = ObservabilityEstimated
+	// The reads grade: prefer the adapter-supplied signal (structural
+	// truth from a read_files table); fall back to deriving from weak
+	// target flags when the adapter did not supply one.
+	if readsSignal == "" {
+		switch {
+		case readEvents == 0:
+			readsSignal = ObservabilityUnavailable
+		case weakReads == 0:
+			readsSignal = ObservabilityExact
+		default:
+			readsSignal = ObservabilityEstimated
+		}
 	}
+	stats.Observability.Reads = readsSignal
 	if errorSignal == "" {
 		errorSignal = ObservabilityEstimated
 	}

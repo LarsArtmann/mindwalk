@@ -340,9 +340,10 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				note = "thinking: " + note
 			}
 			trace.Marks = append(trace.Marks, model.Mark{
-				Seq:  len(pendingOrder),
-				Type: "thinking",
-				Note: note,
+				Seq:      len(pendingOrder),
+				Type:     "thinking",
+				Note:     note,
+				Duration: int(duration),
 			})
 		}
 
@@ -355,11 +356,15 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if parsed.finishMessage != "" {
 				note = fmt.Sprintf("%s: %s", parsed.finishReason, truncateNote(parsed.finishMessage, 200))
 			}
-			trace.Marks = append(trace.Marks, model.Mark{
+			mk := model.Mark{
 				Seq:  len(pendingOrder),
 				Type: "finish-reason",
 				Note: note,
-			})
+			}
+			if msg.FinishedAt.Valid && msg.FinishedAt.Int64 > msg.CreatedAt {
+				mk.Duration = int((msg.FinishedAt.Int64 - msg.CreatedAt) / 1000)
+			}
+			trace.Marks = append(trace.Marks, mk)
 		}
 
 		for i, call := range parsed.events {
@@ -411,12 +416,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	// Crush's finish reasons carry no observability flags; the visualizer
 	// infers failures from tool_result.is_error the same way it does for
 	// Claude Code and Codex.
-	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilityEstimated)
-	// Override the reads grade: ComputeStats derives it from weak
-	// targets, but the read_files table is the structural truth.
-	if readsGrade == model.ObservabilityExact {
-		trace.Stats.Observability.Reads = model.ObservabilityExact
-	}
+	trace.Stats = model.ComputeStats(trace, 0, model.ObservabilityEstimated, readsGrade)
 
 	if !recognized {
 		return nil, adapter.NotRecognizedErr("Crush", path)

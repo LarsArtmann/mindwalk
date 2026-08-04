@@ -14,6 +14,13 @@ import (
 // the user's perspective while costing negligible CPU.
 const ssePollInterval = 200 * time.Millisecond
 
+// sseHeartbeat is the maximum gap between writes before the handler sends a
+// keep-alive comment. Long judge runs (~2 min) can sit idle between phases;
+// without periodic traffic, reverse proxies (nginx, Cloudflare) may drop the
+// connection. SSE comment lines (": ...") are ignored by EventSource clients
+// but count as traffic to intermediary proxies.
+const sseHeartbeat = 15 * time.Second
+
 // handleSessionAnalyzeStream streams judge progress events to the browser
 // via Server-Sent Events. The frontend opens an EventSource on this endpoint
 // when an evaluation is running and receives "progress" events (one per

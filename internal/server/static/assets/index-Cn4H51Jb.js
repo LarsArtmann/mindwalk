@@ -1,5229 +1,5526 @@
 import { r as a, j as t, a as is, R as tt, c as cs } from "./react-DQC8vhiG.js";
 import {
-  C as kt,
-  V as ee,
-  Q as Ie,
-  S as ut,
-  a as Ct,
-  M as Et,
-  b as ge,
-  c as Ye,
-  L as ls,
-  d as ds,
-  B as an,
-  e as it,
-  D as zt,
-  f as on,
-  A as ct,
-  g as cn,
-  h as ln,
-  P as dn,
-  W as un,
-  O as hn,
-  H as fn,
-  i as pn,
-  R as us,
-  j as qe,
-  G as mn,
-  F as gn,
-  k as Mt,
-  l as at,
-  m as xn,
-  n as Nt,
-  I as De,
-  o as _e,
-  p as ot,
-  q as vn,
-  r as hs,
-  E as fs,
-  s as ps,
-  t as Ft,
-  u as ms,
-  v as gs,
-  w as xs,
+	C as kt,
+	V as ee,
+	Q as Ie,
+	S as ut,
+	a as Ct,
+	M as Et,
+	b as ge,
+	c as Ye,
+	L as ls,
+	d as ds,
+	B as an,
+	e as it,
+	D as zt,
+	f as on,
+	A as ct,
+	g as cn,
+	h as ln,
+	P as dn,
+	W as un,
+	O as hn,
+	H as fn,
+	i as pn,
+	R as us,
+	j as qe,
+	G as mn,
+	F as gn,
+	k as Mt,
+	l as at,
+	m as xn,
+	n as Nt,
+	I as De,
+	o as _e,
+	p as ot,
+	q as vn,
+	r as hs,
+	E as fs,
+	s as ps,
+	t as Ft,
+	u as ms,
+	v as gs,
+	w as xs,
 } from "./three-DnGjZfD1.js";
 (function () {
-  const n = document.createElement("link").relList;
-  if (n && n.supports && n.supports("modulepreload")) return;
-  for (const o of document.querySelectorAll('link[rel="modulepreload"]')) r(o);
-  new MutationObserver((o) => {
-    for (const l of o)
-      if (l.type === "childList")
-        for (const m of l.addedNodes) m.tagName === "LINK" && m.rel === "modulepreload" && r(m);
-  }).observe(document, { childList: !0, subtree: !0 });
-  function s(o) {
-    const l = {};
-    return (
-      o.integrity && (l.integrity = o.integrity),
-      o.referrerPolicy && (l.referrerPolicy = o.referrerPolicy),
-      o.crossOrigin === "use-credentials"
-        ? (l.credentials = "include")
-        : o.crossOrigin === "anonymous"
-          ? (l.credentials = "omit")
-          : (l.credentials = "same-origin"),
-      l
-    );
-  }
-  function r(o) {
-    if (o.ep) return;
-    o.ep = !0;
-    const l = s(o);
-    fetch(o.href, l);
-  }
+	const n = document.createElement("link").relList;
+	if (n && n.supports && n.supports("modulepreload")) return;
+	for (const o of document.querySelectorAll('link[rel="modulepreload"]')) r(o);
+	new MutationObserver((o) => {
+		for (const l of o)
+			if (l.type === "childList")
+				for (const m of l.addedNodes)
+					m.tagName === "LINK" && m.rel === "modulepreload" && r(m);
+	}).observe(document, { childList: !0, subtree: !0 });
+	function s(o) {
+		const l = {};
+		return (
+			o.integrity && (l.integrity = o.integrity),
+			o.referrerPolicy && (l.referrerPolicy = o.referrerPolicy),
+			o.crossOrigin === "use-credentials"
+				? (l.credentials = "include")
+				: o.crossOrigin === "anonymous"
+					? (l.credentials = "omit")
+					: (l.credentials = "same-origin"),
+			l
+		);
+	}
+	function r(o) {
+		if (o.ep) return;
+		o.ep = !0;
+		const l = s(o);
+		fetch(o.href, l);
+	}
 })();
 const vs = (e) => e.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase(),
-  ys = (e) =>
-    e.replace(/^([A-Z])|[\s-_]+(\w)/g, (n, s, r) => (r ? r.toUpperCase() : s.toLowerCase())),
-  Bt = (e) => {
-    const n = ys(e);
-    return n.charAt(0).toUpperCase() + n.slice(1);
-  },
-  yn = (...e) =>
-    e
-      .filter((n, s, r) => !!n && n.trim() !== "" && r.indexOf(n) === s)
-      .join(" ")
-      .trim(),
-  ws = (e) => {
-    for (const n in e) if (n.startsWith("aria-") || n === "role" || n === "title") return !0;
-  };
+	ys = (e) =>
+		e.replace(/^([A-Z])|[\s-_]+(\w)/g, (n, s, r) =>
+			r ? r.toUpperCase() : s.toLowerCase(),
+		),
+	Bt = (e) => {
+		const n = ys(e);
+		return n.charAt(0).toUpperCase() + n.slice(1);
+	},
+	yn = (...e) =>
+		e
+			.filter((n, s, r) => !!n && n.trim() !== "" && r.indexOf(n) === s)
+			.join(" ")
+			.trim(),
+	ws = (e) => {
+		for (const n in e)
+			if (n.startsWith("aria-") || n === "role" || n === "title") return !0;
+	};
 var bs = {
-  xmlns: "http://www.w3.org/2000/svg",
-  width: 24,
-  height: 24,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
+	xmlns: "http://www.w3.org/2000/svg",
+	width: 24,
+	height: 24,
+	viewBox: "0 0 24 24",
+	fill: "none",
+	stroke: "currentColor",
+	strokeWidth: 2,
+	strokeLinecap: "round",
+	strokeLinejoin: "round",
 };
 const js = a.forwardRef(
-  (
-    {
-      color: e = "currentColor",
-      size: n = 24,
-      strokeWidth: s = 2,
-      absoluteStrokeWidth: r,
-      className: o = "",
-      children: l,
-      iconNode: m,
-      ...x
-    },
-    v,
-  ) =>
-    a.createElement(
-      "svg",
-      {
-        ref: v,
-        ...bs,
-        width: n,
-        height: n,
-        stroke: e,
-        strokeWidth: r ? (Number(s) * 24) / Number(n) : s,
-        className: yn("lucide", o),
-        ...(!l && !ws(x) && { "aria-hidden": "true" }),
-        ...x,
-      },
-      [...m.map(([d, b]) => a.createElement(d, b)), ...(Array.isArray(l) ? l : [l])],
-    ),
+	(
+		{
+			color: e = "currentColor",
+			size: n = 24,
+			strokeWidth: s = 2,
+			absoluteStrokeWidth: r,
+			className: o = "",
+			children: l,
+			iconNode: m,
+			...x
+		},
+		v,
+	) =>
+		a.createElement(
+			"svg",
+			{
+				ref: v,
+				...bs,
+				width: n,
+				height: n,
+				stroke: e,
+				strokeWidth: r ? (Number(s) * 24) / Number(n) : s,
+				className: yn("lucide", o),
+				...(!l && !ws(x) && { "aria-hidden": "true" }),
+				...x,
+			},
+			[
+				...m.map(([d, b]) => a.createElement(d, b)),
+				...(Array.isArray(l) ? l : [l]),
+			],
+		),
 );
 const oe = (e, n) => {
-  const s = a.forwardRef(({ className: r, ...o }, l) =>
-    a.createElement(js, {
-      ref: l,
-      iconNode: n,
-      className: yn(`lucide-${vs(Bt(e))}`, `lucide-${e}`, r),
-      ...o,
-    }),
-  );
-  return ((s.displayName = Bt(e)), s);
+	const s = a.forwardRef(({ className: r, ...o }, l) =>
+		a.createElement(js, {
+			ref: l,
+			iconNode: n,
+			className: yn(`lucide-${vs(Bt(e))}`, `lucide-${e}`, r),
+			...o,
+		}),
+	);
+	return (s.displayName = Bt(e)), s;
 };
 const Ms = [
-    ["path", { d: "M12 8V4H8", key: "hb8ula" }],
-    ["rect", { width: "16", height: "12", x: "4", y: "8", rx: "2", key: "enze0r" }],
-    ["path", { d: "M2 14h2", key: "vft8re" }],
-    ["path", { d: "M20 14h2", key: "4cs60a" }],
-    ["path", { d: "M15 13v2", key: "1xurst" }],
-    ["path", { d: "M9 13v2", key: "rq6x2g" }],
-  ],
-  Ns = oe("bot", Ms);
+		["path", { d: "M12 8V4H8", key: "hb8ula" }],
+		[
+			"rect",
+			{ width: "16", height: "12", x: "4", y: "8", rx: "2", key: "enze0r" },
+		],
+		["path", { d: "M2 14h2", key: "vft8re" }],
+		["path", { d: "M20 14h2", key: "4cs60a" }],
+		["path", { d: "M15 13v2", key: "1xurst" }],
+		["path", { d: "M9 13v2", key: "rq6x2g" }],
+	],
+	Ns = oe("bot", Ms);
 const ks = [["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]],
-  Cs = oe("circle", ks);
+	Cs = oe("circle", ks);
 const Es = [
-    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-    ["line", { x1: "22", x2: "18", y1: "12", y2: "12", key: "l9bcsi" }],
-    ["line", { x1: "6", x2: "2", y1: "12", y2: "12", key: "13hhkx" }],
-    ["line", { x1: "12", x2: "12", y1: "6", y2: "2", key: "10w3f3" }],
-    ["line", { x1: "12", x2: "12", y1: "22", y2: "18", key: "15g9kq" }],
-  ],
-  Rs = oe("crosshair", Es);
+		["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+		["line", { x1: "22", x2: "18", y1: "12", y2: "12", key: "l9bcsi" }],
+		["line", { x1: "6", x2: "2", y1: "12", y2: "12", key: "13hhkx" }],
+		["line", { x1: "12", x2: "12", y1: "6", y2: "2", key: "10w3f3" }],
+		["line", { x1: "12", x2: "12", y1: "22", y2: "18", key: "15g9kq" }],
+	],
+	Rs = oe("crosshair", Es);
 const Ss = [
-    ["circle", { cx: "12", cy: "12", r: "1", key: "41hilf" }],
-    ["circle", { cx: "19", cy: "12", r: "1", key: "1wjl8i" }],
-    ["circle", { cx: "5", cy: "12", r: "1", key: "1pcz8c" }],
-  ],
-  $s = oe("ellipsis", Ss);
+		["circle", { cx: "12", cy: "12", r: "1", key: "41hilf" }],
+		["circle", { cx: "19", cy: "12", r: "1", key: "1wjl8i" }],
+		["circle", { cx: "5", cy: "12", r: "1", key: "1pcz8c" }],
+	],
+	$s = oe("ellipsis", Ss);
 const As = [
-    [
-      "path",
-      {
-        d: "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
-        key: "ct8e1f",
-      },
-    ],
-    ["path", { d: "M14.084 14.158a3 3 0 0 1-4.242-4.242", key: "151rxh" }],
-    [
-      "path",
-      {
-        d: "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
-        key: "13bj9a",
-      },
-    ],
-    ["path", { d: "m2 2 20 20", key: "1ooewy" }],
-  ],
-  Ls = oe("eye-off", As);
+		[
+			"path",
+			{
+				d: "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
+				key: "ct8e1f",
+			},
+		],
+		["path", { d: "M14.084 14.158a3 3 0 0 1-4.242-4.242", key: "151rxh" }],
+		[
+			"path",
+			{
+				d: "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
+				key: "13bj9a",
+			},
+		],
+		["path", { d: "m2 2 20 20", key: "1ooewy" }],
+	],
+	Ls = oe("eye-off", As);
 const Ps = [
-    [
-      "path",
-      {
-        d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
-        key: "1nclc0",
-      },
-    ],
-    ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }],
-  ],
-  Is = oe("eye", Ps);
+		[
+			"path",
+			{
+				d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
+				key: "1nclc0",
+			},
+		],
+		["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }],
+	],
+	Is = oe("eye", Ps);
 const Ts = [
-    [
-      "path",
-      {
-        d: "m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2",
-        key: "usdka0",
-      },
-    ],
-  ],
-  _t = oe("folder-open", Ts);
+		[
+			"path",
+			{
+				d: "m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2",
+				key: "usdka0",
+			},
+		],
+	],
+	_t = oe("folder-open", Ts);
 const zs = [
-    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-    ["path", { d: "M12 16v-4", key: "1dtifu" }],
-    ["path", { d: "M12 8h.01", key: "e9boi3" }],
-  ],
-  Fs = oe("info", zs);
+		["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+		["path", { d: "M12 16v-4", key: "1dtifu" }],
+		["path", { d: "M12 8h.01", key: "e9boi3" }],
+	],
+	Fs = oe("info", zs);
 const Bs = [
-    ["path", { d: "M12 2v4", key: "3427ic" }],
-    ["path", { d: "m16.2 7.8 2.9-2.9", key: "r700ao" }],
-    ["path", { d: "M18 12h4", key: "wj9ykh" }],
-    ["path", { d: "m16.2 16.2 2.9 2.9", key: "1bxg5t" }],
-    ["path", { d: "M12 18v4", key: "jadmvz" }],
-    ["path", { d: "m4.9 19.1 2.9-2.9", key: "bwix9q" }],
-    ["path", { d: "M2 12h4", key: "j09sii" }],
-    ["path", { d: "m4.9 4.9 2.9 2.9", key: "giyufr" }],
-  ],
-  Rt = oe("loader", Bs);
+		["path", { d: "M12 2v4", key: "3427ic" }],
+		["path", { d: "m16.2 7.8 2.9-2.9", key: "r700ao" }],
+		["path", { d: "M18 12h4", key: "wj9ykh" }],
+		["path", { d: "m16.2 16.2 2.9 2.9", key: "1bxg5t" }],
+		["path", { d: "M12 18v4", key: "jadmvz" }],
+		["path", { d: "m4.9 19.1 2.9-2.9", key: "bwix9q" }],
+		["path", { d: "M2 12h4", key: "j09sii" }],
+		["path", { d: "m4.9 4.9 2.9 2.9", key: "giyufr" }],
+	],
+	Rt = oe("loader", Bs);
 const _s = [["path", { d: "m8 3 4 8 5-5 5 15H2L8 3z", key: "otkl63" }]],
-  wn = oe("mountain", _s);
+	wn = oe("mountain", _s);
 const qs = [
-    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
-    ["path", { d: "M9 3v18", key: "fh3hqa" }],
-    ["path", { d: "m16 15-3-3 3-3", key: "14y99z" }],
-  ],
-  Ds = oe("panel-left-close", qs);
+		[
+			"rect",
+			{ width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" },
+		],
+		["path", { d: "M9 3v18", key: "fh3hqa" }],
+		["path", { d: "m16 15-3-3 3-3", key: "14y99z" }],
+	],
+	Ds = oe("panel-left-close", qs);
 const Os = [
-    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
-    ["path", { d: "M9 3v18", key: "fh3hqa" }],
-    ["path", { d: "m14 9 3 3-3 3", key: "8010ee" }],
-  ],
-  Hs = oe("panel-left-open", Os);
+		[
+			"rect",
+			{ width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" },
+		],
+		["path", { d: "M9 3v18", key: "fh3hqa" }],
+		["path", { d: "m14 9 3 3-3 3", key: "8010ee" }],
+	],
+	Hs = oe("panel-left-open", Os);
 const Us = [
-    ["rect", { x: "14", y: "3", width: "5", height: "18", rx: "1", key: "kaeet6" }],
-    ["rect", { x: "5", y: "3", width: "5", height: "18", rx: "1", key: "1wsw3u" }],
-  ],
-  Vs = oe("pause", Us);
+		[
+			"rect",
+			{ x: "14", y: "3", width: "5", height: "18", rx: "1", key: "kaeet6" },
+		],
+		[
+			"rect",
+			{ x: "5", y: "3", width: "5", height: "18", rx: "1", key: "1wsw3u" },
+		],
+	],
+	Vs = oe("pause", Us);
 const Gs = [
-    [
-      "path",
-      {
-        d: "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z",
-        key: "10ikf1",
-      },
-    ],
-  ],
-  Ks = oe("play", Gs);
+		[
+			"path",
+			{
+				d: "M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z",
+				key: "10ikf1",
+			},
+		],
+	],
+	Ks = oe("play", Gs);
 const Ws = [
-    [
-      "path",
-      {
-        d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8",
-        key: "v9h5vc",
-      },
-    ],
-    ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
-    [
-      "path",
-      {
-        d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16",
-        key: "3uifl3",
-      },
-    ],
-    ["path", { d: "M8 16H3v5", key: "1cv678" }],
-  ],
-  lt = oe("refresh-cw", Ws);
+		[
+			"path",
+			{
+				d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8",
+				key: "v9h5vc",
+			},
+		],
+		["path", { d: "M21 3v5h-5", key: "1q7to0" }],
+		[
+			"path",
+			{
+				d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16",
+				key: "3uifl3",
+			},
+		],
+		["path", { d: "M8 16H3v5", key: "1cv678" }],
+	],
+	lt = oe("refresh-cw", Ws);
 const Ys = [
-    ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
-    ["path", { d: "M3 3v5h5", key: "1xhq8a" }],
-  ],
-  Xs = oe("rotate-ccw", Ys);
+		[
+			"path",
+			{ d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" },
+		],
+		["path", { d: "M3 3v5h5", key: "1xhq8a" }],
+	],
+	Xs = oe("rotate-ccw", Ys);
 const Js = [
-    ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
-    ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }],
-  ],
-  Zs = oe("search", Js);
+		["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
+		["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }],
+	],
+	Zs = oe("search", Js);
 const Qs = [
-    [
-      "path",
-      {
-        d: "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z",
-        key: "1s2grr",
-      },
-    ],
-    ["path", { d: "M20 2v4", key: "1rf3ol" }],
-    ["path", { d: "M22 4h-4", key: "gwowj6" }],
-    ["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }],
-  ],
-  bn = oe("sparkles", Qs);
+		[
+			"path",
+			{
+				d: "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z",
+				key: "1s2grr",
+			},
+		],
+		["path", { d: "M20 2v4", key: "1rf3ol" }],
+		["path", { d: "M22 4h-4", key: "gwowj6" }],
+		["circle", { cx: "4", cy: "20", r: "2", key: "6kqj1y" }],
+	],
+	bn = oe("sparkles", Qs);
 const er = [
-    [
-      "path",
-      {
-        d: "M13.971 4.285A2 2 0 0 1 17 6v12a2 2 0 0 1-3.029 1.715l-9.997-5.998a2 2 0 0 1-.003-3.432z",
-        key: "19qhus",
-      },
-    ],
-    ["path", { d: "M21 20V4", key: "cb8qj8" }],
-  ],
-  tr = oe("step-back", er);
+		[
+			"path",
+			{
+				d: "M13.971 4.285A2 2 0 0 1 17 6v12a2 2 0 0 1-3.029 1.715l-9.997-5.998a2 2 0 0 1-.003-3.432z",
+				key: "19qhus",
+			},
+		],
+		["path", { d: "M21 20V4", key: "cb8qj8" }],
+	],
+	tr = oe("step-back", er);
 const nr = [
-    [
-      "path",
-      {
-        d: "M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z",
-        key: "1ystz2",
-      },
-    ],
-    ["path", { d: "M3 4v16", key: "1ph11n" }],
-  ],
-  sr = oe("step-forward", nr);
+		[
+			"path",
+			{
+				d: "M10.029 4.285A2 2 0 0 0 7 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z",
+				key: "1ystz2",
+			},
+		],
+		["path", { d: "M3 4v16", key: "1ph11n" }],
+	],
+	sr = oe("step-forward", nr);
 const rr = [
-    [
-      "path",
-      {
-        d: "m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z",
-        key: "cpyugq",
-      },
-    ],
-    ["path", { d: "M12 22v-3", key: "kmzjlo" }],
-  ],
-  jn = oe("tree-pine", rr);
+		[
+			"path",
+			{
+				d: "m17 14 3 3.3a1 1 0 0 1-.7 1.7H4.7a1 1 0 0 1-.7-1.7L7 14h-.3a1 1 0 0 1-.7-1.7L9 9h-.2A1 1 0 0 1 8 7.3L12 3l4 4.3a1 1 0 0 1-.8 1.7H15l3 3.3a1 1 0 0 1-.7 1.7H17Z",
+				key: "cpyugq",
+			},
+		],
+		["path", { d: "M12 22v-3", key: "kmzjlo" }],
+	],
+	jn = oe("tree-pine", rr);
 const ar = [
-    [
-      "path",
-      {
-        d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3",
-        key: "wmoenq",
-      },
-    ],
-    ["path", { d: "M12 9v4", key: "juzpu7" }],
-    ["path", { d: "M12 17h.01", key: "p32p05" }],
-  ],
-  St = oe("triangle-alert", ar);
+		[
+			"path",
+			{
+				d: "m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3",
+				key: "wmoenq",
+			},
+		],
+		["path", { d: "M12 9v4", key: "juzpu7" }],
+		["path", { d: "M12 17h.01", key: "p32p05" }],
+	],
+	St = oe("triangle-alert", ar);
 const or = [
-    ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
-    ["path", { d: "M16 3.128a4 4 0 0 1 0 7.744", key: "16gr8j" }],
-    ["path", { d: "M22 21v-2a4 4 0 0 0-3-3.87", key: "kshegd" }],
-    ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
-  ],
-  ir = oe("users", or);
+		["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
+		["path", { d: "M16 3.128a4 4 0 0 1 0 7.744", key: "16gr8j" }],
+		["path", { d: "M22 21v-2a4 4 0 0 0-3-3.87", key: "kshegd" }],
+		["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
+	],
+	ir = oe("users", or);
 const cr = [
-    [
-      "path",
-      {
-        d: "m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5",
-        key: "ftymec",
-      },
-    ],
-    ["rect", { x: "2", y: "6", width: "14", height: "12", rx: "2", key: "158x01" }],
-  ],
-  lr = oe("video", cr);
+		[
+			"path",
+			{
+				d: "m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5",
+				key: "ftymec",
+			},
+		],
+		[
+			"rect",
+			{ x: "2", y: "6", width: "14", height: "12", rx: "2", key: "158x01" },
+		],
+	],
+	lr = oe("video", cr);
 const dr = [
-    ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
-    ["path", { d: "m6 6 12 12", key: "d8bk6v" }],
-  ],
-  Xe = oe("x", dr);
+		["path", { d: "M18 6 6 18", key: "1bl5f8" }],
+		["path", { d: "m6 6 12 12", key: "d8bk6v" }],
+	],
+	Xe = oe("x", dr);
 async function Oe(e) {
-  const n = await fetch(e);
-  if (!n.ok) {
-    const s = (await n.text()).trim();
-    throw new Error(s || `${n.status} ${n.statusText}`);
-  }
-  return n.json();
+	const n = await fetch(e);
+	if (!n.ok) {
+		const s = (await n.text()).trim();
+		throw new Error(s || `${n.status} ${n.statusText}`);
+	}
+	return n.json();
 }
 function $e(e, n) {
-  if (e instanceof TypeError)
-    return `Can't reach the mindwalk server while ${n} — is it still running?`;
-  const s = (e instanceof Error ? e.message : String(e)).trim();
-  return s ? `Couldn't finish ${n}: ${s}` : `Couldn't finish ${n}`;
+	if (e instanceof TypeError)
+		return `Can't reach the mindwalk server while ${n} — is it still running?`;
+	const s = (e instanceof Error ? e.message : String(e)).trim();
+	return s ? `Couldn't finish ${n}: ${s}` : `Couldn't finish ${n}`;
 }
 function qt(e = !1) {
-  return Oe(e ? "/api/sessions?fresh=1" : "/api/sessions");
+	return Oe(e ? "/api/sessions?fresh=1" : "/api/sessions");
 }
 function ur(e) {
-  return Oe(`/api/sessions/${encodeURIComponent(e)}/snapshot`);
+	return Oe(`/api/sessions/${encodeURIComponent(e)}/snapshot`);
 }
 function hr(e) {
-  return Oe(`/api/sessions/${encodeURIComponent(e)}/agents`);
+	return Oe(`/api/sessions/${encodeURIComponent(e)}/agents`);
 }
 function fr(e, n) {
-  return Oe(`/api/sessions/${encodeURIComponent(e)}/agents/${encodeURIComponent(n)}/trace`);
+	return Oe(
+		`/api/sessions/${encodeURIComponent(e)}/agents/${encodeURIComponent(n)}/trace`,
+	);
 }
 function pr(e) {
-  return Oe(`/api/sessions/${encodeURIComponent(e)}/report`);
+	return Oe(`/api/sessions/${encodeURIComponent(e)}/report`);
 }
 async function mr(e, n) {
-  const s = await fetch(`/api/sessions/${encodeURIComponent(e)}/analyze`, {
-    method: "POST",
-    headers: n ? { "Content-Type": "application/json" } : void 0,
-    body: n ? JSON.stringify(n) : void 0,
-  });
-  if (!s.ok) {
-    const r = (await s.text()).trim();
-    throw new Error(r || `${s.status} ${s.statusText}`);
-  }
-  return s.json();
+	const s = await fetch(`/api/sessions/${encodeURIComponent(e)}/analyze`, {
+		method: "POST",
+		headers: n ? { "Content-Type": "application/json" } : void 0,
+		body: n ? JSON.stringify(n) : void 0,
+	});
+	if (!s.ok) {
+		const r = (await s.text()).trim();
+		throw new Error(r || `${s.status} ${s.statusText}`);
+	}
+	return s.json();
 }
 function gr(e, n, s) {
-  const r = new EventSource(`/api/sessions/${encodeURIComponent(e)}/analyze/stream`);
-  return (
-    r.addEventListener("progress", (o) => {
-      try {
-        n(JSON.parse(o.data));
-      } catch {}
-    }),
-    r.addEventListener("status", (o) => {
-      try {
-        s(JSON.parse(o.data));
-      } catch {}
-    }),
-    r
-  );
+	const r = new EventSource(
+		`/api/sessions/${encodeURIComponent(e)}/analyze/stream`,
+	);
+	return (
+		r.addEventListener("progress", (o) => {
+			try {
+				n(JSON.parse(o.data));
+			} catch {}
+		}),
+		r.addEventListener("status", (o) => {
+			try {
+				s(JSON.parse(o.data));
+			} catch {}
+		}),
+		r
+	);
 }
 function xr(e) {
-  const n = e ? `/api/repomap?repo=${encodeURIComponent(e)}` : "/api/repomap";
-  return Oe(n);
+	const n = e ? `/api/repomap?repo=${encodeURIComponent(e)}` : "/api/repomap";
+	return Oe(n);
 }
-function vr({ panels: e, openSheet: n, openPop: s, onToggle: r, onClosePop: o }) {
-  const l = a.useRef(null),
-    m = a.useRef(null),
-    x = e.find((c) => c.id === n && c.presentation === "sheet"),
-    v = e.find((c) => c.id === s && c.presentation === "pop"),
-    b = ["scene", "session"]
-      .map((c) => ({ section: c, items: e.filter((S) => S.section === c) }))
-      .filter((c) => c.items.length > 0);
-  return (
-    a.useEffect(() => {
-      if (!v) return;
-      const c = (w) => {
-          const L = w.target;
-          l.current?.contains(L) || m.current?.contains(L) || o();
-        },
-        S = (w) => {
-          w.key === "Escape" && o();
-        };
-      return (
-        document.addEventListener("pointerdown", c),
-        document.addEventListener("keydown", S),
-        () => {
-          (document.removeEventListener("pointerdown", c),
-            document.removeEventListener("keydown", S));
-        }
-      );
-    }, [v, o]),
-    t.jsxs("div", {
-      className: "dock",
-      children: [
-        v
-          ? t.jsx("div", {
-              className: "dock-pop",
-              ref: l,
-              children: v.render(),
-            })
-          : null,
-        x ? t.jsx("aside", { className: "dock-panel", children: x.render() }) : null,
-        t.jsx("div", {
-          className: "dock-side",
-          ref: m,
-          children: t.jsx("div", {
-            className: "dock-strip",
-            role: "group",
-            "aria-label": "Stage panels",
-            children: b.map((c, S) =>
-              t.jsxs(
-                "div",
-                {
-                  className: "dock-strip-group",
-                  children: [
-                    S > 0
-                      ? t.jsx("div", {
-                          className: "dock-strip-divider",
-                          "aria-hidden": !0,
-                        })
-                      : null,
-                    c.items.map((w) => {
-                      const L = w.id === n || w.id === s,
-                        O = w.icon;
-                      return t.jsxs(
-                        "button",
-                        {
-                          "aria-pressed": L,
-                          className: L ? "active" : "",
-                          onClick: () => r(w),
-                          "data-hint": w.hint,
-                          "aria-label": w.hint,
-                          children: [
-                            t.jsx(O, { size: 15 }),
-                            w.badge
-                              ? t.jsx("span", {
-                                  className: `dock-dot dock-dot-${w.badge}`,
-                                })
-                              : null,
-                          ],
-                        },
-                        w.id,
-                      );
-                    }),
-                  ],
-                },
-                c.section,
-              ),
-            ),
-          }),
-        }),
-      ],
-    })
-  );
+function vr({
+	panels: e,
+	openSheet: n,
+	openPop: s,
+	onToggle: r,
+	onClosePop: o,
+}) {
+	const l = a.useRef(null),
+		m = a.useRef(null),
+		x = e.find((c) => c.id === n && c.presentation === "sheet"),
+		v = e.find((c) => c.id === s && c.presentation === "pop"),
+		b = ["scene", "session"]
+			.map((c) => ({ section: c, items: e.filter((S) => S.section === c) }))
+			.filter((c) => c.items.length > 0);
+	return (
+		a.useEffect(() => {
+			if (!v) return;
+			const c = (w) => {
+					const L = w.target;
+					l.current?.contains(L) || m.current?.contains(L) || o();
+				},
+				S = (w) => {
+					w.key === "Escape" && o();
+				};
+			return (
+				document.addEventListener("pointerdown", c),
+				document.addEventListener("keydown", S),
+				() => {
+					document.removeEventListener("pointerdown", c),
+						document.removeEventListener("keydown", S);
+				}
+			);
+		}, [v, o]),
+		t.jsxs("div", {
+			className: "dock",
+			children: [
+				v
+					? t.jsx("div", {
+							className: "dock-pop",
+							ref: l,
+							children: v.render(),
+						})
+					: null,
+				x
+					? t.jsx("aside", { className: "dock-panel", children: x.render() })
+					: null,
+				t.jsx("div", {
+					className: "dock-side",
+					ref: m,
+					children: t.jsx("div", {
+						className: "dock-strip",
+						role: "group",
+						"aria-label": "Stage panels",
+						children: b.map((c, S) =>
+							t.jsxs(
+								"div",
+								{
+									className: "dock-strip-group",
+									children: [
+										S > 0
+											? t.jsx("div", {
+													className: "dock-strip-divider",
+													"aria-hidden": !0,
+												})
+											: null,
+										c.items.map((w) => {
+											const L = w.id === n || w.id === s,
+												O = w.icon;
+											return t.jsxs(
+												"button",
+												{
+													"aria-pressed": L,
+													className: L ? "active" : "",
+													onClick: () => r(w),
+													"data-hint": w.hint,
+													"aria-label": w.hint,
+													children: [
+														t.jsx(O, { size: 15 }),
+														w.badge
+															? t.jsx("span", {
+																	className: `dock-dot dock-dot-${w.badge}`,
+																})
+															: null,
+													],
+												},
+												w.id,
+											);
+										}),
+									],
+								},
+								c.section,
+							),
+						),
+					}),
+				}),
+			],
+		})
+	);
 }
 function yr({
-  graph: e,
-  current: n,
-  loading: s,
-  loadingAgentID: r,
-  locked: o = !1,
-  error: l,
-  retryAgentID: m,
-  onSelect: x,
-  onRetry: v,
-  onClose: d,
+	graph: e,
+	current: n,
+	loading: s,
+	loadingAgentID: r,
+	locked: o = !1,
+	error: l,
+	retryAgentID: m,
+	onSelect: x,
+	onRetry: v,
+	onClose: d,
 }) {
-  const b = e?.agents.filter((p) => p.kind !== "main") ?? [],
-    c = e?.agents.find((p) => p.kind === "main"),
-    S = l && m === null ? l : void 0,
-    [w, L] = a.useState(null),
-    O = e?.agents.find((p) => p.id === w?.agentID);
-  a.useEffect(() => {
-    w && e && !O && L(null);
-  }, [w, O, e]);
-  const z = () => {
-    (L(null), d());
-  };
-  return t.jsxs("div", {
-    className: "dock-body agents-panel",
-    "aria-label": "Agent lenses",
-    children: [
-      t.jsxs("div", {
-        className: "inspector-head",
-        children: [
-          t.jsxs("div", {
-            children: [
-              t.jsx("div", { className: "inspector-path", children: "Agents" }),
-              t.jsx("div", {
-                className: "agents-head-note",
-                children: "Choose one trace at a time",
-              }),
-            ],
-          }),
-          t.jsx("button", {
-            className: "icon-btn",
-            onClick: z,
-            title: "Close",
-            "aria-label": "Close agents",
-            children: t.jsx(Xe, { size: 15 }),
-          }),
-        ],
-      }),
-      S ? t.jsx(Dt, { error: S, locked: o, onRetry: v }) : null,
-      t.jsxs("div", {
-        className: "agent-list",
-        "aria-busy": s || r !== void 0,
-        children: [
-          t.jsxs("button", {
-            className:
-              n === null ? "agent-row agent-row-select active" : "agent-row agent-row-select",
-            "aria-pressed": n === null,
-            disabled: o,
-            onClick: () => x(null),
-            children: [
-              t.jsx("span", {
-                className: "agent-row-icon",
-                "aria-hidden": !0,
-                children: t.jsx(Cs, { size: 12 }),
-              }),
-              t.jsxs("span", {
-                className: "agent-row-copy",
-                children: [
-                  t.jsxs("span", {
-                    className: "agent-row-primary",
-                    children: [
-                      t.jsxs("span", {
-                        className: "agent-row-title",
-                        children: [
-                          "Main",
-                          n === null
-                            ? t.jsx("span", {
-                                className: "agent-current",
-                                children: "current",
-                              })
-                            : null,
-                        ],
-                      }),
-                      t.jsx("span", {
-                        className: "agent-row-count",
-                        children: Mn(c?.traceEventCount ?? 0),
-                      }),
-                    ],
-                  }),
-                  t.jsx("span", {
-                    className: "agent-row-secondary",
-                    children: "Root trace",
-                  }),
-                ],
-              }),
-            ],
-          }),
-          b.map((p) => {
-            const N = l && m === p.id ? l : void 0;
-            return t.jsxs(
-              a.Fragment,
-              {
-                children: [
-                  t.jsx(wr, {
-                    agent: p,
-                    current: n === p.id,
-                    loading: r === p.id,
-                    locked: o,
-                    onSelect: x,
-                    detailMode: w?.agentID === p.id ? w.mode : void 0,
-                    onPreview: (T) =>
-                      L((C) =>
-                        C?.mode === "pinned" ? C : { agentID: p.id, mode: "preview", anchor: T },
-                      ),
-                    onPreviewEnd: (T) =>
-                      L((C) => (C?.agentID === T && C.mode === "preview" ? null : C)),
-                    onToggleDetails: (T) =>
-                      L((C) =>
-                        C?.agentID === p.id && C.mode === "pinned"
-                          ? null
-                          : { agentID: p.id, mode: "pinned", anchor: T },
-                      ),
-                  }),
-                  N
-                    ? t.jsx(Dt, {
-                        error: N,
-                        locked: o,
-                        onRetry: v,
-                        rowLocal: !0,
-                      })
-                    : null,
-                ],
-              },
-              p.id,
-            );
-          }),
-          e && b.length === 0
-            ? t.jsx("p", {
-                className: "agents-empty",
-                children: "No child agents found.",
-              })
-            : null,
-          !e && s
-            ? t.jsxs("p", {
-                className: "agents-state",
-                "aria-live": "polite",
-                children: [
-                  t.jsx(Rt, { size: 13, className: "spin", "aria-hidden": !0 }),
-                  "Loading agents…",
-                ],
-              })
-            : null,
-        ],
-      }),
-      w && O ? t.jsx(br, { agent: O, state: w, onClose: () => L(null) }) : null,
-    ],
-  });
+	const b = e?.agents.filter((p) => p.kind !== "main") ?? [],
+		c = e?.agents.find((p) => p.kind === "main"),
+		S = l && m === null ? l : void 0,
+		[w, L] = a.useState(null),
+		O = e?.agents.find((p) => p.id === w?.agentID);
+	a.useEffect(() => {
+		w && e && !O && L(null);
+	}, [w, O, e]);
+	const z = () => {
+		L(null), d();
+	};
+	return t.jsxs("div", {
+		className: "dock-body agents-panel",
+		"aria-label": "Agent lenses",
+		children: [
+			t.jsxs("div", {
+				className: "inspector-head",
+				children: [
+					t.jsxs("div", {
+						children: [
+							t.jsx("div", { className: "inspector-path", children: "Agents" }),
+							t.jsx("div", {
+								className: "agents-head-note",
+								children: "Choose one trace at a time",
+							}),
+						],
+					}),
+					t.jsx("button", {
+						className: "icon-btn",
+						onClick: z,
+						title: "Close",
+						"aria-label": "Close agents",
+						children: t.jsx(Xe, { size: 15 }),
+					}),
+				],
+			}),
+			S ? t.jsx(Dt, { error: S, locked: o, onRetry: v }) : null,
+			t.jsxs("div", {
+				className: "agent-list",
+				"aria-busy": s || r !== void 0,
+				children: [
+					t.jsxs("button", {
+						className:
+							n === null
+								? "agent-row agent-row-select active"
+								: "agent-row agent-row-select",
+						"aria-pressed": n === null,
+						disabled: o,
+						onClick: () => x(null),
+						children: [
+							t.jsx("span", {
+								className: "agent-row-icon",
+								"aria-hidden": !0,
+								children: t.jsx(Cs, { size: 12 }),
+							}),
+							t.jsxs("span", {
+								className: "agent-row-copy",
+								children: [
+									t.jsxs("span", {
+										className: "agent-row-primary",
+										children: [
+											t.jsxs("span", {
+												className: "agent-row-title",
+												children: [
+													"Main",
+													n === null
+														? t.jsx("span", {
+																className: "agent-current",
+																children: "current",
+															})
+														: null,
+												],
+											}),
+											t.jsx("span", {
+												className: "agent-row-count",
+												children: Mn(c?.traceEventCount ?? 0),
+											}),
+										],
+									}),
+									t.jsx("span", {
+										className: "agent-row-secondary",
+										children: "Root trace",
+									}),
+								],
+							}),
+						],
+					}),
+					b.map((p) => {
+						const N = l && m === p.id ? l : void 0;
+						return t.jsxs(
+							a.Fragment,
+							{
+								children: [
+									t.jsx(wr, {
+										agent: p,
+										current: n === p.id,
+										loading: r === p.id,
+										locked: o,
+										onSelect: x,
+										detailMode: w?.agentID === p.id ? w.mode : void 0,
+										onPreview: (T) =>
+											L((C) =>
+												C?.mode === "pinned"
+													? C
+													: { agentID: p.id, mode: "preview", anchor: T },
+											),
+										onPreviewEnd: (T) =>
+											L((C) =>
+												C?.agentID === T && C.mode === "preview" ? null : C,
+											),
+										onToggleDetails: (T) =>
+											L((C) =>
+												C?.agentID === p.id && C.mode === "pinned"
+													? null
+													: { agentID: p.id, mode: "pinned", anchor: T },
+											),
+									}),
+									N
+										? t.jsx(Dt, {
+												error: N,
+												locked: o,
+												onRetry: v,
+												rowLocal: !0,
+											})
+										: null,
+								],
+							},
+							p.id,
+						);
+					}),
+					e && b.length === 0
+						? t.jsx("p", {
+								className: "agents-empty",
+								children: "No child agents found.",
+							})
+						: null,
+					!e && s
+						? t.jsxs("p", {
+								className: "agents-state",
+								"aria-live": "polite",
+								children: [
+									t.jsx(Rt, { size: 13, className: "spin", "aria-hidden": !0 }),
+									"Loading agents…",
+								],
+							})
+						: null,
+				],
+			}),
+			w && O ? t.jsx(br, { agent: O, state: w, onClose: () => L(null) }) : null,
+		],
+	});
 }
 function Dt({ error: e, locked: n, onRetry: s, rowLocal: r = !1 }) {
-  return t.jsxs("div", {
-    className: r ? "agents-error row-local" : "agents-error",
-    role: "alert",
-    children: [
-      t.jsxs("span", {
-        children: [t.jsx(St, { size: 14, "aria-hidden": !0 }), e],
-      }),
-      t.jsxs("button", {
-        className: "agents-retry",
-        onClick: s,
-        disabled: n,
-        children: [t.jsx(lt, { size: 13, "aria-hidden": !0 }), "Retry"],
-      }),
-    ],
-  });
+	return t.jsxs("div", {
+		className: r ? "agents-error row-local" : "agents-error",
+		role: "alert",
+		children: [
+			t.jsxs("span", {
+				children: [t.jsx(St, { size: 14, "aria-hidden": !0 }), e],
+			}),
+			t.jsxs("button", {
+				className: "agents-retry",
+				onClick: s,
+				disabled: n,
+				children: [t.jsx(lt, { size: 13, "aria-hidden": !0 }), "Retry"],
+			}),
+		],
+	});
 }
 function wr({
-  agent: e,
-  current: n,
-  loading: s,
-  locked: r,
-  onSelect: o,
-  detailMode: l,
-  onPreview: m,
-  onPreviewEnd: x,
-  onToggleDetails: v,
+	agent: e,
+	current: n,
+	loading: s,
+	locked: r,
+	onSelect: o,
+	detailMode: l,
+	onPreview: m,
+	onPreviewEnd: x,
+	onToggleDetails: v,
 }) {
-  const d = e.traceAvailability === "available",
-    b = jr(e, s),
-    c = [e.role, e.instructionPreview].filter(Boolean).join(" · "),
-    S = !d || r;
-  return t.jsxs("div", {
-    className: ["agent-row", n ? "active" : "", S ? "disabled" : ""].filter(Boolean).join(" "),
-    onMouseEnter: (w) => m(w.currentTarget),
-    onMouseLeave: () => x(e.id),
-    onFocus: (w) => m(w.currentTarget),
-    onBlur: (w) => {
-      w.currentTarget.contains(w.relatedTarget) || x(e.id);
-    },
-    children: [
-      t.jsxs("button", {
-        className: "agent-row-select",
-        style: { paddingLeft: `${12 + Math.min(e.depth, 4) * 14}px` },
-        "aria-pressed": n,
-        disabled: S,
-        onClick: () => o(e.id),
-        "aria-label": `${e.label}, ${b}`,
-        children: [
-          t.jsx("span", {
-            className: "agent-row-icon",
-            "aria-hidden": !0,
-            children: s ? t.jsx(Rt, { size: 13, className: "spin" }) : t.jsx(Ns, { size: 13 }),
-          }),
-          t.jsxs("span", {
-            className: "agent-row-copy",
-            children: [
-              t.jsxs("span", {
-                className: "agent-row-primary",
-                children: [
-                  t.jsxs("span", {
-                    className: "agent-row-title",
-                    children: [
-                      e.label,
-                      n
-                        ? t.jsx("span", {
-                            className: "agent-current",
-                            children: "current",
-                          })
-                        : null,
-                    ],
-                  }),
-                  t.jsx("span", {
-                    className: `agent-row-count agent-status-${e.traceAvailability}`,
-                    children: b,
-                  }),
-                ],
-              }),
-              t.jsx("span", {
-                className: "agent-row-secondary",
-                children: c || "No launch details",
-              }),
-            ],
-          }),
-        ],
-      }),
-      t.jsx("button", {
-        className: "agent-row-detail-trigger",
-        "aria-label": `${l === "pinned" ? "Unpin" : "Pin"} details for ${e.label}`,
-        "aria-pressed": l === "pinned",
-        onClick: (w) => {
-          (w.stopPropagation(), v(w.currentTarget.closest(".agent-row")));
-        },
-        children: t.jsx(Fs, { size: 12, "aria-hidden": !0 }),
-      }),
-    ],
-  });
+	const d = e.traceAvailability === "available",
+		b = jr(e, s),
+		c = [e.role, e.instructionPreview].filter(Boolean).join(" · "),
+		S = !d || r;
+	return t.jsxs("div", {
+		className: ["agent-row", n ? "active" : "", S ? "disabled" : ""]
+			.filter(Boolean)
+			.join(" "),
+		onMouseEnter: (w) => m(w.currentTarget),
+		onMouseLeave: () => x(e.id),
+		onFocus: (w) => m(w.currentTarget),
+		onBlur: (w) => {
+			w.currentTarget.contains(w.relatedTarget) || x(e.id);
+		},
+		children: [
+			t.jsxs("button", {
+				className: "agent-row-select",
+				style: { paddingLeft: `${12 + Math.min(e.depth, 4) * 14}px` },
+				"aria-pressed": n,
+				disabled: S,
+				onClick: () => o(e.id),
+				"aria-label": `${e.label}, ${b}`,
+				children: [
+					t.jsx("span", {
+						className: "agent-row-icon",
+						"aria-hidden": !0,
+						children: s
+							? t.jsx(Rt, { size: 13, className: "spin" })
+							: t.jsx(Ns, { size: 13 }),
+					}),
+					t.jsxs("span", {
+						className: "agent-row-copy",
+						children: [
+							t.jsxs("span", {
+								className: "agent-row-primary",
+								children: [
+									t.jsxs("span", {
+										className: "agent-row-title",
+										children: [
+											e.label,
+											n
+												? t.jsx("span", {
+														className: "agent-current",
+														children: "current",
+													})
+												: null,
+										],
+									}),
+									t.jsx("span", {
+										className: `agent-row-count agent-status-${e.traceAvailability}`,
+										children: b,
+									}),
+								],
+							}),
+							t.jsx("span", {
+								className: "agent-row-secondary",
+								children: c || "No launch details",
+							}),
+						],
+					}),
+				],
+			}),
+			t.jsx("button", {
+				className: "agent-row-detail-trigger",
+				"aria-label": `${l === "pinned" ? "Unpin" : "Pin"} details for ${e.label}`,
+				"aria-pressed": l === "pinned",
+				onClick: (w) => {
+					w.stopPropagation(), v(w.currentTarget.closest(".agent-row"));
+				},
+				children: t.jsx(Fs, { size: 12, "aria-hidden": !0 }),
+			}),
+		],
+	});
 }
 function br({ agent: e, state: n, onClose: s }) {
-  const o = a.useRef(null),
-    [l, m] = a.useState({
-      left: 12,
-      top: 12,
-      width: Math.min(520, window.innerWidth - 24),
-      maxHeight: window.innerHeight - 24,
-    });
-  return (
-    a.useLayoutEffect(() => {
-      const x = () => {
-          const b = Math.min(520, window.innerWidth - 24),
-            c = n.anchor.getBoundingClientRect(),
-            S = c.left - b - 12,
-            w = c.right + 12,
-            L =
-              S >= 12
-                ? S
-                : w + b <= window.innerWidth - 12
-                  ? w
-                  : Math.min(Math.max(c.left, 12), window.innerWidth - b - 12),
-            O = window.innerHeight - 24,
-            z = Math.min(o.current?.offsetHeight ?? O, O),
-            p = Math.min(Math.max(c.top, 12), window.innerHeight - z - 12);
-          m({ left: L, top: p, width: b, maxHeight: O });
-        },
-        v = n.anchor.closest(".dock-panel");
-      return (
-        x(),
-        window.addEventListener("resize", x),
-        window.addEventListener("scroll", x, !0),
-        v?.addEventListener("animationend", x),
-        () => {
-          (window.removeEventListener("resize", x),
-            window.removeEventListener("scroll", x, !0),
-            v?.removeEventListener("animationend", x));
-        }
-      );
-    }, [n.anchor]),
-    a.useEffect(() => {
-      if (n.mode !== "pinned") return;
-      const x = (d) => {
-          d.key === "Escape" && s();
-        },
-        v = (d) => {
-          const b = d.target;
-          o.current?.contains(b) || n.anchor.contains(b) || s();
-        };
-      return (
-        document.addEventListener("keydown", x),
-        document.addEventListener("pointerdown", v),
-        () => {
-          (document.removeEventListener("keydown", x),
-            document.removeEventListener("pointerdown", v));
-        }
-      );
-    }, [s, n.anchor, n.mode]),
-    is.createPortal(
-      t.jsxs("div", {
-        ref: o,
-        className: `agent-detail-popover ${n.mode}`,
-        role: n.mode === "preview" ? "tooltip" : "dialog",
-        "aria-label": `${e.label} details`,
-        style: l,
-        children: [
-          t.jsxs("div", {
-            className: "agent-detail-head",
-            children: [
-              t.jsxs("span", {
-                children: [
-                  t.jsx("strong", { children: e.label }),
-                  e.role ? t.jsx("span", { children: e.role }) : null,
-                ],
-              }),
-              n.mode === "pinned"
-                ? t.jsx("button", {
-                    className: "agent-detail-close",
-                    onClick: s,
-                    "aria-label": "Close details",
-                    children: t.jsx(Xe, { size: 14, "aria-hidden": !0 }),
-                  })
-                : null,
-            ],
-          }),
-          e.instructionPreview
-            ? t.jsx("div", {
-                className: "agent-detail-instruction",
-                children: e.instructionPreview,
-              })
-            : null,
-          t.jsx("div", { className: "agent-detail-meta", children: Mr(e) }),
-        ],
-      }),
-      document.body,
-    )
-  );
+	const o = a.useRef(null),
+		[l, m] = a.useState({
+			left: 12,
+			top: 12,
+			width: Math.min(520, window.innerWidth - 24),
+			maxHeight: window.innerHeight - 24,
+		});
+	return (
+		a.useLayoutEffect(() => {
+			const x = () => {
+					const b = Math.min(520, window.innerWidth - 24),
+						c = n.anchor.getBoundingClientRect(),
+						S = c.left - b - 12,
+						w = c.right + 12,
+						L =
+							S >= 12
+								? S
+								: w + b <= window.innerWidth - 12
+									? w
+									: Math.min(Math.max(c.left, 12), window.innerWidth - b - 12),
+						O = window.innerHeight - 24,
+						z = Math.min(o.current?.offsetHeight ?? O, O),
+						p = Math.min(Math.max(c.top, 12), window.innerHeight - z - 12);
+					m({ left: L, top: p, width: b, maxHeight: O });
+				},
+				v = n.anchor.closest(".dock-panel");
+			return (
+				x(),
+				window.addEventListener("resize", x),
+				window.addEventListener("scroll", x, !0),
+				v?.addEventListener("animationend", x),
+				() => {
+					window.removeEventListener("resize", x),
+						window.removeEventListener("scroll", x, !0),
+						v?.removeEventListener("animationend", x);
+				}
+			);
+		}, [n.anchor]),
+		a.useEffect(() => {
+			if (n.mode !== "pinned") return;
+			const x = (d) => {
+					d.key === "Escape" && s();
+				},
+				v = (d) => {
+					const b = d.target;
+					o.current?.contains(b) || n.anchor.contains(b) || s();
+				};
+			return (
+				document.addEventListener("keydown", x),
+				document.addEventListener("pointerdown", v),
+				() => {
+					document.removeEventListener("keydown", x),
+						document.removeEventListener("pointerdown", v);
+				}
+			);
+		}, [s, n.anchor, n.mode]),
+		is.createPortal(
+			t.jsxs("div", {
+				ref: o,
+				className: `agent-detail-popover ${n.mode}`,
+				role: n.mode === "preview" ? "tooltip" : "dialog",
+				"aria-label": `${e.label} details`,
+				style: l,
+				children: [
+					t.jsxs("div", {
+						className: "agent-detail-head",
+						children: [
+							t.jsxs("span", {
+								children: [
+									t.jsx("strong", { children: e.label }),
+									e.role ? t.jsx("span", { children: e.role }) : null,
+								],
+							}),
+							n.mode === "pinned"
+								? t.jsx("button", {
+										className: "agent-detail-close",
+										onClick: s,
+										"aria-label": "Close details",
+										children: t.jsx(Xe, { size: 14, "aria-hidden": !0 }),
+									})
+								: null,
+						],
+					}),
+					e.instructionPreview
+						? t.jsx("div", {
+								className: "agent-detail-instruction",
+								children: e.instructionPreview,
+							})
+						: null,
+					t.jsx("div", { className: "agent-detail-meta", children: Mr(e) }),
+				],
+			}),
+			document.body,
+		)
+	);
 }
 function jr(e, n) {
-  return n
-    ? "Loading trace…"
-    : e.traceAvailability === "missing"
-      ? "Trace missing"
-      : e.status === "failed"
-        ? "Launch failed · no trace"
-        : e.traceAvailability === "unavailable"
-          ? "Trace unavailable"
-          : Mn(e.traceEventCount);
+	return n
+		? "Loading trace…"
+		: e.traceAvailability === "missing"
+			? "Trace missing"
+			: e.status === "failed"
+				? "Launch failed · no trace"
+				: e.traceAvailability === "unavailable"
+					? "Trace unavailable"
+					: Mn(e.traceEventCount);
 }
 function Mn(e) {
-  return `${e} event${e === 1 ? "" : "s"}`;
+	return `${e} event${e === 1 ? "" : "s"}`;
 }
 function Mr(e) {
-  return `Launch: ${e.status} · Trace: ${e.traceAvailability} · Correlation: ${e.linkQuality} via ${e.linkMethod}`;
+	return `Launch: ${e.status} · Trace: ${e.traceAvailability} · Correlation: ${e.linkQuality} via ${e.linkMethod}`;
 }
 const Nr = {
-    exploration: {
-      title: "Exploration",
-      hint: "Did the agent build enough understanding before editing?",
-    },
-    scope: {
-      title: "Scope",
-      hint: "Does the footprint match what the task needed?",
-    },
-    wandering: {
-      title: "Wandering",
-      hint: "Purposeful path, or circles and dead ends?",
-    },
-    verification: {
-      title: "Verification",
-      hint: "Were edits verified, and errors followed up?",
-    },
-  },
-  Nn = {
-    claude: [
-      { value: "", label: "default model" },
-      { value: "sonnet", label: "sonnet" },
-      { value: "opus", label: "opus" },
-      { value: "fable", label: "fable" },
-    ],
-    codex: [
-      { value: "", label: "default model" },
-      { value: "gpt-5.6-sol", label: "gpt-5.6 sol" },
-      { value: "gpt-5.6-terra", label: "gpt-5.6 terra" },
-    ],
-  },
-  kn = "mindwalk:judge-choice";
+		exploration: {
+			title: "Exploration",
+			hint: "Did the agent build enough understanding before editing?",
+		},
+		scope: {
+			title: "Scope",
+			hint: "Does the footprint match what the task needed?",
+		},
+		wandering: {
+			title: "Wandering",
+			hint: "Purposeful path, or circles and dead ends?",
+		},
+		verification: {
+			title: "Verification",
+			hint: "Were edits verified, and errors followed up?",
+		},
+	},
+	Nn = {
+		claude: [
+			{ value: "", label: "default model" },
+			{ value: "sonnet", label: "sonnet" },
+			{ value: "opus", label: "opus" },
+			{ value: "fable", label: "fable" },
+		],
+		codex: [
+			{ value: "", label: "default model" },
+			{ value: "gpt-5.6-sol", label: "gpt-5.6 sol" },
+			{ value: "gpt-5.6-terra", label: "gpt-5.6 terra" },
+		],
+	},
+	kn = "mindwalk:judge-choice";
 function kr() {
-  try {
-    const e = localStorage.getItem(kn);
-    if (e) {
-      const n = JSON.parse(e);
-      return {
-        cli: typeof n.cli == "string" ? n.cli : "",
-        model: typeof n.model == "string" ? n.model : "",
-      };
-    }
-  } catch {}
-  return { cli: "", model: "" };
+	try {
+		const e = localStorage.getItem(kn);
+		if (e) {
+			const n = JSON.parse(e);
+			return {
+				cli: typeof n.cli == "string" ? n.cli : "",
+				model: typeof n.model == "string" ? n.model : "",
+			};
+		}
+	} catch {}
+	return { cli: "", model: "" };
 }
 function Cr(e, n) {
-  const s = n.includes(e.cli) ? e.cli : (n[0] ?? ""),
-    o = (Nn[s] ?? []).some((l) => l.value === e.model) ? e.model : "";
-  return { cli: s, model: o };
+	const s = n.includes(e.cli) ? e.cli : (n[0] ?? ""),
+		o = (Nn[s] ?? []).some((l) => l.value === e.model) ? e.model : "";
+	return { cli: s, model: o };
 }
 function Er({
-  status: e,
-  analyzing: n,
-  progress: s,
-  locked: r,
-  onAnalyze: o,
-  onClose: l,
-  onJumpTo: m,
+	status: e,
+	analyzing: n,
+	progress: s,
+	locked: r,
+	onAnalyze: o,
+	onClose: l,
+	onJumpTo: m,
 }) {
-  const [x, v] = a.useState(kr),
-    d = e?.judgeClis ?? (e?.judgeCli ? [e.judgeCli] : []),
-    b = Cr(x, d),
-    c = a.useCallback((w) => {
-      v(w);
-      try {
-        localStorage.setItem(kn, JSON.stringify(w));
-      } catch {}
-    }, []),
-    S = a.useCallback(() => o(b), [o, b]);
-  return t.jsxs("div", {
-    className: "dock-body",
-    "aria-label": "Session evaluation",
-    children: [
-      t.jsxs("div", {
-        className: "inspector-head",
-        children: [
-          t.jsxs("div", {
-            children: [
-              t.jsx("div", {
-                className: "inspector-path",
-                children: "Evaluation",
-              }),
-              e?.report
-                ? t.jsxs("div", {
-                    className: "report-meta",
-                    children: [
-                      "judged by ",
-                      e.report.judge.cli,
-                      e.report.judge.model ? ` · ${e.report.judge.model}` : "",
-                      " ",
-                      "· ",
-                      zr(e.report.judge.generatedAt),
-                    ],
-                  })
-                : null,
-            ],
-          }),
-          t.jsx("button", {
-            className: "icon-btn",
-            onClick: l,
-            title: "Close",
-            "aria-label": "Close evaluation",
-            children: t.jsx(Xe, { size: 15 }),
-          }),
-        ],
-      }),
-      t.jsx($r, {
-        status: e,
-        analyzing: n,
-        progress: s,
-        locked: r,
-        analyze: S,
-        onJumpTo: m,
-        picker: d.length > 0 ? t.jsx(Rr, { clis: d, choice: b, onChange: c }) : null,
-      }),
-    ],
-  });
+	const [x, v] = a.useState(kr),
+		d = e?.judgeClis ?? (e?.judgeCli ? [e.judgeCli] : []),
+		b = Cr(x, d),
+		c = a.useCallback((w) => {
+			v(w);
+			try {
+				localStorage.setItem(kn, JSON.stringify(w));
+			} catch {}
+		}, []),
+		S = a.useCallback(() => o(b), [o, b]);
+	return t.jsxs("div", {
+		className: "dock-body",
+		"aria-label": "Session evaluation",
+		children: [
+			t.jsxs("div", {
+				className: "inspector-head",
+				children: [
+					t.jsxs("div", {
+						children: [
+							t.jsx("div", {
+								className: "inspector-path",
+								children: "Evaluation",
+							}),
+							e?.report
+								? t.jsxs("div", {
+										className: "report-meta",
+										children: [
+											"judged by ",
+											e.report.judge.cli,
+											e.report.judge.model ? ` · ${e.report.judge.model}` : "",
+											" ",
+											"· ",
+											zr(e.report.judge.generatedAt),
+										],
+									})
+								: null,
+						],
+					}),
+					t.jsx("button", {
+						className: "icon-btn",
+						onClick: l,
+						title: "Close",
+						"aria-label": "Close evaluation",
+						children: t.jsx(Xe, { size: 15 }),
+					}),
+				],
+			}),
+			t.jsx($r, {
+				status: e,
+				analyzing: n,
+				progress: s,
+				locked: r,
+				analyze: S,
+				onJumpTo: m,
+				picker:
+					d.length > 0 ? t.jsx(Rr, { clis: d, choice: b, onChange: c }) : null,
+			}),
+		],
+	});
 }
 function Rr({ clis: e, choice: n, onChange: s }) {
-  const r = Nn[n.cli] ?? [{ value: "", label: "default model" }];
-  return t.jsxs("div", {
-    className: "report-picker",
-    children: [
-      t.jsx("select", {
-        value: n.cli,
-        onChange: (o) => s({ cli: o.target.value, model: "" }),
-        "aria-label": "Judge agent",
-        title: "Which agent CLI judges this session",
-        children: e.map((o) => t.jsx("option", { value: o, children: o }, o)),
-      }),
-      t.jsx("select", {
-        value: n.model,
-        onChange: (o) => s({ ...n, model: o.target.value }),
-        "aria-label": "Judge model",
-        title: "Which model the judge runs on",
-        children: r.map((o) => t.jsx("option", { value: o.value, children: o.label }, o.value)),
-      }),
-    ],
-  });
+	const r = Nn[n.cli] ?? [{ value: "", label: "default model" }];
+	return t.jsxs("div", {
+		className: "report-picker",
+		children: [
+			t.jsx("select", {
+				value: n.cli,
+				onChange: (o) => s({ cli: o.target.value, model: "" }),
+				"aria-label": "Judge agent",
+				title: "Which agent CLI judges this session",
+				children: e.map((o) => t.jsx("option", { value: o, children: o }, o)),
+			}),
+			t.jsx("select", {
+				value: n.model,
+				onChange: (o) => s({ ...n, model: o.target.value }),
+				"aria-label": "Judge model",
+				title: "Which model the judge runs on",
+				children: r.map((o) =>
+					t.jsx("option", { value: o.value, children: o.label }, o.value),
+				),
+			}),
+		],
+	});
 }
 const nt = {
-  start: { icon: "○", label: "Starting" },
-  rubric: { icon: "✎", label: "Rubric" },
-  scoring: { icon: "≡", label: "Scoring" },
-  done: { icon: "✓", label: "Done" },
-  error: { icon: "✗", label: "Error" },
+	start: { icon: "○", label: "Starting" },
+	rubric: { icon: "✎", label: "Rubric" },
+	scoring: { icon: "≡", label: "Scoring" },
+	done: { icon: "✓", label: "Done" },
+	error: { icon: "✗", label: "Error" },
 };
 function Sr({ progress: e }) {
-  const n = e.length > 0 ? e[e.length - 1] : null,
-    s = n?.phase ?? "start",
-    r = nt[s] ?? nt.start;
-  return t.jsxs("div", {
-    className: "report-note",
-    children: [
-      t.jsxs("p", {
-        className: "report-running",
-        children: [
-          t.jsx("span", {
-            className: "report-progress-icon",
-            "aria-hidden": !0,
-            children: r.icon,
-          }),
-          " ",
-          n?.message ?? "Judging the trajectory…",
-        ],
-      }),
-      e.length > 1 &&
-        t.jsx("ul", {
-          className: "report-progress-log",
-          children: e.slice(0, -1).map((o, l) => {
-            const m = nt[o.phase] ?? nt.start;
-            return t.jsxs(
-              "li",
-              {
-                className: "report-progress-step",
-                children: [
-                  t.jsx("span", {
-                    className: "report-progress-icon done",
-                    "aria-hidden": !0,
-                    children: m.icon,
-                  }),
-                  " ",
-                  o.message,
-                ],
-              },
-              l,
-            );
-          }),
-        }),
-      t.jsx("p", {
-        className: "report-progress-hint",
-        children:
-          "The judge first drafts task-specific criteria from your request, then scores the session against them plus four process dimensions. Usually a minute or two; you can keep exploring meanwhile.",
-      }),
-    ],
-  });
+	const n = e.length > 0 ? e[e.length - 1] : null,
+		s = n?.phase ?? "start",
+		r = nt[s] ?? nt.start;
+	return t.jsxs("div", {
+		className: "report-note",
+		children: [
+			t.jsxs("p", {
+				className: "report-running",
+				children: [
+					t.jsx("span", {
+						className: "report-progress-icon",
+						"aria-hidden": !0,
+						children: r.icon,
+					}),
+					" ",
+					n?.message ?? "Judging the trajectory…",
+				],
+			}),
+			e.length > 1 &&
+				t.jsx("ul", {
+					className: "report-progress-log",
+					children: e.slice(0, -1).map((o, l) => {
+						const m = nt[o.phase] ?? nt.start;
+						return t.jsxs(
+							"li",
+							{
+								className: "report-progress-step",
+								children: [
+									t.jsx("span", {
+										className: "report-progress-icon done",
+										"aria-hidden": !0,
+										children: m.icon,
+									}),
+									" ",
+									o.message,
+								],
+							},
+							l,
+						);
+					}),
+				}),
+			t.jsx("p", {
+				className: "report-progress-hint",
+				children:
+					"The judge first drafts task-specific criteria from your request, then scores the session against them plus four process dimensions. Usually a minute or two; you can keep exploring meanwhile.",
+			}),
+		],
+	});
 }
 function $r({
-  status: e,
-  analyzing: n,
-  progress: s,
-  locked: r,
-  analyze: o,
-  onJumpTo: l,
-  picker: m,
+	status: e,
+	analyzing: n,
+	progress: s,
+	locked: r,
+	analyze: o,
+	onJumpTo: l,
+	picker: m,
 }) {
-  if (!e)
-    return t.jsx("p", {
-      className: "report-note",
-      children: "Checking for an existing report…",
-    });
-  if (e.state === "running" || n) return t.jsx(Sr, { progress: s });
-  if (e.state === "failed")
-    return t.jsxs("div", {
-      className: "report-note",
-      children: [
-        t.jsxs("p", {
-          className: "report-error",
-          children: [t.jsx(St, { size: 13 }), " Evaluation failed"],
-        }),
-        t.jsx("p", { className: "report-error-detail", children: e.error }),
-        m,
-        t.jsxs("button", {
-          className: "report-run",
-          onClick: o,
-          children: [t.jsx(lt, { size: 13 }), "Retry"],
-        }),
-      ],
-    });
-  if (e.state === "none" || !e.report)
-    return e.judgeAvailable
-      ? t.jsxs("div", {
-          className: "report-note",
-          children: [
-            t.jsx("p", {
-              children:
-                "Ask an agent to evaluate this session: how it explored, whether the footprint matched the task, where it wandered, and how it verified its work. Every finding links back to the timeline.",
-            }),
-            m,
-            t.jsxs("button", {
-              className: "report-run",
-              onClick: o,
-              children: [t.jsx(bn, { size: 13 }), "Evaluate session"],
-            }),
-            t.jsx("p", {
-              className: "report-cost",
-              children:
-                "Runs the selected CLI under your own account and sends it a summary of this session — task wording, file paths, event digests — for the model to read. About a minute.",
-            }),
-          ],
-        })
-      : t.jsxs("p", {
-          className: "report-note",
-          children: [
-            "Evaluation needs a local agent CLI as judge. Install",
-            " ",
-            t.jsx("code", { children: "claude" }),
-            ", ",
-            t.jsx("code", { children: "codex" }),
-            ", or ",
-            t.jsx("code", { children: "crush" }),
-            " and make it available on PATH.",
-          ],
-        });
-  const x = e.report;
-  return t.jsxs("div", {
-    className: "report-body",
-    children: [
-      t.jsxs("div", {
-        className: "report-controls",
-        children: [
-          e.stale
-            ? t.jsxs("p", {
-                className: "report-stale-note",
-                children: [
-                  "Based on ",
-                  x.session.eventCount,
-                  " events — the session has grown since.",
-                ],
-              })
-            : null,
-          t.jsxs("div", {
-            className: "report-stale-actions",
-            children: [
-              m,
-              t.jsxs("button", {
-                className: "report-rerun",
-                onClick: o,
-                title: e.stale
-                  ? "Re-evaluate with the current trace"
-                  : "Run a fresh evaluation of this session",
-                children: [t.jsx(lt, { size: 12 }), "Re-evaluate"],
-              }),
-            ],
-          }),
-        ],
-      }),
-      t.jsx("p", { className: "report-task", children: x.taskSummary }),
-      t.jsx("p", { className: "report-narrative", children: x.narrative }),
-      t.jsx(Ar, { rubric: x.rubric, locked: r, onJumpTo: l }),
-      t.jsx("p", { className: "report-chapter", children: "Process" }),
-      x.dimensions.map((v) => t.jsx(Ir, { dimension: v, locked: r, onJumpTo: l }, v.name)),
-      x.notableMoments?.length
-        ? t.jsxs("section", {
-            className: "report-section",
-            children: [
-              t.jsx("p", { className: "eyebrow", children: "Moments" }),
-              x.notableMoments.map((v) =>
-                t.jsxs(
-                  "button",
-                  {
-                    className: "report-moment",
-                    onClick: () => l(v.seq),
-                    disabled: r,
-                    title: `Jump to step ${v.seq + 1}`,
-                    children: [
-                      t.jsxs("strong", { children: ["#", v.seq + 1] }),
-                      t.jsx("span", { children: v.note }),
-                    ],
-                  },
-                  v.seq,
-                ),
-              ),
-            ],
-          })
-        : null,
-    ],
-  });
+	if (!e)
+		return t.jsx("p", {
+			className: "report-note",
+			children: "Checking for an existing report…",
+		});
+	if (e.state === "running" || n) return t.jsx(Sr, { progress: s });
+	if (e.state === "failed")
+		return t.jsxs("div", {
+			className: "report-note",
+			children: [
+				t.jsxs("p", {
+					className: "report-error",
+					children: [t.jsx(St, { size: 13 }), " Evaluation failed"],
+				}),
+				t.jsx("p", { className: "report-error-detail", children: e.error }),
+				m,
+				t.jsxs("button", {
+					className: "report-run",
+					onClick: o,
+					children: [t.jsx(lt, { size: 13 }), "Retry"],
+				}),
+			],
+		});
+	if (e.state === "none" || !e.report)
+		return e.judgeAvailable
+			? t.jsxs("div", {
+					className: "report-note",
+					children: [
+						t.jsx("p", {
+							children:
+								"Ask an agent to evaluate this session: how it explored, whether the footprint matched the task, where it wandered, and how it verified its work. Every finding links back to the timeline.",
+						}),
+						m,
+						t.jsxs("button", {
+							className: "report-run",
+							onClick: o,
+							children: [t.jsx(bn, { size: 13 }), "Evaluate session"],
+						}),
+						t.jsx("p", {
+							className: "report-cost",
+							children:
+								"Runs the selected CLI under your own account and sends it a summary of this session — task wording, file paths, event digests — for the model to read. About a minute.",
+						}),
+					],
+				})
+			: t.jsxs("p", {
+					className: "report-note",
+					children: [
+						"Evaluation needs a local agent CLI as judge. Install",
+						" ",
+						t.jsx("code", { children: "claude" }),
+						", ",
+						t.jsx("code", { children: "codex" }),
+						", or ",
+						t.jsx("code", { children: "crush" }),
+						" and make it available on PATH.",
+					],
+				});
+	const x = e.report;
+	return t.jsxs("div", {
+		className: "report-body",
+		children: [
+			t.jsxs("div", {
+				className: "report-controls",
+				children: [
+					e.stale
+						? t.jsxs("p", {
+								className: "report-stale-note",
+								children: [
+									"Based on ",
+									x.session.eventCount,
+									" events — the session has grown since.",
+								],
+							})
+						: null,
+					t.jsxs("div", {
+						className: "report-stale-actions",
+						children: [
+							m,
+							t.jsxs("button", {
+								className: "report-rerun",
+								onClick: o,
+								title: e.stale
+									? "Re-evaluate with the current trace"
+									: "Run a fresh evaluation of this session",
+								children: [t.jsx(lt, { size: 12 }), "Re-evaluate"],
+							}),
+						],
+					}),
+				],
+			}),
+			t.jsx("p", { className: "report-task", children: x.taskSummary }),
+			t.jsx("p", { className: "report-narrative", children: x.narrative }),
+			t.jsx(Ar, { rubric: x.rubric, locked: r, onJumpTo: l }),
+			t.jsx("p", { className: "report-chapter", children: "Process" }),
+			x.dimensions.map((v) =>
+				t.jsx(Ir, { dimension: v, locked: r, onJumpTo: l }, v.name),
+			),
+			x.notableMoments?.length
+				? t.jsxs("section", {
+						className: "report-section",
+						children: [
+							t.jsx("p", { className: "eyebrow", children: "Moments" }),
+							x.notableMoments.map((v) =>
+								t.jsxs(
+									"button",
+									{
+										className: "report-moment",
+										onClick: () => l(v.seq),
+										disabled: r,
+										title: `Jump to step ${v.seq + 1}`,
+										children: [
+											t.jsxs("strong", { children: ["#", v.seq + 1] }),
+											t.jsx("span", { children: v.note }),
+										],
+									},
+									v.seq,
+								),
+							),
+						],
+					})
+				: null,
+		],
+	});
 }
 function Ar({ rubric: e, locked: n, onJumpTo: s }) {
-  if (!e)
-    return t.jsx("p", {
-      className: "report-rubric-note",
-      children: "This report has no task rubric — re-evaluate to add one.",
-    });
-  if (e.status !== "scored" || !e.tasks?.length) {
-    const v =
-      e.reason === "generation-failed"
-        ? "Task rubric unavailable this run — showing process dimensions only."
-        : e.reason === "no-events"
-          ? "No tool events to evidence a rubric."
-          : "Not enough task text to build a rubric from.";
-    return t.jsx("p", { className: "report-rubric-note", children: v });
-  }
-  const r = e.tasks,
-    o = r.flatMap((v) => v.criteria),
-    l = o.filter((v) => v.coverage && v.coverage !== "sufficient"),
-    m = o.length > 0 && l.length / o.length > 0.4,
-    x = r.length > 1;
-  return t.jsxs("div", {
-    className: "report-rubric",
-    children: [
-      t.jsx("p", { className: "report-chapter", children: "Tasks" }),
-      m
-        ? t.jsxs("p", {
-            className: "report-rubric-hint",
-            children: [
-              l.length,
-              " of ",
-              o.length,
-              " criteria had thin evidence — the log may not show enough to judge them.",
-            ],
-          })
-        : null,
-      r.map((v, d) =>
-        t.jsx(Lr, { task: v, multi: x, locked: n, onJumpTo: s }, v.anchorSeqs?.[0] ?? `task-${d}`),
-      ),
-      e.note
-        ? t.jsxs("div", {
-            className: "report-rubric-footnote",
-            children: [
-              t.jsx("p", { className: "eyebrow", children: "Rubric note" }),
-              t.jsx("p", { children: e.note }),
-            ],
-          })
-        : null,
-    ],
-  });
+	if (!e)
+		return t.jsx("p", {
+			className: "report-rubric-note",
+			children: "This report has no task rubric — re-evaluate to add one.",
+		});
+	if (e.status !== "scored" || !e.tasks?.length) {
+		const v =
+			e.reason === "generation-failed"
+				? "Task rubric unavailable this run — showing process dimensions only."
+				: e.reason === "no-events"
+					? "No tool events to evidence a rubric."
+					: "Not enough task text to build a rubric from.";
+		return t.jsx("p", { className: "report-rubric-note", children: v });
+	}
+	const r = e.tasks,
+		o = r.flatMap((v) => v.criteria),
+		l = o.filter((v) => v.coverage && v.coverage !== "sufficient"),
+		m = o.length > 0 && l.length / o.length > 0.4,
+		x = r.length > 1;
+	return t.jsxs("div", {
+		className: "report-rubric",
+		children: [
+			t.jsx("p", { className: "report-chapter", children: "Tasks" }),
+			m
+				? t.jsxs("p", {
+						className: "report-rubric-hint",
+						children: [
+							l.length,
+							" of ",
+							o.length,
+							" criteria had thin evidence — the log may not show enough to judge them.",
+						],
+					})
+				: null,
+			r.map((v, d) =>
+				t.jsx(
+					Lr,
+					{ task: v, multi: x, locked: n, onJumpTo: s },
+					v.anchorSeqs?.[0] ?? `task-${d}`,
+				),
+			),
+			e.note
+				? t.jsxs("div", {
+						className: "report-rubric-footnote",
+						children: [
+							t.jsx("p", { className: "eyebrow", children: "Rubric note" }),
+							t.jsx("p", { children: e.note }),
+						],
+					})
+				: null,
+		],
+	});
 }
 function Lr({ task: e, multi: n, locked: s, onJumpTo: r }) {
-  const o = e.anchorSeqs?.[0];
-  return t.jsxs("section", {
-    className: "report-rubric-task",
-    children: [
-      n
-        ? t.jsx("button", {
-            className: "rubric-task-head",
-            onClick: () => {
-              o !== void 0 && r(o);
-            },
-            disabled: s || o === void 0,
-            title: o !== void 0 ? `Jump to this task's start (step ${o + 1})` : void 0,
-            children: t.jsxs("span", {
-              className: "rubric-task-title",
-              children: [
-                e.title,
-                e.type
-                  ? t.jsx("span", {
-                      className: "rubric-task-type",
-                      children: e.type,
-                    })
-                  : null,
-              ],
-            }),
-          })
-        : null,
-      e.criteria.map((l) => t.jsx(Pr, { criterion: l, locked: s, onJumpTo: r }, l.id)),
-    ],
-  });
+	const o = e.anchorSeqs?.[0];
+	return t.jsxs("section", {
+		className: "report-rubric-task",
+		children: [
+			n
+				? t.jsx("button", {
+						className: "rubric-task-head",
+						onClick: () => {
+							o !== void 0 && r(o);
+						},
+						disabled: s || o === void 0,
+						title:
+							o !== void 0
+								? `Jump to this task's start (step ${o + 1})`
+								: void 0,
+						children: t.jsxs("span", {
+							className: "rubric-task-title",
+							children: [
+								e.title,
+								e.type
+									? t.jsx("span", {
+											className: "rubric-task-type",
+											children: e.type,
+										})
+									: null,
+							],
+						}),
+					})
+				: null,
+			e.criteria.map((l) =>
+				t.jsx(Pr, { criterion: l, locked: s, onJumpTo: r }, l.id),
+			),
+		],
+	});
 }
 function Pr({ criterion: e, locked: n, onJumpTo: s }) {
-  const r = [e.why, e.good ? `good: ${e.good}` : "", e.bad ? `bad: ${e.bad}` : ""].filter(Boolean)
-    .join(`
+	const r = [
+		e.why,
+		e.good ? `good: ${e.good}` : "",
+		e.bad ? `bad: ${e.bad}` : "",
+	]
+		.filter(Boolean)
+		.join(`
 `);
-  return t.jsxs("section", {
-    className: "report-dimension report-criterion",
-    children: [
-      t.jsxs("div", {
-        className: "report-dimension-head",
-        children: [
-          t.jsx("span", {
-            className: "report-criterion-name",
-            title: r || void 0,
-            children: e.title,
-          }),
-          t.jsxs("span", {
-            className: "report-criterion-badges",
-            children: [
-              e.coverage === "partial"
-                ? t.jsx("span", {
-                    className: "coverage-badge",
-                    children: "partial evidence",
-                  })
-                : null,
-              t.jsx("span", {
-                className: `verdict verdict-${e.verdict}`,
-                title:
-                  e.coverage === "none"
-                    ? "The log cannot evidence this criterion either way"
-                    : void 0,
-                children: En(e.verdict),
-              }),
-            ],
-          }),
-        ],
-      }),
-      e.findings.map((o) =>
-        t.jsx(
-          Cn,
-          { finding: o, locked: n, onJumpTo: s },
-          `${o.severity}|${o.evidenceSeqs?.join(",")}|${o.claim}`,
-        ),
-      ),
-    ],
-  });
+	return t.jsxs("section", {
+		className: "report-dimension report-criterion",
+		children: [
+			t.jsxs("div", {
+				className: "report-dimension-head",
+				children: [
+					t.jsx("span", {
+						className: "report-criterion-name",
+						title: r || void 0,
+						children: e.title,
+					}),
+					t.jsxs("span", {
+						className: "report-criterion-badges",
+						children: [
+							e.coverage === "partial"
+								? t.jsx("span", {
+										className: "coverage-badge",
+										children: "partial evidence",
+									})
+								: null,
+							t.jsx("span", {
+								className: `verdict verdict-${e.verdict}`,
+								title:
+									e.coverage === "none"
+										? "The log cannot evidence this criterion either way"
+										: void 0,
+								children: En(e.verdict),
+							}),
+						],
+					}),
+				],
+			}),
+			e.findings.map((o) =>
+				t.jsx(
+					Cn,
+					{ finding: o, locked: n, onJumpTo: s },
+					`${o.severity}|${o.evidenceSeqs?.join(",")}|${o.claim}`,
+				),
+			),
+		],
+	});
 }
 function Cn({ finding: e, locked: n, onJumpTo: s }) {
-  return t.jsxs("button", {
-    className: "report-finding",
-    onClick: () => {
-      const r = e.evidenceSeqs?.[0];
-      r !== void 0 && s(r);
-    },
-    disabled: n || !e.evidenceSeqs?.length,
-    title: e.evidenceSeqs?.length
-      ? `Jump to step ${e.evidenceSeqs[0] + 1} — evidence: ${e.evidenceSeqs.map((r) => `#${r + 1}`).join(" ")}`
-      : void 0,
-    children: [
-      t.jsx("span", { className: `severity-dot ${Tr(e.severity)}` }),
-      t.jsx("span", { className: "report-claim", children: e.claim }),
-    ],
-  });
+	return t.jsxs("button", {
+		className: "report-finding",
+		onClick: () => {
+			const r = e.evidenceSeqs?.[0];
+			r !== void 0 && s(r);
+		},
+		disabled: n || !e.evidenceSeqs?.length,
+		title: e.evidenceSeqs?.length
+			? `Jump to step ${e.evidenceSeqs[0] + 1} — evidence: ${e.evidenceSeqs.map((r) => `#${r + 1}`).join(" ")}`
+			: void 0,
+		children: [
+			t.jsx("span", { className: `severity-dot ${Tr(e.severity)}` }),
+			t.jsx("span", { className: "report-claim", children: e.claim }),
+		],
+	});
 }
 function Ir({ dimension: e, locked: n, onJumpTo: s }) {
-  const r = Nr[e.name] ?? { title: e.name, hint: "" };
-  return t.jsxs("section", {
-    className: "report-dimension",
-    children: [
-      t.jsxs("div", {
-        className: "report-dimension-head",
-        "data-hint": r.hint,
-        children: [
-          t.jsx("span", {
-            className: "report-dimension-name",
-            children: r.title,
-          }),
-          t.jsx("span", {
-            className: `verdict verdict-${e.verdict}`,
-            children: En(e.verdict),
-          }),
-        ],
-      }),
-      e.findings.map((o) =>
-        t.jsx(
-          Cn,
-          { finding: o, locked: n, onJumpTo: s },
-          `${o.severity}|${o.evidenceSeqs?.join(",")}|${o.claim}`,
-        ),
-      ),
-    ],
-  });
+	const r = Nr[e.name] ?? { title: e.name, hint: "" };
+	return t.jsxs("section", {
+		className: "report-dimension",
+		children: [
+			t.jsxs("div", {
+				className: "report-dimension-head",
+				"data-hint": r.hint,
+				children: [
+					t.jsx("span", {
+						className: "report-dimension-name",
+						children: r.title,
+					}),
+					t.jsx("span", {
+						className: `verdict verdict-${e.verdict}`,
+						children: En(e.verdict),
+					}),
+				],
+			}),
+			e.findings.map((o) =>
+				t.jsx(
+					Cn,
+					{ finding: o, locked: n, onJumpTo: s },
+					`${o.severity}|${o.evidenceSeqs?.join(",")}|${o.claim}`,
+				),
+			),
+		],
+	});
 }
 function En(e) {
-  return e === "insufficient-data" ? "no signal" : e;
+	return e === "insufficient-data" ? "no signal" : e;
 }
 function Tr(e) {
-  return `sev-${e}`;
+	return `sev-${e}`;
 }
 function zr(e) {
-  const n = new Date(e);
-  return Number.isNaN(n.getTime()) ? "" : n.toISOString().slice(0, 10);
+	const n = new Date(e);
+	return Number.isNaN(n.getTime()) ? "" : n.toISOString().slice(0, 10);
 }
 function Fr({ view: e, onViewChange: n, note: s, locked: r = !1 }) {
-  return t.jsxs("div", {
-    className: "view-pop",
-    role: "group",
-    "aria-label": "Scene view",
-    children: [
-      t.jsxs("button", {
-        "aria-pressed": e === "tree",
-        className: e === "tree" ? "view-row active" : "view-row",
-        onClick: () => n("tree"),
-        disabled: r,
-        children: [t.jsx(jn, { size: 14 }), t.jsx("span", { children: "Tree" })],
-      }),
-      t.jsxs("button", {
-        "aria-pressed": e === "terrain",
-        className: e === "terrain" ? "view-row active" : "view-row",
-        onClick: () => n("terrain"),
-        disabled: r,
-        children: [t.jsx(wn, { size: 14 }), t.jsx("span", { children: "Terrain" })],
-      }),
-      t.jsxs("p", {
-        className: "view-note",
-        children: [s, t.jsx("span", { className: "view-key", children: "V" })],
-      }),
-    ],
-  });
+	return t.jsxs("div", {
+		className: "view-pop",
+		role: "group",
+		"aria-label": "Scene view",
+		children: [
+			t.jsxs("button", {
+				"aria-pressed": e === "tree",
+				className: e === "tree" ? "view-row active" : "view-row",
+				onClick: () => n("tree"),
+				disabled: r,
+				children: [
+					t.jsx(jn, { size: 14 }),
+					t.jsx("span", { children: "Tree" }),
+				],
+			}),
+			t.jsxs("button", {
+				"aria-pressed": e === "terrain",
+				className: e === "terrain" ? "view-row active" : "view-row",
+				onClick: () => n("terrain"),
+				disabled: r,
+				children: [
+					t.jsx(wn, { size: 14 }),
+					t.jsx("span", { children: "Terrain" }),
+				],
+			}),
+			t.jsxs("p", {
+				className: "view-note",
+				children: [s, t.jsx("span", { className: "view-key", children: "V" })],
+			}),
+		],
+	});
 }
 const st = { hit: 1, read: 2, edit: 3 },
-  Br = 12;
+	Br = 12;
 class _r {
-  events;
-  idByPath = new Map();
-  cursor = -1;
-  touchByFile = new Map();
-  touchByPath = new Map();
-  visitsByFile = new Map();
-  historyByPath = new Map();
-  recentTargets = [];
-  constructor(n, s) {
-    this.events = n?.events ?? [];
-    for (const r of s?.files ?? []) this.idByPath.set(r.path, r.id);
-  }
-  snapshotAt(n) {
-    const s = Math.min(n, this.events.length - 1);
-    s < this.cursor && this.reset();
-    for (let r = this.cursor + 1; r <= s; r++) this.apply(this.events[r]);
-    return (
-      (this.cursor = Math.max(this.cursor, s)),
-      {
-        touchByFile: this.touchByFile,
-        touchByPath: this.touchByPath,
-        visitsByFile: this.visitsByFile,
-        historyByPath: this.historyByPath,
-        recentTargets: this.recentTargets,
-      }
-    );
-  }
-  reset() {
-    ((this.cursor = -1),
-      this.touchByFile.clear(),
-      this.touchByPath.clear(),
-      this.visitsByFile.clear(),
-      this.historyByPath.clear(),
-      (this.recentTargets.length = 0));
-  }
-  apply(n) {
-    for (const s of n.targets) {
-      const r = this.touchByPath.get(s.path);
-      (!r || st[s.touch] > st[r]) && this.touchByPath.set(s.path, s.touch);
-      const o = s.fileId ?? this.idByPath.get(s.path);
-      if (o !== void 0) {
-        const m = this.touchByFile.get(o);
-        ((!m || st[s.touch] > st[m]) && this.touchByFile.set(o, s.touch),
-          this.visitsByFile.set(o, (this.visitsByFile.get(o) ?? 0) + 1));
-      }
-      const l = this.historyByPath.get(s.path);
-      l ? l.push(n) : this.historyByPath.set(s.path, [n]);
-    }
-    if (n.targets.length > 0) {
-      const s = n.targets.find((r) => !r.weak) ?? n.targets[0];
-      (this.recentTargets.push({
-        ...s,
-        fileId: s.fileId ?? this.idByPath.get(s.path),
-      }),
-        this.recentTargets.length > Br && this.recentTargets.shift());
-    }
-  }
+	events;
+	idByPath = new Map();
+	cursor = -1;
+	touchByFile = new Map();
+	touchByPath = new Map();
+	visitsByFile = new Map();
+	historyByPath = new Map();
+	recentTargets = [];
+	constructor(n, s) {
+		this.events = n?.events ?? [];
+		for (const r of s?.files ?? []) this.idByPath.set(r.path, r.id);
+	}
+	snapshotAt(n) {
+		const s = Math.min(n, this.events.length - 1);
+		s < this.cursor && this.reset();
+		for (let r = this.cursor + 1; r <= s; r++) this.apply(this.events[r]);
+		return (
+			(this.cursor = Math.max(this.cursor, s)),
+			{
+				touchByFile: this.touchByFile,
+				touchByPath: this.touchByPath,
+				visitsByFile: this.visitsByFile,
+				historyByPath: this.historyByPath,
+				recentTargets: this.recentTargets,
+			}
+		);
+	}
+	reset() {
+		(this.cursor = -1),
+			this.touchByFile.clear(),
+			this.touchByPath.clear(),
+			this.visitsByFile.clear(),
+			this.historyByPath.clear(),
+			(this.recentTargets.length = 0);
+	}
+	apply(n) {
+		for (const s of n.targets) {
+			const r = this.touchByPath.get(s.path);
+			(!r || st[s.touch] > st[r]) && this.touchByPath.set(s.path, s.touch);
+			const o = s.fileId ?? this.idByPath.get(s.path);
+			if (o !== void 0) {
+				const m = this.touchByFile.get(o);
+				(!m || st[s.touch] > st[m]) && this.touchByFile.set(o, s.touch),
+					this.visitsByFile.set(o, (this.visitsByFile.get(o) ?? 0) + 1);
+			}
+			const l = this.historyByPath.get(s.path);
+			l ? l.push(n) : this.historyByPath.set(s.path, [n]);
+		}
+		if (n.targets.length > 0) {
+			const s = n.targets.find((r) => !r.weak) ?? n.targets[0];
+			this.recentTargets.push({
+				...s,
+				fileId: s.fileId ?? this.idByPath.get(s.path),
+			}),
+				this.recentTargets.length > Br && this.recentTargets.shift();
+		}
+	}
 }
 function qr(e) {
-  const s = e.split(";")[0].trim().toLowerCase().split("/")[1] ?? "";
-  return s.includes("webm")
-    ? "webm"
-    : s.includes("mp4")
-      ? "mp4"
-      : s.includes("x-matroska") || s.includes("matroska")
-        ? "mkv"
-        : s.includes("ogg")
-          ? "ogv"
-          : s || "webm";
+	const s = e.split(";")[0].trim().toLowerCase().split("/")[1] ?? "";
+	return s.includes("webm")
+		? "webm"
+		: s.includes("mp4")
+			? "mp4"
+			: s.includes("x-matroska") || s.includes("matroska")
+				? "mkv"
+				: s.includes("ogg")
+					? "ogv"
+					: s || "webm";
 }
 const Dr = 30,
-  Or = 3e4,
-  Hr = 120;
+	Or = 3e4,
+	Hr = 120;
 function Ur() {
-  const e = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
-  for (const n of e) if (typeof MediaRecorder < "u" && MediaRecorder.isTypeSupported(n)) return n;
+	const e = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+	for (const n of e)
+		if (typeof MediaRecorder < "u" && MediaRecorder.isTypeSupported(n))
+			return n;
 }
 function Rn() {
-  return (
-    typeof MediaRecorder < "u" &&
-    typeof HTMLCanvasElement < "u" &&
-    typeof HTMLCanvasElement.prototype.captureStream == "function"
-  );
+	return (
+		typeof MediaRecorder < "u" &&
+		typeof HTMLCanvasElement < "u" &&
+		typeof HTMLCanvasElement.prototype.captureStream == "function"
+	);
 }
 function Vr(e) {
-  const { canvas: n, total: s, setSeq: r, onProgress: o, signal: l } = e,
-    m = e.fps ?? Dr;
-  if (!Rn())
-    return Promise.reject(
-      new Error("This browser can't record the canvas (MediaRecorder unavailable)."),
-    );
-  if (s <= 0) return Promise.reject(new Error("Nothing to record — load a session first."));
-  const x = e.durationMs ?? Math.min(Or, Math.max(1e3, s * Hr)),
-    v = Ur(),
-    d = n.captureStream(m),
-    b = v ? new MediaRecorder(d, { mimeType: v }) : new MediaRecorder(d),
-    c = [];
-  return new Promise((S, w) => {
-    let L = 0,
-      O = 0,
-      z = !1;
-    const p = () => {
-        (L && cancelAnimationFrame(L),
-          d.getTracks().forEach((_) => _.stop()),
-          l?.removeEventListener("abort", C));
-      },
-      N = () => {
-        if (z) return;
-        ((z = !0), p());
-        const _ = b.mimeType || v || "video/webm";
-        S({ blob: new Blob(c, { type: _ }), extension: qr(_) });
-      },
-      T = (_) => {
-        if (!z) {
-          ((z = !0), p());
-          try {
-            b.state !== "inactive" && b.stop();
-          } catch {}
-          w(_);
-        }
-      },
-      C = () => T(new Error("Recording cancelled."));
-    if (
-      ((b.ondataavailable = (_) => {
-        _.data && _.data.size > 0 && c.push(_.data);
-      }),
-      (b.onerror = () => T(new Error("Recording failed."))),
-      (b.onstop = N),
-      l)
-    ) {
-      if (l.aborted) {
-        T(new Error("Recording cancelled."));
-        return;
-      }
-      l.addEventListener("abort", C);
-    }
-    const A = (_) => {
-      if (z) return;
-      O || (O = _);
-      const Q = Math.min(1, (_ - O) / x),
-        K = Math.min(s - 1, Math.floor(Q * (s - 1)));
-      if ((r(K), o?.(Q), Q >= 1)) {
-        L = requestAnimationFrame(() => {
-          b.state !== "inactive" && b.stop();
-        });
-        return;
-      }
-      L = requestAnimationFrame(A);
-    };
-    (r(0), b.start(), (L = requestAnimationFrame(A)));
-  });
+	const { canvas: n, total: s, setSeq: r, onProgress: o, signal: l } = e,
+		m = e.fps ?? Dr;
+	if (!Rn())
+		return Promise.reject(
+			new Error(
+				"This browser can't record the canvas (MediaRecorder unavailable).",
+			),
+		);
+	if (s <= 0)
+		return Promise.reject(
+			new Error("Nothing to record — load a session first."),
+		);
+	const x = e.durationMs ?? Math.min(Or, Math.max(1e3, s * Hr)),
+		v = Ur(),
+		d = n.captureStream(m),
+		b = v ? new MediaRecorder(d, { mimeType: v }) : new MediaRecorder(d),
+		c = [];
+	return new Promise((S, w) => {
+		let L = 0,
+			O = 0,
+			z = !1;
+		const p = () => {
+				L && cancelAnimationFrame(L),
+					d.getTracks().forEach((_) => _.stop()),
+					l?.removeEventListener("abort", C);
+			},
+			N = () => {
+				if (z) return;
+				(z = !0), p();
+				const _ = b.mimeType || v || "video/webm";
+				S({ blob: new Blob(c, { type: _ }), extension: qr(_) });
+			},
+			T = (_) => {
+				if (!z) {
+					(z = !0), p();
+					try {
+						b.state !== "inactive" && b.stop();
+					} catch {}
+					w(_);
+				}
+			},
+			C = () => T(new Error("Recording cancelled."));
+		if (
+			((b.ondataavailable = (_) => {
+				_.data && _.data.size > 0 && c.push(_.data);
+			}),
+			(b.onerror = () => T(new Error("Recording failed."))),
+			(b.onstop = N),
+			l)
+		) {
+			if (l.aborted) {
+				T(new Error("Recording cancelled."));
+				return;
+			}
+			l.addEventListener("abort", C);
+		}
+		const A = (_) => {
+			if (z) return;
+			O || (O = _);
+			const Q = Math.min(1, (_ - O) / x),
+				K = Math.min(s - 1, Math.floor(Q * (s - 1)));
+			if ((r(K), o?.(Q), Q >= 1)) {
+				L = requestAnimationFrame(() => {
+					b.state !== "inactive" && b.stop();
+				});
+				return;
+			}
+			L = requestAnimationFrame(A);
+		};
+		r(0), b.start(), (L = requestAnimationFrame(A));
+	});
 }
 function Gr(e, n) {
-  const s = URL.createObjectURL(e),
-    r = document.createElement("a");
-  ((r.href = s),
-    (r.download = n),
-    document.body.appendChild(r),
-    r.click(),
-    r.remove(),
-    setTimeout(() => URL.revokeObjectURL(s), 1e3));
+	const s = URL.createObjectURL(e),
+		r = document.createElement("a");
+	(r.href = s),
+		(r.download = n),
+		document.body.appendChild(r),
+		r.click(),
+		r.remove(),
+		setTimeout(() => URL.revokeObjectURL(s), 1e3);
 }
 function Je(e) {
-  switch (e) {
-    case "hit":
-      return "seen";
-    case "read":
-      return "read";
-    case "edit":
-      return "edited";
-    default:
-      return "unvisited";
-  }
+	switch (e) {
+		case "hit":
+			return "seen";
+		case "read":
+			return "read";
+		case "edit":
+			return "edited";
+		default:
+			return "unvisited";
+	}
 }
 let Ue = null;
 function Sn() {
-  if (Ue) return Ue;
-  const e = 64,
-    n = document.createElement("canvas");
-  ((n.width = e), (n.height = e));
-  const s = n.getContext("2d"),
-    r = s.createRadialGradient(e / 2, e / 2, 0, e / 2, e / 2, e / 2);
-  return (
-    r.addColorStop(0, "rgba(255,255,255,1)"),
-    r.addColorStop(0.25, "rgba(255,210,160,0.55)"),
-    r.addColorStop(1, "rgba(255,158,94,0)"),
-    (s.fillStyle = r),
-    s.fillRect(0, 0, e, e),
-    (Ue = new kt(n)),
-    (Ue.userData.shared = !0),
-    Ue
-  );
+	if (Ue) return Ue;
+	const e = 64,
+		n = document.createElement("canvas");
+	(n.width = e), (n.height = e);
+	const s = n.getContext("2d"),
+		r = s.createRadialGradient(e / 2, e / 2, 0, e / 2, e / 2, e / 2);
+	return (
+		r.addColorStop(0, "rgba(255,255,255,1)"),
+		r.addColorStop(0.25, "rgba(255,210,160,0.55)"),
+		r.addColorStop(1, "rgba(255,158,94,0)"),
+		(s.fillStyle = r),
+		s.fillRect(0, 0, e, e),
+		(Ue = new kt(n)),
+		(Ue.userData.shared = !0),
+		Ue
+	);
 }
 let Ve = null;
 function Kr() {
-  if (Ve) return Ve;
-  const e = 128,
-    n = document.createElement("canvas");
-  ((n.width = e), (n.height = e));
-  const s = n.getContext("2d"),
-    r = s.createRadialGradient(e / 2, e / 2, 0, e / 2, e / 2, e / 2);
-  return (
-    r.addColorStop(0, "rgba(255,255,255,0.9)"),
-    r.addColorStop(0.4, "rgba(255,255,255,0.28)"),
-    r.addColorStop(1, "rgba(255,255,255,0)"),
-    (s.fillStyle = r),
-    s.fillRect(0, 0, e, e),
-    (Ve = new kt(n)),
-    (Ve.userData.shared = !0),
-    Ve
-  );
+	if (Ve) return Ve;
+	const e = 128,
+		n = document.createElement("canvas");
+	(n.width = e), (n.height = e);
+	const s = n.getContext("2d"),
+		r = s.createRadialGradient(e / 2, e / 2, 0, e / 2, e / 2, e / 2);
+	return (
+		r.addColorStop(0, "rgba(255,255,255,0.9)"),
+		r.addColorStop(0.4, "rgba(255,255,255,0.28)"),
+		r.addColorStop(1, "rgba(255,255,255,0)"),
+		(s.fillStyle = r),
+		s.fillRect(0, 0, e, e),
+		(Ve = new kt(n)),
+		(Ve.userData.shared = !0),
+		Ve
+	);
 }
 function Wr(e) {
-  const n = '500 30px "Schibsted Grotesk Variable", "PingFang SC", sans-serif',
-    s = document.createElement("canvas").getContext("2d");
-  s.font = n;
-  const r = Math.ceil(s.measureText(e).width) + 24,
-    o = 44,
-    l = document.createElement("canvas");
-  ((l.width = r * 2), (l.height = o * 2));
-  const m = l.getContext("2d");
-  (m.scale(2, 2),
-    (m.font = n),
-    (m.textBaseline = "middle"),
-    (m.textAlign = "center"),
-    (m.fillStyle = "rgba(197, 205, 222, 0.95)"),
-    m.fillText(e, r / 2, o / 2 + 1));
-  const x = new kt(l);
-  return ((x.anisotropy = 4), { texture: x, aspect: r / o });
+	const n = '500 30px "Schibsted Grotesk Variable", "PingFang SC", sans-serif',
+		s = document.createElement("canvas").getContext("2d");
+	s.font = n;
+	const r = Math.ceil(s.measureText(e).width) + 24,
+		o = 44,
+		l = document.createElement("canvas");
+	(l.width = r * 2), (l.height = o * 2);
+	const m = l.getContext("2d");
+	m.scale(2, 2),
+		(m.font = n),
+		(m.textBaseline = "middle"),
+		(m.textAlign = "center"),
+		(m.fillStyle = "rgba(197, 205, 222, 0.95)"),
+		m.fillText(e, r / 2, o / 2 + 1);
+	const x = new kt(l);
+	return (x.anisotropy = 4), { texture: x, aspect: r / o };
 }
 const Yr = 60,
-  Xr = 120;
+	Xr = 120;
 class $n {
-  labels = [];
-  y;
-  dirty = !0;
-  lastCamPos = new ee(1 / 0, 1 / 0, 1 / 0);
-  lastCamQuat = new Ie(0, 0, 0, 0);
-  lastViewW = 0;
-  lastViewH = 0;
-  point = new ee();
-  constructor(n, s, r, o = !1) {
-    this.y = r;
-    const l = [...n].sort((m, x) => x.fileCount - m.fileCount).slice(0, Xr);
-    for (const m of l) {
-      const { texture: x, aspect: v } = Wr(m.name),
-        d = new ut(
-          new Ct({
-            map: x,
-            transparent: !0,
-            opacity: 0,
-            depthWrite: !1,
-            depthTest: !o,
-            toneMapped: !1,
-            fog: !1,
-          }),
-        );
-      (o && (d.renderOrder = 20),
-        (d.visible = !1),
-        d.position.set(m.x, r, m.z),
-        (d.raycast = () => {}),
-        s.add(d),
-        this.labels.push({ sprite: d, entry: m, aspect: v, target: 0 }));
-    }
-  }
-  markDirty() {
-    this.dirty = !0;
-  }
-  updateTargets(n, s, r) {
-    if (
-      this.labels.length === 0 ||
-      s === 0 ||
-      r === 0 ||
-      !(
-        this.dirty ||
-        !n.position.equals(this.lastCamPos) ||
-        !n.quaternion.equals(this.lastCamQuat) ||
-        s !== this.lastViewW ||
-        r !== this.lastViewH
-      )
-    )
-      return;
-    ((this.dirty = !1),
-      this.lastCamPos.copy(n.position),
-      this.lastCamQuat.copy(n.quaternion),
-      (this.lastViewW = s),
-      (this.lastViewH = r));
-    const l = Math.tan(Et.degToRad(n.fov) / 2),
-      m = Math.max(s, r),
-      x = [];
-    for (const d of this.labels) {
-      this.point.set(d.entry.x, this.y, d.entry.z);
-      const b = this.point.distanceTo(n.position),
-        c = r / (2 * b * l),
-        S = d.entry.radius * c;
-      this.point.project(n);
-      const w = ((this.point.x + 1) / 2) * s,
-        L = ((1 - this.point.y) / 2) * r;
-      if (
-        !(this.point.z < 1 && w > -60 && w < s + 60 && L > -40 && L < r + 40) ||
-        S < Yr ||
-        S > m * 1.6
-      ) {
-        d.target = 0;
-        continue;
-      }
-      const z = d.entry.depth <= 1 ? 15 : 13,
-        p = z / c;
-      (d.sprite.scale.set(p * d.aspect, p, 1),
-        x.push({ label: d, sx: w, sy: L, pw: z * d.aspect, ph: z }));
-    }
-    x.sort((d, b) => b.label.entry.fileCount - d.label.entry.fileCount);
-    const v = [];
-    for (const d of x) {
-      const b = v.some(
-        (c) =>
-          Math.abs(c.sx - d.sx) < (c.pw + d.pw) / 2 + 14 &&
-          Math.abs(c.sy - d.sy) < (c.ph + d.ph) / 2 + 10,
-      );
-      ((d.label.target = b ? 0 : 1), b || v.push(d));
-    }
-  }
-  ease(n) {
-    for (const s of this.labels) {
-      const r = s.sprite.material,
-        o = s.target - r.opacity;
-      (Math.abs(o) > 0.02
-        ? (r.opacity = n ? s.target : r.opacity + o * 0.16)
-        : r.opacity !== s.target && (r.opacity = s.target),
-        (s.sprite.visible = r.opacity > 0.02));
-    }
-  }
+	labels = [];
+	y;
+	dirty = !0;
+	lastCamPos = new ee(1 / 0, 1 / 0, 1 / 0);
+	lastCamQuat = new Ie(0, 0, 0, 0);
+	lastViewW = 0;
+	lastViewH = 0;
+	point = new ee();
+	constructor(n, s, r, o = !1) {
+		this.y = r;
+		const l = [...n].sort((m, x) => x.fileCount - m.fileCount).slice(0, Xr);
+		for (const m of l) {
+			const { texture: x, aspect: v } = Wr(m.name),
+				d = new ut(
+					new Ct({
+						map: x,
+						transparent: !0,
+						opacity: 0,
+						depthWrite: !1,
+						depthTest: !o,
+						toneMapped: !1,
+						fog: !1,
+					}),
+				);
+			o && (d.renderOrder = 20),
+				(d.visible = !1),
+				d.position.set(m.x, r, m.z),
+				(d.raycast = () => {}),
+				s.add(d),
+				this.labels.push({ sprite: d, entry: m, aspect: v, target: 0 });
+		}
+	}
+	markDirty() {
+		this.dirty = !0;
+	}
+	updateTargets(n, s, r) {
+		if (
+			this.labels.length === 0 ||
+			s === 0 ||
+			r === 0 ||
+			!(
+				this.dirty ||
+				!n.position.equals(this.lastCamPos) ||
+				!n.quaternion.equals(this.lastCamQuat) ||
+				s !== this.lastViewW ||
+				r !== this.lastViewH
+			)
+		)
+			return;
+		(this.dirty = !1),
+			this.lastCamPos.copy(n.position),
+			this.lastCamQuat.copy(n.quaternion),
+			(this.lastViewW = s),
+			(this.lastViewH = r);
+		const l = Math.tan(Et.degToRad(n.fov) / 2),
+			m = Math.max(s, r),
+			x = [];
+		for (const d of this.labels) {
+			this.point.set(d.entry.x, this.y, d.entry.z);
+			const b = this.point.distanceTo(n.position),
+				c = r / (2 * b * l),
+				S = d.entry.radius * c;
+			this.point.project(n);
+			const w = ((this.point.x + 1) / 2) * s,
+				L = ((1 - this.point.y) / 2) * r;
+			if (
+				!(this.point.z < 1 && w > -60 && w < s + 60 && L > -40 && L < r + 40) ||
+				S < Yr ||
+				S > m * 1.6
+			) {
+				d.target = 0;
+				continue;
+			}
+			const z = d.entry.depth <= 1 ? 15 : 13,
+				p = z / c;
+			d.sprite.scale.set(p * d.aspect, p, 1),
+				x.push({ label: d, sx: w, sy: L, pw: z * d.aspect, ph: z });
+		}
+		x.sort((d, b) => b.label.entry.fileCount - d.label.entry.fileCount);
+		const v = [];
+		for (const d of x) {
+			const b = v.some(
+				(c) =>
+					Math.abs(c.sx - d.sx) < (c.pw + d.pw) / 2 + 14 &&
+					Math.abs(c.sy - d.sy) < (c.ph + d.ph) / 2 + 10,
+			);
+			(d.label.target = b ? 0 : 1), b || v.push(d);
+		}
+	}
+	ease(n) {
+		for (const s of this.labels) {
+			const r = s.sprite.material,
+				o = s.target - r.opacity;
+			Math.abs(o) > 0.02
+				? (r.opacity = n ? s.target : r.opacity + o * 0.16)
+				: r.opacity !== s.target && (r.opacity = s.target),
+				(s.sprite.visible = r.opacity > 0.02);
+		}
+	}
 }
 const dt = new ge("#12151c"),
-  An = new ge("#ff9e5e"),
-  Ln = {
-    hit: new ge("#8fb45f"),
-    read: new ge("#a5c8f1"),
-    edit: new ge("#f0ad5a"),
-    selected: new ge("#f6ead2"),
-  };
+	An = new ge("#ff9e5e"),
+	Ln = {
+		hit: new ge("#8fb45f"),
+		read: new ge("#a5c8f1"),
+		edit: new ge("#f0ad5a"),
+		selected: new ge("#f6ead2"),
+	};
 function Pn(e, n, s) {
-  if (!Number.isFinite(e.aspect) || e.aspect <= 0) return null;
-  const r = n.clone().negate(),
-    o = new ee().crossVectors(r, new ee(0, 1, 0)).normalize(),
-    l = new ee().crossVectors(o, r),
-    m = Math.tan(Et.degToRad(e.fov) / 2),
-    x = m * e.aspect;
-  let v = 0;
-  for (const d of s) {
-    const b = d.dot(r);
-    v = Math.max(v, Math.abs(d.dot(o)) / x - b, Math.abs(d.dot(l)) / m - b);
-  }
-  return v;
+	if (!Number.isFinite(e.aspect) || e.aspect <= 0) return null;
+	const r = n.clone().negate(),
+		o = new ee().crossVectors(r, new ee(0, 1, 0)).normalize(),
+		l = new ee().crossVectors(o, r),
+		m = Math.tan(Et.degToRad(e.fov) / 2),
+		x = m * e.aspect;
+	let v = 0;
+	for (const d of s) {
+		const b = d.dot(r);
+		v = Math.max(v, Math.abs(d.dot(o)) / x - b, Math.abs(d.dot(l)) / m - b);
+	}
+	return v;
 }
 function In(e, n, s, r, o, l) {
-  if (r === 0 || o === 0) return;
-  const m = e.getWorldDirection(new ee()),
-    x = s.clone().sub(e.position).dot(m);
-  if (x <= 0) return;
-  const v = s.clone().project(e),
-    d = ((v.x + 1) / 2) * r,
-    b = ((1 - v.y) / 2) * o,
-    c = 48,
-    S = Math.max(c + 60, r - l - 48),
-    w = 120,
-    L = o - 100,
-    O = Math.min(Math.max(d, c), S),
-    z = Math.min(Math.max(b, w), L);
-  if (O === d && z === b) return;
-  const p = Math.tan(Et.degToRad(e.fov) / 2),
-    N = p * e.aspect,
-    T = new ee().crossVectors(m, new ee(0, 1, 0)).normalize(),
-    C = new ee().crossVectors(T, m),
-    A = T.multiplyScalar(((d - O) * 2 * x * N) / r).addScaledVector(C, ((z - b) * 2 * x * p) / o);
-  (e.position.add(A), n.target.add(A), n.update());
+	if (r === 0 || o === 0) return;
+	const m = e.getWorldDirection(new ee()),
+		x = s.clone().sub(e.position).dot(m);
+	if (x <= 0) return;
+	const v = s.clone().project(e),
+		d = ((v.x + 1) / 2) * r,
+		b = ((1 - v.y) / 2) * o,
+		c = 48,
+		S = Math.max(c + 60, r - l - 48),
+		w = 120,
+		L = o - 100,
+		O = Math.min(Math.max(d, c), S),
+		z = Math.min(Math.max(b, w), L);
+	if (O === d && z === b) return;
+	const p = Math.tan(Et.degToRad(e.fov) / 2),
+		N = p * e.aspect,
+		T = new ee().crossVectors(m, new ee(0, 1, 0)).normalize(),
+		C = new ee().crossVectors(T, m),
+		A = T.multiplyScalar(((d - O) * 2 * x * N) / r).addScaledVector(
+			C,
+			((z - b) * 2 * x * p) / o,
+		);
+	e.position.add(A), n.target.add(A), n.update();
 }
 class Tn {
-  constructor(n) {
-    ((this.host = n),
-      (this.el = document.createElement("div")),
-      (this.el.className = "scene-tip"),
-      (this.pathEl = document.createElement("span")),
-      (this.metaEl = document.createElement("span")),
-      (this.metaEl.className = "dim"),
-      this.el.append(this.pathEl, this.metaEl),
-      n.appendChild(this.el));
-  }
-  host;
-  el;
-  pathEl;
-  metaEl;
-  show(n, s, r, o) {
-    ((this.pathEl.textContent = n),
-      (this.metaEl.textContent = ` · ${s}`),
-      (this.el.style.display = "block"));
-    const l = this.host.getBoundingClientRect(),
-      m = r - l.left,
-      x = o - l.top,
-      v = Math.min(m + 14, Math.max(0, l.width - this.el.offsetWidth - 8)),
-      d = Math.min(x + 16, Math.max(0, l.height - this.el.offsetHeight - 8));
-    ((this.el.style.left = `${v}px`), (this.el.style.top = `${d}px`));
-  }
-  hide() {
-    this.el.style.display = "none";
-  }
-  dispose() {
-    this.el.remove();
-  }
+	constructor(n) {
+		(this.host = n),
+			(this.el = document.createElement("div")),
+			(this.el.className = "scene-tip"),
+			(this.pathEl = document.createElement("span")),
+			(this.metaEl = document.createElement("span")),
+			(this.metaEl.className = "dim"),
+			this.el.append(this.pathEl, this.metaEl),
+			n.appendChild(this.el);
+	}
+	host;
+	el;
+	pathEl;
+	metaEl;
+	show(n, s, r, o) {
+		(this.pathEl.textContent = n),
+			(this.metaEl.textContent = ` · ${s}`),
+			(this.el.style.display = "block");
+		const l = this.host.getBoundingClientRect(),
+			m = r - l.left,
+			x = o - l.top,
+			v = Math.min(m + 14, Math.max(0, l.width - this.el.offsetWidth - 8)),
+			d = Math.min(x + 16, Math.max(0, l.height - this.el.offsetHeight - 8));
+		(this.el.style.left = `${v}px`), (this.el.style.top = `${d}px`);
+	}
+	hide() {
+		this.el.style.display = "none";
+	}
+	dispose() {
+		this.el.remove();
+	}
 }
 const zn = () =>
-  typeof window < "u" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	typeof window < "u" &&
+	window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function Fn(e) {
-  e.traverse((n) => {
-    if (n instanceof Ye || n instanceof ls || n instanceof ut) {
-      n.geometry?.dispose();
-      const s = n.material;
-      Array.isArray(s) ? s.forEach(Ot) : s && Ot(s);
-    }
-  });
+	e.traverse((n) => {
+		if (n instanceof Ye || n instanceof ls || n instanceof ut) {
+			n.geometry?.dispose();
+			const s = n.material;
+			Array.isArray(s) ? s.forEach(Ot) : s && Ot(s);
+		}
+	});
 }
 function Ot(e) {
-  const n = e.map;
-  (n && !n.userData.shared && n.dispose(), e.dispose());
+	const n = e.map;
+	n && !n.userData.shared && n.dispose(), e.dispose();
 }
 const Ge = 14,
-  Ht = 11;
+	Ht = 11;
 class Bn {
-  object;
-  positions;
-  colors;
-  lift;
-  arcPoints = Array.from({ length: Ge + 1 }, () => new ee());
-  mid = new ee();
-  curve = new ds();
-  color = new ge();
-  constructor(n) {
-    this.lift = n;
-    const s = Ht * Ge * 2,
-      r = new an();
-    ((this.positions = new it(new Float32Array(s * 3), 3)),
-      this.positions.setUsage(zt),
-      (this.colors = new it(new Float32Array(s * 3), 3)),
-      this.colors.setUsage(zt),
-      r.setAttribute("position", this.positions),
-      r.setAttribute("color", this.colors),
-      r.setDrawRange(0, 0));
-    const o = new on({
-      vertexColors: !0,
-      transparent: !0,
-      blending: ct,
-      depthWrite: !1,
-      fog: !1,
-    });
-    ((this.object = new cn(r, o)), (this.object.frustumCulled = !1));
-  }
-  update(n) {
-    const s = Math.min(Math.max(n.length - 1, 0), Ht);
-    if (s === 0) {
-      this.object.geometry.setDrawRange(0, 0);
-      return;
-    }
-    const r = n.length - 1 - s;
-    let o = 0;
-    for (let l = 1; l <= s; l++) {
-      const m = n[r + l - 1],
-        x = n[r + l];
-      (this.mid.copy(m).lerp(x, 0.5),
-        (this.mid.y = Math.max(m.y, x.y) + m.distanceTo(x) * 0.22 + this.lift),
-        this.curve.v0.copy(m),
-        this.curve.v1.copy(this.mid),
-        this.curve.v2.copy(x));
-      for (let d = 0; d <= Ge; d++) this.curve.getPoint(d / Ge, this.arcPoints[d]);
-      const v = l / s;
-      this.color.copy(An).multiplyScalar(0.05 + 0.95 * v * v);
-      for (let d = 0; d < Ge; d++) {
-        const b = this.arcPoints[d],
-          c = this.arcPoints[d + 1];
-        (this.positions.setXYZ(o, b.x, b.y, b.z),
-          this.colors.setXYZ(o, this.color.r, this.color.g, this.color.b),
-          o++,
-          this.positions.setXYZ(o, c.x, c.y, c.z),
-          this.colors.setXYZ(o, this.color.r, this.color.g, this.color.b),
-          o++);
-      }
-    }
-    (this.object.geometry.setDrawRange(0, o),
-      (this.positions.needsUpdate = !0),
-      (this.colors.needsUpdate = !0));
-  }
+	object;
+	positions;
+	colors;
+	lift;
+	arcPoints = Array.from({ length: Ge + 1 }, () => new ee());
+	mid = new ee();
+	curve = new ds();
+	color = new ge();
+	constructor(n) {
+		this.lift = n;
+		const s = Ht * Ge * 2,
+			r = new an();
+		(this.positions = new it(new Float32Array(s * 3), 3)),
+			this.positions.setUsage(zt),
+			(this.colors = new it(new Float32Array(s * 3), 3)),
+			this.colors.setUsage(zt),
+			r.setAttribute("position", this.positions),
+			r.setAttribute("color", this.colors),
+			r.setDrawRange(0, 0);
+		const o = new on({
+			vertexColors: !0,
+			transparent: !0,
+			blending: ct,
+			depthWrite: !1,
+			fog: !1,
+		});
+		(this.object = new cn(r, o)), (this.object.frustumCulled = !1);
+	}
+	update(n) {
+		const s = Math.min(Math.max(n.length - 1, 0), Ht);
+		if (s === 0) {
+			this.object.geometry.setDrawRange(0, 0);
+			return;
+		}
+		const r = n.length - 1 - s;
+		let o = 0;
+		for (let l = 1; l <= s; l++) {
+			const m = n[r + l - 1],
+				x = n[r + l];
+			this.mid.copy(m).lerp(x, 0.5),
+				(this.mid.y = Math.max(m.y, x.y) + m.distanceTo(x) * 0.22 + this.lift),
+				this.curve.v0.copy(m),
+				this.curve.v1.copy(this.mid),
+				this.curve.v2.copy(x);
+			for (let d = 0; d <= Ge; d++)
+				this.curve.getPoint(d / Ge, this.arcPoints[d]);
+			const v = l / s;
+			this.color.copy(An).multiplyScalar(0.05 + 0.95 * v * v);
+			for (let d = 0; d < Ge; d++) {
+				const b = this.arcPoints[d],
+					c = this.arcPoints[d + 1];
+				this.positions.setXYZ(o, b.x, b.y, b.z),
+					this.colors.setXYZ(o, this.color.r, this.color.g, this.color.b),
+					o++,
+					this.positions.setXYZ(o, c.x, c.y, c.z),
+					this.colors.setXYZ(o, this.color.r, this.color.g, this.color.b),
+					o++;
+			}
+		}
+		this.object.geometry.setDrawRange(0, o),
+			(this.positions.needsUpdate = !0),
+			(this.colors.needsUpdate = !0);
+	}
 }
 const Ce = { unvisited: new ge("#5b6372"), ghost: new ge("#404551"), ...Ln },
-  Ke = 0.14,
-  Jr = 2.4,
-  Zr = 348;
+	Ke = 0.14,
+	Jr = 2.4,
+	Zr = 348;
 function Ut(e, n) {
-  return (e === "edit" ? 7.2 : e === "read" ? 4.2 : 1.6) * (1 + 0.35 * Math.log2(Math.max(n, 1)));
+	return (
+		(e === "edit" ? 7.2 : e === "read" ? 4.2 : 1.6) *
+		(1 + 0.35 * Math.log2(Math.max(n, 1)))
+	);
 }
 const Vt = 0.3,
-  Qr = 16,
-  ea = 2.2;
+	Qr = 16,
+	ea = 2.2;
 function ta(e, n) {
-  return n <= 0 ? 0 : Math.min(1, Math.log2(Math.max(e, 1)) / n);
+	return n <= 0 ? 0 : Math.min(1, Math.log2(Math.max(e, 1)) / n);
 }
 function na(e) {
-  return Vt + Math.pow(e, ea) * (Qr - Vt);
+	return Vt + Math.pow(e, ea) * (Qr - Vt);
 }
 const Be = [
-  { at: 0, color: new ge("#5b6372") },
-  { at: 0.35, color: new ge("#e0894f") },
-  { at: 0.7, color: new ge("#9a6bd8") },
-  { at: 1, color: new ge("#e0524f") },
+	{ at: 0, color: new ge("#5b6372") },
+	{ at: 0.35, color: new ge("#e0894f") },
+	{ at: 0.7, color: new ge("#9a6bd8") },
+	{ at: 1, color: new ge("#e0524f") },
 ];
 function sa(e) {
-  for (let n = 1; n < Be.length; n++)
-    if (e <= Be[n].at) {
-      const s = Be[n - 1],
-        r = Be[n],
-        o = r.at - s.at,
-        l = o > 0 ? (e - s.at) / o : 0;
-      return s.color.clone().lerp(r.color, l);
-    }
-  return Be[Be.length - 1].color.clone();
+	for (let n = 1; n < Be.length; n++)
+		if (e <= Be[n].at) {
+			const s = Be[n - 1],
+				r = Be[n],
+				o = r.at - s.at,
+				l = o > 0 ? (e - s.at) / o : 0;
+			return s.color.clone().lerp(r.color, l);
+		}
+	return Be[Be.length - 1].color.clone();
 }
 function ra({
-  city: e,
-  playback: n,
-  selectedPath: s,
-  onSelect: r,
-  onCanvasReady: o,
-  locHeights: l,
+	city: e,
+	playback: n,
+	selectedPath: s,
+	onSelect: r,
+	onCanvasReady: o,
+	locHeights: l,
 }) {
-  const m = a.useRef(null),
-    x = a.useRef(null),
-    v = a.useRef(null),
-    d = a.useRef([]),
-    b = a.useRef([]),
-    c = a.useRef(new Map()),
-    S = a.useRef(null),
-    w = a.useRef(null),
-    L = a.useRef(null),
-    O = a.useRef(null),
-    z = a.useRef(null),
-    p = a.useRef(null),
-    N = a.useRef(null),
-    T = a.useRef(null),
-    C = a.useRef(null),
-    A = a.useRef(!1),
-    _ = a.useRef({ cx: 0, cz: 0, size: 120 }),
-    Q = a.useRef(n);
-  Q.current = n;
-  const K = a.useRef(null),
-    G = a.useMemo(() => {
-      if (!e || e.files.length === 0) return { cx: 0, cz: 0, size: 120, halfW: 60, halfD: 60 };
-      let E = 1 / 0,
-        f = -1 / 0,
-        M = 1 / 0,
-        k = -1 / 0;
-      for (const i of e.files)
-        ((E = Math.min(E, i.rect.x)),
-          (f = Math.max(f, i.rect.x + i.rect.w)),
-          (M = Math.min(M, i.rect.z)),
-          (k = Math.max(k, i.rect.z + i.rect.d)));
-      return {
-        cx: (E + f) / 2,
-        cz: (M + k) / 2,
-        size: Math.max(f - E, k - M, 60),
-        halfW: (f - E) / 2,
-        halfD: (k - M) / 2,
-      };
-    }, [e]);
-  return (
-    a.useEffect(() => {
-      const E = m.current;
-      if (!E) return;
-      const f = zn();
-      A.current = f;
-      const M = new ln();
-      ((M.background = dt), (O.current = M));
-      const k = new dn(38, E.clientWidth / E.clientHeight || 1, 0.1, 2400);
-      (k.position.set(70, 130, 100), (w.current = k));
-      const i = new un({ antialias: !0 });
-      (i.setPixelRatio(Math.min(window.devicePixelRatio, 2)),
-        i.setSize(E.clientWidth, E.clientHeight),
-        (S.current = i),
-        E.appendChild(i.domElement),
-        o?.(i.domElement));
-      const h = new hn(k, i.domElement);
-      ((h.enableDamping = !f),
-        (h.dampingFactor = 0.08),
-        (h.maxPolarAngle = Math.PI * 0.44),
-        (h.autoRotate = !f),
-        (h.autoRotateSpeed = -0.5));
-      const g = new Tn(E);
-      (h.addEventListener("start", () => {
-        ((h.autoRotate = !1), g.hide());
-      }),
-        (L.current = h));
-      const y = new fn("#66779b", "#161922", 1.7);
-      M.add(y);
-      const R = new pn("#b6c5de", 1.1);
-      (R.position.set(-60, 120, -40), M.add(R));
-      const B = new us(),
-        V = new hs(),
-        ue = (ne) => {
-          if (!w.current || !S.current) return;
-          const Z = S.current.domElement.getBoundingClientRect();
-          ((V.x = ((ne.clientX - Z.left) / Z.width) * 2 - 1),
-            (V.y = -((ne.clientY - Z.top) / Z.height) * 2 + 1),
-            B.setFromCamera(V, w.current));
-          const le = [v.current, x.current].filter(Boolean),
-            me = B.intersectObjects(le, !1)[0];
-          if (!(!me || me.instanceId === void 0)) {
-            if (me.object === v.current) {
-              const U = b.current[me.instanceId];
-              return U ? d.current[U.fileId] : void 0;
-            }
-            return d.current[me.instanceId];
-          }
-        };
-      let re = null;
-      const ce = (ne) => {
-          re = { x: ne.clientX, y: ne.clientY };
-        },
-        F = (ne) => {
-          if (!re) return;
-          const Z = Math.hypot(ne.clientX - re.x, ne.clientY - re.y);
-          ((re = null), !(Z > 5) && r(ue(ne)?.path));
-        };
-      let P = 0;
-      const q = (ne) => {
-          if (re) {
-            g.hide();
-            return;
-          }
-          P ||
-            (P = requestAnimationFrame(() => {
-              P = 0;
-              const Z = ue(ne);
-              if (((i.domElement.style.cursor = Z ? "pointer" : ""), !Z)) {
-                g.hide();
-                return;
-              }
-              const le = Q.current,
-                me = le.touchByPath.get(Z.path),
-                U = le.visitsByFile.get(Z.id) ?? 0,
-                $ = me ? `${Je(me)} · ${U} visit${U === 1 ? "" : "s"}` : Je(void 0);
-              g.show(Z.path, Z.ghost ? `${$} · ghost` : $, ne.clientX, ne.clientY);
-            }));
-        },
-        te = () => {
-          (g.hide(), (i.domElement.style.cursor = ""));
-        };
-      (i.domElement.addEventListener("pointerdown", ce),
-        i.domElement.addEventListener("pointerup", F),
-        i.domElement.addEventListener("pointermove", q),
-        i.domElement.addEventListener("pointerleave", te));
-      const se = () => {
-          if (!m.current) return;
-          const ne = m.current.clientWidth,
-            Z = m.current.clientHeight;
-          ne === 0 ||
-            Z === 0 ||
-            (i.setSize(ne, Z),
-            (k.aspect = ne / Z),
-            k.updateProjectionMatrix(),
-            K.current?.() && (K.current = null));
-        },
-        W = new ResizeObserver(se);
-      W.observe(E);
-      const pe = new vn(),
-        J = new qe(),
-        xe = new Ie(),
-        Me = () => {
-          (h.update(),
-            T.current?.updateTargets(k, i.domElement.clientWidth, i.domElement.clientHeight),
-            T.current?.ease(A.current));
-          const ne = v.current,
-            Z = b.current,
-            le = c.current;
-          if (ne && Z.length > 0) {
-            let U = !1;
-            for (let $ = 0; $ < Z.length; $++) {
-              const D = Z[$],
-                H = d.current[D.fileId];
-              if (!H) continue;
-              let Y = le.get(D.fileId) ?? 0;
-              const de = D.target - Y;
-              Math.abs(de) > 0.015
-                ? ((Y = A.current ? D.target : Y + de * 0.13), le.set(D.fileId, Y), (U = !0))
-                : Y !== D.target && (le.set(D.fileId, D.target), (Y = D.target), (U = !0));
-              const he = Math.max(H.rect.w, 0.45) + 0.04,
-                ae = Math.max(H.rect.d, 0.45) + 0.04;
-              (J.compose(
-                new ee(
-                  H.rect.x + H.rect.w / 2 - _.current.cx,
-                  Math.max(Y, 0.02) / 2 + Ke,
-                  H.rect.z + H.rect.d / 2 - _.current.cz,
-                ),
-                xe,
-                new ee(he, Math.max(Y, 0.02), ae),
-              ),
-                ne.setMatrixAt($, J));
-            }
-            U && (ne.instanceMatrix.needsUpdate = !0);
-          }
-          const me = N.current;
-          if (me?.visible) {
-            const U = pe.getElapsedTime(),
-              $ = me.userData.baseScale,
-              D = A.current ? 1 : 1 + 0.1 * Math.sin(U * 2.4);
-            me.scale.setScalar($ * D);
-          }
-          (i.render(M, k), (C.current = requestAnimationFrame(Me)));
-        };
-      return (
-        Me(),
-        () => {
-          (C.current && cancelAnimationFrame(C.current),
-            P && cancelAnimationFrame(P),
-            i.domElement.removeEventListener("pointerdown", ce),
-            i.domElement.removeEventListener("pointerup", F),
-            i.domElement.removeEventListener("pointermove", q),
-            i.domElement.removeEventListener("pointerleave", te),
-            g.dispose(),
-            W.disconnect(),
-            h.dispose(),
-            i.dispose(),
-            E.removeChild(i.domElement),
-            M.clear(),
-            o?.(null));
-        }
-      );
-    }, [r, o]),
-    a.useEffect(() => {
-      const E = O.current;
-      if (
-        !E ||
-        ((d.current = e?.files ?? []),
-        (b.current = []),
-        (c.current = new Map()),
-        (_.current = G),
-        !e || e.files.length === 0)
-      )
-        return;
-      const f = new mn(),
-        M = G.size;
-      E.fog = new gn(dt, M * 2.1, M * 4.2);
-      const k = new Ye(new Mt(M * 6, M * 6), new at({ color: "#14171e", roughness: 1 }));
-      ((k.rotation.x = -Math.PI / 2), (k.position.y = -0.32), f.add(k));
-      const i = new xn(M * 2.8, 46, "#20242e", "#1a1e27");
-      ((i.material.transparent = !0), (i.material.opacity = 0.5), (i.position.y = -0.3), f.add(i));
-      const h = e.dirs.filter((F) => F.depth <= 3 && F.rect.w > 0 && F.rect.d > 0);
-      if (h.length > 0) {
-        const F = new Nt(1, 1, 1),
-          P = new at({ roughness: 0.95, metalness: 0 }),
-          q = new De(F, P, h.length),
-          te = new qe(),
-          se = new ge();
-        (h.forEach((W, pe) => {
-          const J = -0.2 + Math.min(W.depth, 3) * 0.06,
-            xe = J + 0.3;
-          (te.compose(
-            new ee(W.rect.x + W.rect.w / 2 - G.cx, J - xe / 2, W.rect.z + W.rect.d / 2 - G.cz),
-            new Ie(),
-            new ee(W.rect.w, xe, W.rect.d),
-          ),
-            q.setMatrixAt(pe, te),
-            se.set("#1a1f29").lerp(new ge("#252b37"), Math.min(W.depth, 3) / 3),
-            q.setColorAt(pe, se));
-        }),
-          (q.instanceMatrix.needsUpdate = !0),
-          q.instanceColor && (q.instanceColor.needsUpdate = !0),
-          f.add(q));
-      }
-      const g = new Nt(1, 1, 1),
-        y = new at({ roughness: 0.85, metalness: 0 }),
-        R = new De(g, y, e.files.length),
-        B = new qe();
-      for (const F of e.files) {
-        const P = Math.max(F.rect.w, 0.45),
-          q = Math.max(F.rect.d, 0.45),
-          te = F.rect.x + F.rect.w / 2 - G.cx,
-          se = F.rect.z + F.rect.d / 2 - G.cz;
-        (B.compose(new ee(te, Ke / 2, se), new Ie(), new ee(P, Ke, q)),
-          R.setMatrixAt(F.id, B),
-          R.setColorAt(F.id, Gt(F)));
-      }
-      ((R.instanceMatrix.needsUpdate = !0),
-        R.instanceColor && (R.instanceColor.needsUpdate = !0),
-        (x.current = R),
-        f.add(R));
-      const V = new De(aa(), new _e({ toneMapped: !1, vertexColors: !0 }), e.files.length);
-      ((V.instanceColor = new ot(new Float32Array(e.files.length * 3), 3)),
-        (V.count = 0),
-        (V.frustumCulled = !1),
-        (v.current = V),
-        f.add(V),
-        (T.current = new $n(
-          e.dirs
-            .filter((F) => F.depth >= 1 && F.fileCount > 0 && F.rect.w > 0 && F.rect.d > 0)
-            .map((F) => ({
-              name: oa(F.path),
-              x: F.rect.x + F.rect.w / 2 - G.cx,
-              z: F.rect.z + F.rect.d / 2 - G.cz,
-              radius: Math.hypot(F.rect.w, F.rect.d) / 2,
-              fileCount: F.fileCount,
-              depth: F.depth,
-            })),
-          f,
-          Jr,
-          !0,
-        )));
-      const ue = new ut(
-        new Ct({
-          map: Sn(),
-          color: An,
-          blending: ct,
-          depthWrite: !1,
-          transparent: !0,
-        }),
-      );
-      ((ue.userData.baseScale = Math.max(M * 0.028, 2.2)),
-        (ue.visible = !1),
-        (N.current = ue),
-        f.add(ue));
-      const re = new Bn(1.4);
-      ((p.current = re), f.add(re.object), (z.current = f), E.add(f));
-      const ce = () => {
-        const F = w.current,
-          P = L.current;
-        if (!F || !P) return !0;
-        const q = new ee(0.46, 1.08, 0.72).normalize(),
-          te = [];
-        for (const pe of [-1, 1])
-          for (const J of [-1, 1]) te.push(new ee(pe * G.halfW, 0, J * G.halfD));
-        const se = Pn(F, q, te);
-        if (se === null) return !1;
-        const W = Math.max(se * 1.12, M * 0.6);
-        return (
-          F.position.copy(q).multiplyScalar(W),
-          P.target.set(0, 0, 0),
-          (P.minDistance = M * 0.18),
-          (P.maxDistance = Math.max(M * 2.6, W * 1.2)),
-          P.update(),
-          !0
-        );
-      };
-      return (
-        (K.current = ce() ? null : ce),
-        () => {
-          ((K.current = null),
-            Fn(f),
-            E.remove(f),
-            (z.current = null),
-            (x.current = null),
-            (v.current = null),
-            (p.current = null),
-            (N.current = null),
-            (T.current = null));
-        }
-      );
-    }, [e, G]),
-    a.useEffect(() => {
-      const E = v.current,
-        f = x.current;
-      if (!E || !f || !e) return;
-      const M = c.current,
-        k = [],
-        i = new Set(),
-        h = l
-          ? Math.log2(
-              Math.max(
-                1,
-                e.files.reduce((g, y) => Math.max(g, y.lines), 1),
-              ),
-            )
-          : 0;
-      for (const g of e.files) {
-        const y = n.touchByFile.get(g.id),
-          R = g.path === s;
-        if ((f.setColorAt(g.id, R ? Ce.selected : Gt(g)), y)) {
-          const B = n.visitsByFile.get(g.id) ?? 1;
-          let V = Ce[y];
-          (g.ghost && (V = V.clone().lerp(Ce.ghost, 0.45)),
-            R && (V = Ce.selected),
-            k.push({ fileId: g.id, target: Ut(y, B), color: V }),
-            i.add(g.id));
-        } else if (l) {
-          const B = ta(g.lines, h);
-          let V = sa(B);
-          (g.ghost && (V = V.lerp(Ce.ghost, 0.45)),
-            R && (V = Ce.selected),
-            k.push({ fileId: g.id, target: na(B), color: V }),
-            i.add(g.id));
-        }
-      }
-      for (const [g, y] of M)
-        y > 0.04 && !i.has(g)
-          ? k.push({ fileId: g, target: 0, color: Ce.unvisited })
-          : y <= 0.04 && !i.has(g) && M.delete(g);
-      (k.forEach((g, y) => E.setColorAt(y, g.color)),
-        (E.count = k.length),
-        E.instanceColor && (E.instanceColor.needsUpdate = !0),
-        f.instanceColor && (f.instanceColor.needsUpdate = !0),
-        (b.current = k));
-    }, [e, n, s, l]),
-    a.useEffect(() => {
-      if (!e || !s) return;
-      const E = e.files.find((g) => g.path === s),
-        f = w.current,
-        M = L.current,
-        k = S.current?.domElement;
-      if (!E || !f || !M || !k) return;
-      M.autoRotate = !1;
-      const i = c.current.get(E.id) ?? Ke,
-        h = bt(E, G);
-      ((h.y = i), In(f, M, h, k.clientWidth, k.clientHeight, Zr));
-    }, [e, G, s]),
-    a.useEffect(() => {
-      const E = p.current;
-      if (!E || !e) return;
-      const f = n.recentTargets
-          .map((i) => (i.fileId !== void 0 ? e.files[i.fileId] : void 0))
-          .filter((i) => !!i),
-        M = (i) => {
-          const h = n.touchByFile.get(i.id),
-            g = n.visitsByFile.get(i.id) ?? 1;
-          return h ? Ut(h, g) : Ke;
-        },
-        k = N.current;
-      if (k) {
-        const i = f[f.length - 1];
-        if (i) {
-          const h = bt(i, G);
-          (k.position.set(h.x, M(i) + 1.6, h.z), (k.visible = !0));
-        } else k.visible = !1;
-      }
-      E.update(
-        f.map((i) => {
-          const h = bt(i, G);
-          return ((h.y = M(i) + 0.4), h);
-        }),
-      );
-    }, [e, n, G]),
-    t.jsx("div", {
-      className: "city-scene",
-      ref: m,
-      "aria-label": "Attention terrain",
-    })
-  );
+	const m = a.useRef(null),
+		x = a.useRef(null),
+		v = a.useRef(null),
+		d = a.useRef([]),
+		b = a.useRef([]),
+		c = a.useRef(new Map()),
+		S = a.useRef(null),
+		w = a.useRef(null),
+		L = a.useRef(null),
+		O = a.useRef(null),
+		z = a.useRef(null),
+		p = a.useRef(null),
+		N = a.useRef(null),
+		T = a.useRef(null),
+		C = a.useRef(null),
+		A = a.useRef(!1),
+		_ = a.useRef({ cx: 0, cz: 0, size: 120 }),
+		Q = a.useRef(n);
+	Q.current = n;
+	const K = a.useRef(null),
+		G = a.useMemo(() => {
+			if (!e || e.files.length === 0)
+				return { cx: 0, cz: 0, size: 120, halfW: 60, halfD: 60 };
+			let E = 1 / 0,
+				f = -1 / 0,
+				M = 1 / 0,
+				k = -1 / 0;
+			for (const i of e.files)
+				(E = Math.min(E, i.rect.x)),
+					(f = Math.max(f, i.rect.x + i.rect.w)),
+					(M = Math.min(M, i.rect.z)),
+					(k = Math.max(k, i.rect.z + i.rect.d));
+			return {
+				cx: (E + f) / 2,
+				cz: (M + k) / 2,
+				size: Math.max(f - E, k - M, 60),
+				halfW: (f - E) / 2,
+				halfD: (k - M) / 2,
+			};
+		}, [e]);
+	return (
+		a.useEffect(() => {
+			const E = m.current;
+			if (!E) return;
+			const f = zn();
+			A.current = f;
+			const M = new ln();
+			(M.background = dt), (O.current = M);
+			const k = new dn(38, E.clientWidth / E.clientHeight || 1, 0.1, 2400);
+			k.position.set(70, 130, 100), (w.current = k);
+			const i = new un({ antialias: !0 });
+			i.setPixelRatio(Math.min(window.devicePixelRatio, 2)),
+				i.setSize(E.clientWidth, E.clientHeight),
+				(S.current = i),
+				E.appendChild(i.domElement),
+				o?.(i.domElement);
+			const h = new hn(k, i.domElement);
+			(h.enableDamping = !f),
+				(h.dampingFactor = 0.08),
+				(h.maxPolarAngle = Math.PI * 0.44),
+				(h.autoRotate = !f),
+				(h.autoRotateSpeed = -0.5);
+			const g = new Tn(E);
+			h.addEventListener("start", () => {
+				(h.autoRotate = !1), g.hide();
+			}),
+				(L.current = h);
+			const y = new fn("#66779b", "#161922", 1.7);
+			M.add(y);
+			const R = new pn("#b6c5de", 1.1);
+			R.position.set(-60, 120, -40), M.add(R);
+			const B = new us(),
+				V = new hs(),
+				ue = (ne) => {
+					if (!w.current || !S.current) return;
+					const Z = S.current.domElement.getBoundingClientRect();
+					(V.x = ((ne.clientX - Z.left) / Z.width) * 2 - 1),
+						(V.y = -((ne.clientY - Z.top) / Z.height) * 2 + 1),
+						B.setFromCamera(V, w.current);
+					const le = [v.current, x.current].filter(Boolean),
+						me = B.intersectObjects(le, !1)[0];
+					if (!(!me || me.instanceId === void 0)) {
+						if (me.object === v.current) {
+							const U = b.current[me.instanceId];
+							return U ? d.current[U.fileId] : void 0;
+						}
+						return d.current[me.instanceId];
+					}
+				};
+			let re = null;
+			const ce = (ne) => {
+					re = { x: ne.clientX, y: ne.clientY };
+				},
+				F = (ne) => {
+					if (!re) return;
+					const Z = Math.hypot(ne.clientX - re.x, ne.clientY - re.y);
+					(re = null), !(Z > 5) && r(ue(ne)?.path);
+				};
+			let P = 0;
+			const q = (ne) => {
+					if (re) {
+						g.hide();
+						return;
+					}
+					P ||
+						(P = requestAnimationFrame(() => {
+							P = 0;
+							const Z = ue(ne);
+							if (((i.domElement.style.cursor = Z ? "pointer" : ""), !Z)) {
+								g.hide();
+								return;
+							}
+							const le = Q.current,
+								me = le.touchByPath.get(Z.path),
+								U = le.visitsByFile.get(Z.id) ?? 0,
+								$ = me
+									? `${Je(me)} · ${U} visit${U === 1 ? "" : "s"}`
+									: Je(void 0);
+							g.show(
+								Z.path,
+								Z.ghost ? `${$} · ghost` : $,
+								ne.clientX,
+								ne.clientY,
+							);
+						}));
+				},
+				te = () => {
+					g.hide(), (i.domElement.style.cursor = "");
+				};
+			i.domElement.addEventListener("pointerdown", ce),
+				i.domElement.addEventListener("pointerup", F),
+				i.domElement.addEventListener("pointermove", q),
+				i.domElement.addEventListener("pointerleave", te);
+			const se = () => {
+					if (!m.current) return;
+					const ne = m.current.clientWidth,
+						Z = m.current.clientHeight;
+					ne === 0 ||
+						Z === 0 ||
+						(i.setSize(ne, Z),
+						(k.aspect = ne / Z),
+						k.updateProjectionMatrix(),
+						K.current?.() && (K.current = null));
+				},
+				W = new ResizeObserver(se);
+			W.observe(E);
+			const pe = new vn(),
+				J = new qe(),
+				xe = new Ie(),
+				Me = () => {
+					h.update(),
+						T.current?.updateTargets(
+							k,
+							i.domElement.clientWidth,
+							i.domElement.clientHeight,
+						),
+						T.current?.ease(A.current);
+					const ne = v.current,
+						Z = b.current,
+						le = c.current;
+					if (ne && Z.length > 0) {
+						let U = !1;
+						for (let $ = 0; $ < Z.length; $++) {
+							const D = Z[$],
+								H = d.current[D.fileId];
+							if (!H) continue;
+							let Y = le.get(D.fileId) ?? 0;
+							const de = D.target - Y;
+							Math.abs(de) > 0.015
+								? ((Y = A.current ? D.target : Y + de * 0.13),
+									le.set(D.fileId, Y),
+									(U = !0))
+								: Y !== D.target &&
+									(le.set(D.fileId, D.target), (Y = D.target), (U = !0));
+							const he = Math.max(H.rect.w, 0.45) + 0.04,
+								ae = Math.max(H.rect.d, 0.45) + 0.04;
+							J.compose(
+								new ee(
+									H.rect.x + H.rect.w / 2 - _.current.cx,
+									Math.max(Y, 0.02) / 2 + Ke,
+									H.rect.z + H.rect.d / 2 - _.current.cz,
+								),
+								xe,
+								new ee(he, Math.max(Y, 0.02), ae),
+							),
+								ne.setMatrixAt($, J);
+						}
+						U && (ne.instanceMatrix.needsUpdate = !0);
+					}
+					const me = N.current;
+					if (me?.visible) {
+						const U = pe.getElapsedTime(),
+							$ = me.userData.baseScale,
+							D = A.current ? 1 : 1 + 0.1 * Math.sin(U * 2.4);
+						me.scale.setScalar($ * D);
+					}
+					i.render(M, k), (C.current = requestAnimationFrame(Me));
+				};
+			return (
+				Me(),
+				() => {
+					C.current && cancelAnimationFrame(C.current),
+						P && cancelAnimationFrame(P),
+						i.domElement.removeEventListener("pointerdown", ce),
+						i.domElement.removeEventListener("pointerup", F),
+						i.domElement.removeEventListener("pointermove", q),
+						i.domElement.removeEventListener("pointerleave", te),
+						g.dispose(),
+						W.disconnect(),
+						h.dispose(),
+						i.dispose(),
+						E.removeChild(i.domElement),
+						M.clear(),
+						o?.(null);
+				}
+			);
+		}, [r, o]),
+		a.useEffect(() => {
+			const E = O.current;
+			if (
+				!E ||
+				((d.current = e?.files ?? []),
+				(b.current = []),
+				(c.current = new Map()),
+				(_.current = G),
+				!e || e.files.length === 0)
+			)
+				return;
+			const f = new mn(),
+				M = G.size;
+			E.fog = new gn(dt, M * 2.1, M * 4.2);
+			const k = new Ye(
+				new Mt(M * 6, M * 6),
+				new at({ color: "#14171e", roughness: 1 }),
+			);
+			(k.rotation.x = -Math.PI / 2), (k.position.y = -0.32), f.add(k);
+			const i = new xn(M * 2.8, 46, "#20242e", "#1a1e27");
+			(i.material.transparent = !0),
+				(i.material.opacity = 0.5),
+				(i.position.y = -0.3),
+				f.add(i);
+			const h = e.dirs.filter(
+				(F) => F.depth <= 3 && F.rect.w > 0 && F.rect.d > 0,
+			);
+			if (h.length > 0) {
+				const F = new Nt(1, 1, 1),
+					P = new at({ roughness: 0.95, metalness: 0 }),
+					q = new De(F, P, h.length),
+					te = new qe(),
+					se = new ge();
+				h.forEach((W, pe) => {
+					const J = -0.2 + Math.min(W.depth, 3) * 0.06,
+						xe = J + 0.3;
+					te.compose(
+						new ee(
+							W.rect.x + W.rect.w / 2 - G.cx,
+							J - xe / 2,
+							W.rect.z + W.rect.d / 2 - G.cz,
+						),
+						new Ie(),
+						new ee(W.rect.w, xe, W.rect.d),
+					),
+						q.setMatrixAt(pe, te),
+						se.set("#1a1f29").lerp(new ge("#252b37"), Math.min(W.depth, 3) / 3),
+						q.setColorAt(pe, se);
+				}),
+					(q.instanceMatrix.needsUpdate = !0),
+					q.instanceColor && (q.instanceColor.needsUpdate = !0),
+					f.add(q);
+			}
+			const g = new Nt(1, 1, 1),
+				y = new at({ roughness: 0.85, metalness: 0 }),
+				R = new De(g, y, e.files.length),
+				B = new qe();
+			for (const F of e.files) {
+				const P = Math.max(F.rect.w, 0.45),
+					q = Math.max(F.rect.d, 0.45),
+					te = F.rect.x + F.rect.w / 2 - G.cx,
+					se = F.rect.z + F.rect.d / 2 - G.cz;
+				B.compose(new ee(te, Ke / 2, se), new Ie(), new ee(P, Ke, q)),
+					R.setMatrixAt(F.id, B),
+					R.setColorAt(F.id, Gt(F));
+			}
+			(R.instanceMatrix.needsUpdate = !0),
+				R.instanceColor && (R.instanceColor.needsUpdate = !0),
+				(x.current = R),
+				f.add(R);
+			const V = new De(
+				aa(),
+				new _e({ toneMapped: !1, vertexColors: !0 }),
+				e.files.length,
+			);
+			(V.instanceColor = new ot(new Float32Array(e.files.length * 3), 3)),
+				(V.count = 0),
+				(V.frustumCulled = !1),
+				(v.current = V),
+				f.add(V),
+				(T.current = new $n(
+					e.dirs
+						.filter(
+							(F) =>
+								F.depth >= 1 && F.fileCount > 0 && F.rect.w > 0 && F.rect.d > 0,
+						)
+						.map((F) => ({
+							name: oa(F.path),
+							x: F.rect.x + F.rect.w / 2 - G.cx,
+							z: F.rect.z + F.rect.d / 2 - G.cz,
+							radius: Math.hypot(F.rect.w, F.rect.d) / 2,
+							fileCount: F.fileCount,
+							depth: F.depth,
+						})),
+					f,
+					Jr,
+					!0,
+				));
+			const ue = new ut(
+				new Ct({
+					map: Sn(),
+					color: An,
+					blending: ct,
+					depthWrite: !1,
+					transparent: !0,
+				}),
+			);
+			(ue.userData.baseScale = Math.max(M * 0.028, 2.2)),
+				(ue.visible = !1),
+				(N.current = ue),
+				f.add(ue);
+			const re = new Bn(1.4);
+			(p.current = re), f.add(re.object), (z.current = f), E.add(f);
+			const ce = () => {
+				const F = w.current,
+					P = L.current;
+				if (!F || !P) return !0;
+				const q = new ee(0.46, 1.08, 0.72).normalize(),
+					te = [];
+				for (const pe of [-1, 1])
+					for (const J of [-1, 1])
+						te.push(new ee(pe * G.halfW, 0, J * G.halfD));
+				const se = Pn(F, q, te);
+				if (se === null) return !1;
+				const W = Math.max(se * 1.12, M * 0.6);
+				return (
+					F.position.copy(q).multiplyScalar(W),
+					P.target.set(0, 0, 0),
+					(P.minDistance = M * 0.18),
+					(P.maxDistance = Math.max(M * 2.6, W * 1.2)),
+					P.update(),
+					!0
+				);
+			};
+			return (
+				(K.current = ce() ? null : ce),
+				() => {
+					(K.current = null),
+						Fn(f),
+						E.remove(f),
+						(z.current = null),
+						(x.current = null),
+						(v.current = null),
+						(p.current = null),
+						(N.current = null),
+						(T.current = null);
+				}
+			);
+		}, [e, G]),
+		a.useEffect(() => {
+			const E = v.current,
+				f = x.current;
+			if (!E || !f || !e) return;
+			const M = c.current,
+				k = [],
+				i = new Set(),
+				h = l
+					? Math.log2(
+							Math.max(
+								1,
+								e.files.reduce((g, y) => Math.max(g, y.lines), 1),
+							),
+						)
+					: 0;
+			for (const g of e.files) {
+				const y = n.touchByFile.get(g.id),
+					R = g.path === s;
+				if ((f.setColorAt(g.id, R ? Ce.selected : Gt(g)), y)) {
+					const B = n.visitsByFile.get(g.id) ?? 1;
+					let V = Ce[y];
+					g.ghost && (V = V.clone().lerp(Ce.ghost, 0.45)),
+						R && (V = Ce.selected),
+						k.push({ fileId: g.id, target: Ut(y, B), color: V }),
+						i.add(g.id);
+				} else if (l) {
+					const B = ta(g.lines, h);
+					let V = sa(B);
+					g.ghost && (V = V.lerp(Ce.ghost, 0.45)),
+						R && (V = Ce.selected),
+						k.push({ fileId: g.id, target: na(B), color: V }),
+						i.add(g.id);
+				}
+			}
+			for (const [g, y] of M)
+				y > 0.04 && !i.has(g)
+					? k.push({ fileId: g, target: 0, color: Ce.unvisited })
+					: y <= 0.04 && !i.has(g) && M.delete(g);
+			k.forEach((g, y) => E.setColorAt(y, g.color)),
+				(E.count = k.length),
+				E.instanceColor && (E.instanceColor.needsUpdate = !0),
+				f.instanceColor && (f.instanceColor.needsUpdate = !0),
+				(b.current = k);
+		}, [e, n, s, l]),
+		a.useEffect(() => {
+			if (!e || !s) return;
+			const E = e.files.find((g) => g.path === s),
+				f = w.current,
+				M = L.current,
+				k = S.current?.domElement;
+			if (!E || !f || !M || !k) return;
+			M.autoRotate = !1;
+			const i = c.current.get(E.id) ?? Ke,
+				h = bt(E, G);
+			(h.y = i), In(f, M, h, k.clientWidth, k.clientHeight, Zr);
+		}, [e, G, s]),
+		a.useEffect(() => {
+			const E = p.current;
+			if (!E || !e) return;
+			const f = n.recentTargets
+					.map((i) => (i.fileId !== void 0 ? e.files[i.fileId] : void 0))
+					.filter((i) => !!i),
+				M = (i) => {
+					const h = n.touchByFile.get(i.id),
+						g = n.visitsByFile.get(i.id) ?? 1;
+					return h ? Ut(h, g) : Ke;
+				},
+				k = N.current;
+			if (k) {
+				const i = f[f.length - 1];
+				if (i) {
+					const h = bt(i, G);
+					k.position.set(h.x, M(i) + 1.6, h.z), (k.visible = !0);
+				} else k.visible = !1;
+			}
+			E.update(
+				f.map((i) => {
+					const h = bt(i, G);
+					return (h.y = M(i) + 0.4), h;
+				}),
+			);
+		}, [e, n, G]),
+		t.jsx("div", {
+			className: "city-scene",
+			ref: m,
+			"aria-label": "Attention terrain",
+		})
+	);
 }
 function aa() {
-  const e = new Nt(1, 1, 1),
-    n = e.getAttribute("position"),
-    s = e.getAttribute("normal"),
-    r = new Float32Array(n.count * 3);
-  for (let o = 0; o < n.count; o++) {
-    const l = n.getY(o) + 0.5,
-      m = s.getY(o) === 1 ? 0.82 : 0.34 + 0.66 * l * l;
-    r.fill(m, o * 3, o * 3 + 3);
-  }
-  return (e.setAttribute("color", new it(r, 3)), e);
+	const e = new Nt(1, 1, 1),
+		n = e.getAttribute("position"),
+		s = e.getAttribute("normal"),
+		r = new Float32Array(n.count * 3);
+	for (let o = 0; o < n.count; o++) {
+		const l = n.getY(o) + 0.5,
+			m = s.getY(o) === 1 ? 0.82 : 0.34 + 0.66 * l * l;
+		r.fill(m, o * 3, o * 3 + 3);
+	}
+	return e.setAttribute("color", new it(r, 3)), e;
 }
 function Gt(e) {
-  if (e.ghost) return Ce.ghost;
-  let n = 2166136261;
-  for (let r = 0; r < e.path.length; r++) n = Math.imul(n ^ e.path.charCodeAt(r), 16777619);
-  const s = ((n >>> 0) % 1e3) / 1e3 - 0.5;
-  return Ce.unvisited.clone().offsetHSL(0, 0, s * 0.05);
+	if (e.ghost) return Ce.ghost;
+	let n = 2166136261;
+	for (let r = 0; r < e.path.length; r++)
+		n = Math.imul(n ^ e.path.charCodeAt(r), 16777619);
+	const s = ((n >>> 0) % 1e3) / 1e3 - 0.5;
+	return Ce.unvisited.clone().offsetHSL(0, 0, s * 0.05);
 }
 function bt(e, n) {
-  return new ee(e.rect.x + e.rect.w / 2 - n.cx, 0, e.rect.z + e.rect.d / 2 - n.cz);
+	return new ee(
+		e.rect.x + e.rect.w / 2 - n.cx,
+		0,
+		e.rect.z + e.rect.d / 2 - n.cz,
+	);
 }
 function oa(e) {
-  return e.slice(e.lastIndexOf("/") + 1) || e;
+	return e.slice(e.lastIndexOf("/") + 1) || e;
 }
 function ia(e) {
-  const n = {
-      name: "",
-      path: "",
-      depth: 0,
-      children: new Map(),
-      files: [],
-      leafCount: 0,
-      angle: 0,
-    },
-    s = [...e].sort((p, N) => (p.path < N.path ? -1 : 1));
-  for (const p of s) {
-    const N = p.path.split("/").filter(Boolean);
-    let T = n;
-    for (const C of N.slice(0, -1)) {
-      let A = T.children.get(C);
-      (A ||
-        ((A = {
-          name: C,
-          path: T.path ? `${T.path}/${C}` : C,
-          depth: T.depth + 1,
-          children: new Map(),
-          files: [],
-          leafCount: 0,
-          angle: 0,
-        }),
-        T.children.set(C, A)),
-        (T = A));
-    }
-    T.files.push(p);
-  }
-  let r = 1;
-  const o = (p) => {
-    ((p.leafCount = p.files.length), p.files.length > 0 && (r = Math.max(r, p.depth + 1)));
-    for (const N of p.children.values()) p.leafCount += o(N);
-    return p.leafCount;
-  };
-  o(n);
-  const l = Math.max(n.leafCount, 1),
-    m = Math.max(55, Math.sqrt(l) * 4),
-    x = m / Math.max(r, 1),
-    v = (Math.PI * 2) / l,
-    d = { radius: m, leaf: new Map(), dirs: [], edges: [] },
-    b = (p, N) => ({ x: p * Math.cos(N), z: p * Math.sin(N) }),
-    c = (p, N, T, C) => {
-      const A = p < 1e-6 ? C : N;
-      let _ = C - A;
-      for (; _ > Math.PI;) _ -= Math.PI * 2;
-      for (; _ < -Math.PI;) _ += Math.PI * 2;
-      const Q = [],
-        K = 8;
-      for (let G = 0; G <= K; G++) {
-        const E = G / K,
-          f = E * E * (3 - 2 * E);
-        Q.push(b(p + (T - p) * E, A + _ * f));
-      }
-      return Q;
-    };
-  let S = 0;
-  const w = (p) => {
-    p.angle = (S + p.leafCount / 2) * v;
-    const N = [...p.children.values()].sort((C, A) => (C.name < A.name ? -1 : 1)),
-      T = [...p.files].sort((C, A) => (C.path < A.path ? -1 : 1));
-    for (const C of N) w(C);
-    for (const C of T) {
-      const A = (S + 0.5) * v;
-      S += 1;
-      const _ = b((p.depth + 1) * x, A);
-      (d.leaf.set(C.id, _),
-        d.edges.push({
-          childFileId: C.id,
-          points: c(p.depth * x, p.angle, (p.depth + 1) * x, A),
-        }));
-    }
-    if (p.path !== "") {
-      const C = b(p.depth * x, p.angle);
-      d.dirs.push({
-        path: p.path,
-        name: p.name,
-        x: C.x,
-        z: C.z,
-        depth: p.depth,
-        fileCount: p.leafCount,
-        radius: 0,
-      });
-    }
-  };
-  w(n);
-  const L = new Map(),
-    O = (p) => {
-      L.set(p.path, p);
-      for (const N of p.children.values()) O(N);
-    };
-  O(n);
-  for (const p of d.dirs) {
-    const N = L.get(p.path),
-      T = p.path.includes("/") ? p.path.slice(0, p.path.lastIndexOf("/")) : "",
-      C = L.get(T);
-    d.edges.push({
-      childPath: p.path,
-      points: c(C.depth * x, C.angle, N.depth * x, N.angle),
-    });
-  }
-  const z = new Map(d.dirs.map((p) => [p.path, p]));
-  for (const p of e) {
-    const N = d.leaf.get(p.id);
-    if (!N) continue;
-    const T = p.path.split("/").filter(Boolean);
-    let C = "";
-    for (let A = 0; A < T.length - 1; A++) {
-      C = C ? `${C}/${T[A]}` : T[A];
-      const _ = z.get(C);
-      _ && (_.radius = Math.max(_.radius, Math.hypot(N.x - _.x, N.z - _.z)));
-    }
-  }
-  return d;
+	const n = {
+			name: "",
+			path: "",
+			depth: 0,
+			children: new Map(),
+			files: [],
+			leafCount: 0,
+			angle: 0,
+		},
+		s = [...e].sort((p, N) => (p.path < N.path ? -1 : 1));
+	for (const p of s) {
+		const N = p.path.split("/").filter(Boolean);
+		let T = n;
+		for (const C of N.slice(0, -1)) {
+			let A = T.children.get(C);
+			A ||
+				((A = {
+					name: C,
+					path: T.path ? `${T.path}/${C}` : C,
+					depth: T.depth + 1,
+					children: new Map(),
+					files: [],
+					leafCount: 0,
+					angle: 0,
+				}),
+				T.children.set(C, A)),
+				(T = A);
+		}
+		T.files.push(p);
+	}
+	let r = 1;
+	const o = (p) => {
+		(p.leafCount = p.files.length),
+			p.files.length > 0 && (r = Math.max(r, p.depth + 1));
+		for (const N of p.children.values()) p.leafCount += o(N);
+		return p.leafCount;
+	};
+	o(n);
+	const l = Math.max(n.leafCount, 1),
+		m = Math.max(55, Math.sqrt(l) * 4),
+		x = m / Math.max(r, 1),
+		v = (Math.PI * 2) / l,
+		d = { radius: m, leaf: new Map(), dirs: [], edges: [] },
+		b = (p, N) => ({ x: p * Math.cos(N), z: p * Math.sin(N) }),
+		c = (p, N, T, C) => {
+			const A = p < 1e-6 ? C : N;
+			let _ = C - A;
+			for (; _ > Math.PI; ) _ -= Math.PI * 2;
+			for (; _ < -Math.PI; ) _ += Math.PI * 2;
+			const Q = [],
+				K = 8;
+			for (let G = 0; G <= K; G++) {
+				const E = G / K,
+					f = E * E * (3 - 2 * E);
+				Q.push(b(p + (T - p) * E, A + _ * f));
+			}
+			return Q;
+		};
+	let S = 0;
+	const w = (p) => {
+		p.angle = (S + p.leafCount / 2) * v;
+		const N = [...p.children.values()].sort((C, A) =>
+				C.name < A.name ? -1 : 1,
+			),
+			T = [...p.files].sort((C, A) => (C.path < A.path ? -1 : 1));
+		for (const C of N) w(C);
+		for (const C of T) {
+			const A = (S + 0.5) * v;
+			S += 1;
+			const _ = b((p.depth + 1) * x, A);
+			d.leaf.set(C.id, _),
+				d.edges.push({
+					childFileId: C.id,
+					points: c(p.depth * x, p.angle, (p.depth + 1) * x, A),
+				});
+		}
+		if (p.path !== "") {
+			const C = b(p.depth * x, p.angle);
+			d.dirs.push({
+				path: p.path,
+				name: p.name,
+				x: C.x,
+				z: C.z,
+				depth: p.depth,
+				fileCount: p.leafCount,
+				radius: 0,
+			});
+		}
+	};
+	w(n);
+	const L = new Map(),
+		O = (p) => {
+			L.set(p.path, p);
+			for (const N of p.children.values()) O(N);
+		};
+	O(n);
+	for (const p of d.dirs) {
+		const N = L.get(p.path),
+			T = p.path.includes("/") ? p.path.slice(0, p.path.lastIndexOf("/")) : "",
+			C = L.get(T);
+		d.edges.push({
+			childPath: p.path,
+			points: c(C.depth * x, C.angle, N.depth * x, N.angle),
+		});
+	}
+	const z = new Map(d.dirs.map((p) => [p.path, p]));
+	for (const p of e) {
+		const N = d.leaf.get(p.id);
+		if (!N) continue;
+		const T = p.path.split("/").filter(Boolean);
+		let C = "";
+		for (let A = 0; A < T.length - 1; A++) {
+			C = C ? `${C}/${T[A]}` : T[A];
+			const _ = z.get(C);
+			_ && (_.radius = Math.max(_.radius, Math.hypot(N.x - _.x, N.z - _.z)));
+		}
+	}
+	return d;
 }
 const ke = { unvisited: new ge("#5a6375"), ghost: new ge("#4d5464"), ...Ln },
-  ca = new ge("#3c424f"),
-  la = new ge("#7d8496"),
-  da = new ge("#ffeeda"),
-  Ae = 0.7;
+	ca = new ge("#3c424f"),
+	la = new ge("#7d8496"),
+	da = new ge("#ffeeda"),
+	Ae = 0.7;
 function ua(e) {
-  return Math.min(1.8 * (1 + 0.45 * Math.log2(Math.max(e, 1))), 4.8);
+	return Math.min(1.8 * (1 + 0.45 * Math.log2(Math.max(e, 1))), 4.8);
 }
 const ha = 1.8,
-  fa = 348;
-function pa({ city: e, playback: n, selectedPath: s, onSelect: r, onCanvasReady: o }) {
-  const l = a.useRef(null),
-    m = a.useRef(null),
-    x = a.useRef(null),
-    v = a.useRef(new Map()),
-    d = a.useRef(null),
-    b = a.useRef(null),
-    c = a.useRef(null),
-    S = a.useRef([]),
-    w = a.useRef([]),
-    L = a.useRef(null),
-    O = a.useRef([]),
-    z = a.useRef(new Map()),
-    p = a.useRef(null),
-    N = a.useRef(null),
-    T = a.useRef(null),
-    C = a.useRef(null),
-    A = a.useRef(null),
-    _ = a.useRef(null),
-    Q = a.useRef(null),
-    K = a.useRef(null),
-    G = a.useRef(null),
-    E = a.useRef(!1),
-    f = a.useRef(n);
-  f.current = n;
-  const M = a.useRef(null),
-    k = a.useMemo(() => (e && e.files.length > 0 ? ia(e.files) : null), [e]);
-  return (
-    a.useEffect(() => {
-      const i = l.current;
-      if (!i) return;
-      const h = zn();
-      E.current = h;
-      const g = new ln();
-      ((g.background = dt), (C.current = g));
-      const y = new dn(38, i.clientWidth / i.clientHeight || 1, 0.1, 2400);
-      (y.position.set(60, 110, 90), (N.current = y));
-      const R = new un({ antialias: !0 });
-      (R.setPixelRatio(Math.min(window.devicePixelRatio, 2)),
-        R.setSize(i.clientWidth, i.clientHeight),
-        (p.current = R),
-        i.appendChild(R.domElement),
-        o?.(R.domElement));
-      const B = new hn(y, R.domElement);
-      ((B.enableDamping = !h),
-        (B.dampingFactor = 0.08),
-        (B.maxPolarAngle = Math.PI * 0.44),
-        (B.autoRotate = !h),
-        (B.autoRotateSpeed = -0.5));
-      const V = new Tn(i);
-      (B.addEventListener("start", () => {
-        ((B.autoRotate = !1), V.hide());
-      }),
-        (T.current = B));
-      const ue = new fn("#66779b", "#161922", 1.7);
-      g.add(ue);
-      const re = new pn("#b6c5de", 1.1);
-      (re.position.set(-60, 120, -40), g.add(re));
-      const ce = 18,
-        F = new ee(),
-        P = (U) => {
-          const $ = L.current;
-          if (!$ || !N.current || !p.current) return;
-          const D = p.current.domElement.getBoundingClientRect(),
-            H = U.clientX - D.left,
-            Y = U.clientY - D.top;
-          let de,
-            he = ce * ce;
-          for (const ae of w.current) {
-            const ve = $.leaf.get(ae.id);
-            if (!ve || (F.set(ve.x, Ae, ve.z).project(N.current), F.z > 1)) continue;
-            const ie = ((F.x + 1) / 2) * D.width,
-              Ee = ((1 - F.y) / 2) * D.height,
-              Ne = (ie - H) * (ie - H) + (Ee - Y) * (Ee - Y);
-            Ne < he && ((he = Ne), (de = ae));
-          }
-          return de;
-        };
-      let q = null;
-      const te = (U) => {
-          q = { x: U.clientX, y: U.clientY };
-        },
-        se = (U) => {
-          if (!q) return;
-          const $ = Math.hypot(U.clientX - q.x, U.clientY - q.y);
-          ((q = null), !($ > 5) && r(P(U)?.path));
-        };
-      let W = 0;
-      const pe = (U) => {
-          if (q) {
-            V.hide();
-            return;
-          }
-          W ||
-            (W = requestAnimationFrame(() => {
-              W = 0;
-              const $ = P(U);
-              if (((R.domElement.style.cursor = $ ? "pointer" : ""), !$)) {
-                V.hide();
-                return;
-              }
-              const D = f.current,
-                H = D.touchByPath.get($.path),
-                Y = D.visitsByFile.get($.id) ?? 0,
-                de = H ? `${Je(H)} · ${Y} visit${Y === 1 ? "" : "s"}` : Je(void 0);
-              V.show($.path, $.ghost ? `${de} · ghost` : de, U.clientX, U.clientY);
-            }));
-        },
-        J = () => {
-          (V.hide(), (R.domElement.style.cursor = ""));
-        };
-      (R.domElement.addEventListener("pointerdown", te),
-        R.domElement.addEventListener("pointerup", se),
-        R.domElement.addEventListener("pointermove", pe),
-        R.domElement.addEventListener("pointerleave", J));
-      const xe = () => {
-          if (!l.current) return;
-          const U = l.current.clientWidth,
-            $ = l.current.clientHeight;
-          U === 0 ||
-            $ === 0 ||
-            (R.setSize(U, $),
-            (y.aspect = U / $),
-            y.updateProjectionMatrix(),
-            M.current?.() && (M.current = null));
-        },
-        Me = new ResizeObserver(xe);
-      Me.observe(i);
-      const ne = new vn(),
-        Z = new qe(),
-        le = new Ie().setFromEuler(new fs(-Math.PI / 2, 0, 0)),
-        me = () => {
-          (B.update(),
-            K.current?.updateTargets(y, R.domElement.clientWidth, R.domElement.clientHeight),
-            K.current?.ease(E.current));
-          const U = b.current,
-            $ = O.current,
-            D = z.current,
-            H = L.current;
-          if (U && H && $.length > 0) {
-            let de = !1;
-            for (let he = 0; he < $.length; he++) {
-              const ae = $[he],
-                ve = H.leaf.get(ae.fileId);
-              if (!ve) continue;
-              let ie = D.get(ae.fileId) ?? 0;
-              const Ee = ae.target - ie;
-              (Math.abs(Ee) > 0.015
-                ? ((ie = E.current ? ae.target : ie + Ee * 0.12), D.set(ae.fileId, ie), (de = !0))
-                : ie !== ae.target && (D.set(ae.fileId, ae.target), (ie = ae.target), (de = !0)),
-                Z.compose(
-                  new ee(ve.x, 0.06, ve.z),
-                  le,
-                  new ee(Math.max(ie, 0.01) * 2, Math.max(ie, 0.01) * 2, 1),
-                ),
-                U.setMatrixAt(he, Z));
-            }
-            de && (U.instanceMatrix.needsUpdate = !0);
-          }
-          const Y = Q.current;
-          if (Y?.visible) {
-            const de = ne.getElapsedTime(),
-              he = Y.userData.baseScale,
-              ae = E.current ? 1 : 1 + 0.1 * Math.sin(de * 2.4);
-            Y.scale.setScalar(he * ae);
-          }
-          (R.render(g, y), (G.current = requestAnimationFrame(me)));
-        };
-      return (
-        me(),
-        () => {
-          (G.current && cancelAnimationFrame(G.current),
-            W && cancelAnimationFrame(W),
-            R.domElement.removeEventListener("pointerdown", te),
-            R.domElement.removeEventListener("pointerup", se),
-            R.domElement.removeEventListener("pointermove", pe),
-            R.domElement.removeEventListener("pointerleave", J),
-            V.dispose(),
-            Me.disconnect(),
-            B.dispose(),
-            R.dispose(),
-            i.removeChild(R.domElement),
-            g.clear(),
-            o?.(null));
-        }
-      );
-    }, [r, o]),
-    a.useEffect(() => {
-      const i = C.current;
-      if (
-        !i ||
-        ((w.current = e?.files ?? []),
-        (L.current = k),
-        (O.current = []),
-        (z.current = new Map()),
-        !e || !k)
-      )
-        return;
-      const h = new mn(),
-        g = k.radius * 2.3;
-      i.fog = new gn(dt, g * 2.1, g * 4.2);
-      const y = new Ye(new Mt(g * 6, g * 6), new at({ color: "#14171e", roughness: 1 }));
-      ((y.rotation.x = -Math.PI / 2), (y.position.y = -0.25), h.add(y));
-      const R = new xn(g * 2.4, 40, "#1d222c", "#181c25");
-      ((R.material.transparent = !0), (R.material.opacity = 0.4), (R.position.y = -0.24), h.add(R));
-      const B = [],
-        V = [];
-      for (const $ of k.edges) {
-        let D = 0;
-        for (let H = 0; H < $.points.length - 1; H++)
-          (B.push($.points[H].x, 0.12, $.points[H].z),
-            B.push($.points[H + 1].x, 0.12, $.points[H + 1].z),
-            (D += 2));
-        V.push({
-          childPath: $.childPath,
-          childFileId: $.childFileId,
-          vertexCount: D,
-        });
-      }
-      const ue = new an();
-      ue.setAttribute("position", new ps(B, 3));
-      const re = new Float32Array(B.length);
-      ue.setAttribute("color", new it(re, 3));
-      const ce = new cn(ue, new on({ vertexColors: !0, transparent: !0, opacity: 0.9 }));
-      ((c.current = ce), (S.current = V), h.add(ce));
-      const F = new Ft(0.5, 10, 8),
-        P = new _e({ toneMapped: !1, fog: !1 }),
-        q = new De(F, P, e.files.length);
-      q.instanceColor = new ot(new Float32Array(e.files.length * 3), 3);
-      const te = e.files.filter(($) => $.ghost),
-        se = new Map();
-      (te.forEach(($, D) => se.set($.id, D)), (v.current = se));
-      const W = new qe(),
-        pe = new qe().makeScale(0, 0, 0);
-      for (const $ of e.files) {
-        const D = k.leaf.get($.id);
-        if (!D) continue;
-        if ($.ghost) {
-          q.setMatrixAt($.id, pe);
-          continue;
-        }
-        const H = Math.min(0.24 + Math.sqrt(Math.max($.lines, 1)) * 0.045, 1.05);
-        (W.compose(new ee(D.x, Ae, D.z), new Ie(), new ee(H, H, H)),
-          q.setMatrixAt($.id, W),
-          q.setColorAt($.id, ke.unvisited));
-      }
-      ((q.instanceMatrix.needsUpdate = !0),
-        q.instanceColor && (q.instanceColor.needsUpdate = !0),
-        (m.current = q),
-        h.add(q));
-      let J = null;
-      if (te.length > 0) {
-        ((J = new De(
-          new Ft(0.55, 8, 5),
-          new _e({
-            wireframe: !0,
-            transparent: !0,
-            opacity: 0.85,
-            toneMapped: !1,
-            fog: !1,
-          }),
-          te.length,
-        )),
-          (J.instanceColor = new ot(new Float32Array(te.length * 3), 3)));
-        for (const $ of te) {
-          const D = k.leaf.get($.id),
-            H = se.get($.id);
-          if (!D) {
-            J.setMatrixAt(H, pe);
-            continue;
-          }
-          const Y = Math.min(0.24 + Math.sqrt(Math.max($.lines, 1)) * 0.045, 1.05) * 0.8;
-          (W.compose(new ee(D.x, Ae, D.z), new Ie(), new ee(Y, Y, Y)),
-            J.setMatrixAt(H, W),
-            J.setColorAt(H, ke.ghost));
-        }
-        ((J.instanceMatrix.needsUpdate = !0),
-          J.instanceColor && (J.instanceColor.needsUpdate = !0),
-          (J.raycast = () => {}),
-          h.add(J));
-      }
-      x.current = J;
-      const xe = new De(
-        new Mt(1, 1),
-        new _e({
-          map: Kr(),
-          transparent: !0,
-          opacity: 0.55,
-          depthWrite: !1,
-          toneMapped: !1,
-          fog: !1,
-        }),
-        e.files.length,
-      );
-      ((xe.instanceColor = new ot(new Float32Array(e.files.length * 3), 3)),
-        (xe.count = 0),
-        (xe.frustumCulled = !1),
-        (xe.raycast = () => {}),
-        (b.current = xe),
-        h.add(xe),
-        (K.current = new $n(k.dirs, h, ha)));
-      const Me = new ut(
-        new Ct({
-          map: Sn(),
-          color: da,
-          blending: ct,
-          depthWrite: !1,
-          transparent: !0,
-          fog: !1,
-        }),
-      );
-      ((Me.userData.baseScale = Math.max(g * 0.026, 2.2)),
-        (Me.visible = !1),
-        (Q.current = Me),
-        h.add(Me));
-      const ne = new _e({
-          color: ke.selected,
-          transparent: !0,
-          opacity: 0.9,
-          side: ms,
-          depthWrite: !1,
-          toneMapped: !1,
-          fog: !1,
-        }),
-        Z = new Ye(new gs(1.2, 1.5, 48), ne);
-      ((Z.rotation.x = -Math.PI / 2), (Z.visible = !1), (Z.raycast = () => {}), h.add(Z));
-      const le = new Ye(
-        new xs(0.05, 0.05, 6, 6, 1, !0),
-        new _e({
-          color: ke.selected,
-          transparent: !0,
-          opacity: 0.32,
-          blending: ct,
-          depthWrite: !1,
-          toneMapped: !1,
-          fog: !1,
-        }),
-      );
-      ((le.visible = !1), (le.raycast = () => {}), h.add(le), (d.current = { ring: Z, beam: le }));
-      const me = new Bn(1.6);
-      ((_.current = me), h.add(me.object), (A.current = h), i.add(h));
-      const U = () => {
-        const $ = N.current,
-          D = T.current;
-        if (!$ || !D) return !0;
-        const H = new ee(0.3, 0.66, 0.47).normalize(),
-          Y = [...k.leaf.values()].map((ae) => new ee(ae.x, Ae, ae.z)),
-          de = Pn($, H, Y);
-        if (de === null) return !1;
-        const he = de * 1.12;
-        return (
-          $.position.copy(H).multiplyScalar(he),
-          D.target.set(0, 0, 0),
-          (D.minDistance = g * 0.15),
-          (D.maxDistance = Math.max(g * 2.4, he * 1.2)),
-          D.update(),
-          !0
-        );
-      };
-      return (
-        (M.current = U() ? null : U),
-        () => {
-          ((M.current = null),
-            Fn(h),
-            i.remove(h),
-            (A.current = null),
-            (m.current = null),
-            (x.current = null),
-            (v.current = new Map()),
-            (d.current = null),
-            (b.current = null),
-            (c.current = null),
-            (_.current = null),
-            (Q.current = null),
-            (K.current = null));
-        }
-      );
-    }, [e, k]),
-    a.useEffect(() => {
-      const i = m.current,
-        h = x.current,
-        g = v.current,
-        y = b.current,
-        R = c.current;
-      if (!i || !y || !R || !e || !k) return;
-      const B = z.current,
-        V = [],
-        ue = new Set(),
-        re = new Set();
-      for (const P of e.files) {
-        const q = n.touchByFile.get(P.id);
-        let te = P.ghost ? ke.ghost : ke.unvisited;
-        if (q) {
-          te = ke[q];
-          const se = n.visitsByFile.get(P.id) ?? 1;
-          (V.push({ fileId: P.id, target: ua(se), color: ke[q] }), ue.add(P.id));
-          const W = P.path.split("/");
-          let pe = "";
-          for (let J = 0; J < W.length - 1; J++) ((pe = pe ? `${pe}/${W[J]}` : W[J]), re.add(pe));
-        }
-        if (P.ghost) {
-          const se = g.get(P.id);
-          h && se !== void 0 && h.setColorAt(se, te);
-        } else i.setColorAt(P.id, te);
-      }
-      for (const [P, q] of B)
-        q > 0.04 && !ue.has(P)
-          ? V.push({ fileId: P, target: 0, color: ke.unvisited })
-          : q <= 0.04 && !ue.has(P) && B.delete(P);
-      (V.forEach((P, q) => y.setColorAt(q, P.color)),
-        (y.count = V.length),
-        y.instanceColor && (y.instanceColor.needsUpdate = !0),
-        i.instanceColor && (i.instanceColor.needsUpdate = !0),
-        h?.instanceColor && (h.instanceColor.needsUpdate = !0),
-        (O.current = V));
-      const ce = R.geometry.getAttribute("color");
-      let F = 0;
-      for (const P of S.current) {
-        let q = !1;
-        P.childFileId !== void 0
-          ? (q = n.touchByFile.has(P.childFileId))
-          : P.childPath && (q = re.has(P.childPath));
-        const te = q ? la : ca;
-        for (let se = 0; se < P.vertexCount; se++) ce.setXYZ(F++, te.r, te.g, te.b);
-      }
-      ce.needsUpdate = !0;
-    }, [e, k, n]),
-    a.useEffect(() => {
-      const i = d.current;
-      if (!i || !e || !k) return;
-      const h = s ? e.files.find((y) => y.path === s) : void 0,
-        g = h ? k.leaf.get(h.id) : void 0;
-      if (g) {
-        (i.ring.position.set(g.x, 0.1, g.z),
-          i.beam.position.set(g.x, 3, g.z),
-          (i.ring.visible = !0),
-          (i.beam.visible = !0));
-        const y = N.current,
-          R = T.current,
-          B = p.current?.domElement;
-        y &&
-          R &&
-          B &&
-          ((R.autoRotate = !1), In(y, R, new ee(g.x, Ae, g.z), B.clientWidth, B.clientHeight, fa));
-      } else ((i.ring.visible = !1), (i.beam.visible = !1));
-    }, [e, k, s]),
-    a.useEffect(() => {
-      const i = _.current;
-      if (!i || !e || !k) return;
-      const h = n.recentTargets
-          .map((y) => (y.fileId !== void 0 ? e.files[y.fileId] : void 0))
-          .filter((y) => !!(y && k.leaf.get(y.id))),
-        g = Q.current;
-      if (g) {
-        const y = h[h.length - 1];
-        if (y) {
-          const R = k.leaf.get(y.id);
-          (g.position.set(R.x, Ae + 1.7, R.z), (g.visible = !0));
-        } else g.visible = !1;
-      }
-      i.update(
-        h.map((y) => {
-          const R = k.leaf.get(y.id);
-          return new ee(R.x, Ae + 0.3, R.z);
-        }),
-      );
-    }, [e, k, n]),
-    t.jsx("div", {
-      className: "city-scene",
-      ref: l,
-      "aria-label": "Firefly tree",
-    })
-  );
+	fa = 348;
+function pa({
+	city: e,
+	playback: n,
+	selectedPath: s,
+	onSelect: r,
+	onCanvasReady: o,
+}) {
+	const l = a.useRef(null),
+		m = a.useRef(null),
+		x = a.useRef(null),
+		v = a.useRef(new Map()),
+		d = a.useRef(null),
+		b = a.useRef(null),
+		c = a.useRef(null),
+		S = a.useRef([]),
+		w = a.useRef([]),
+		L = a.useRef(null),
+		O = a.useRef([]),
+		z = a.useRef(new Map()),
+		p = a.useRef(null),
+		N = a.useRef(null),
+		T = a.useRef(null),
+		C = a.useRef(null),
+		A = a.useRef(null),
+		_ = a.useRef(null),
+		Q = a.useRef(null),
+		K = a.useRef(null),
+		G = a.useRef(null),
+		E = a.useRef(!1),
+		f = a.useRef(n);
+	f.current = n;
+	const M = a.useRef(null),
+		k = a.useMemo(() => (e && e.files.length > 0 ? ia(e.files) : null), [e]);
+	return (
+		a.useEffect(() => {
+			const i = l.current;
+			if (!i) return;
+			const h = zn();
+			E.current = h;
+			const g = new ln();
+			(g.background = dt), (C.current = g);
+			const y = new dn(38, i.clientWidth / i.clientHeight || 1, 0.1, 2400);
+			y.position.set(60, 110, 90), (N.current = y);
+			const R = new un({ antialias: !0 });
+			R.setPixelRatio(Math.min(window.devicePixelRatio, 2)),
+				R.setSize(i.clientWidth, i.clientHeight),
+				(p.current = R),
+				i.appendChild(R.domElement),
+				o?.(R.domElement);
+			const B = new hn(y, R.domElement);
+			(B.enableDamping = !h),
+				(B.dampingFactor = 0.08),
+				(B.maxPolarAngle = Math.PI * 0.44),
+				(B.autoRotate = !h),
+				(B.autoRotateSpeed = -0.5);
+			const V = new Tn(i);
+			B.addEventListener("start", () => {
+				(B.autoRotate = !1), V.hide();
+			}),
+				(T.current = B);
+			const ue = new fn("#66779b", "#161922", 1.7);
+			g.add(ue);
+			const re = new pn("#b6c5de", 1.1);
+			re.position.set(-60, 120, -40), g.add(re);
+			const ce = 18,
+				F = new ee(),
+				P = (U) => {
+					const $ = L.current;
+					if (!$ || !N.current || !p.current) return;
+					const D = p.current.domElement.getBoundingClientRect(),
+						H = U.clientX - D.left,
+						Y = U.clientY - D.top;
+					let de,
+						he = ce * ce;
+					for (const ae of w.current) {
+						const ve = $.leaf.get(ae.id);
+						if (!ve || (F.set(ve.x, Ae, ve.z).project(N.current), F.z > 1))
+							continue;
+						const ie = ((F.x + 1) / 2) * D.width,
+							Ee = ((1 - F.y) / 2) * D.height,
+							Ne = (ie - H) * (ie - H) + (Ee - Y) * (Ee - Y);
+						Ne < he && ((he = Ne), (de = ae));
+					}
+					return de;
+				};
+			let q = null;
+			const te = (U) => {
+					q = { x: U.clientX, y: U.clientY };
+				},
+				se = (U) => {
+					if (!q) return;
+					const $ = Math.hypot(U.clientX - q.x, U.clientY - q.y);
+					(q = null), !($ > 5) && r(P(U)?.path);
+				};
+			let W = 0;
+			const pe = (U) => {
+					if (q) {
+						V.hide();
+						return;
+					}
+					W ||
+						(W = requestAnimationFrame(() => {
+							W = 0;
+							const $ = P(U);
+							if (((R.domElement.style.cursor = $ ? "pointer" : ""), !$)) {
+								V.hide();
+								return;
+							}
+							const D = f.current,
+								H = D.touchByPath.get($.path),
+								Y = D.visitsByFile.get($.id) ?? 0,
+								de = H
+									? `${Je(H)} · ${Y} visit${Y === 1 ? "" : "s"}`
+									: Je(void 0);
+							V.show(
+								$.path,
+								$.ghost ? `${de} · ghost` : de,
+								U.clientX,
+								U.clientY,
+							);
+						}));
+				},
+				J = () => {
+					V.hide(), (R.domElement.style.cursor = "");
+				};
+			R.domElement.addEventListener("pointerdown", te),
+				R.domElement.addEventListener("pointerup", se),
+				R.domElement.addEventListener("pointermove", pe),
+				R.domElement.addEventListener("pointerleave", J);
+			const xe = () => {
+					if (!l.current) return;
+					const U = l.current.clientWidth,
+						$ = l.current.clientHeight;
+					U === 0 ||
+						$ === 0 ||
+						(R.setSize(U, $),
+						(y.aspect = U / $),
+						y.updateProjectionMatrix(),
+						M.current?.() && (M.current = null));
+				},
+				Me = new ResizeObserver(xe);
+			Me.observe(i);
+			const ne = new vn(),
+				Z = new qe(),
+				le = new Ie().setFromEuler(new fs(-Math.PI / 2, 0, 0)),
+				me = () => {
+					B.update(),
+						K.current?.updateTargets(
+							y,
+							R.domElement.clientWidth,
+							R.domElement.clientHeight,
+						),
+						K.current?.ease(E.current);
+					const U = b.current,
+						$ = O.current,
+						D = z.current,
+						H = L.current;
+					if (U && H && $.length > 0) {
+						let de = !1;
+						for (let he = 0; he < $.length; he++) {
+							const ae = $[he],
+								ve = H.leaf.get(ae.fileId);
+							if (!ve) continue;
+							let ie = D.get(ae.fileId) ?? 0;
+							const Ee = ae.target - ie;
+							Math.abs(Ee) > 0.015
+								? ((ie = E.current ? ae.target : ie + Ee * 0.12),
+									D.set(ae.fileId, ie),
+									(de = !0))
+								: ie !== ae.target &&
+									(D.set(ae.fileId, ae.target), (ie = ae.target), (de = !0)),
+								Z.compose(
+									new ee(ve.x, 0.06, ve.z),
+									le,
+									new ee(Math.max(ie, 0.01) * 2, Math.max(ie, 0.01) * 2, 1),
+								),
+								U.setMatrixAt(he, Z);
+						}
+						de && (U.instanceMatrix.needsUpdate = !0);
+					}
+					const Y = Q.current;
+					if (Y?.visible) {
+						const de = ne.getElapsedTime(),
+							he = Y.userData.baseScale,
+							ae = E.current ? 1 : 1 + 0.1 * Math.sin(de * 2.4);
+						Y.scale.setScalar(he * ae);
+					}
+					R.render(g, y), (G.current = requestAnimationFrame(me));
+				};
+			return (
+				me(),
+				() => {
+					G.current && cancelAnimationFrame(G.current),
+						W && cancelAnimationFrame(W),
+						R.domElement.removeEventListener("pointerdown", te),
+						R.domElement.removeEventListener("pointerup", se),
+						R.domElement.removeEventListener("pointermove", pe),
+						R.domElement.removeEventListener("pointerleave", J),
+						V.dispose(),
+						Me.disconnect(),
+						B.dispose(),
+						R.dispose(),
+						i.removeChild(R.domElement),
+						g.clear(),
+						o?.(null);
+				}
+			);
+		}, [r, o]),
+		a.useEffect(() => {
+			const i = C.current;
+			if (
+				!i ||
+				((w.current = e?.files ?? []),
+				(L.current = k),
+				(O.current = []),
+				(z.current = new Map()),
+				!e || !k)
+			)
+				return;
+			const h = new mn(),
+				g = k.radius * 2.3;
+			i.fog = new gn(dt, g * 2.1, g * 4.2);
+			const y = new Ye(
+				new Mt(g * 6, g * 6),
+				new at({ color: "#14171e", roughness: 1 }),
+			);
+			(y.rotation.x = -Math.PI / 2), (y.position.y = -0.25), h.add(y);
+			const R = new xn(g * 2.4, 40, "#1d222c", "#181c25");
+			(R.material.transparent = !0),
+				(R.material.opacity = 0.4),
+				(R.position.y = -0.24),
+				h.add(R);
+			const B = [],
+				V = [];
+			for (const $ of k.edges) {
+				let D = 0;
+				for (let H = 0; H < $.points.length - 1; H++)
+					B.push($.points[H].x, 0.12, $.points[H].z),
+						B.push($.points[H + 1].x, 0.12, $.points[H + 1].z),
+						(D += 2);
+				V.push({
+					childPath: $.childPath,
+					childFileId: $.childFileId,
+					vertexCount: D,
+				});
+			}
+			const ue = new an();
+			ue.setAttribute("position", new ps(B, 3));
+			const re = new Float32Array(B.length);
+			ue.setAttribute("color", new it(re, 3));
+			const ce = new cn(
+				ue,
+				new on({ vertexColors: !0, transparent: !0, opacity: 0.9 }),
+			);
+			(c.current = ce), (S.current = V), h.add(ce);
+			const F = new Ft(0.5, 10, 8),
+				P = new _e({ toneMapped: !1, fog: !1 }),
+				q = new De(F, P, e.files.length);
+			q.instanceColor = new ot(new Float32Array(e.files.length * 3), 3);
+			const te = e.files.filter(($) => $.ghost),
+				se = new Map();
+			te.forEach(($, D) => se.set($.id, D)), (v.current = se);
+			const W = new qe(),
+				pe = new qe().makeScale(0, 0, 0);
+			for (const $ of e.files) {
+				const D = k.leaf.get($.id);
+				if (!D) continue;
+				if ($.ghost) {
+					q.setMatrixAt($.id, pe);
+					continue;
+				}
+				const H = Math.min(
+					0.24 + Math.sqrt(Math.max($.lines, 1)) * 0.045,
+					1.05,
+				);
+				W.compose(new ee(D.x, Ae, D.z), new Ie(), new ee(H, H, H)),
+					q.setMatrixAt($.id, W),
+					q.setColorAt($.id, ke.unvisited);
+			}
+			(q.instanceMatrix.needsUpdate = !0),
+				q.instanceColor && (q.instanceColor.needsUpdate = !0),
+				(m.current = q),
+				h.add(q);
+			let J = null;
+			if (te.length > 0) {
+				(J = new De(
+					new Ft(0.55, 8, 5),
+					new _e({
+						wireframe: !0,
+						transparent: !0,
+						opacity: 0.85,
+						toneMapped: !1,
+						fog: !1,
+					}),
+					te.length,
+				)),
+					(J.instanceColor = new ot(new Float32Array(te.length * 3), 3));
+				for (const $ of te) {
+					const D = k.leaf.get($.id),
+						H = se.get($.id);
+					if (!D) {
+						J.setMatrixAt(H, pe);
+						continue;
+					}
+					const Y =
+						Math.min(0.24 + Math.sqrt(Math.max($.lines, 1)) * 0.045, 1.05) *
+						0.8;
+					W.compose(new ee(D.x, Ae, D.z), new Ie(), new ee(Y, Y, Y)),
+						J.setMatrixAt(H, W),
+						J.setColorAt(H, ke.ghost);
+				}
+				(J.instanceMatrix.needsUpdate = !0),
+					J.instanceColor && (J.instanceColor.needsUpdate = !0),
+					(J.raycast = () => {}),
+					h.add(J);
+			}
+			x.current = J;
+			const xe = new De(
+				new Mt(1, 1),
+				new _e({
+					map: Kr(),
+					transparent: !0,
+					opacity: 0.55,
+					depthWrite: !1,
+					toneMapped: !1,
+					fog: !1,
+				}),
+				e.files.length,
+			);
+			(xe.instanceColor = new ot(new Float32Array(e.files.length * 3), 3)),
+				(xe.count = 0),
+				(xe.frustumCulled = !1),
+				(xe.raycast = () => {}),
+				(b.current = xe),
+				h.add(xe),
+				(K.current = new $n(k.dirs, h, ha));
+			const Me = new ut(
+				new Ct({
+					map: Sn(),
+					color: da,
+					blending: ct,
+					depthWrite: !1,
+					transparent: !0,
+					fog: !1,
+				}),
+			);
+			(Me.userData.baseScale = Math.max(g * 0.026, 2.2)),
+				(Me.visible = !1),
+				(Q.current = Me),
+				h.add(Me);
+			const ne = new _e({
+					color: ke.selected,
+					transparent: !0,
+					opacity: 0.9,
+					side: ms,
+					depthWrite: !1,
+					toneMapped: !1,
+					fog: !1,
+				}),
+				Z = new Ye(new gs(1.2, 1.5, 48), ne);
+			(Z.rotation.x = -Math.PI / 2),
+				(Z.visible = !1),
+				(Z.raycast = () => {}),
+				h.add(Z);
+			const le = new Ye(
+				new xs(0.05, 0.05, 6, 6, 1, !0),
+				new _e({
+					color: ke.selected,
+					transparent: !0,
+					opacity: 0.32,
+					blending: ct,
+					depthWrite: !1,
+					toneMapped: !1,
+					fog: !1,
+				}),
+			);
+			(le.visible = !1),
+				(le.raycast = () => {}),
+				h.add(le),
+				(d.current = { ring: Z, beam: le });
+			const me = new Bn(1.6);
+			(_.current = me), h.add(me.object), (A.current = h), i.add(h);
+			const U = () => {
+				const $ = N.current,
+					D = T.current;
+				if (!$ || !D) return !0;
+				const H = new ee(0.3, 0.66, 0.47).normalize(),
+					Y = [...k.leaf.values()].map((ae) => new ee(ae.x, Ae, ae.z)),
+					de = Pn($, H, Y);
+				if (de === null) return !1;
+				const he = de * 1.12;
+				return (
+					$.position.copy(H).multiplyScalar(he),
+					D.target.set(0, 0, 0),
+					(D.minDistance = g * 0.15),
+					(D.maxDistance = Math.max(g * 2.4, he * 1.2)),
+					D.update(),
+					!0
+				);
+			};
+			return (
+				(M.current = U() ? null : U),
+				() => {
+					(M.current = null),
+						Fn(h),
+						i.remove(h),
+						(A.current = null),
+						(m.current = null),
+						(x.current = null),
+						(v.current = new Map()),
+						(d.current = null),
+						(b.current = null),
+						(c.current = null),
+						(_.current = null),
+						(Q.current = null),
+						(K.current = null);
+				}
+			);
+		}, [e, k]),
+		a.useEffect(() => {
+			const i = m.current,
+				h = x.current,
+				g = v.current,
+				y = b.current,
+				R = c.current;
+			if (!i || !y || !R || !e || !k) return;
+			const B = z.current,
+				V = [],
+				ue = new Set(),
+				re = new Set();
+			for (const P of e.files) {
+				const q = n.touchByFile.get(P.id);
+				let te = P.ghost ? ke.ghost : ke.unvisited;
+				if (q) {
+					te = ke[q];
+					const se = n.visitsByFile.get(P.id) ?? 1;
+					V.push({ fileId: P.id, target: ua(se), color: ke[q] }), ue.add(P.id);
+					const W = P.path.split("/");
+					let pe = "";
+					for (let J = 0; J < W.length - 1; J++)
+						(pe = pe ? `${pe}/${W[J]}` : W[J]), re.add(pe);
+				}
+				if (P.ghost) {
+					const se = g.get(P.id);
+					h && se !== void 0 && h.setColorAt(se, te);
+				} else i.setColorAt(P.id, te);
+			}
+			for (const [P, q] of B)
+				q > 0.04 && !ue.has(P)
+					? V.push({ fileId: P, target: 0, color: ke.unvisited })
+					: q <= 0.04 && !ue.has(P) && B.delete(P);
+			V.forEach((P, q) => y.setColorAt(q, P.color)),
+				(y.count = V.length),
+				y.instanceColor && (y.instanceColor.needsUpdate = !0),
+				i.instanceColor && (i.instanceColor.needsUpdate = !0),
+				h?.instanceColor && (h.instanceColor.needsUpdate = !0),
+				(O.current = V);
+			const ce = R.geometry.getAttribute("color");
+			let F = 0;
+			for (const P of S.current) {
+				let q = !1;
+				P.childFileId !== void 0
+					? (q = n.touchByFile.has(P.childFileId))
+					: P.childPath && (q = re.has(P.childPath));
+				const te = q ? la : ca;
+				for (let se = 0; se < P.vertexCount; se++)
+					ce.setXYZ(F++, te.r, te.g, te.b);
+			}
+			ce.needsUpdate = !0;
+		}, [e, k, n]),
+		a.useEffect(() => {
+			const i = d.current;
+			if (!i || !e || !k) return;
+			const h = s ? e.files.find((y) => y.path === s) : void 0,
+				g = h ? k.leaf.get(h.id) : void 0;
+			if (g) {
+				i.ring.position.set(g.x, 0.1, g.z),
+					i.beam.position.set(g.x, 3, g.z),
+					(i.ring.visible = !0),
+					(i.beam.visible = !0);
+				const y = N.current,
+					R = T.current,
+					B = p.current?.domElement;
+				y &&
+					R &&
+					B &&
+					((R.autoRotate = !1),
+					In(y, R, new ee(g.x, Ae, g.z), B.clientWidth, B.clientHeight, fa));
+			} else (i.ring.visible = !1), (i.beam.visible = !1);
+		}, [e, k, s]),
+		a.useEffect(() => {
+			const i = _.current;
+			if (!i || !e || !k) return;
+			const h = n.recentTargets
+					.map((y) => (y.fileId !== void 0 ? e.files[y.fileId] : void 0))
+					.filter((y) => !!(y && k.leaf.get(y.id))),
+				g = Q.current;
+			if (g) {
+				const y = h[h.length - 1];
+				if (y) {
+					const R = k.leaf.get(y.id);
+					g.position.set(R.x, Ae + 1.7, R.z), (g.visible = !0);
+				} else g.visible = !1;
+			}
+			i.update(
+				h.map((y) => {
+					const R = k.leaf.get(y.id);
+					return new ee(R.x, Ae + 0.3, R.z);
+				}),
+			);
+		}, [e, k, n]),
+		t.jsx("div", {
+			className: "city-scene",
+			ref: l,
+			"aria-label": "Firefly tree",
+		})
+	);
 }
 const _n = "mindwalk.sessionFilters";
 function qn(e, n, s) {
-  return !(
-    (n.harness && e.harness !== n.harness) ||
-    (n.hideEmpty && e.eventCount === 0 && e.key !== s)
-  );
+	return !(
+		(n.harness && e.harness !== n.harness) ||
+		(n.hideEmpty && e.eventCount === 0 && e.key !== s)
+	);
 }
 function ma() {
-  try {
-    const e = localStorage.getItem(_n);
-    if (e) {
-      const n = JSON.parse(e);
-      return {
-        hideEmpty: n.hideEmpty !== !1,
-        harness: typeof n.harness == "string" ? n.harness : void 0,
-      };
-    }
-  } catch {}
-  return { hideEmpty: !0 };
+	try {
+		const e = localStorage.getItem(_n);
+		if (e) {
+			const n = JSON.parse(e);
+			return {
+				hideEmpty: n.hideEmpty !== !1,
+				harness: typeof n.harness == "string" ? n.harness : void 0,
+			};
+		}
+	} catch {}
+	return { hideEmpty: !0 };
 }
 function Kt(e) {
-  try {
-    localStorage.setItem(_n, JSON.stringify(e));
-  } catch {}
+	try {
+		localStorage.setItem(_n, JSON.stringify(e));
+	} catch {}
 }
 const Wt = (e) => {
-    let n;
-    const s = new Set(),
-      r = (d, b) => {
-        const c = typeof d == "function" ? d(n) : d;
-        if (!Object.is(c, n)) {
-          const S = n;
-          ((n = (b ?? (typeof c != "object" || c === null)) ? c : Object.assign({}, n, c)),
-            s.forEach((w) => w(n, S)));
-        }
-      },
-      o = () => n,
-      x = {
-        setState: r,
-        getState: o,
-        getInitialState: () => v,
-        subscribe: (d) => (s.add(d), () => s.delete(d)),
-      },
-      v = (n = e(r, o, x));
-    return x;
-  },
-  ga = (e) => (e ? Wt(e) : Wt),
-  xa = (e) => e;
+		let n;
+		const s = new Set(),
+			r = (d, b) => {
+				const c = typeof d == "function" ? d(n) : d;
+				if (!Object.is(c, n)) {
+					const S = n;
+					(n =
+						(b ?? (typeof c != "object" || c === null))
+							? c
+							: Object.assign({}, n, c)),
+						s.forEach((w) => w(n, S));
+				}
+			},
+			o = () => n,
+			x = {
+				setState: r,
+				getState: o,
+				getInitialState: () => v,
+				subscribe: (d) => (s.add(d), () => s.delete(d)),
+			},
+			v = (n = e(r, o, x));
+		return x;
+	},
+	ga = (e) => (e ? Wt(e) : Wt),
+	xa = (e) => e;
 function va(e, n = xa) {
-  const s = tt.useSyncExternalStore(
-    e.subscribe,
-    tt.useCallback(() => n(e.getState()), [e, n]),
-    tt.useCallback(() => n(e.getInitialState()), [e, n]),
-  );
-  return (tt.useDebugValue(s), s);
+	const s = tt.useSyncExternalStore(
+		e.subscribe,
+		tt.useCallback(() => n(e.getState()), [e, n]),
+		tt.useCallback(() => n(e.getInitialState()), [e, n]),
+	);
+	return tt.useDebugValue(s), s;
 }
 const Yt = (e) => {
-    const n = ga(e),
-      s = (r) => va(n, r);
-    return (Object.assign(s, n), s);
-  },
-  ya = (e) => (e ? Yt(e) : Yt),
-  Xt = ma(),
-  Dn = "mindwalk.railCollapsed";
+		const n = ga(e),
+			s = (r) => va(n, r);
+		return Object.assign(s, n), s;
+	},
+	ya = (e) => (e ? Yt(e) : Yt),
+	Xt = ma(),
+	Dn = "mindwalk.railCollapsed";
 function wa() {
-  try {
-    return localStorage.getItem(Dn) === "1";
-  } catch {
-    return !1;
-  }
+	try {
+		return localStorage.getItem(Dn) === "1";
+	} catch {
+		return !1;
+	}
 }
 const Le = ya((e, n) => ({
-    sessions: [],
-    currentSeq: 0,
-    view: "tree",
-    loading: !1,
-    hideEmpty: Xt.hideEmpty,
-    harnessFilter: Xt.harness,
-    railCollapsed: wa(),
-    mapOnly: !1,
-    setView: (s) => e({ view: s }),
-    setSessions: (s) => e({ sessions: s }),
-    setActiveSession: (s) =>
-      e({
-        activeSessionKey: s,
-        trace: void 0,
-        city: void 0,
-        currentSeq: 0,
-        selectedPath: void 0,
-      }),
-    setData: (s, r) => e({ trace: s, city: r, currentSeq: Math.max(0, s.events.length - 1) }),
-    setCityOnly: (s) =>
-      e({
-        city: s,
-        trace: void 0,
-        currentSeq: 0,
-        selectedPath: void 0,
-        mapOnly: !0,
-      }),
-    setCurrentSeq: (s) => e({ currentSeq: s }),
-    setSelectedPath: (s) => e({ selectedPath: s }),
-    setLoading: (s) => e({ loading: s }),
-    setError: (s) => e({ error: s }),
-    setHideEmpty: (s) => {
-      (e({ hideEmpty: s }), Kt({ hideEmpty: s, harness: n().harnessFilter }));
-    },
-    setHarnessFilter: (s) => {
-      (e({ harnessFilter: s }), Kt({ hideEmpty: n().hideEmpty, harness: s }));
-    },
-    setRailCollapsed: (s) => {
-      e({ railCollapsed: s });
-      try {
-        localStorage.setItem(Dn, s ? "1" : "0");
-      } catch {}
-    },
-  })),
-  jt = 8;
+		sessions: [],
+		currentSeq: 0,
+		view: "tree",
+		loading: !1,
+		hideEmpty: Xt.hideEmpty,
+		harnessFilter: Xt.harness,
+		railCollapsed: wa(),
+		mapOnly: !1,
+		setView: (s) => e({ view: s }),
+		setSessions: (s) => e({ sessions: s }),
+		setActiveSession: (s) =>
+			e({
+				activeSessionKey: s,
+				trace: void 0,
+				city: void 0,
+				currentSeq: 0,
+				selectedPath: void 0,
+			}),
+		setData: (s, r) =>
+			e({ trace: s, city: r, currentSeq: Math.max(0, s.events.length - 1) }),
+		setCityOnly: (s) =>
+			e({
+				city: s,
+				trace: void 0,
+				currentSeq: 0,
+				selectedPath: void 0,
+				mapOnly: !0,
+			}),
+		setCurrentSeq: (s) => e({ currentSeq: s }),
+		setSelectedPath: (s) => e({ selectedPath: s }),
+		setLoading: (s) => e({ loading: s }),
+		setError: (s) => e({ error: s }),
+		setHideEmpty: (s) => {
+			e({ hideEmpty: s }), Kt({ hideEmpty: s, harness: n().harnessFilter });
+		},
+		setHarnessFilter: (s) => {
+			e({ harnessFilter: s }), Kt({ hideEmpty: n().hideEmpty, harness: s });
+		},
+		setRailCollapsed: (s) => {
+			e({ railCollapsed: s });
+			try {
+				localStorage.setItem(Dn, s ? "1" : "0");
+			} catch {}
+		},
+	})),
+	jt = 8;
 function ba(e, n = 40) {
-  if (e.length <= n) return e;
-  const s = Math.min(28, n - 3);
-  return e.slice(0, n - s - 1) + "…" + e.slice(-s);
+	if (e.length <= n) return e;
+	const s = Math.min(28, n - 3);
+	return e.slice(0, n - s - 1) + "…" + e.slice(-s);
 }
 const ja = a.memo(function ({
-  trace: n,
-  city: s,
-  agentLabel: r,
-  editedNow: o,
-  readNow: l,
-  seenNow: m,
-  churn: x,
-  onSelectFile: v,
-  onOpenAgents: d,
-  locked: b = !1,
+	trace: n,
+	city: s,
+	agentLabel: r,
+	editedNow: o,
+	readNow: l,
+	seenNow: m,
+	churn: x,
+	onSelectFile: v,
+	onOpenAgents: d,
+	locked: b = !1,
 }) {
-  const c = n?.stats,
-    S = c ? c.fovea - c.edited : 0,
-    w = c ? Math.max(0, c.filesInRepo - o - l - m) : 0,
-    L = c ? Math.max(0, c.filesInRepo - c.fovea - c.parafovea) : 0,
-    O = s ? s.files.reduce((f, M) => f + (M.ghost ? 1 : 0), 0) : 0,
-    z = c ? Qt(c.errors) : 0,
-    p = c ? z > 0 || c.churnFiles > 0 || c.actions.edit > 0 : !1,
-    N = !!n && n.events.length > 0,
-    T = !!n && n.events.some((f) => f.targets.length > 0),
-    C = !!n && n.events.some((f) => f.action === "read" || f.action === "edit"),
-    A = N && !T,
-    _ = A && C,
-    [Q, K] = a.useState(!1),
-    G = a.useRef(null),
-    E = a.useRef(null);
-  return (
-    a.useEffect(() => K(!1), [n]),
-    a.useEffect(() => {
-      if (!Q) return;
-      const f = (k) => {
-          const i = k.target;
-          G.current?.contains(i) || E.current?.contains(i) || K(!1);
-        },
-        M = (k) => {
-          k.key === "Escape" && K(!1);
-        };
-      return (
-        document.addEventListener("pointerdown", f),
-        document.addEventListener("keydown", M),
-        () => {
-          (document.removeEventListener("pointerdown", f),
-            document.removeEventListener("keydown", M));
-        }
-      );
-    }, [Q]),
-    t.jsx("div", {
-      className: "hud",
-      "aria-hidden": !s,
-      children: t.jsxs("div", {
-        className: "hud-left",
-        children: [
-          t.jsxs("div", {
-            className: "hud-title-line",
-            children: [
-              t.jsx("div", {
-                className: "hud-repo",
-                children: s ? Ea(s.repo.root) : "",
-              }),
-              n && r
-                ? t.jsxs("button", {
-                    className: "hud-lens",
-                    onClick: d,
-                    disabled: !d || b,
-                    "aria-label": `Open Agent lenses, current ${r}`,
-                    children: [t.jsx("span", { children: "Lens" }), r],
-                  })
-                : null,
-            ],
-          }),
-          s
-            ? t.jsxs("div", {
-                className: "hud-commit",
-                children: [
-                  t.jsx("span", { children: s.repo.commit || "worktree" }),
-                  s.repo.dirty ? t.jsx("span", { className: "dirty", children: "● dirty" }) : null,
-                  n?.session.model ? t.jsx("span", { children: n.session.model }) : null,
-                  n?.session.cwd
-                    ? t.jsx("span", {
-                        "data-hint": "Working directory the adapter resolved for this session",
-                        children: ba(n.session.cwd),
-                      })
-                    : null,
-                  c
-                    ? t.jsxs("span", {
-                        "data-hint":
-                          "Files in the repository map — the denominator of the coverage spectrum below",
-                        children: [c.filesInRepo, " files"],
-                      })
-                    : null,
-                ],
-              })
-            : null,
-          A
-            ? t.jsx("div", {
-                className: "hud-warning",
-                "data-hint": _
-                  ? "The adapter found file read/edit calls but could not map any to repository files — check that the session's working directory matches the loaded repository"
-                  : "This session had no file read/edit operations — only commands or reasoning steps",
-                children: _
-                  ? "no file targets resolved — cwd may not match repository"
-                  : "no file operations in this session",
-              })
-            : null,
-          c
-            ? t.jsxs(t.Fragment, {
-                children: [
-                  t.jsxs("div", {
-                    className: "spectrum",
-                    children: [
-                      t.jsx(We, {
-                        kind: "edit",
-                        label: "edited",
-                        now: o,
-                        final: c.edited,
-                        hint: "Files the agent changed",
-                      }),
-                      t.jsx(We, {
-                        kind: "read",
-                        label: "read",
-                        now: l,
-                        final: S,
-                        hint: "Files the agent opened and read, but never changed",
-                      }),
-                      t.jsx(We, {
-                        kind: "hit",
-                        label: "seen",
-                        now: m,
-                        final: c.parafovea,
-                        hint: "Files that only appeared in search results, never opened",
-                      }),
-                      t.jsx(We, {
-                        kind: "unvisited",
-                        label: "unvisited",
-                        now: w,
-                        final: L,
-                        hint: "Files in the map the agent never touched",
-                      }),
-                      O > 0
-                        ? t.jsx(We, {
-                            kind: "ghost",
-                            label: "ghost",
-                            now: O,
-                            final: O,
-                            hint: "Files the session touched that are gone from the repository — drawn hollow in the scene",
-                          })
-                        : null,
-                    ],
-                  }),
-                  t.jsxs("div", {
-                    className: "hud-quiet",
-                    children: [
-                      t.jsxs("span", {
-                        "data-hint": `Tool calls — ${en(c.actions)}`,
-                        children: [Qt(c.actions), " calls"],
-                      }),
-                      t.jsxs("span", {
-                        "data-hint": "User messages — each one starts a turn of agent work",
-                        children: [c.userTurns, " turns"],
-                      }),
-                      c.subagents > 0
-                        ? t.jsxs("button", {
-                            className: "hud-agent-link",
-                            "data-hint": "Subagent launches (Task/Agent) — open Agent lenses",
-                            onClick: d,
-                            disabled: !d || b,
-                            "aria-label": `Open ${c.subagents} subagent${c.subagents === 1 ? "" : "s"} in Agent lenses`,
-                            children: [c.subagents, " subagent", c.subagents === 1 ? "" : "s"],
-                          })
-                        : null,
-                      c.compactions > 0
-                        ? t.jsxs("span", {
-                            "data-hint":
-                              "Context compactions — the conversation was summarized to free memory",
-                            children: [
-                              c.compactions,
-                              " compaction",
-                              c.compactions === 1 ? "" : "s",
-                            ],
-                          })
-                        : null,
-                      t.jsxs("span", {
-                        "data-hint": "Tool output the agent consumed over the session",
-                        children: [Ca(c.resultBytes), " output"],
-                      }),
-                      t.jsx("span", {
-                        "data-hint": Na(c.observability.reads),
-                        children:
-                          c.observability.reads === "unavailable"
-                            ? "re-reads n/a"
-                            : `re-reads ${Jt(c.observability.reads)}${Ma(c.regressionRate)}`,
-                      }),
-                    ],
-                  }),
-                  p
-                    ? t.jsxs("div", {
-                        className: "hud-review",
-                        children: [
-                          t.jsx("span", {
-                            className: "review-label",
-                            children: "review",
-                          }),
-                          z > 0
-                            ? t.jsxs("span", {
-                                className: "warn",
-                                "data-hint": `${en(c.errors)} — press X to jump to the next one${ka(c.observability.errors)}`,
-                                children: [
-                                  Jt(c.observability.errors),
-                                  z,
-                                  " error",
-                                  z === 1 ? "" : "s",
-                                ],
-                              })
-                            : null,
-                          c.churnFiles > 0
-                            ? t.jsxs("button", {
-                                ref: E,
-                                className: Q ? "warn churn-toggle open" : "warn churn-toggle",
-                                "aria-expanded": Q,
-                                onClick: () => K((f) => !f),
-                                "data-hint": `Files edited in three or more separate events — the most-edited file changed ${c.maxEditsPerFile} times. Click to list them.`,
-                                children: [
-                                  c.churnFiles,
-                                  " file",
-                                  c.churnFiles === 1 ? "" : "s",
-                                  " ",
-                                  "edited 3+ times",
-                                ],
-                              })
-                            : null,
-                          c.actions.edit > 0
-                            ? c.actions.verify === 0
-                              ? t.jsx("span", {
-                                  className: "warn",
-                                  "data-hint":
-                                    "The session edited files but no build or test commands were recognized (go test, make test, npm run build, …)",
-                                  children: "never verified",
-                                })
-                              : c.editsAfterLastVerify > 0
-                                ? t.jsxs("span", {
-                                    className: "warn",
-                                    "data-hint": `Edit events after the session's last build or test run — ${Zt(c.actions.verify)} total; pass/fail is not tracked`,
-                                    children: [
-                                      c.editsAfterLastVerify,
-                                      " edit",
-                                      c.editsAfterLastVerify === 1 ? "" : "s",
-                                      " after last verify",
-                                    ],
-                                  })
-                                : t.jsx("span", {
-                                    className: "ok",
-                                    "data-hint": `The last edit was followed by a build or test run — ${Zt(c.actions.verify)} total; pass/fail is not tracked`,
-                                    children: "verified after final edit",
-                                  })
-                            : null,
-                        ],
-                      })
-                    : null,
-                  Q
-                    ? t.jsxs("div", {
-                        className: "churn-panel",
-                        ref: G,
-                        children: [
-                          x.slice(0, jt).map((f) =>
-                            t.jsxs(
-                              "button",
-                              {
-                                className: "churn-row",
-                                onClick: () => {
-                                  (v(f.path), K(!1));
-                                },
-                                children: [
-                                  t.jsx("span", {
-                                    className: "churn-path",
-                                    children: f.path,
-                                  }),
-                                  t.jsxs("span", {
-                                    className: "churn-count",
-                                    children: [f.edits, " edit", f.edits === 1 ? "" : "s"],
-                                  }),
-                                ],
-                              },
-                              f.path,
-                            ),
-                          ),
-                          x.length > jt
-                            ? t.jsxs("p", {
-                                className: "churn-more",
-                                children: ["…and ", x.length - jt, " more"],
-                              })
-                            : null,
-                        ],
-                      })
-                    : null,
-                ],
-              })
-            : null,
-        ],
-      }),
-    })
-  );
+	const c = n?.stats,
+		S = c ? c.fovea - c.edited : 0,
+		w = c ? Math.max(0, c.filesInRepo - o - l - m) : 0,
+		L = c ? Math.max(0, c.filesInRepo - c.fovea - c.parafovea) : 0,
+		O = s ? s.files.reduce((f, M) => f + (M.ghost ? 1 : 0), 0) : 0,
+		z = c ? Qt(c.errors) : 0,
+		p = c ? z > 0 || c.churnFiles > 0 || c.actions.edit > 0 : !1,
+		N = !!n && n.events.length > 0,
+		T = !!n && n.events.some((f) => f.targets.length > 0),
+		C = !!n && n.events.some((f) => f.action === "read" || f.action === "edit"),
+		A = N && !T,
+		_ = A && C,
+		[Q, K] = a.useState(!1),
+		G = a.useRef(null),
+		E = a.useRef(null);
+	return (
+		a.useEffect(() => K(!1), [n]),
+		a.useEffect(() => {
+			if (!Q) return;
+			const f = (k) => {
+					const i = k.target;
+					G.current?.contains(i) || E.current?.contains(i) || K(!1);
+				},
+				M = (k) => {
+					k.key === "Escape" && K(!1);
+				};
+			return (
+				document.addEventListener("pointerdown", f),
+				document.addEventListener("keydown", M),
+				() => {
+					document.removeEventListener("pointerdown", f),
+						document.removeEventListener("keydown", M);
+				}
+			);
+		}, [Q]),
+		t.jsx("div", {
+			className: "hud",
+			"aria-hidden": !s,
+			children: t.jsxs("div", {
+				className: "hud-left",
+				children: [
+					t.jsxs("div", {
+						className: "hud-title-line",
+						children: [
+							t.jsx("div", {
+								className: "hud-repo",
+								children: s ? Ea(s.repo.root) : "",
+							}),
+							n && r
+								? t.jsxs("button", {
+										className: "hud-lens",
+										onClick: d,
+										disabled: !d || b,
+										"aria-label": `Open Agent lenses, current ${r}`,
+										children: [t.jsx("span", { children: "Lens" }), r],
+									})
+								: null,
+						],
+					}),
+					s
+						? t.jsxs("div", {
+								className: "hud-commit",
+								children: [
+									t.jsx("span", { children: s.repo.commit || "worktree" }),
+									s.repo.dirty
+										? t.jsx("span", { className: "dirty", children: "● dirty" })
+										: null,
+									n?.session.model
+										? t.jsx("span", { children: n.session.model })
+										: null,
+									n?.session.cwd
+										? t.jsx("span", {
+												"data-hint":
+													"Working directory the adapter resolved for this session",
+												children: ba(n.session.cwd),
+											})
+										: null,
+									c
+										? t.jsxs("span", {
+												"data-hint":
+													"Files in the repository map — the denominator of the coverage spectrum below",
+												children: [c.filesInRepo, " files"],
+											})
+										: null,
+								],
+							})
+						: null,
+					A
+						? t.jsx("div", {
+								className: "hud-warning",
+								"data-hint": _
+									? "The adapter found file read/edit calls but could not map any to repository files — check that the session's working directory matches the loaded repository"
+									: "This session had no file read/edit operations — only commands or reasoning steps",
+								children: _
+									? "no file targets resolved — cwd may not match repository"
+									: "no file operations in this session",
+							})
+						: null,
+					c
+						? t.jsxs(t.Fragment, {
+								children: [
+									t.jsxs("div", {
+										className: "spectrum",
+										children: [
+											t.jsx(We, {
+												kind: "edit",
+												label: "edited",
+												now: o,
+												final: c.edited,
+												hint: "Files the agent changed",
+											}),
+											t.jsx(We, {
+												kind: "read",
+												label: "read",
+												now: l,
+												final: S,
+												hint: "Files the agent opened and read, but never changed",
+											}),
+											t.jsx(We, {
+												kind: "hit",
+												label: "seen",
+												now: m,
+												final: c.parafovea,
+												hint: "Files that only appeared in search results, never opened",
+											}),
+											t.jsx(We, {
+												kind: "unvisited",
+												label: "unvisited",
+												now: w,
+												final: L,
+												hint: "Files in the map the agent never touched",
+											}),
+											O > 0
+												? t.jsx(We, {
+														kind: "ghost",
+														label: "ghost",
+														now: O,
+														final: O,
+														hint: "Files the session touched that are gone from the repository — drawn hollow in the scene",
+													})
+												: null,
+										],
+									}),
+									t.jsxs("div", {
+										className: "hud-quiet",
+										children: [
+											t.jsxs("span", {
+												"data-hint": `Tool calls — ${en(c.actions)}`,
+												children: [Qt(c.actions), " calls"],
+											}),
+											t.jsxs("span", {
+												"data-hint":
+													"User messages — each one starts a turn of agent work",
+												children: [c.userTurns, " turns"],
+											}),
+											c.subagents > 0
+												? t.jsxs("button", {
+														className: "hud-agent-link",
+														"data-hint":
+															"Subagent launches (Task/Agent) — open Agent lenses",
+														onClick: d,
+														disabled: !d || b,
+														"aria-label": `Open ${c.subagents} subagent${c.subagents === 1 ? "" : "s"} in Agent lenses`,
+														children: [
+															c.subagents,
+															" subagent",
+															c.subagents === 1 ? "" : "s",
+														],
+													})
+												: null,
+											c.compactions > 0
+												? t.jsxs("span", {
+														"data-hint":
+															"Context compactions — the conversation was summarized to free memory",
+														children: [
+															c.compactions,
+															" compaction",
+															c.compactions === 1 ? "" : "s",
+														],
+													})
+												: null,
+											t.jsxs("span", {
+												"data-hint":
+													"Tool output the agent consumed over the session",
+												children: [Ca(c.resultBytes), " output"],
+											}),
+											t.jsx("span", {
+												"data-hint": Na(c.observability.reads),
+												children:
+													c.observability.reads === "unavailable"
+														? "re-reads n/a"
+														: `re-reads ${Jt(c.observability.reads)}${Ma(c.regressionRate)}`,
+											}),
+										],
+									}),
+									p
+										? t.jsxs("div", {
+												className: "hud-review",
+												children: [
+													t.jsx("span", {
+														className: "review-label",
+														children: "review",
+													}),
+													z > 0
+														? t.jsxs("span", {
+																className: "warn",
+																"data-hint": `${en(c.errors)} — press X to jump to the next one${ka(c.observability.errors)}`,
+																children: [
+																	Jt(c.observability.errors),
+																	z,
+																	" error",
+																	z === 1 ? "" : "s",
+																],
+															})
+														: null,
+													c.churnFiles > 0
+														? t.jsxs("button", {
+																ref: E,
+																className: Q
+																	? "warn churn-toggle open"
+																	: "warn churn-toggle",
+																"aria-expanded": Q,
+																onClick: () => K((f) => !f),
+																"data-hint": `Files edited in three or more separate events — the most-edited file changed ${c.maxEditsPerFile} times. Click to list them.`,
+																children: [
+																	c.churnFiles,
+																	" file",
+																	c.churnFiles === 1 ? "" : "s",
+																	" ",
+																	"edited 3+ times",
+																],
+															})
+														: null,
+													c.actions.edit > 0
+														? c.actions.verify === 0
+															? t.jsx("span", {
+																	className: "warn",
+																	"data-hint":
+																		"The session edited files but no build or test commands were recognized (go test, make test, npm run build, …)",
+																	children: "never verified",
+																})
+															: c.editsAfterLastVerify > 0
+																? t.jsxs("span", {
+																		className: "warn",
+																		"data-hint": `Edit events after the session's last build or test run — ${Zt(c.actions.verify)} total; pass/fail is not tracked`,
+																		children: [
+																			c.editsAfterLastVerify,
+																			" edit",
+																			c.editsAfterLastVerify === 1 ? "" : "s",
+																			" after last verify",
+																		],
+																	})
+																: t.jsx("span", {
+																		className: "ok",
+																		"data-hint": `The last edit was followed by a build or test run — ${Zt(c.actions.verify)} total; pass/fail is not tracked`,
+																		children: "verified after final edit",
+																	})
+														: null,
+												],
+											})
+										: null,
+									Q
+										? t.jsxs("div", {
+												className: "churn-panel",
+												ref: G,
+												children: [
+													x.slice(0, jt).map((f) =>
+														t.jsxs(
+															"button",
+															{
+																className: "churn-row",
+																onClick: () => {
+																	v(f.path), K(!1);
+																},
+																children: [
+																	t.jsx("span", {
+																		className: "churn-path",
+																		children: f.path,
+																	}),
+																	t.jsxs("span", {
+																		className: "churn-count",
+																		children: [
+																			f.edits,
+																			" edit",
+																			f.edits === 1 ? "" : "s",
+																		],
+																	}),
+																],
+															},
+															f.path,
+														),
+													),
+													x.length > jt
+														? t.jsxs("p", {
+																className: "churn-more",
+																children: ["…and ", x.length - jt, " more"],
+															})
+														: null,
+												],
+											})
+										: null,
+								],
+							})
+						: null,
+				],
+			}),
+		})
+	);
 });
 function We({ kind: e, label: n, now: s, final: r, hint: o }) {
-  return t.jsxs("div", {
-    className: "spectrum-stat",
-    "data-hint": o,
-    children: [
-      t.jsx("span", { className: `legend-dot ${e}` }),
-      t.jsx("span", { className: "spectrum-label", children: n }),
-      t.jsx("strong", { children: s === r ? r : `${s} → ${r}` }),
-    ],
-  });
+	return t.jsxs("div", {
+		className: "spectrum-stat",
+		"data-hint": o,
+		children: [
+			t.jsx("span", { className: `legend-dot ${e}` }),
+			t.jsx("span", { className: "spectrum-label", children: n }),
+			t.jsx("strong", { children: s === r ? r : `${s} → ${r}` }),
+		],
+	});
 }
 function Ma(e) {
-  return `${Math.round(e * 100)}%`;
+	return `${Math.round(e * 100)}%`;
 }
 function Jt(e) {
-  return e === "estimated" ? "~" : "";
+	return e === "estimated" ? "~" : "";
 }
 function Zt(e) {
-  return `${e} verify run${e === 1 ? "" : "s"}`;
+	return `${e} verify run${e === 1 ? "" : "s"}`;
 }
 function Na(e) {
-  switch (e) {
-    case "unavailable":
-      return "No file reads observed — this session reads files through commands mindwalk could not recognize";
-    case "estimated":
-      return "Reads that re-read a file unchanged since its last read — inferred from shell commands, so the rate is approximate";
-    default:
-      return "Reads that re-read a file unchanged since its last read";
-  }
+	switch (e) {
+		case "unavailable":
+			return "No file reads observed — this session reads files through commands mindwalk could not recognize";
+		case "estimated":
+			return "Reads that re-read a file unchanged since its last read — inferred from shell commands, so the rate is approximate";
+		default:
+			return "Reads that re-read a file unchanged since its last read";
+	}
 }
 function ka(e) {
-  return e === "estimated"
-    ? " — inferred from command output; failures inside scripted calls may be missed"
-    : "";
+	return e === "estimated"
+		? " — inferred from command output; failures inside scripted calls may be missed"
+		: "";
 }
 const On = ["search", "read", "edit", "exec", "verify", "other"];
 function Qt(e) {
-  return On.reduce((n, s) => n + e[s], 0);
+	return On.reduce((n, s) => n + e[s], 0);
 }
 function en(e) {
-  const n = On.filter((s) => e[s] > 0).map((s) => `${e[s]} ${s}`);
-  return n.length ? n.join(" · ") : "none";
+	const n = On.filter((s) => e[s] > 0).map((s) => `${e[s]} ${s}`);
+	return n.length ? n.join(" · ") : "none";
 }
 function Ca(e) {
-  const n = e / 1024;
-  return n < 1 ? `${e} B` : n < 1e3 ? `${Math.round(n)} KB` : `${(n / 1024).toFixed(1)} MB`;
+	const n = e / 1024;
+	return n < 1
+		? `${e} B`
+		: n < 1e3
+			? `${Math.round(n)} KB`
+			: `${(n / 1024).toFixed(1)} MB`;
 }
 function Ea(e) {
-  const n = e.replace(/\/+$/, "");
-  return n.slice(n.lastIndexOf("/") + 1);
+	const n = e.replace(/\/+$/, "");
+	return n.slice(n.lastIndexOf("/") + 1);
 }
-function Ra({ file: e, touch: n, history: s, onClose: r, onJumpTo: o, locked: l = !1 }) {
-  if (!e)
-    return t.jsxs("div", {
-      className: "dock-body",
-      "aria-label": "File inspector",
-      children: [
-        t.jsxs("div", {
-          className: "inspector-head",
-          children: [
-            t.jsx("div", { className: "inspector-path", children: "Inspect" }),
-            t.jsx("button", {
-              className: "icon-btn",
-              onClick: r,
-              title: "Close",
-              "aria-label": "Close inspector",
-              children: t.jsx(Xe, { size: 15 }),
-            }),
-          ],
-        }),
-        t.jsx("p", {
-          className: "dock-note",
-          children:
-            "Click a building in the scene to inspect a file — its touch state, size, and every visit the agent paid it.",
-        }),
-      ],
-    });
-  const m = e.path.lastIndexOf("/"),
-    x = m >= 0 ? e.path.slice(0, m + 1) : "",
-    v = m >= 0 ? e.path.slice(m + 1) : e.path;
-  return t.jsxs("div", {
-    className: "dock-body",
-    "aria-label": `File ${e.path}`,
-    children: [
-      t.jsxs("div", {
-        className: "inspector-head",
-        children: [
-          t.jsxs("div", {
-            children: [
-              t.jsxs("div", {
-                className: "inspector-path",
-                children: [t.jsx("span", { className: "dir", children: x }), v],
-              }),
-              e.ghost
-                ? t.jsx("span", {
-                    className: "ghost-badge",
-                    children: "ghost — not in this tree",
-                  })
-                : null,
-            ],
-          }),
-          t.jsx("button", {
-            className: "icon-btn",
-            onClick: r,
-            title: "Close",
-            "aria-label": "Close inspector",
-            children: t.jsx(Xe, { size: 15 }),
-          }),
-        ],
-      }),
-      t.jsxs("dl", {
-        className: "inspector-facts",
-        children: [
-          t.jsxs("div", {
-            children: [
-              t.jsx("dt", { children: "Touch" }),
-              t.jsx("dd", {
-                className: n ? `touch-${n}` : void 0,
-                children: Je(n),
-              }),
-            ],
-          }),
-          t.jsxs("div", {
-            children: [
-              t.jsx("dt", { children: "Lang" }),
-              t.jsx("dd", { children: e.lang || "text" }),
-            ],
-          }),
-          t.jsxs("div", {
-            children: [
-              t.jsx("dt", { children: "Lines" }),
-              t.jsx("dd", { children: e.lines.toLocaleString() }),
-            ],
-          }),
-          t.jsxs("div", {
-            children: [
-              t.jsx("dt", { children: "Bytes" }),
-              t.jsx("dd", { children: e.bytes.toLocaleString() }),
-            ],
-          }),
-        ],
-      }),
-      t.jsxs("section", {
-        className: "inspector-history",
-        children: [
-          t.jsxs("p", {
-            className: "eyebrow",
-            children: ["Visits · ", s.length],
-          }),
-          t.jsxs("div", {
-            className: "history-list",
-            children: [
-              s
-                .slice(-14)
-                .reverse()
-                .map((d) =>
-                  t.jsxs(
-                    "button",
-                    {
-                      className: "history-row",
-                      onClick: () => o(d.seq),
-                      disabled: l,
-                      title: `Jump to step ${d.seq + 1} — ${d.summary}`,
-                      children: [
-                        t.jsx("span", { className: `action-dot ${d.action}` }),
-                        t.jsxs("strong", { children: ["#", d.seq + 1] }),
-                        t.jsx("span", { children: d.tool }),
-                        t.jsx("span", {
-                          className: "history-time",
-                          children: d.ts ? Sa(d.ts) : "",
-                        }),
-                        d.isError
-                          ? t.jsx(St, { className: "history-err", size: 13 })
-                          : t.jsx("span", {}),
-                      ],
-                    },
-                    d.seq,
-                  ),
-                ),
-              s.length === 0
-                ? t.jsx("p", {
-                    className: "muted",
-                    children:
-                      "Not visited yet at this point of the walk. Scrub the timeline forward.",
-                  })
-                : null,
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
+function Ra({
+	file: e,
+	touch: n,
+	history: s,
+	onClose: r,
+	onJumpTo: o,
+	locked: l = !1,
+}) {
+	if (!e)
+		return t.jsxs("div", {
+			className: "dock-body",
+			"aria-label": "File inspector",
+			children: [
+				t.jsxs("div", {
+					className: "inspector-head",
+					children: [
+						t.jsx("div", { className: "inspector-path", children: "Inspect" }),
+						t.jsx("button", {
+							className: "icon-btn",
+							onClick: r,
+							title: "Close",
+							"aria-label": "Close inspector",
+							children: t.jsx(Xe, { size: 15 }),
+						}),
+					],
+				}),
+				t.jsx("p", {
+					className: "dock-note",
+					children:
+						"Click a building in the scene to inspect a file — its touch state, size, and every visit the agent paid it.",
+				}),
+			],
+		});
+	const m = e.path.lastIndexOf("/"),
+		x = m >= 0 ? e.path.slice(0, m + 1) : "",
+		v = m >= 0 ? e.path.slice(m + 1) : e.path;
+	return t.jsxs("div", {
+		className: "dock-body",
+		"aria-label": `File ${e.path}`,
+		children: [
+			t.jsxs("div", {
+				className: "inspector-head",
+				children: [
+					t.jsxs("div", {
+						children: [
+							t.jsxs("div", {
+								className: "inspector-path",
+								children: [t.jsx("span", { className: "dir", children: x }), v],
+							}),
+							e.ghost
+								? t.jsx("span", {
+										className: "ghost-badge",
+										children: "ghost — not in this tree",
+									})
+								: null,
+						],
+					}),
+					t.jsx("button", {
+						className: "icon-btn",
+						onClick: r,
+						title: "Close",
+						"aria-label": "Close inspector",
+						children: t.jsx(Xe, { size: 15 }),
+					}),
+				],
+			}),
+			t.jsxs("dl", {
+				className: "inspector-facts",
+				children: [
+					t.jsxs("div", {
+						children: [
+							t.jsx("dt", { children: "Touch" }),
+							t.jsx("dd", {
+								className: n ? `touch-${n}` : void 0,
+								children: Je(n),
+							}),
+						],
+					}),
+					t.jsxs("div", {
+						children: [
+							t.jsx("dt", { children: "Lang" }),
+							t.jsx("dd", { children: e.lang || "text" }),
+						],
+					}),
+					t.jsxs("div", {
+						children: [
+							t.jsx("dt", { children: "Lines" }),
+							t.jsx("dd", { children: e.lines.toLocaleString() }),
+						],
+					}),
+					t.jsxs("div", {
+						children: [
+							t.jsx("dt", { children: "Bytes" }),
+							t.jsx("dd", { children: e.bytes.toLocaleString() }),
+						],
+					}),
+				],
+			}),
+			t.jsxs("section", {
+				className: "inspector-history",
+				children: [
+					t.jsxs("p", {
+						className: "eyebrow",
+						children: ["Visits · ", s.length],
+					}),
+					t.jsxs("div", {
+						className: "history-list",
+						children: [
+							s
+								.slice(-14)
+								.reverse()
+								.map((d) =>
+									t.jsxs(
+										"button",
+										{
+											className: "history-row",
+											onClick: () => o(d.seq),
+											disabled: l,
+											title: `Jump to step ${d.seq + 1} — ${d.summary}`,
+											children: [
+												t.jsx("span", { className: `action-dot ${d.action}` }),
+												t.jsxs("strong", { children: ["#", d.seq + 1] }),
+												t.jsx("span", { children: d.tool }),
+												t.jsx("span", {
+													className: "history-time",
+													children: d.ts ? Sa(d.ts) : "",
+												}),
+												d.isError
+													? t.jsx(St, { className: "history-err", size: 13 })
+													: t.jsx("span", {}),
+											],
+										},
+										d.seq,
+									),
+								),
+							s.length === 0
+								? t.jsx("p", {
+										className: "muted",
+										children:
+											"Not visited yet at this point of the walk. Scrub the timeline forward.",
+									})
+								: null,
+						],
+					}),
+				],
+			}),
+		],
+	});
 }
 function Sa(e) {
-  const n = new Date(e);
-  return Number.isNaN(n.getTime())
-    ? ""
-    : [n.getHours(), n.getMinutes(), n.getSeconds()]
-        .map((s) => String(s).padStart(2, "0"))
-        .join(":");
+	const n = new Date(e);
+	return Number.isNaN(n.getTime())
+		? ""
+		: [n.getHours(), n.getMinutes(), n.getSeconds()]
+				.map((s) => String(s).padStart(2, "0"))
+				.join(":");
 }
 function $a({ size: e = 22 }) {
-  return t.jsxs("svg", {
-    viewBox: "0 0 64 64",
-    width: e,
-    height: e,
-    "aria-hidden": !0,
-    focusable: "false",
-    children: [
-      t.jsx("defs", {
-        children: t.jsxs("radialGradient", {
-          id: "logo-halo",
-          children: [
-            t.jsx("stop", {
-              offset: "0%",
-              stopColor: "#f1aa57",
-              stopOpacity: "0.55",
-            }),
-            t.jsx("stop", {
-              offset: "100%",
-              stopColor: "#f1aa57",
-              stopOpacity: "0",
-            }),
-          ],
-        }),
-      }),
-      t.jsx("rect", { width: "64", height: "64", rx: "14", fill: "#0f141b" }),
-      t.jsx("circle", { cx: "20", cy: "15", r: "1.6", fill: "#3b4047" }),
-      t.jsx("circle", { cx: "11", cy: "27", r: "1.4", fill: "#3b4047" }),
-      t.jsx("circle", { cx: "51", cy: "40", r: "1.6", fill: "#3b4047" }),
-      t.jsx("circle", { cx: "34", cy: "53", r: "1.4", fill: "#3b4047" }),
-      t.jsxs("g", {
-        fill: "#f1aa57",
-        children: [
-          t.jsx("circle", {
-            cx: "18.6",
-            cy: "47.9",
-            r: "1.15",
-            opacity: "0.35",
-          }),
-          t.jsx("circle", {
-            cx: "22.7",
-            cy: "45.2",
-            r: "1.25",
-            opacity: "0.42",
-          }),
-          t.jsx("circle", { cx: "25.9", cy: "42", r: "1.35", opacity: "0.49" }),
-          t.jsx("circle", {
-            cx: "28.2",
-            cy: "38.1",
-            r: "1.45",
-            opacity: "0.56",
-          }),
-          t.jsx("circle", {
-            cx: "30.9",
-            cy: "29.3",
-            r: "1.55",
-            opacity: "0.64",
-          }),
-          t.jsx("circle", { cx: "33", cy: "25.4", r: "1.65", opacity: "0.72" }),
-          t.jsx("circle", { cx: "36", cy: "22.1", r: "1.75", opacity: "0.8" }),
-          t.jsx("circle", { cx: "38", cy: "20.4", r: "1.85", opacity: "0.88" }),
-        ],
-      }),
-      t.jsx("circle", {
-        cx: "13",
-        cy: "50",
-        r: "4.5",
-        fill: "#9fc67b",
-        opacity: "0.16",
-      }),
-      t.jsx("circle", { cx: "13", cy: "50", r: "2.4", fill: "#9fc67b" }),
-      t.jsx("circle", {
-        cx: "29.5",
-        cy: "34",
-        r: "5",
-        fill: "#b6daf1",
-        opacity: "0.16",
-      }),
-      t.jsx("circle", { cx: "29.5", cy: "34", r: "2.7", fill: "#b6daf1" }),
-      t.jsx("circle", {
-        cx: "44",
-        cy: "17.5",
-        r: "9.5",
-        fill: "url(#logo-halo)",
-      }),
-      t.jsx("circle", { cx: "44", cy: "17.5", r: "3.4", fill: "#f1aa57" }),
-      t.jsx("circle", { cx: "44", cy: "17.5", r: "1.7", fill: "#ffe0b0" }),
-    ],
-  });
+	return t.jsxs("svg", {
+		viewBox: "0 0 64 64",
+		width: e,
+		height: e,
+		"aria-hidden": !0,
+		focusable: "false",
+		children: [
+			t.jsx("defs", {
+				children: t.jsxs("radialGradient", {
+					id: "logo-halo",
+					children: [
+						t.jsx("stop", {
+							offset: "0%",
+							stopColor: "#f1aa57",
+							stopOpacity: "0.55",
+						}),
+						t.jsx("stop", {
+							offset: "100%",
+							stopColor: "#f1aa57",
+							stopOpacity: "0",
+						}),
+					],
+				}),
+			}),
+			t.jsx("rect", { width: "64", height: "64", rx: "14", fill: "#0f141b" }),
+			t.jsx("circle", { cx: "20", cy: "15", r: "1.6", fill: "#3b4047" }),
+			t.jsx("circle", { cx: "11", cy: "27", r: "1.4", fill: "#3b4047" }),
+			t.jsx("circle", { cx: "51", cy: "40", r: "1.6", fill: "#3b4047" }),
+			t.jsx("circle", { cx: "34", cy: "53", r: "1.4", fill: "#3b4047" }),
+			t.jsxs("g", {
+				fill: "#f1aa57",
+				children: [
+					t.jsx("circle", {
+						cx: "18.6",
+						cy: "47.9",
+						r: "1.15",
+						opacity: "0.35",
+					}),
+					t.jsx("circle", {
+						cx: "22.7",
+						cy: "45.2",
+						r: "1.25",
+						opacity: "0.42",
+					}),
+					t.jsx("circle", { cx: "25.9", cy: "42", r: "1.35", opacity: "0.49" }),
+					t.jsx("circle", {
+						cx: "28.2",
+						cy: "38.1",
+						r: "1.45",
+						opacity: "0.56",
+					}),
+					t.jsx("circle", {
+						cx: "30.9",
+						cy: "29.3",
+						r: "1.55",
+						opacity: "0.64",
+					}),
+					t.jsx("circle", { cx: "33", cy: "25.4", r: "1.65", opacity: "0.72" }),
+					t.jsx("circle", { cx: "36", cy: "22.1", r: "1.75", opacity: "0.8" }),
+					t.jsx("circle", { cx: "38", cy: "20.4", r: "1.85", opacity: "0.88" }),
+				],
+			}),
+			t.jsx("circle", {
+				cx: "13",
+				cy: "50",
+				r: "4.5",
+				fill: "#9fc67b",
+				opacity: "0.16",
+			}),
+			t.jsx("circle", { cx: "13", cy: "50", r: "2.4", fill: "#9fc67b" }),
+			t.jsx("circle", {
+				cx: "29.5",
+				cy: "34",
+				r: "5",
+				fill: "#b6daf1",
+				opacity: "0.16",
+			}),
+			t.jsx("circle", { cx: "29.5", cy: "34", r: "2.7", fill: "#b6daf1" }),
+			t.jsx("circle", {
+				cx: "44",
+				cy: "17.5",
+				r: "9.5",
+				fill: "url(#logo-halo)",
+			}),
+			t.jsx("circle", { cx: "44", cy: "17.5", r: "3.4", fill: "#f1aa57" }),
+			t.jsx("circle", { cx: "44", cy: "17.5", r: "1.7", fill: "#ffe0b0" }),
+		],
+	});
 }
 const Aa = typeof navigator < "u" && /Mac|iPhone|iPad/.test(navigator.platform),
-  Hn = Aa ? "⌘B" : "Ctrl+B",
-  La = a.memo(function ({
-    sessions: n,
-    activeKey: s,
-    loading: r,
-    hideEmpty: o,
-    harnessFilter: l,
-    collapsed: m,
-    onSelect: x,
-    onRefresh: v,
-    onHideEmptyChange: d,
-    onHarnessFilterChange: b,
-    onCollapse: c,
-    onOpenMap: S,
-    activeRepo: w,
-    locked: L = !1,
-    activeReportState: O,
-  }) {
-    const [z, p] = a.useState(""),
-      [N, T] = a.useState(""),
-      [C, A] = a.useState(!1),
-      _ = a.useRef(null);
-    a.useEffect(() => {
-      if (!C) return;
-      const f = (k) => {
-          _.current?.contains(k.target) || A(!1);
-        },
-        M = (k) => {
-          k.key === "Escape" && A(!1);
-        };
-      return (
-        document.addEventListener("pointerdown", f),
-        document.addEventListener("keydown", M),
-        () => {
-          (document.removeEventListener("pointerdown", f),
-            document.removeEventListener("keydown", M));
-        }
-      );
-    }, [C]);
-    const Q = a.useMemo(() => [...new Set(n.map((f) => f.harness))].sort(), [n]),
-      K = a.useMemo(() => n.filter((f) => f.eventCount === 0).length, [n]),
-      G = l && Q.includes(l) ? l : void 0,
-      E = a.useMemo(() => {
-        const f = z.trim().toLowerCase();
-        return n.filter((M) =>
-          qn(M, { hideEmpty: o, harness: G }, s)
-            ? f
-              ? `${M.title ?? ""} ${M.id} ${M.gitBranch ?? ""} ${M.harness}`
-                  .toLowerCase()
-                  .includes(f)
-              : !0
-            : !1,
-        );
-      }, [n, z, o, G, s]);
-    return t.jsxs("aside", {
-      className: m ? "session-rail collapsed" : "session-rail",
-      children: [
-        t.jsxs("div", {
-          className: "rail-head",
-          children: [
-            t.jsxs("h1", {
-              className: "wordmark",
-              children: [
-                t.jsx($a, {}),
-                t.jsxs("span", {
-                  children: ["mindwalk", t.jsx("span", { className: "spark", children: "." })],
-                }),
-              ],
-            }),
-            t.jsxs("div", {
-              className: "rail-head-actions",
-              children: [
-                t.jsxs("div", {
-                  className: "rail-map",
-                  ref: _,
-                  children: [
-                    t.jsx("button", {
-                      className: "icon-btn",
-                      onClick: () => A((f) => !f),
-                      "aria-expanded": C,
-                      title: "Open a repository map",
-                      "aria-label": "Open a repository map",
-                      children: t.jsx(_t, { size: 15 }),
-                    }),
-                    C
-                      ? t.jsxs("div", {
-                          className: "rail-map-pop",
-                          children: [
-                            w
-                              ? t.jsxs("button", {
-                                  className: "rail-map-primary",
-                                  onClick: () => {
-                                    (S(w), A(!1));
-                                  },
-                                  title: `Open the map of ${w}`,
-                                  children: [
-                                    t.jsx(_t, { size: 14, "aria-hidden": !0 }),
-                                    t.jsxs("span", {
-                                      className: "rail-map-primary-text",
-                                      children: [
-                                        t.jsx("span", {
-                                          className: "rail-map-primary-name",
-                                          children: Pa(w),
-                                        }),
-                                        t.jsx("span", {
-                                          className: "rail-map-primary-path",
-                                          children: "‎" + w,
-                                        }),
-                                      ],
-                                    }),
-                                  ],
-                                })
-                              : null,
-                            w
-                              ? t.jsx("div", {
-                                  className: "rail-map-divider",
-                                  "aria-hidden": !0,
-                                  children: t.jsx("span", {
-                                    children: "or open any repository",
-                                  }),
-                                })
-                              : t.jsx("p", {
-                                  className: "rail-map-label",
-                                  children: "Open a repository map",
-                                }),
-                            t.jsxs("form", {
-                              className: "rail-map-form",
-                              onSubmit: (f) => {
-                                f.preventDefault();
-                                const M = N.trim();
-                                M && (S(M), A(!1));
-                              },
-                              children: [
-                                t.jsx("input", {
-                                  type: "text",
-                                  className: "rail-map-input",
-                                  placeholder: "/path/to/repo",
-                                  value: N,
-                                  onChange: (f) => T(f.currentTarget.value),
-                                  spellCheck: !1,
-                                }),
-                                t.jsx("button", {
-                                  type: "submit",
-                                  className: "rail-map-go",
-                                  disabled: N.trim() === "",
-                                  children: "Open",
-                                }),
-                              ],
-                            }),
-                          ],
-                        })
-                      : null,
-                  ],
-                }),
-                t.jsx("button", {
-                  className: "icon-btn",
-                  onClick: v,
-                  disabled: L,
-                  title: "Rescan sessions",
-                  "aria-label": "Rescan sessions",
-                  children: t.jsx(lt, { size: 15 }),
-                }),
-                t.jsx("button", {
-                  className: "icon-btn",
-                  onClick: c,
-                  title: `Hide sidebar (${Hn})`,
-                  "aria-label": "Hide session sidebar",
-                  children: t.jsx(Ds, { size: 15 }),
-                }),
-              ],
-            }),
-          ],
-        }),
-        t.jsxs("div", {
-          className: "rail-controls",
-          children: [
-            t.jsxs("label", {
-              className: "rail-filter",
-              children: [
-                t.jsx(Zs, { size: 14, "aria-hidden": !0 }),
-                t.jsx("input", {
-                  type: "search",
-                  placeholder: "Filter sessions",
-                  value: z,
-                  onChange: (f) => p(f.currentTarget.value),
-                  "aria-label": "Filter sessions",
-                }),
-              ],
-            }),
-            Q.length > 1 || K > 0
-              ? t.jsxs("div", {
-                  className: "rail-chips",
-                  role: "group",
-                  "aria-label": "Session filters",
-                  children: [
-                    Q.length > 1
-                      ? t.jsxs(t.Fragment, {
-                          children: [
-                            t.jsx("button", {
-                              className: G === void 0 ? "chip active" : "chip",
-                              onClick: () => b(void 0),
-                              children: "all",
-                            }),
-                            Q.map((f) =>
-                              t.jsx(
-                                "button",
-                                {
-                                  className: G === f ? "chip active" : "chip",
-                                  onClick: () => b(f),
-                                  children: nn(f),
-                                },
-                                f,
-                              ),
-                            ),
-                          ],
-                        })
-                      : null,
-                    K > 0
-                      ? t.jsx("button", {
-                          className: o ? "eye-toggle" : "eye-toggle showing",
-                          onClick: () => d(!o),
-                          "aria-pressed": !o,
-                          title: o ? `Show ${K} empty sessions` : `Hide ${K} empty sessions`,
-                          "aria-label": o ? `Show ${K} empty sessions` : `Hide ${K} empty sessions`,
-                          children: o
-                            ? t.jsx(Ls, { size: 13, "aria-hidden": !0 })
-                            : t.jsx(Is, { size: 13, "aria-hidden": !0 }),
-                        })
-                      : null,
-                  ],
-                })
-              : null,
-          ],
-        }),
-        t.jsxs("div", {
-          className: "session-list",
-          "aria-busy": r,
-          children: [
-            E.map((f) =>
-              t.jsxs(
-                "button",
-                {
-                  className: f.key === s ? "session-row active" : "session-row",
-                  onClick: () => x(f.key),
-                  disabled: L,
-                  children: [
-                    t.jsx("span", {
-                      className: "session-title",
-                      children: f.title || f.id,
-                    }),
-                    t.jsxs("span", {
-                      className: "session-meta",
-                      children: [
-                        t.jsxs("span", {
-                          className: "session-meta-text",
-                          children: [
-                            nn(f.harness),
-                            " · ",
-                            f.eventCount,
-                            " ",
-                            f.eventCount === 1 ? "call" : "calls",
-                            f.gitBranch ? ` · ${f.gitBranch}` : "",
-                            f.endedAt ? ` · ${Ia(f.endedAt)}` : "",
-                          ],
-                        }),
-                        (() => {
-                          const M = f.key === s && O !== void 0 ? O : f.reportState;
-                          return M
-                            ? t.jsx("span", {
-                                className: `rail-eval rail-eval-${M}`,
-                                title: tn(M),
-                                "aria-label": tn(M),
-                                children: M === "running" ? "evaluating" : "",
-                              })
-                            : null;
-                        })(),
-                      ],
-                    }),
-                  ],
-                },
-                f.key,
-              ),
-            ),
-            E.length === 0
-              ? t.jsx("p", {
-                  className: "muted",
-                  style: { padding: "10px 8px" },
-                  children: r && n.length === 0 ? "Scanning sessions…" : "No matching sessions.",
-                })
-              : null,
-          ],
-        }),
-        t.jsx("div", {
-          className: "rail-foot",
-          children:
-            E.length === n.length
-              ? `${n.length} session${n.length === 1 ? "" : "s"}`
-              : `${E.length} of ${n.length} sessions`,
-        }),
-      ],
-    });
-  });
+	Hn = Aa ? "⌘B" : "Ctrl+B",
+	La = a.memo(function ({
+		sessions: n,
+		activeKey: s,
+		loading: r,
+		hideEmpty: o,
+		harnessFilter: l,
+		collapsed: m,
+		onSelect: x,
+		onRefresh: v,
+		onHideEmptyChange: d,
+		onHarnessFilterChange: b,
+		onCollapse: c,
+		onOpenMap: S,
+		activeRepo: w,
+		locked: L = !1,
+		activeReportState: O,
+	}) {
+		const [z, p] = a.useState(""),
+			[N, T] = a.useState(""),
+			[C, A] = a.useState(!1),
+			_ = a.useRef(null);
+		a.useEffect(() => {
+			if (!C) return;
+			const f = (k) => {
+					_.current?.contains(k.target) || A(!1);
+				},
+				M = (k) => {
+					k.key === "Escape" && A(!1);
+				};
+			return (
+				document.addEventListener("pointerdown", f),
+				document.addEventListener("keydown", M),
+				() => {
+					document.removeEventListener("pointerdown", f),
+						document.removeEventListener("keydown", M);
+				}
+			);
+		}, [C]);
+		const Q = a.useMemo(
+				() => [...new Set(n.map((f) => f.harness))].sort(),
+				[n],
+			),
+			K = a.useMemo(() => n.filter((f) => f.eventCount === 0).length, [n]),
+			G = l && Q.includes(l) ? l : void 0,
+			E = a.useMemo(() => {
+				const f = z.trim().toLowerCase();
+				return n.filter((M) =>
+					qn(M, { hideEmpty: o, harness: G }, s)
+						? f
+							? `${M.title ?? ""} ${M.id} ${M.gitBranch ?? ""} ${M.harness}`
+									.toLowerCase()
+									.includes(f)
+							: !0
+						: !1,
+				);
+			}, [n, z, o, G, s]);
+		return t.jsxs("aside", {
+			className: m ? "session-rail collapsed" : "session-rail",
+			children: [
+				t.jsxs("div", {
+					className: "rail-head",
+					children: [
+						t.jsxs("h1", {
+							className: "wordmark",
+							children: [
+								t.jsx($a, {}),
+								t.jsxs("span", {
+									children: [
+										"mindwalk",
+										t.jsx("span", { className: "spark", children: "." }),
+									],
+								}),
+							],
+						}),
+						t.jsxs("div", {
+							className: "rail-head-actions",
+							children: [
+								t.jsxs("div", {
+									className: "rail-map",
+									ref: _,
+									children: [
+										t.jsx("button", {
+											className: "icon-btn",
+											onClick: () => A((f) => !f),
+											"aria-expanded": C,
+											title: "Open a repository map",
+											"aria-label": "Open a repository map",
+											children: t.jsx(_t, { size: 15 }),
+										}),
+										C
+											? t.jsxs("div", {
+													className: "rail-map-pop",
+													children: [
+														w
+															? t.jsxs("button", {
+																	className: "rail-map-primary",
+																	onClick: () => {
+																		S(w), A(!1);
+																	},
+																	title: `Open the map of ${w}`,
+																	children: [
+																		t.jsx(_t, { size: 14, "aria-hidden": !0 }),
+																		t.jsxs("span", {
+																			className: "rail-map-primary-text",
+																			children: [
+																				t.jsx("span", {
+																					className: "rail-map-primary-name",
+																					children: Pa(w),
+																				}),
+																				t.jsx("span", {
+																					className: "rail-map-primary-path",
+																					children: "‎" + w,
+																				}),
+																			],
+																		}),
+																	],
+																})
+															: null,
+														w
+															? t.jsx("div", {
+																	className: "rail-map-divider",
+																	"aria-hidden": !0,
+																	children: t.jsx("span", {
+																		children: "or open any repository",
+																	}),
+																})
+															: t.jsx("p", {
+																	className: "rail-map-label",
+																	children: "Open a repository map",
+																}),
+														t.jsxs("form", {
+															className: "rail-map-form",
+															onSubmit: (f) => {
+																f.preventDefault();
+																const M = N.trim();
+																M && (S(M), A(!1));
+															},
+															children: [
+																t.jsx("input", {
+																	type: "text",
+																	className: "rail-map-input",
+																	placeholder: "/path/to/repo",
+																	value: N,
+																	onChange: (f) => T(f.currentTarget.value),
+																	spellCheck: !1,
+																}),
+																t.jsx("button", {
+																	type: "submit",
+																	className: "rail-map-go",
+																	disabled: N.trim() === "",
+																	children: "Open",
+																}),
+															],
+														}),
+													],
+												})
+											: null,
+									],
+								}),
+								t.jsx("button", {
+									className: "icon-btn",
+									onClick: v,
+									disabled: L,
+									title: "Rescan sessions",
+									"aria-label": "Rescan sessions",
+									children: t.jsx(lt, { size: 15 }),
+								}),
+								t.jsx("button", {
+									className: "icon-btn",
+									onClick: c,
+									title: `Hide sidebar (${Hn})`,
+									"aria-label": "Hide session sidebar",
+									children: t.jsx(Ds, { size: 15 }),
+								}),
+							],
+						}),
+					],
+				}),
+				t.jsxs("div", {
+					className: "rail-controls",
+					children: [
+						t.jsxs("label", {
+							className: "rail-filter",
+							children: [
+								t.jsx(Zs, { size: 14, "aria-hidden": !0 }),
+								t.jsx("input", {
+									type: "search",
+									placeholder: "Filter sessions",
+									value: z,
+									onChange: (f) => p(f.currentTarget.value),
+									"aria-label": "Filter sessions",
+								}),
+							],
+						}),
+						Q.length > 1 || K > 0
+							? t.jsxs("div", {
+									className: "rail-chips",
+									role: "group",
+									"aria-label": "Session filters",
+									children: [
+										Q.length > 1
+											? t.jsxs(t.Fragment, {
+													children: [
+														t.jsx("button", {
+															className: G === void 0 ? "chip active" : "chip",
+															onClick: () => b(void 0),
+															children: "all",
+														}),
+														Q.map((f) =>
+															t.jsx(
+																"button",
+																{
+																	className: G === f ? "chip active" : "chip",
+																	onClick: () => b(f),
+																	children: nn(f),
+																},
+																f,
+															),
+														),
+													],
+												})
+											: null,
+										K > 0
+											? t.jsx("button", {
+													className: o ? "eye-toggle" : "eye-toggle showing",
+													onClick: () => d(!o),
+													"aria-pressed": !o,
+													title: o
+														? `Show ${K} empty sessions`
+														: `Hide ${K} empty sessions`,
+													"aria-label": o
+														? `Show ${K} empty sessions`
+														: `Hide ${K} empty sessions`,
+													children: o
+														? t.jsx(Ls, { size: 13, "aria-hidden": !0 })
+														: t.jsx(Is, { size: 13, "aria-hidden": !0 }),
+												})
+											: null,
+									],
+								})
+							: null,
+					],
+				}),
+				t.jsxs("div", {
+					className: "session-list",
+					"aria-busy": r,
+					children: [
+						E.map((f) =>
+							t.jsxs(
+								"button",
+								{
+									className: f.key === s ? "session-row active" : "session-row",
+									onClick: () => x(f.key),
+									disabled: L,
+									children: [
+										t.jsx("span", {
+											className: "session-title",
+											children: f.title || f.id,
+										}),
+										t.jsxs("span", {
+											className: "session-meta",
+											children: [
+												t.jsxs("span", {
+													className: "session-meta-text",
+													children: [
+														nn(f.harness),
+														" · ",
+														f.eventCount,
+														" ",
+														f.eventCount === 1 ? "call" : "calls",
+														f.gitBranch ? ` · ${f.gitBranch}` : "",
+														f.endedAt ? ` · ${Ia(f.endedAt)}` : "",
+													],
+												}),
+												(() => {
+													const M =
+														f.key === s && O !== void 0 ? O : f.reportState;
+													return M
+														? t.jsx("span", {
+																className: `rail-eval rail-eval-${M}`,
+																title: tn(M),
+																"aria-label": tn(M),
+																children: M === "running" ? "evaluating" : "",
+															})
+														: null;
+												})(),
+											],
+										}),
+									],
+								},
+								f.key,
+							),
+						),
+						E.length === 0
+							? t.jsx("p", {
+									className: "muted",
+									style: { padding: "10px 8px" },
+									children:
+										r && n.length === 0
+											? "Scanning sessions…"
+											: "No matching sessions.",
+								})
+							: null,
+					],
+				}),
+				t.jsx("div", {
+					className: "rail-foot",
+					children:
+						E.length === n.length
+							? `${n.length} session${n.length === 1 ? "" : "s"}`
+							: `${E.length} of ${n.length} sessions`,
+				}),
+			],
+		});
+	});
 function Pa(e) {
-  const n = e.replace(/\/+$/, "");
-  return n.slice(n.lastIndexOf("/") + 1) || n;
+	const n = e.replace(/\/+$/, "");
+	return n.slice(n.lastIndexOf("/") + 1) || n;
 }
 function tn(e) {
-  switch (e) {
-    case "running":
-      return "Evaluation in progress";
-    case "done":
-      return "Evaluation ready";
-    case "stale":
-      return "Evaluation ready, but the session has grown since";
-    case "failed":
-      return "Last evaluation failed";
-  }
+	switch (e) {
+		case "running":
+			return "Evaluation in progress";
+		case "done":
+			return "Evaluation ready";
+		case "stale":
+			return "Evaluation ready, but the session has grown since";
+		case "failed":
+			return "Last evaluation failed";
+	}
 }
 function nn(e) {
-  return e === "claude-code" ? "claude" : e;
+	return e === "claude-code" ? "claude" : e;
 }
 function Ia(e) {
-  const n = new Date(e);
-  if (Number.isNaN(n.getTime())) return "";
-  const s = new Date(),
-    r = n.getFullYear() === s.getFullYear(),
-    o = `${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`,
-    l = `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
-  return r ? `${o} ${l}` : `${n.getFullYear()}-${o}`;
+	const n = new Date(e);
+	if (Number.isNaN(n.getTime())) return "";
+	const s = new Date(),
+		r = n.getFullYear() === s.getFullYear(),
+		o = `${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`,
+		l = `${String(n.getHours()).padStart(2, "0")}:${String(n.getMinutes()).padStart(2, "0")}`;
+	return r ? `${o} ${l}` : `${n.getFullYear()}-${o}`;
 }
 const Ta = 160,
-  sn = 340,
-  rt = [1, 4, 16],
-  za = 220,
-  rn = {
-    compaction: "context compaction",
-    "user-message": "user message",
-    subagent: "subagent",
-  },
-  Fa = ["search", "read", "edit", "verify", "exec"];
+	sn = 340,
+	rt = [1, 4, 16],
+	za = 220,
+	rn = {
+		compaction: "context compaction",
+		"user-message": "user message",
+		subagent: "subagent",
+	},
+	Fa = ["search", "read", "edit", "verify", "exec"];
 function Ba({
-  trace: e,
-  currentSeq: n,
-  onChange: s,
-  onSubagentMark: r,
-  onExport: o,
-  exporting: l = !1,
+	trace: e,
+	currentSeq: n,
+	onChange: s,
+	onSubagentMark: r,
+	onExport: o,
+	exporting: l = !1,
 }) {
-  const [m, x] = a.useState(!1),
-    [v, d] = a.useState(1),
-    [b, c] = a.useState(!1),
-    S = a.useRef(null),
-    w = e?.events.length ?? 0,
-    L = Math.max(0, w - 1),
-    O = Math.min(n, L),
-    z = e?.events[O];
-  (a.useEffect(() => {
-    x(!1);
-  }, [e]),
-    a.useEffect(() => {
-      l && x(!1);
-    }, [l]));
-  const p = a.useRef(O),
-    N = a.useRef(L),
-    T = a.useRef(m);
-  ((p.current = O),
-    (N.current = L),
-    (T.current = m),
-    a.useEffect(() => {
-      if (!m || w === 0 || l) return;
-      const i = Math.max(85, sn / v),
-        h = Math.max(1, Math.round((v * i) / sn)),
-        g = window.setInterval(() => {
-          if (p.current >= N.current) {
-            x(!1);
-            return;
-          }
-          s(Math.min(p.current + h, N.current));
-        }, i);
-      return () => window.clearInterval(g);
-    }, [m, v, w, s, l]));
-  const C = a.useCallback(() => {
-      (!T.current && p.current >= N.current && s(0), x((i) => !i));
-    }, [s]),
-    A = a.useCallback(() => {
-      d((i) => rt[(rt.indexOf(i) + 1) % rt.length]);
-    }, []),
-    _ = a.useCallback(
-      (i) => {
-        s(Math.min(N.current, Math.max(0, p.current + i)));
-      },
-      [s],
-    ),
-    Q = a.useCallback(
-      (i, h) => {
-        if (e) {
-          for (let g = p.current + i; g >= 0 && g < e.events.length; g += i)
-            if (h(e.events[g])) {
-              s(g);
-              return;
-            }
-        }
-      },
-      [e, s],
-    ),
-    K = a.useMemo(() => {
-      const i = (e?.marks ?? []).map((h) =>
-        Math.min(h.seq, Math.max(0, (e?.events.length ?? 1) - 1)),
-      );
-      return [...new Set(i)].sort((h, g) => h - g);
-    }, [e]),
-    G = a.useCallback(
-      (i) => {
-        const h = p.current,
-          g = i === 1 ? K.find((y) => y > h) : [...K].reverse().find((y) => y < h);
-        g !== void 0 && s(g);
-      },
-      [K, s],
-    );
-  a.useEffect(() => {
-    if (!e || l) return;
-    const i = (h) => {
-      if (
-        !(
-          h.metaKey ||
-          h.ctrlKey ||
-          h.altKey ||
-          h.target?.closest("input, textarea, select, button, [contenteditable]")
-        )
-      ) {
-        switch (h.key) {
-          case " ":
-            (h.preventDefault(), C());
-            return;
-          case "ArrowLeft":
-            (h.preventDefault(), _(h.shiftKey ? -10 : -1));
-            return;
-          case "ArrowRight":
-            (h.preventDefault(), _(h.shiftKey ? 10 : 1));
-            return;
-          case "Home":
-            (h.preventDefault(), s(0));
-            return;
-          case "End":
-            (h.preventDefault(), s(N.current));
-            return;
-        }
-        switch (h.key.toLowerCase()) {
-          case "s":
-            A();
-            return;
-          case "e":
-            Q(h.shiftKey ? -1 : 1, (y) => y.action === "edit");
-            return;
-          case "x":
-            Q(h.shiftKey ? -1 : 1, (y) => y.isError);
-            return;
-          case "m":
-            G(h.shiftKey ? -1 : 1);
-            return;
-        }
-      }
-    };
-    return (window.addEventListener("keydown", i), () => window.removeEventListener("keydown", i));
-  }, [e, l, C, _, s, A, Q, G]);
-  const E = w === 0 || l;
-  (a.useEffect(() => {
-    E && c(!1);
-  }, [E]),
-    a.useEffect(() => {
-      if (!b) return;
-      const i = (g) => {
-          S.current?.contains(g.target) || c(!1);
-        },
-        h = (g) => {
-          g.key === "Escape" && c(!1);
-        };
-      return (
-        window.addEventListener("pointerdown", i),
-        window.addEventListener("keydown", h),
-        () => {
-          (window.removeEventListener("pointerdown", i), window.removeEventListener("keydown", h));
-        }
-      );
-    }, [b]));
-  const f = a.useMemo(() => {
-      if (!e || w === 0) return [];
-      const i = Math.min(Ta, w),
-        h = [];
-      for (let g = 0; g < i; g++) {
-        const y = Math.floor((g * w) / i),
-          R = Math.floor(((g + 1) * w) / i),
-          B = new Map();
-        for (let ce = y; ce < R; ce++) {
-          const F = e.events[ce].action;
-          B.set(F, (B.get(F) ?? 0) + 1);
-        }
-        let V = "other",
-          ue = -1;
-        const re = ["edit", "verify", "read", "search", "exec", "other"];
-        for (const ce of re) {
-          const F = B.get(ce) ?? 0;
-          F > ue && ((ue = F), (V = ce));
-        }
-        h.push({ count: R - y, dominant: V });
-      }
-      return h;
-    }, [e, w]),
-    M = a.useMemo(() => f.reduce((i, h) => Math.max(i, h.count), 1), [f]),
-    k = a.useMemo(() => {
-      if (!e) return [];
-      const i = new Map();
-      for (const h of e.marks) {
-        const g = Math.min(h.seq, L),
-          y = L > 0 ? g / L : 0,
-          R = `${h.type}:${Math.round(y * za)}`,
-          B = i.get(R);
-        B
-          ? (B.count++, (B.seq = Math.min(B.seq, g)))
-          : i.set(R, { type: h.type, seq: g, pos: y, count: 1, note: h.note });
-      }
-      return [...i.values()];
-    }, [e, L]);
-  return t.jsxs("footer", {
-    className: "deck",
-    children: [
-      t.jsxs("div", {
-        className: "deck-main",
-        children: [
-          t.jsxs("div", {
-            className: "strip",
-            children: [
-              t.jsx("div", {
-                className: "strip-marks",
-                children: k.map((i, h) =>
-                  t.jsx(
-                    "button",
-                    {
-                      type: "button",
-                      className: `strip-mark ${i.type}`,
-                      style: { left: `${i.pos * 100}%` },
-                      disabled: E,
-                      title: `${i.note || rn[i.type]}${i.count > 1 ? ` ×${i.count}` : ""}`,
-                      "aria-label": `Jump to ${i.note || rn[i.type]} at event ${i.seq + 1}${i.count > 1 ? `, ${i.count} marks` : ""}`,
-                      onClick: () => (i.type === "subagent" && r ? r(i.seq) : s(i.seq)),
-                    },
-                    `${i.type}-${i.seq}-${h}`,
-                  ),
-                ),
-              }),
-              t.jsx("div", {
-                className: "strip-bars",
-                "aria-hidden": !0,
-                children: f.map((i, h) =>
-                  t.jsx(
-                    "span",
-                    {
-                      className: `strip-bar ${i.dominant}`,
-                      style: { height: `${18 + (i.count / M) * 82}%` },
-                    },
-                    h,
-                  ),
-                ),
-              }),
-              w > 0
-                ? t.jsx("div", {
-                    className: "strip-playhead",
-                    style: { left: `${(O / Math.max(L, 1)) * 100}%` },
-                    "aria-hidden": !0,
-                  })
-                : null,
-              t.jsx("input", {
-                className: "strip-input",
-                type: "range",
-                min: 0,
-                max: L,
-                value: O,
-                disabled: E,
-                onChange: (i) => s(Number(i.currentTarget.value)),
-                "aria-label": "Playback position",
-                "aria-valuetext": z ? `event ${z.seq}: ${z.tool}` : "empty",
-              }),
-            ],
-          }),
-          t.jsxs("div", {
-            className: "deck-pos",
-            children: [
-              t.jsx("span", {
-                className: "deck-pos-count",
-                style: {
-                  minWidth: `${String(Math.max(w, 1)).length * 2 + 3}ch`,
-                },
-                children: w > 0 ? `${O + 1} / ${w}` : "0 / 0",
-              }),
-              t.jsx("span", {
-                className: "deck-pos-clock",
-                children: z?.ts ? _a(z.ts) : "—",
-              }),
-            ],
-          }),
-          t.jsxs("div", {
-            className: "transport",
-            children: [
-              t.jsx("button", {
-                className: "icon-btn",
-                onClick: () => _(-1),
-                disabled: E,
-                title: "Step back (←)",
-                "aria-label": "Step back one event",
-                children: t.jsx(tr, { size: 15 }),
-              }),
-              t.jsx("button", {
-                className: "play-btn",
-                onClick: C,
-                disabled: E,
-                title: m ? "Pause (Space)" : "Play (Space)",
-                "aria-label": m ? "Pause playback" : "Play playback",
-                children: m
-                  ? t.jsx(Vs, { size: 16 })
-                  : t.jsx(Ks, { size: 16, className: "play-glyph" }),
-              }),
-              t.jsx("button", {
-                className: "icon-btn",
-                onClick: () => _(1),
-                disabled: E,
-                title: "Step forward (→)",
-                "aria-label": "Step forward one event",
-                children: t.jsx(sr, { size: 15 }),
-              }),
-              t.jsxs("div", {
-                className: "transport-more",
-                ref: S,
-                children: [
-                  t.jsx("button", {
-                    className: `icon-btn${l ? " recording" : ""}${b ? " open" : ""}`,
-                    onClick: () => c((i) => !i),
-                    disabled: E,
-                    "aria-haspopup": "true",
-                    "aria-expanded": b,
-                    title: "More controls",
-                    "aria-label": "More playback controls",
-                    children: l
-                      ? t.jsx(Rt, { size: 15, className: "spin" })
-                      : v !== 1
-                        ? t.jsxs("span", {
-                            className: "more-speed",
-                            children: [v, "×"],
-                          })
-                        : t.jsx($s, { size: 15 }),
-                  }),
-                  b
-                    ? t.jsxs("div", {
-                        className: "transport-pop",
-                        children: [
-                          t.jsxs("div", {
-                            className: "pop-speed",
-                            children: [
-                              t.jsx("span", {
-                                className: "pop-speed-label",
-                                children: "Speed",
-                              }),
-                              t.jsx("div", {
-                                className: "pop-speed-chips",
-                                title: "Cycle with S",
-                                children: rt.map((i) =>
-                                  t.jsxs(
-                                    "button",
-                                    {
-                                      className: i === v ? "pop-chip engaged" : "pop-chip",
-                                      onClick: () => d(i),
-                                      "aria-pressed": i === v,
-                                      children: [i, "×"],
-                                    },
-                                    i,
-                                  ),
-                                ),
-                              }),
-                            ],
-                          }),
-                          t.jsxs("button", {
-                            className: "pop-item",
-                            onClick: () => {
-                              (s(0), c(!1));
-                            },
-                            children: [
-                              t.jsx(Xs, { size: 14 }),
-                              t.jsx("span", { children: "Restart" }),
-                              t.jsx("kbd", { children: "Home" }),
-                            ],
-                          }),
-                          o
-                            ? t.jsxs("button", {
-                                className: "pop-item",
-                                onClick: () => {
-                                  (c(!1), o());
-                                },
-                                children: [
-                                  t.jsx(lr, { size: 14 }),
-                                  t.jsx("span", { children: "Export video" }),
-                                ],
-                              })
-                            : null,
-                        ],
-                      })
-                    : null,
-                ],
-              }),
-            ],
-          }),
-        ],
-      }),
-      t.jsxs("div", {
-        className: "deck-foot",
-        children: [
-          t.jsx("div", {
-            className: "readout-now",
-            children: z
-              ? t.jsxs(t.Fragment, {
-                  children: [
-                    t.jsx("span", { className: `action-dot ${z.action}` }),
-                    t.jsx("span", {
-                      className: "readout-tool",
-                      children: z.tool,
-                    }),
-                    z.isError ? t.jsx("span", { className: "err", children: "error" }) : null,
-                    t.jsx("span", {
-                      className: "readout-summary",
-                      title: z.summary,
-                      children: z.summary,
-                    }),
-                  ],
-                })
-              : t.jsx("span", {
-                  className: "readout-summary",
-                  children: e
-                    ? "No recorded activity for this agent."
-                    : "Select a session to start the walk.",
-                }),
-          }),
-          t.jsxs("div", {
-            className: "deck-legend",
-            "aria-hidden": !0,
-            children: [
-              t.jsx("span", {
-                className: "legend-group",
-                children: Fa.map((i) =>
-                  t.jsxs(
-                    "span",
-                    {
-                      className: "legend-item",
-                      children: [t.jsx("span", { className: `action-dot ${i}` }), i],
-                    },
-                    i,
-                  ),
-                ),
-              }),
-              t.jsxs("span", {
-                className: "legend-group",
-                children: [
-                  t.jsxs("span", {
-                    className: "legend-item",
-                    children: [
-                      t.jsx("span", { className: "legend-glyph compaction" }),
-                      "compaction",
-                    ],
-                  }),
-                  t.jsxs("span", {
-                    className: "legend-item",
-                    children: [t.jsx("span", { className: "legend-glyph subagent" }), "subagent"],
-                  }),
-                  t.jsxs("span", {
-                    className: "legend-item",
-                    children: [
-                      t.jsx("span", { className: "legend-glyph user-message" }),
-                      "user turn",
-                    ],
-                  }),
-                ],
-              }),
-            ],
-          }),
-        ],
-      }),
-    ],
-  });
+	const [m, x] = a.useState(!1),
+		[v, d] = a.useState(1),
+		[b, c] = a.useState(!1),
+		S = a.useRef(null),
+		w = e?.events.length ?? 0,
+		L = Math.max(0, w - 1),
+		O = Math.min(n, L),
+		z = e?.events[O];
+	a.useEffect(() => {
+		x(!1);
+	}, [e]),
+		a.useEffect(() => {
+			l && x(!1);
+		}, [l]);
+	const p = a.useRef(O),
+		N = a.useRef(L),
+		T = a.useRef(m);
+	(p.current = O),
+		(N.current = L),
+		(T.current = m),
+		a.useEffect(() => {
+			if (!m || w === 0 || l) return;
+			const i = Math.max(85, sn / v),
+				h = Math.max(1, Math.round((v * i) / sn)),
+				g = window.setInterval(() => {
+					if (p.current >= N.current) {
+						x(!1);
+						return;
+					}
+					s(Math.min(p.current + h, N.current));
+				}, i);
+			return () => window.clearInterval(g);
+		}, [m, v, w, s, l]);
+	const C = a.useCallback(() => {
+			!T.current && p.current >= N.current && s(0), x((i) => !i);
+		}, [s]),
+		A = a.useCallback(() => {
+			d((i) => rt[(rt.indexOf(i) + 1) % rt.length]);
+		}, []),
+		_ = a.useCallback(
+			(i) => {
+				s(Math.min(N.current, Math.max(0, p.current + i)));
+			},
+			[s],
+		),
+		Q = a.useCallback(
+			(i, h) => {
+				if (e) {
+					for (let g = p.current + i; g >= 0 && g < e.events.length; g += i)
+						if (h(e.events[g])) {
+							s(g);
+							return;
+						}
+				}
+			},
+			[e, s],
+		),
+		K = a.useMemo(() => {
+			const i = (e?.marks ?? []).map((h) =>
+				Math.min(h.seq, Math.max(0, (e?.events.length ?? 1) - 1)),
+			);
+			return [...new Set(i)].sort((h, g) => h - g);
+		}, [e]),
+		G = a.useCallback(
+			(i) => {
+				const h = p.current,
+					g =
+						i === 1
+							? K.find((y) => y > h)
+							: [...K].reverse().find((y) => y < h);
+				g !== void 0 && s(g);
+			},
+			[K, s],
+		);
+	a.useEffect(() => {
+		if (!e || l) return;
+		const i = (h) => {
+			if (
+				!(
+					h.metaKey ||
+					h.ctrlKey ||
+					h.altKey ||
+					h.target?.closest(
+						"input, textarea, select, button, [contenteditable]",
+					)
+				)
+			) {
+				switch (h.key) {
+					case " ":
+						h.preventDefault(), C();
+						return;
+					case "ArrowLeft":
+						h.preventDefault(), _(h.shiftKey ? -10 : -1);
+						return;
+					case "ArrowRight":
+						h.preventDefault(), _(h.shiftKey ? 10 : 1);
+						return;
+					case "Home":
+						h.preventDefault(), s(0);
+						return;
+					case "End":
+						h.preventDefault(), s(N.current);
+						return;
+				}
+				switch (h.key.toLowerCase()) {
+					case "s":
+						A();
+						return;
+					case "e":
+						Q(h.shiftKey ? -1 : 1, (y) => y.action === "edit");
+						return;
+					case "x":
+						Q(h.shiftKey ? -1 : 1, (y) => y.isError);
+						return;
+					case "m":
+						G(h.shiftKey ? -1 : 1);
+						return;
+				}
+			}
+		};
+		return (
+			window.addEventListener("keydown", i),
+			() => window.removeEventListener("keydown", i)
+		);
+	}, [e, l, C, _, s, A, Q, G]);
+	const E = w === 0 || l;
+	a.useEffect(() => {
+		E && c(!1);
+	}, [E]),
+		a.useEffect(() => {
+			if (!b) return;
+			const i = (g) => {
+					S.current?.contains(g.target) || c(!1);
+				},
+				h = (g) => {
+					g.key === "Escape" && c(!1);
+				};
+			return (
+				window.addEventListener("pointerdown", i),
+				window.addEventListener("keydown", h),
+				() => {
+					window.removeEventListener("pointerdown", i),
+						window.removeEventListener("keydown", h);
+				}
+			);
+		}, [b]);
+	const f = a.useMemo(() => {
+			if (!e || w === 0) return [];
+			const i = Math.min(Ta, w),
+				h = [];
+			for (let g = 0; g < i; g++) {
+				const y = Math.floor((g * w) / i),
+					R = Math.floor(((g + 1) * w) / i),
+					B = new Map();
+				for (let ce = y; ce < R; ce++) {
+					const F = e.events[ce].action;
+					B.set(F, (B.get(F) ?? 0) + 1);
+				}
+				let V = "other",
+					ue = -1;
+				const re = ["edit", "verify", "read", "search", "exec", "other"];
+				for (const ce of re) {
+					const F = B.get(ce) ?? 0;
+					F > ue && ((ue = F), (V = ce));
+				}
+				h.push({ count: R - y, dominant: V });
+			}
+			return h;
+		}, [e, w]),
+		M = a.useMemo(() => f.reduce((i, h) => Math.max(i, h.count), 1), [f]),
+		k = a.useMemo(() => {
+			if (!e) return [];
+			const i = new Map();
+			for (const h of e.marks) {
+				const g = Math.min(h.seq, L),
+					y = L > 0 ? g / L : 0,
+					R = `${h.type}:${Math.round(y * za)}`,
+					B = i.get(R);
+				B
+					? (B.count++, (B.seq = Math.min(B.seq, g)))
+					: i.set(R, { type: h.type, seq: g, pos: y, count: 1, note: h.note });
+			}
+			return [...i.values()];
+		}, [e, L]);
+	return t.jsxs("footer", {
+		className: "deck",
+		children: [
+			t.jsxs("div", {
+				className: "deck-main",
+				children: [
+					t.jsxs("div", {
+						className: "strip",
+						children: [
+							t.jsx("div", {
+								className: "strip-marks",
+								children: k.map((i, h) =>
+									t.jsx(
+										"button",
+										{
+											type: "button",
+											className: `strip-mark ${i.type}`,
+											style: { left: `${i.pos * 100}%` },
+											disabled: E,
+											title: `${i.note || rn[i.type]}${i.count > 1 ? ` ×${i.count}` : ""}`,
+											"aria-label": `Jump to ${i.note || rn[i.type]} at event ${i.seq + 1}${i.count > 1 ? `, ${i.count} marks` : ""}`,
+											onClick: () =>
+												i.type === "subagent" && r ? r(i.seq) : s(i.seq),
+										},
+										`${i.type}-${i.seq}-${h}`,
+									),
+								),
+							}),
+							t.jsx("div", {
+								className: "strip-bars",
+								"aria-hidden": !0,
+								children: f.map((i, h) =>
+									t.jsx(
+										"span",
+										{
+											className: `strip-bar ${i.dominant}`,
+											style: { height: `${18 + (i.count / M) * 82}%` },
+										},
+										h,
+									),
+								),
+							}),
+							w > 0
+								? t.jsx("div", {
+										className: "strip-playhead",
+										style: { left: `${(O / Math.max(L, 1)) * 100}%` },
+										"aria-hidden": !0,
+									})
+								: null,
+							t.jsx("input", {
+								className: "strip-input",
+								type: "range",
+								min: 0,
+								max: L,
+								value: O,
+								disabled: E,
+								onChange: (i) => s(Number(i.currentTarget.value)),
+								"aria-label": "Playback position",
+								"aria-valuetext": z ? `event ${z.seq}: ${z.tool}` : "empty",
+							}),
+						],
+					}),
+					t.jsxs("div", {
+						className: "deck-pos",
+						children: [
+							t.jsx("span", {
+								className: "deck-pos-count",
+								style: {
+									minWidth: `${String(Math.max(w, 1)).length * 2 + 3}ch`,
+								},
+								children: w > 0 ? `${O + 1} / ${w}` : "0 / 0",
+							}),
+							t.jsx("span", {
+								className: "deck-pos-clock",
+								children: z?.ts ? _a(z.ts) : "—",
+							}),
+						],
+					}),
+					t.jsxs("div", {
+						className: "transport",
+						children: [
+							t.jsx("button", {
+								className: "icon-btn",
+								onClick: () => _(-1),
+								disabled: E,
+								title: "Step back (←)",
+								"aria-label": "Step back one event",
+								children: t.jsx(tr, { size: 15 }),
+							}),
+							t.jsx("button", {
+								className: "play-btn",
+								onClick: C,
+								disabled: E,
+								title: m ? "Pause (Space)" : "Play (Space)",
+								"aria-label": m ? "Pause playback" : "Play playback",
+								children: m
+									? t.jsx(Vs, { size: 16 })
+									: t.jsx(Ks, { size: 16, className: "play-glyph" }),
+							}),
+							t.jsx("button", {
+								className: "icon-btn",
+								onClick: () => _(1),
+								disabled: E,
+								title: "Step forward (→)",
+								"aria-label": "Step forward one event",
+								children: t.jsx(sr, { size: 15 }),
+							}),
+							t.jsxs("div", {
+								className: "transport-more",
+								ref: S,
+								children: [
+									t.jsx("button", {
+										className: `icon-btn${l ? " recording" : ""}${b ? " open" : ""}`,
+										onClick: () => c((i) => !i),
+										disabled: E,
+										"aria-haspopup": "true",
+										"aria-expanded": b,
+										title: "More controls",
+										"aria-label": "More playback controls",
+										children: l
+											? t.jsx(Rt, { size: 15, className: "spin" })
+											: v !== 1
+												? t.jsxs("span", {
+														className: "more-speed",
+														children: [v, "×"],
+													})
+												: t.jsx($s, { size: 15 }),
+									}),
+									b
+										? t.jsxs("div", {
+												className: "transport-pop",
+												children: [
+													t.jsxs("div", {
+														className: "pop-speed",
+														children: [
+															t.jsx("span", {
+																className: "pop-speed-label",
+																children: "Speed",
+															}),
+															t.jsx("div", {
+																className: "pop-speed-chips",
+																title: "Cycle with S",
+																children: rt.map((i) =>
+																	t.jsxs(
+																		"button",
+																		{
+																			className:
+																				i === v
+																					? "pop-chip engaged"
+																					: "pop-chip",
+																			onClick: () => d(i),
+																			"aria-pressed": i === v,
+																			children: [i, "×"],
+																		},
+																		i,
+																	),
+																),
+															}),
+														],
+													}),
+													t.jsxs("button", {
+														className: "pop-item",
+														onClick: () => {
+															s(0), c(!1);
+														},
+														children: [
+															t.jsx(Xs, { size: 14 }),
+															t.jsx("span", { children: "Restart" }),
+															t.jsx("kbd", { children: "Home" }),
+														],
+													}),
+													o
+														? t.jsxs("button", {
+																className: "pop-item",
+																onClick: () => {
+																	c(!1), o();
+																},
+																children: [
+																	t.jsx(lr, { size: 14 }),
+																	t.jsx("span", { children: "Export video" }),
+																],
+															})
+														: null,
+												],
+											})
+										: null,
+								],
+							}),
+						],
+					}),
+				],
+			}),
+			t.jsxs("div", {
+				className: "deck-foot",
+				children: [
+					t.jsx("div", {
+						className: "readout-now",
+						children: z
+							? t.jsxs(t.Fragment, {
+									children: [
+										t.jsx("span", { className: `action-dot ${z.action}` }),
+										t.jsx("span", {
+											className: "readout-tool",
+											children: z.tool,
+										}),
+										z.isError
+											? t.jsx("span", { className: "err", children: "error" })
+											: null,
+										t.jsx("span", {
+											className: "readout-summary",
+											title: z.summary,
+											children: z.summary,
+										}),
+									],
+								})
+							: t.jsx("span", {
+									className: "readout-summary",
+									children: e
+										? "No recorded activity for this agent."
+										: "Select a session to start the walk.",
+								}),
+					}),
+					t.jsxs("div", {
+						className: "deck-legend",
+						"aria-hidden": !0,
+						children: [
+							t.jsx("span", {
+								className: "legend-group",
+								children: Fa.map((i) =>
+									t.jsxs(
+										"span",
+										{
+											className: "legend-item",
+											children: [
+												t.jsx("span", { className: `action-dot ${i}` }),
+												i,
+											],
+										},
+										i,
+									),
+								),
+							}),
+							t.jsxs("span", {
+								className: "legend-group",
+								children: [
+									t.jsxs("span", {
+										className: "legend-item",
+										children: [
+											t.jsx("span", { className: "legend-glyph compaction" }),
+											"compaction",
+										],
+									}),
+									t.jsxs("span", {
+										className: "legend-item",
+										children: [
+											t.jsx("span", { className: "legend-glyph subagent" }),
+											"subagent",
+										],
+									}),
+									t.jsxs("span", {
+										className: "legend-item",
+										children: [
+											t.jsx("span", { className: "legend-glyph user-message" }),
+											"user turn",
+										],
+									}),
+								],
+							}),
+						],
+					}),
+				],
+			}),
+		],
+	});
 }
 function _a(e) {
-  const n = new Date(e);
-  return Number.isNaN(n.getTime())
-    ? ""
-    : [n.getHours(), n.getMinutes(), n.getSeconds()]
-        .map((s) => String(s).padStart(2, "0"))
-        .join(":");
+	const n = new Date(e);
+	return Number.isNaN(n.getTime())
+		? ""
+		: [n.getHours(), n.getMinutes(), n.getSeconds()]
+				.map((s) => String(s).padStart(2, "0"))
+				.join(":");
 }
 function qa(e) {
-  switch (e) {
-    case "running":
-      return "The judge is reading the trace — about a minute";
-    case "done":
-      return "Evaluation ready";
-    case "stale":
-      return "Evaluation ready, but the session has grown since";
-    case "failed":
-      return "The last evaluation failed — open to retry";
-    default:
-      return "Evaluate this session with your local agent CLI";
-  }
+	switch (e) {
+		case "running":
+			return "The judge is reading the trace — about a minute";
+		case "done":
+			return "Evaluation ready";
+		case "stale":
+			return "Evaluation ready, but the session has grown since";
+		case "failed":
+			return "The last evaluation failed — open to retry";
+		default:
+			return "Evaluate this session with your local agent CLI";
+	}
 }
 const Pe = "__main__";
 function Da() {
-  const {
-      sessions: e,
-      activeSessionKey: n,
-      trace: s,
-      city: r,
-      currentSeq: o,
-      selectedPath: l,
-      view: m,
-      loading: x,
-      error: v,
-      hideEmpty: d,
-      harnessFilter: b,
-      railCollapsed: c,
-      mapOnly: S,
-      setView: w,
-      setSessions: L,
-      setActiveSession: O,
-      setData: z,
-      setCityOnly: p,
-      setCurrentSeq: N,
-      setSelectedPath: T,
-      setLoading: C,
-      setError: A,
-      setHideEmpty: _,
-      setHarnessFilter: Q,
-      setRailCollapsed: K,
-    } = Le(),
-    G = a.useRef(!1),
-    E = a.useRef(0),
-    f = a.useRef(0),
-    M = a.useRef(0),
-    k = a.useRef(0),
-    i = a.useRef(0),
-    h = a.useRef(!1),
-    g = a.useRef(0),
-    y = a.useRef(n);
-  y.current = n;
-  const R = a.useRef(null),
-    [B, V] = a.useState(!1),
-    [ue, re] = a.useState(null),
-    [ce, F] = a.useState(null),
-    [P, q] = a.useState(),
-    [te, se] = a.useState([]),
-    [W, pe] = a.useState(),
-    [J, xe] = a.useState(null),
-    [Me, ne] = a.useState(!1),
-    [Z, le] = a.useState(),
-    [me, U] = a.useState(),
-    [$, D] = a.useState(),
-    H = a.useRef(null),
-    Y = a.useRef(void 0),
-    de = a.useRef(void 0),
-    he = a.useRef(void 0),
-    ae = a.useRef(new Map()),
-    ve = a.useRef(new Map()),
-    ie = a.useRef(!1);
-  ie.current = B;
-  const Ee = a.useCallback((u) => {
-      R.current = u;
-    }, []),
-    Ne = a.useCallback(() => {
-      (g.current++, C(!0));
-    }, [C]),
-    Te = a.useCallback(() => {
-      ((g.current = Math.max(0, g.current - 1)), g.current === 0 && C(!1));
-    }, [C]),
-    Ze = a.useCallback(() => {
-      const u = ++M.current;
-      return (
-        k.current++,
-        i.current++,
-        (H.current = null),
-        (Y.current = void 0),
-        (de.current = void 0),
-        (he.current = void 0),
-        ae.current.clear(),
-        ve.current.clear(),
-        pe(void 0),
-        xe(null),
-        ne(!1),
-        le(void 0),
-        U(void 0),
-        D(void 0),
-        u
-      );
-    }, []),
-    Re = a.useCallback(async (u, j = M.current) => {
-      const I = ++k.current;
-      (ne(!0), U(void 0), D(void 0));
-      try {
-        const X = await hr(u);
-        if (j !== M.current || I !== k.current || y.current !== u) return;
-        pe(X);
-      } catch (X) {
-        j === M.current &&
-          I === k.current &&
-          y.current === u &&
-          (U($e(X, "loading agents")), D(null));
-      } finally {
-        j === M.current && I === k.current && y.current === u && ne(!1);
-      }
-    }, []),
-    Qe = a.useCallback(
-      async (u) => {
-        const j = ++f.current,
-          I = M.current;
-        (Ne(), A(void 0));
-        try {
-          const { trace: X, city: ye } = await ur(u);
-          if (j !== f.current || I !== M.current || y.current !== u) return;
-          ((de.current = X), (he.current = ye), ae.current.set(Pe, X));
-          const we = H.current;
-          if (we === null) {
-            z(X, ye);
-            const be = ve.current.get(Pe);
-            (be !== void 0 && N(Math.min(be, Math.max(0, X.events.length - 1))), T(void 0));
-          } else {
-            const be = ae.current.get(we);
-            if (be) {
-              const fe = Le.getState().currentSeq;
-              (z(be, ye), N(Math.min(fe, Math.max(0, be.events.length - 1))));
-            }
-          }
-        } catch (X) {
-          j === f.current && y.current === u && A($e(X, "loading the session"));
-        } finally {
-          Te();
-        }
-      },
-      [Ne, Te, N, z, A, T],
-    ),
-    $t = a.useCallback(() => {
-      const u = H.current;
-      (ve.current.set(u ?? Pe, Le.getState().currentSeq),
-        i.current++,
-        (Y.current = void 0),
-        ae.current.clear(),
-        (H.current = null),
-        xe(null),
-        le(void 0),
-        U(void 0),
-        D(void 0));
-      const j = de.current,
-        I = he.current;
-      if (j && I) {
-        z(j, I);
-        const X = ve.current.get(Pe);
-        (X !== void 0 && N(Math.min(X, Math.max(0, j.events.length - 1))), T(void 0));
-      }
-    }, [N, z, T]),
-    ht = a.useCallback(
-      async (u) => {
-        const j = ++E.current;
-        (Ne(), A(void 0));
-        try {
-          const I = await qt(u);
-          if (j !== E.current) return;
-          L(I);
-          let X;
-          if (!G.current) {
-            G.current = !0;
-            const je = new URL(window.location.href).searchParams.get("session") ?? void 0,
-              It = je ? I.find((wt) => wt.key === je) : void 0,
-              yt = je && !It ? I.filter((wt) => wt.id === je) : [],
-              Tt = It?.key ?? (yt.length === 1 ? yt[0].key : void 0);
-            Tt
-              ? (X = Tt)
-              : yt.length > 1
-                ? console.warn(
-                    `session id "${je}" is ambiguous; falling back to the latest session`,
-                  )
-                : je &&
-                  console.warn(`session "${je}" not found; falling back to the latest session`);
-          }
-          const ye = y.current,
-            we = ye !== void 0 && I.some((je) => je.key === ye),
-            be = (I.find((je) => qn(je, { hideEmpty: d, harness: b })) ?? I[0])?.key,
-            fe = X ?? (we ? ye : be);
-          if (fe !== ye) {
-            const je = Ze();
-            ((y.current = fe), fe || f.current++, O(fe), fe && Re(fe, je));
-          } else u && fe && ($t(), Re(fe));
-          fe && (await Qe(fe));
-        } catch (I) {
-          j === E.current && A($e(I, "scanning sessions"));
-        } finally {
-          Te();
-        }
-      },
-      [Ne, Te, b, d, $t, Re, Qe, Ze, O, A, L],
-    ),
-    Un = a.useCallback(
-      async (u) => {
-        (Ne(), A(void 0));
-        try {
-          const j = await xr(u);
-          p(j);
-        } catch (j) {
-          A($e(j, "loading the repository map"));
-        } finally {
-          Te();
-        }
-      },
-      [Ne, Te, p, A],
-    ),
-    Vn = a.useCallback((u) => {
-      const j = u ? `/?map=1&repo=${encodeURIComponent(u)}` : "/?map=1";
-      window.open(j, "_blank", "noopener");
-    }, []),
-    Gn = a.useCallback(
-      (u) => {
-        if (y.current === u) return;
-        const j = Ze();
-        ((y.current = u), O(u), Re(u, j), Qe(u));
-      },
-      [Re, Qe, Ze, O],
-    ),
-    et = a.useCallback(() => {
-      const u = H.current ?? Pe;
-      ve.current.set(u, Le.getState().currentSeq);
-    }, []),
-    ft = a.useCallback(
-      (u, j, I) => {
-        (et(), (H.current = u), xe(u), z(j, I));
-        const X = ve.current.get(u ?? Pe);
-        (X !== void 0 && N(Math.min(X, Math.max(0, j.events.length - 1))), T(void 0));
-      },
-      [et, N, z, T],
-    ),
-    pt = a.useCallback(
-      async (u) => {
-        if (ie.current) return;
-        const j = y.current,
-          I = he.current;
-        if (!j || !I) return;
-        const X = ++i.current;
-        if (((Y.current = void 0), le(void 0), U(void 0), D(void 0), H.current === u)) return;
-        const ye = u === null ? de.current : ae.current.get(u);
-        if (ye) {
-          ft(u, ye, I);
-          return;
-        }
-        if (u === null) return;
-        const we = W?.agents.find((fe) => fe.id === u);
-        if (!we || we.traceAvailability !== "available") return;
-        const be = M.current;
-        ((Y.current = u), le(u));
-        try {
-          const fe = await fr(j, u);
-          if (
-            be !== M.current ||
-            X !== i.current ||
-            Y.current !== u ||
-            y.current !== j ||
-            ie.current
-          )
-            return;
-          (ae.current.set(u, fe), ft(u, fe, he.current ?? I));
-        } catch (fe) {
-          be === M.current &&
-            X === i.current &&
-            Y.current === u &&
-            y.current === j &&
-            (U($e(fe, `loading the ${we.label} trace`)), D(u));
-        } finally {
-          be === M.current &&
-            X === i.current &&
-            Y.current === u &&
-            y.current === j &&
-            ((Y.current = void 0), le(void 0));
-        }
-      },
-      [W, ft],
-    ),
-    Kn = a.useCallback(() => {
-      const u = y.current;
-      ie.current || !u || $ === void 0 || ($ === null ? Re(u) : pt($));
-    }, [$, Re, pt]),
-    Wn = a.useCallback(async () => {
-      const u = R.current,
-        j = s?.events.length ?? 0;
-      if (!u || j === 0 || ie.current) return;
-      const I = y.current,
-        X = H.current,
-        ye = Le.getState().currentSeq;
-      (i.current++, (Y.current = void 0), le(void 0), (ie.current = !0), V(!0), A(void 0));
-      try {
-        const { blob: we, extension: be } = await Vr({
-            canvas: u,
-            total: j,
-            setSeq: N,
-          }),
-          fe = s?.session.id || I || "session";
-        Gr(we, `mindwalk-${fe}.${be}`);
-      } catch (we) {
-        A($e(we, "exporting the video"));
-      } finally {
-        (y.current === I && H.current === X && N(ye), (ie.current = !1), V(!1));
-      }
-    }, [s, B, N, A]),
-    Yn = a.useCallback(() => K(!0), [K]),
-    Xn = a.useCallback(() => K(!1), [K]),
-    ze = a.useCallback(async (u) => {
-      try {
-        const j = await pr(u);
-        y.current === u && q(j);
-      } catch {}
-    }, []);
-  a.useEffect(() => {
-    (re(null), F(null), q(void 0), se([]), n && !S && ze(n));
-  }, [n, S, ze]);
-  const Se = a.useCallback(async () => {
-      try {
-        L(await qt());
-      } catch {}
-    }, [L]),
-    Jn = a.useCallback(() => {
-      if (ie.current || h.current) return;
-      h.current = !0;
-      const u = y.current;
-      (u && !S && ze(u),
-        ht(!0).finally(() => {
-          h.current = !1;
-        }));
-    }, [ht, ze, S]);
-  (a.useEffect(() => {
-    if (P?.state !== "running" || !n) return;
-    se([]);
-    const u = gr(
-        n,
-        (I) => se((X) => [...X, I]),
-        (I) => {
-          (y.current === n && q(I), u.close());
-        },
-      ),
-      j = setInterval(() => {
-        Se();
-      }, 5e3);
-    return () => {
-      (u.close(), clearInterval(j), Se());
-    };
-  }, [P?.state, n, Se]),
-    a.useEffect(() => {
-      if (P !== void 0 || !n || S) return;
-      const u = setInterval(() => {
-        ze(n);
-      }, 5e3);
-      return () => clearInterval(u);
-    }, [P === void 0, n, S, ze]));
-  const At = a.useMemo(() => e.some((u) => u.reportState === "running"), [e]);
-  a.useEffect(() => {
-    if (!At || P?.state === "running") return;
-    const u = setInterval(() => {
-      Se();
-    }, 5e3);
-    return () => clearInterval(u);
-  }, [At, P?.state, Se]);
-  const Zn = a.useCallback(
-      async (u) => {
-        const j = y.current;
-        if (j)
-          try {
-            const I = await mr(j, u);
-            (y.current === j && q(I), Se());
-          } catch (I) {
-            A($e(I, "starting the evaluation"));
-          }
-      },
-      [A, Se],
-    ),
-    mt = a.useCallback(
-      (u) => {
-        (T(u), u && re("inspect"));
-      },
-      [T],
-    ),
-    gt = a.useCallback(() => re(null), []),
-    Qn = a.useCallback(() => F(null), []),
-    es = a.useCallback(() => {
-      ie.current || re("agents");
-    }, []),
-    ts = a.useCallback((u) => {
-      u.presentation === "sheet"
-        ? re((j) => (j === u.id ? null : u.id))
-        : F((j) => (j === u.id ? null : u.id));
-    }, []),
-    ns = a.useCallback(
-      (u) => {
-        if (ie.current) return;
-        const j = de.current,
-          I = he.current;
-        if (!j || !I) return;
-        (i.current++,
-          (Y.current = void 0),
-          le(void 0),
-          H.current !== null && (et(), (H.current = null), xe(null), z(j, I)),
-          N(u),
-          ve.current.set(Pe, u));
-        const ye = j.events[u]?.targets.find((we) => we.path)?.path;
-        T(ye);
-      },
-      [et, N, z, T],
-    ),
-    ss = a.useCallback(
-      (u) => {
-        (N(u), re("agents"));
-      },
-      [N],
-    ),
-    rs = a.useCallback(
-      (u) => {
-        ie.current || N(u);
-      },
-      [N],
-    );
-  (a.useEffect(() => {
-    const u = (j) => {
-      if (j.key.toLowerCase() !== "b" || !(j.metaKey || j.ctrlKey) || j.altKey || j.shiftKey)
-        return;
-      j.preventDefault();
-      const I = Le.getState();
-      I.setRailCollapsed(!I.railCollapsed);
-    };
-    return (window.addEventListener("keydown", u), () => window.removeEventListener("keydown", u));
-  }, []),
-    a.useEffect(() => {
-      const u = (j) => {
-        if (j.key.toLowerCase() !== "v" || j.metaKey || j.ctrlKey || j.altKey || j.shiftKey) return;
-        const I = j.target;
-        if (
-          (I && (I.tagName === "INPUT" || I.tagName === "TEXTAREA" || I.isContentEditable)) ||
-          ie.current
-        )
-          return;
-        const X = Le.getState();
-        X.setView(X.view === "tree" ? "terrain" : "tree");
-      };
-      return (
-        window.addEventListener("keydown", u), () => window.removeEventListener("keydown", u)
-      );
-    }, []),
-    a.useEffect(() => {
-      const u = new URL(window.location.href).searchParams;
-      u.get("map") === "1" ? Un(u.get("repo") ?? void 0) : ht(!1);
-    }, []));
-  const xt = a.useMemo(
-      () =>
-        P?.state === "running"
-          ? "running"
-          : P?.state === "failed"
-            ? "failed"
-            : P?.state === "done"
-              ? P.stale
-                ? "stale"
-                : "done"
-              : null,
-      [P],
-    ),
-    Lt = a.useMemo(
-      () => (J === null ? "Main" : (W?.agents.find((u) => u.id === J)?.label ?? "Subagent")),
-      [J, W],
-    ),
-    as =
-      m === "tree"
-        ? s
-          ? "glow ∝ revisits"
-          : "static map"
-        : s
-          ? "height ∝ depth × revisits"
-          : "height ∝ lines",
-    Pt = a.useMemo(() => new _r(s, r), [s, r]),
-    Fe = a.useMemo(() => Pt.snapshotAt(o), [Pt, o]),
-    vt = a.useMemo(() => {
-      let u = 0,
-        j = 0,
-        I = 0;
-      for (const X of Fe.touchByPath.values()) X === "edit" ? u++ : X === "read" ? j++ : I++;
-      return { edited: u, read: j, seen: I };
-    }, [Fe]),
-    He = a.useMemo(() => (l ? r?.files.find((u) => u.path === l) : void 0), [r, l]),
-    os = a.useMemo(() => {
-      const u = new Map();
-      for (const j of s?.events ?? [])
-        for (const I of j.targets)
-          I.touch === "edit" && I.path && u.set(I.path, (u.get(I.path) ?? 0) + 1);
-      return [...u.entries()]
-        .filter(([, j]) => j >= 3)
-        .map(([j, I]) => ({ path: j, edits: I }))
-        .sort((j, I) => I.edits - j.edits || (j.path < I.path ? -1 : 1));
-    }, [s]);
-  return t.jsxs("main", {
-    className: S || c ? "app-frame rail-collapsed" : "app-frame",
-    children: [
-      S
-        ? null
-        : t.jsx(La, {
-            sessions: e,
-            activeKey: n,
-            loading: x,
-            hideEmpty: d,
-            harnessFilter: b,
-            collapsed: c,
-            onSelect: Gn,
-            onRefresh: Jn,
-            onHideEmptyChange: _,
-            onHarnessFilterChange: Q,
-            onCollapse: Yn,
-            onOpenMap: Vn,
-            activeRepo: s?.session.cwd,
-            locked: B,
-            activeReportState: P === void 0 ? void 0 : xt,
-          }),
-      t.jsxs("section", {
-        className: "stage",
-        children: [
-          t.jsxs("div", {
-            className: "viewport",
-            children: [
-              !S && c
-                ? t.jsx("button", {
-                    className: "rail-expand",
-                    onClick: Xn,
-                    title: `Show sidebar (${Hn})`,
-                    "aria-label": "Show session sidebar",
-                    children: t.jsx(Hs, { size: 15 }),
-                  })
-                : null,
-              m === "tree"
-                ? t.jsx(pa, {
-                    city: r,
-                    playback: Fe,
-                    selectedPath: l,
-                    onSelect: mt,
-                    onCanvasReady: Ee,
-                  })
-                : t.jsx(ra, {
-                    city: r,
-                    playback: Fe,
-                    selectedPath: l,
-                    onSelect: mt,
-                    onCanvasReady: Ee,
-                    locHeights: S,
-                  }),
-              t.jsx(ja, {
-                trace: s,
-                city: r,
-                agentLabel: Lt,
-                editedNow: vt.edited,
-                readNow: vt.read,
-                seenNow: vt.seen,
-                churn: os,
-                onSelectFile: mt,
-                onOpenAgents: !S && s ? es : void 0,
-                locked: B,
-              }),
-              r
-                ? t.jsx(vr, {
-                    panels: [
-                      {
-                        id: "view",
-                        icon: m === "tree" ? jn : wn,
-                        hint: `Scene view: ${m} — click to change, or press V`,
-                        section: "scene",
-                        presentation: "pop",
-                        render: () =>
-                          t.jsx(Fr, {
-                            view: m,
-                            onViewChange: w,
-                            note: as,
-                            locked: B,
-                          }),
-                      },
-                      {
-                        id: "inspect",
-                        icon: Rs,
-                        hint: "Inspect the selected file",
-                        section: "session",
-                        presentation: "sheet",
-                        render: () =>
-                          t.jsx(Ra, {
-                            file: He,
-                            touch: He ? Fe.touchByPath.get(He.path) : void 0,
-                            history: He ? (Fe.historyByPath.get(He.path) ?? []) : [],
-                            onClose: gt,
-                            onJumpTo: rs,
-                            locked: B,
-                          }),
-                      },
-                      ...(!S && s
-                        ? [
-                            {
-                              id: "agents",
-                              icon: ir,
-                              hint: `Agent lenses — current: ${Lt}`,
-                              section: "session",
-                              presentation: "sheet",
-                              render: () =>
-                                t.jsx(yr, {
-                                  graph: W,
-                                  current: J,
-                                  loading: Me,
-                                  loadingAgentID: Z,
-                                  locked: B,
-                                  error: me,
-                                  retryAgentID: $,
-                                  onSelect: (u) => {
-                                    pt(u);
-                                  },
-                                  onRetry: Kn,
-                                  onClose: gt,
-                                }),
-                            },
-                          ]
-                        : []),
-                      ...(!S && s
-                        ? [
-                            {
-                              id: "evaluate",
-                              icon: bn,
-                              hint: qa(xt),
-                              section: "session",
-                              presentation: "sheet",
-                              badge: xt,
-                              render: () =>
-                                t.jsx(Er, {
-                                  status: P,
-                                  analyzing: P?.state === "running",
-                                  progress: te,
-                                  locked: B,
-                                  onAnalyze: (u) => {
-                                    Zn(u);
-                                  },
-                                  onClose: gt,
-                                  onJumpTo: ns,
-                                }),
-                            },
-                          ]
-                        : []),
-                    ],
-                    openSheet: ue,
-                    openPop: ce,
-                    onToggle: ts,
-                    onClosePop: Qn,
-                  })
-                : null,
-              !S && !x && e.length === 0
-                ? t.jsx("div", {
-                    className: "empty-stage",
-                    children: t.jsxs("div", {
-                      className: "card",
-                      children: [
-                        t.jsx("h2", { children: "No sessions found" }),
-                        t.jsxs("p", {
-                          children: [
-                            "mindwalk scans ",
-                            t.jsx("code", { children: "~/.claude/projects" }),
-                            ",",
-                            " ",
-                            t.jsx("code", { children: "~/.codex/sessions" }),
-                            ", and",
-                            " ",
-                            t.jsx("code", { children: "~/.pi/agent/sessions" }),
-                            " for agent traces. Run a session there, then refresh.",
-                          ],
-                        }),
-                      ],
-                    }),
-                  })
-                : null,
-              x
-                ? t.jsx("div", {
-                    className: "toast",
-                    children: S
-                      ? "Building the map…"
-                      : e.length === 0
-                        ? "Scanning sessions…"
-                        : "Reading trace…",
-                  })
-                : null,
-              v ? t.jsx("div", { className: "toast error", children: v }) : null,
-            ],
-          }),
-          t.jsx(Ba, {
-            trace: s,
-            currentSeq: o,
-            onChange: N,
-            onExport: Rn() ? Wn : void 0,
-            exporting: B,
-            onSubagentMark: ss,
-          }),
-        ],
-      }),
-    ],
-  });
+	const {
+			sessions: e,
+			activeSessionKey: n,
+			trace: s,
+			city: r,
+			currentSeq: o,
+			selectedPath: l,
+			view: m,
+			loading: x,
+			error: v,
+			hideEmpty: d,
+			harnessFilter: b,
+			railCollapsed: c,
+			mapOnly: S,
+			setView: w,
+			setSessions: L,
+			setActiveSession: O,
+			setData: z,
+			setCityOnly: p,
+			setCurrentSeq: N,
+			setSelectedPath: T,
+			setLoading: C,
+			setError: A,
+			setHideEmpty: _,
+			setHarnessFilter: Q,
+			setRailCollapsed: K,
+		} = Le(),
+		G = a.useRef(!1),
+		E = a.useRef(0),
+		f = a.useRef(0),
+		M = a.useRef(0),
+		k = a.useRef(0),
+		i = a.useRef(0),
+		h = a.useRef(!1),
+		g = a.useRef(0),
+		y = a.useRef(n);
+	y.current = n;
+	const R = a.useRef(null),
+		[B, V] = a.useState(!1),
+		[ue, re] = a.useState(null),
+		[ce, F] = a.useState(null),
+		[P, q] = a.useState(),
+		[te, se] = a.useState([]),
+		[W, pe] = a.useState(),
+		[J, xe] = a.useState(null),
+		[Me, ne] = a.useState(!1),
+		[Z, le] = a.useState(),
+		[me, U] = a.useState(),
+		[$, D] = a.useState(),
+		H = a.useRef(null),
+		Y = a.useRef(void 0),
+		de = a.useRef(void 0),
+		he = a.useRef(void 0),
+		ae = a.useRef(new Map()),
+		ve = a.useRef(new Map()),
+		ie = a.useRef(!1);
+	ie.current = B;
+	const Ee = a.useCallback((u) => {
+			R.current = u;
+		}, []),
+		Ne = a.useCallback(() => {
+			g.current++, C(!0);
+		}, [C]),
+		Te = a.useCallback(() => {
+			(g.current = Math.max(0, g.current - 1)), g.current === 0 && C(!1);
+		}, [C]),
+		Ze = a.useCallback(() => {
+			const u = ++M.current;
+			return (
+				k.current++,
+				i.current++,
+				(H.current = null),
+				(Y.current = void 0),
+				(de.current = void 0),
+				(he.current = void 0),
+				ae.current.clear(),
+				ve.current.clear(),
+				pe(void 0),
+				xe(null),
+				ne(!1),
+				le(void 0),
+				U(void 0),
+				D(void 0),
+				u
+			);
+		}, []),
+		Re = a.useCallback(async (u, j = M.current) => {
+			const I = ++k.current;
+			ne(!0), U(void 0), D(void 0);
+			try {
+				const X = await hr(u);
+				if (j !== M.current || I !== k.current || y.current !== u) return;
+				pe(X);
+			} catch (X) {
+				j === M.current &&
+					I === k.current &&
+					y.current === u &&
+					(U($e(X, "loading agents")), D(null));
+			} finally {
+				j === M.current && I === k.current && y.current === u && ne(!1);
+			}
+		}, []),
+		Qe = a.useCallback(
+			async (u) => {
+				const j = ++f.current,
+					I = M.current;
+				Ne(), A(void 0);
+				try {
+					const { trace: X, city: ye } = await ur(u);
+					if (j !== f.current || I !== M.current || y.current !== u) return;
+					(de.current = X), (he.current = ye), ae.current.set(Pe, X);
+					const we = H.current;
+					if (we === null) {
+						z(X, ye);
+						const be = ve.current.get(Pe);
+						be !== void 0 && N(Math.min(be, Math.max(0, X.events.length - 1))),
+							T(void 0);
+					} else {
+						const be = ae.current.get(we);
+						if (be) {
+							const fe = Le.getState().currentSeq;
+							z(be, ye), N(Math.min(fe, Math.max(0, be.events.length - 1)));
+						}
+					}
+				} catch (X) {
+					j === f.current && y.current === u && A($e(X, "loading the session"));
+				} finally {
+					Te();
+				}
+			},
+			[Ne, Te, N, z, A, T],
+		),
+		$t = a.useCallback(() => {
+			const u = H.current;
+			ve.current.set(u ?? Pe, Le.getState().currentSeq),
+				i.current++,
+				(Y.current = void 0),
+				ae.current.clear(),
+				(H.current = null),
+				xe(null),
+				le(void 0),
+				U(void 0),
+				D(void 0);
+			const j = de.current,
+				I = he.current;
+			if (j && I) {
+				z(j, I);
+				const X = ve.current.get(Pe);
+				X !== void 0 && N(Math.min(X, Math.max(0, j.events.length - 1))),
+					T(void 0);
+			}
+		}, [N, z, T]),
+		ht = a.useCallback(
+			async (u) => {
+				const j = ++E.current;
+				Ne(), A(void 0);
+				try {
+					const I = await qt(u);
+					if (j !== E.current) return;
+					L(I);
+					let X;
+					if (!G.current) {
+						G.current = !0;
+						const je =
+								new URL(window.location.href).searchParams.get("session") ??
+								void 0,
+							It = je ? I.find((wt) => wt.key === je) : void 0,
+							yt = je && !It ? I.filter((wt) => wt.id === je) : [],
+							Tt = It?.key ?? (yt.length === 1 ? yt[0].key : void 0);
+						Tt
+							? (X = Tt)
+							: yt.length > 1
+								? console.warn(
+										`session id "${je}" is ambiguous; falling back to the latest session`,
+									)
+								: je &&
+									console.warn(
+										`session "${je}" not found; falling back to the latest session`,
+									);
+					}
+					const ye = y.current,
+						we = ye !== void 0 && I.some((je) => je.key === ye),
+						be = (I.find((je) => qn(je, { hideEmpty: d, harness: b })) ?? I[0])
+							?.key,
+						fe = X ?? (we ? ye : be);
+					if (fe !== ye) {
+						const je = Ze();
+						(y.current = fe), fe || f.current++, O(fe), fe && Re(fe, je);
+					} else u && fe && ($t(), Re(fe));
+					fe && (await Qe(fe));
+				} catch (I) {
+					j === E.current && A($e(I, "scanning sessions"));
+				} finally {
+					Te();
+				}
+			},
+			[Ne, Te, b, d, $t, Re, Qe, Ze, O, A, L],
+		),
+		Un = a.useCallback(
+			async (u) => {
+				Ne(), A(void 0);
+				try {
+					const j = await xr(u);
+					p(j);
+				} catch (j) {
+					A($e(j, "loading the repository map"));
+				} finally {
+					Te();
+				}
+			},
+			[Ne, Te, p, A],
+		),
+		Vn = a.useCallback((u) => {
+			const j = u ? `/?map=1&repo=${encodeURIComponent(u)}` : "/?map=1";
+			window.open(j, "_blank", "noopener");
+		}, []),
+		Gn = a.useCallback(
+			(u) => {
+				if (y.current === u) return;
+				const j = Ze();
+				(y.current = u), O(u), Re(u, j), Qe(u);
+			},
+			[Re, Qe, Ze, O],
+		),
+		et = a.useCallback(() => {
+			const u = H.current ?? Pe;
+			ve.current.set(u, Le.getState().currentSeq);
+		}, []),
+		ft = a.useCallback(
+			(u, j, I) => {
+				et(), (H.current = u), xe(u), z(j, I);
+				const X = ve.current.get(u ?? Pe);
+				X !== void 0 && N(Math.min(X, Math.max(0, j.events.length - 1))),
+					T(void 0);
+			},
+			[et, N, z, T],
+		),
+		pt = a.useCallback(
+			async (u) => {
+				if (ie.current) return;
+				const j = y.current,
+					I = he.current;
+				if (!j || !I) return;
+				const X = ++i.current;
+				if (
+					((Y.current = void 0),
+					le(void 0),
+					U(void 0),
+					D(void 0),
+					H.current === u)
+				)
+					return;
+				const ye = u === null ? de.current : ae.current.get(u);
+				if (ye) {
+					ft(u, ye, I);
+					return;
+				}
+				if (u === null) return;
+				const we = W?.agents.find((fe) => fe.id === u);
+				if (!we || we.traceAvailability !== "available") return;
+				const be = M.current;
+				(Y.current = u), le(u);
+				try {
+					const fe = await fr(j, u);
+					if (
+						be !== M.current ||
+						X !== i.current ||
+						Y.current !== u ||
+						y.current !== j ||
+						ie.current
+					)
+						return;
+					ae.current.set(u, fe), ft(u, fe, he.current ?? I);
+				} catch (fe) {
+					be === M.current &&
+						X === i.current &&
+						Y.current === u &&
+						y.current === j &&
+						(U($e(fe, `loading the ${we.label} trace`)), D(u));
+				} finally {
+					be === M.current &&
+						X === i.current &&
+						Y.current === u &&
+						y.current === j &&
+						((Y.current = void 0), le(void 0));
+				}
+			},
+			[W, ft],
+		),
+		Kn = a.useCallback(() => {
+			const u = y.current;
+			ie.current || !u || $ === void 0 || ($ === null ? Re(u) : pt($));
+		}, [$, Re, pt]),
+		Wn = a.useCallback(async () => {
+			const u = R.current,
+				j = s?.events.length ?? 0;
+			if (!u || j === 0 || ie.current) return;
+			const I = y.current,
+				X = H.current,
+				ye = Le.getState().currentSeq;
+			i.current++,
+				(Y.current = void 0),
+				le(void 0),
+				(ie.current = !0),
+				V(!0),
+				A(void 0);
+			try {
+				const { blob: we, extension: be } = await Vr({
+						canvas: u,
+						total: j,
+						setSeq: N,
+					}),
+					fe = s?.session.id || I || "session";
+				Gr(we, `mindwalk-${fe}.${be}`);
+			} catch (we) {
+				A($e(we, "exporting the video"));
+			} finally {
+				y.current === I && H.current === X && N(ye), (ie.current = !1), V(!1);
+			}
+		}, [s, B, N, A]),
+		Yn = a.useCallback(() => K(!0), [K]),
+		Xn = a.useCallback(() => K(!1), [K]),
+		ze = a.useCallback(async (u) => {
+			try {
+				const j = await pr(u);
+				y.current === u && q(j);
+			} catch {}
+		}, []);
+	a.useEffect(() => {
+		re(null), F(null), q(void 0), se([]), n && !S && ze(n);
+	}, [n, S, ze]);
+	const Se = a.useCallback(async () => {
+			try {
+				L(await qt());
+			} catch {}
+		}, [L]),
+		Jn = a.useCallback(() => {
+			if (ie.current || h.current) return;
+			h.current = !0;
+			const u = y.current;
+			u && !S && ze(u),
+				ht(!0).finally(() => {
+					h.current = !1;
+				});
+		}, [ht, ze, S]);
+	a.useEffect(() => {
+		if (P?.state !== "running" || !n) return;
+		se([]);
+		const u = gr(
+				n,
+				(I) => se((X) => [...X, I]),
+				(I) => {
+					y.current === n && q(I), u.close();
+				},
+			),
+			j = setInterval(() => {
+				Se();
+			}, 5e3);
+		return () => {
+			u.close(), clearInterval(j), Se();
+		};
+	}, [P?.state, n, Se]),
+		a.useEffect(() => {
+			if (P !== void 0 || !n || S) return;
+			const u = setInterval(() => {
+				ze(n);
+			}, 5e3);
+			return () => clearInterval(u);
+		}, [P === void 0, n, S, ze]);
+	const At = a.useMemo(() => e.some((u) => u.reportState === "running"), [e]);
+	a.useEffect(() => {
+		if (!At || P?.state === "running") return;
+		const u = setInterval(() => {
+			Se();
+		}, 5e3);
+		return () => clearInterval(u);
+	}, [At, P?.state, Se]);
+	const Zn = a.useCallback(
+			async (u) => {
+				const j = y.current;
+				if (j)
+					try {
+						const I = await mr(j, u);
+						y.current === j && q(I), Se();
+					} catch (I) {
+						A($e(I, "starting the evaluation"));
+					}
+			},
+			[A, Se],
+		),
+		mt = a.useCallback(
+			(u) => {
+				T(u), u && re("inspect");
+			},
+			[T],
+		),
+		gt = a.useCallback(() => re(null), []),
+		Qn = a.useCallback(() => F(null), []),
+		es = a.useCallback(() => {
+			ie.current || re("agents");
+		}, []),
+		ts = a.useCallback((u) => {
+			u.presentation === "sheet"
+				? re((j) => (j === u.id ? null : u.id))
+				: F((j) => (j === u.id ? null : u.id));
+		}, []),
+		ns = a.useCallback(
+			(u) => {
+				if (ie.current) return;
+				const j = de.current,
+					I = he.current;
+				if (!j || !I) return;
+				i.current++,
+					(Y.current = void 0),
+					le(void 0),
+					H.current !== null && (et(), (H.current = null), xe(null), z(j, I)),
+					N(u),
+					ve.current.set(Pe, u);
+				const ye = j.events[u]?.targets.find((we) => we.path)?.path;
+				T(ye);
+			},
+			[et, N, z, T],
+		),
+		ss = a.useCallback(
+			(u) => {
+				N(u), re("agents");
+			},
+			[N],
+		),
+		rs = a.useCallback(
+			(u) => {
+				ie.current || N(u);
+			},
+			[N],
+		);
+	a.useEffect(() => {
+		const u = (j) => {
+			if (
+				j.key.toLowerCase() !== "b" ||
+				!(j.metaKey || j.ctrlKey) ||
+				j.altKey ||
+				j.shiftKey
+			)
+				return;
+			j.preventDefault();
+			const I = Le.getState();
+			I.setRailCollapsed(!I.railCollapsed);
+		};
+		return (
+			window.addEventListener("keydown", u),
+			() => window.removeEventListener("keydown", u)
+		);
+	}, []),
+		a.useEffect(() => {
+			const u = (j) => {
+				if (
+					j.key.toLowerCase() !== "v" ||
+					j.metaKey ||
+					j.ctrlKey ||
+					j.altKey ||
+					j.shiftKey
+				)
+					return;
+				const I = j.target;
+				if (
+					(I &&
+						(I.tagName === "INPUT" ||
+							I.tagName === "TEXTAREA" ||
+							I.isContentEditable)) ||
+					ie.current
+				)
+					return;
+				const X = Le.getState();
+				X.setView(X.view === "tree" ? "terrain" : "tree");
+			};
+			return (
+				window.addEventListener("keydown", u),
+				() => window.removeEventListener("keydown", u)
+			);
+		}, []),
+		a.useEffect(() => {
+			const u = new URL(window.location.href).searchParams;
+			u.get("map") === "1" ? Un(u.get("repo") ?? void 0) : ht(!1);
+		}, []);
+	const xt = a.useMemo(
+			() =>
+				P?.state === "running"
+					? "running"
+					: P?.state === "failed"
+						? "failed"
+						: P?.state === "done"
+							? P.stale
+								? "stale"
+								: "done"
+							: null,
+			[P],
+		),
+		Lt = a.useMemo(
+			() =>
+				J === null
+					? "Main"
+					: (W?.agents.find((u) => u.id === J)?.label ?? "Subagent"),
+			[J, W],
+		),
+		as =
+			m === "tree"
+				? s
+					? "glow ∝ revisits"
+					: "static map"
+				: s
+					? "height ∝ depth × revisits"
+					: "height ∝ lines",
+		Pt = a.useMemo(() => new _r(s, r), [s, r]),
+		Fe = a.useMemo(() => Pt.snapshotAt(o), [Pt, o]),
+		vt = a.useMemo(() => {
+			let u = 0,
+				j = 0,
+				I = 0;
+			for (const X of Fe.touchByPath.values())
+				X === "edit" ? u++ : X === "read" ? j++ : I++;
+			return { edited: u, read: j, seen: I };
+		}, [Fe]),
+		He = a.useMemo(
+			() => (l ? r?.files.find((u) => u.path === l) : void 0),
+			[r, l],
+		),
+		os = a.useMemo(() => {
+			const u = new Map();
+			for (const j of s?.events ?? [])
+				for (const I of j.targets)
+					I.touch === "edit" &&
+						I.path &&
+						u.set(I.path, (u.get(I.path) ?? 0) + 1);
+			return [...u.entries()]
+				.filter(([, j]) => j >= 3)
+				.map(([j, I]) => ({ path: j, edits: I }))
+				.sort((j, I) => I.edits - j.edits || (j.path < I.path ? -1 : 1));
+		}, [s]);
+	return t.jsxs("main", {
+		className: S || c ? "app-frame rail-collapsed" : "app-frame",
+		children: [
+			S
+				? null
+				: t.jsx(La, {
+						sessions: e,
+						activeKey: n,
+						loading: x,
+						hideEmpty: d,
+						harnessFilter: b,
+						collapsed: c,
+						onSelect: Gn,
+						onRefresh: Jn,
+						onHideEmptyChange: _,
+						onHarnessFilterChange: Q,
+						onCollapse: Yn,
+						onOpenMap: Vn,
+						activeRepo: s?.session.cwd,
+						locked: B,
+						activeReportState: P === void 0 ? void 0 : xt,
+					}),
+			t.jsxs("section", {
+				className: "stage",
+				children: [
+					t.jsxs("div", {
+						className: "viewport",
+						children: [
+							!S && c
+								? t.jsx("button", {
+										className: "rail-expand",
+										onClick: Xn,
+										title: `Show sidebar (${Hn})`,
+										"aria-label": "Show session sidebar",
+										children: t.jsx(Hs, { size: 15 }),
+									})
+								: null,
+							m === "tree"
+								? t.jsx(pa, {
+										city: r,
+										playback: Fe,
+										selectedPath: l,
+										onSelect: mt,
+										onCanvasReady: Ee,
+									})
+								: t.jsx(ra, {
+										city: r,
+										playback: Fe,
+										selectedPath: l,
+										onSelect: mt,
+										onCanvasReady: Ee,
+										locHeights: S,
+									}),
+							t.jsx(ja, {
+								trace: s,
+								city: r,
+								agentLabel: Lt,
+								editedNow: vt.edited,
+								readNow: vt.read,
+								seenNow: vt.seen,
+								churn: os,
+								onSelectFile: mt,
+								onOpenAgents: !S && s ? es : void 0,
+								locked: B,
+							}),
+							r
+								? t.jsx(vr, {
+										panels: [
+											{
+												id: "view",
+												icon: m === "tree" ? jn : wn,
+												hint: `Scene view: ${m} — click to change, or press V`,
+												section: "scene",
+												presentation: "pop",
+												render: () =>
+													t.jsx(Fr, {
+														view: m,
+														onViewChange: w,
+														note: as,
+														locked: B,
+													}),
+											},
+											{
+												id: "inspect",
+												icon: Rs,
+												hint: "Inspect the selected file",
+												section: "session",
+												presentation: "sheet",
+												render: () =>
+													t.jsx(Ra, {
+														file: He,
+														touch: He ? Fe.touchByPath.get(He.path) : void 0,
+														history: He
+															? (Fe.historyByPath.get(He.path) ?? [])
+															: [],
+														onClose: gt,
+														onJumpTo: rs,
+														locked: B,
+													}),
+											},
+											...(!S && s
+												? [
+														{
+															id: "agents",
+															icon: ir,
+															hint: `Agent lenses — current: ${Lt}`,
+															section: "session",
+															presentation: "sheet",
+															render: () =>
+																t.jsx(yr, {
+																	graph: W,
+																	current: J,
+																	loading: Me,
+																	loadingAgentID: Z,
+																	locked: B,
+																	error: me,
+																	retryAgentID: $,
+																	onSelect: (u) => {
+																		pt(u);
+																	},
+																	onRetry: Kn,
+																	onClose: gt,
+																}),
+														},
+													]
+												: []),
+											...(!S && s
+												? [
+														{
+															id: "evaluate",
+															icon: bn,
+															hint: qa(xt),
+															section: "session",
+															presentation: "sheet",
+															badge: xt,
+															render: () =>
+																t.jsx(Er, {
+																	status: P,
+																	analyzing: P?.state === "running",
+																	progress: te,
+																	locked: B,
+																	onAnalyze: (u) => {
+																		Zn(u);
+																	},
+																	onClose: gt,
+																	onJumpTo: ns,
+																}),
+														},
+													]
+												: []),
+										],
+										openSheet: ue,
+										openPop: ce,
+										onToggle: ts,
+										onClosePop: Qn,
+									})
+								: null,
+							!S && !x && e.length === 0
+								? t.jsx("div", {
+										className: "empty-stage",
+										children: t.jsxs("div", {
+											className: "card",
+											children: [
+												t.jsx("h2", { children: "No sessions found" }),
+												t.jsxs("p", {
+													children: [
+														"mindwalk scans ",
+														t.jsx("code", { children: "~/.claude/projects" }),
+														",",
+														" ",
+														t.jsx("code", { children: "~/.codex/sessions" }),
+														", and",
+														" ",
+														t.jsx("code", { children: "~/.pi/agent/sessions" }),
+														" for agent traces. Run a session there, then refresh.",
+													],
+												}),
+											],
+										}),
+									})
+								: null,
+							x
+								? t.jsx("div", {
+										className: "toast",
+										children: S
+											? "Building the map…"
+											: e.length === 0
+												? "Scanning sessions…"
+												: "Reading trace…",
+									})
+								: null,
+							v
+								? t.jsx("div", { className: "toast error", children: v })
+								: null,
+						],
+					}),
+					t.jsx(Ba, {
+						trace: s,
+						currentSeq: o,
+						onChange: N,
+						onExport: Rn() ? Wn : void 0,
+						exporting: B,
+						onSubagentMark: ss,
+					}),
+				],
+			}),
+		],
+	});
 }
 cs.createRoot(document.getElementById("root")).render(
-  t.jsx(a.StrictMode, { children: t.jsx(Da, {}) }),
+	t.jsx(a.StrictMode, { children: t.jsx(Da, {}) }),
 );
 //# sourceMappingURL=index-Cn4H51Jb.js.map

@@ -98,9 +98,10 @@ type OutsideTouch struct {
 }
 
 type Mark struct {
-	Seq  int    `json:"seq"`
-	Type string `json:"type"`
-	Note string `json:"note,omitempty"`
+	Seq      int    `json:"seq"`
+	Type     string `json:"type"`
+	Note     string `json:"note,omitempty"`
+	Duration int    `json:"duration,omitempty"`
 }
 
 type Stats struct {
