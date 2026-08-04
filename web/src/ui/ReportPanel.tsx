@@ -197,6 +197,51 @@ function JudgePicker({
 	);
 }
 
+// phase metadata for the progress indicator: icon character and label
+const PHASE_META: Record<string, { icon: string; label: string }> = {
+	start: { icon: "○", label: "Starting" },
+	rubric: { icon: "✎", label: "Rubric" },
+	scoring: { icon: "≡", label: "Scoring" },
+	done: { icon: "✓", label: "Done" },
+	error: { icon: "✗", label: "Error" },
+};
+
+function RunningPanel({ progress }: { progress: JudgeProgress[] }) {
+	const latest = progress.length > 0 ? progress[progress.length - 1] : null;
+	const phase = latest?.phase ?? "start";
+	const meta = PHASE_META[phase] ?? PHASE_META.start;
+	return (
+		<div className="report-note">
+			<p className="report-running">
+				<span className="report-progress-icon" aria-hidden>
+					{meta.icon}
+				</span>{" "}
+				{latest?.message ?? "Judging the trajectory…"}
+			</p>
+			{progress.length > 1 && (
+				<ul className="report-progress-log">
+					{progress.slice(0, -1).map((p, i) => {
+						const m = PHASE_META[p.phase] ?? PHASE_META.start;
+						return (
+							<li key={i} className="report-progress-step">
+								<span className="report-progress-icon done" aria-hidden>
+									{m.icon}
+								</span>{" "}
+								{p.message}
+							</li>
+						);
+					})}
+				</ul>
+			)}
+			<p className="report-progress-hint">
+				The judge first drafts task-specific criteria from your request, then
+				scores the session against them plus four process dimensions. Usually
+				a minute or two; you can keep exploring meanwhile.
+			</p>
+		</div>
+	);
+}
+
 function PanelBody({
 	status,
 	analyzing,

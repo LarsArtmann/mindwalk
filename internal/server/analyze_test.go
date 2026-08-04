@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -357,5 +358,138 @@ func TestAnalyzeEndpointRejectsBadBodies(t *testing.T) {
 	s.handleSessionResource(resp, req)
 	if resp.Code != http.StatusBadRequest {
 		t.Fatalf("unknown cli -> %d, want 400", resp.Code)
+	}
+}
+
+func TestAnalyzeStreamSendsProgressAndTerminalStatus(t *testing.T) {
+	claudeDir := t.TempDir()
+	writeServerSession(
+		t,
+		filepath.Join(claudeDir, "eval.jsonl"),
+		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
+		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
+		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
+	)
+	s := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
+	gate := gateJudge{release: make(chan struct{}), output: stubJudgeOutput}
+	s.analyze.runner = gate
+	s.reportCache.Dir = t.TempDir()
+
+	// Start the analyze job.
+	postResp := httptest.NewRecorder()
+	s.handleSessionResource(postResp, httptest.NewRequest(http.MethodPost, "/api/sessions/eval/analyze", nil))
+	if postResp.Code != http.StatusAccepted {
+		t.Fatalf("analyze status = %d", postResp.Code)
+	}
+
+	// Use a real HTTP server because the SSE handler blocks on the stream.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.handleSessionResource(w, r)
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+"/api/sessions/eval/analyze/stream", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.Header.Get("Content-Type") != "text/event-stream" {
+		t.Fatalf("content-type = %q, want text/event-stream", resp.Header.Get("Content-Type"))
+	}
+
+	// Release the gate so the judge can complete.
+	close(gate.release)
+
+	scanner := bufio.NewScanner(resp.Body)
+	var sawStatus bool
+	var statusData string
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "event: status" {
+			sawStatus = true
+		}
+		if strings.HasPrefix(line, "data: ") && sawStatus {
+			statusData = strings.TrimPrefix(line, "data: ")
+			break
+		}
+	}
+	if !sawStatus || statusData == "" {
+		t.Fatal("SSE stream did not deliver a status event")
+	}
+	var status reportStatus
+	if err := json.Unmarshal([]byte(statusData), &status); err != nil {
+		t.Fatal(err)
+	}
+	if status.State != "done" || status.Report == nil {
+		t.Fatalf("status = %+v", status)
+	}
+}
+
+func TestAnalyzeStreamNoJobReturnsStatusImmediately(t *testing.T) {
+	claudeDir := t.TempDir()
+	writeServerSession(
+		t,
+		filepath.Join(claudeDir, "eval.jsonl"),
+		`{"type":"user","timestamp":"2026-07-09T00:00:00Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":"do the thing"}}`,
+		`{"type":"assistant","timestamp":"2026-07-09T00:00:01Z","sessionId":"eval","cwd":"/tmp","message":{"role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/tmp/a.go"}}]}}`,
+		`{"type":"user","timestamp":"2026-07-09T00:00:02Z","sessionId":"eval","cwd":"/tmp","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"ok","is_error":false}]}}`,
+	)
+	s := New(
+		Config{
+			ClaudeDir:    claudeDir,
+			CodexDir:     filepath.Join(t.TempDir(), "codex"),
+			PiDir:        filepath.Join(t.TempDir(), "no-pi"),
+			DisableCrush: true,
+		},
+	)
+	s.analyze.runner = stubJudge{output: stubJudgeOutput}
+	s.reportCache.Dir = t.TempDir()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.handleSessionResource(w, r)
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+"/api/sessions/eval/analyze/stream", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+
+	scanner := bufio.NewScanner(resp.Body)
+	var sawStatus bool
+	var statusData string
+	for scanner.Scan() {
+		line := scanner.Text()
+		if line == "event: status" {
+			sawStatus = true
+		}
+		if strings.HasPrefix(line, "data: ") && sawStatus {
+			statusData = strings.TrimPrefix(line, "data: ")
+			break
+		}
+	}
+	if !sawStatus || statusData == "" {
+		t.Fatal("SSE stream did not deliver a status event")
+	}
+	var status reportStatus
+	if err := json.Unmarshal([]byte(statusData), &status); err != nil {
+		t.Fatal(err)
+	}
+	if status.State != "none" {
+		t.Fatalf("status = %q, want none", status.State)
 	}
 }
