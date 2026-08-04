@@ -1,4 +1,10 @@
 # Sensitive files
 *.db
-# Sensitive files
 .npmrc
+
+# Build artifacts
+web/tsconfig.tsbuildinfo
+
+# SQLite transient files
+*.db-wal
+*.db-shm
