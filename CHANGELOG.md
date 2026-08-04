@@ -88,8 +88,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - **Enriched test fixture** — `testdata/crush/crush.db` now includes
     `read`, `write`, and `bash` tool calls with `file_path` inputs,
     exercising the full event/target extraction path.
+  - **`mindwalk sessions` improvements** — `--json` for machine-readable
+    output, `--harness` to filter by adapter, `--limit` to cap results.
+  - **`mindwalk version`** — prints the build revision, Go version, and
+    module version.
+  - **`mindwalk cache` subcommand** — `cache clear` removes persisted
+    agent graphs; `cache status` reports file count and total size.
+  - **`mindwalk doctor` diagnostics** — now reports directory readability,
+    checks `projects.json` integrity, and verifies schema columns on each
+    Crush database via the new `DiagnosticsSource` interface.
+  - **Agent-graph disk cache eviction** — the cache auto-evicts oldest
+    files when the directory exceeds 100 MB. Cache files now carry a
+    version header so format changes cleanly invalidate old entries.
+  - **Frontend: Cwd path truncation** — long working-directory paths in
+    the HUD are shortened with ellipsis so they don't overflow the layout.
+  - **Frontend: smarter 0-target warning** — distinguishes "adapter may be
+    misconfigured" (file read/edit tools present but no targets) from
+    "no file operations in this session" (only exec/other actions).
+  - **CLI test isolation** — `cmd/mindwalk` now has a `TestMain` that
+    redirects `CRUSH_GLOBAL_DATA`, `XDG_DATA_HOME`, and `MINDWALK_HOME`
+    to temp dirs, preventing tests from scanning the host filesystem.
+  - **CI improvements** — `go vet ./...` step, `-race` flag on tests,
+    and a frontend `tsc --noEmit` typecheck step.
 
 ### Fixed
+
+- **Critical: `parseAdapterFlags` ignored all adapter flags** — the
+  function dereferenced `*fs.String()`/`*fs.Bool()` pointers BEFORE
+  `fs.Parse()` ran, capturing default values. `--no-crush`,
+  `--crush-dir`, `--claude-dir`, `--codex-dir`, and `--pi-dir` were
+  silently ignored by `sessions` and `doctor` (and would have been
+  ignored by `serve`/`open`/`map` after the flag consolidation).
+  Now uses `fs.StringVar`/`fs.BoolVar` writing directly into struct
+  fields, returning `*adapterFlags` so callers see post-Parse values.
+- **`worktreeRootCache` race condition** — changed from unprotected
+  `map[string]string` to `sync.Map` with `Load`/`Store`.
+- **`warnIfOldSchema` `QueryRow` misuse** — `QueryRow` returns a single
+  `*Row` but the code looped as if it were `*Rows`. Changed to
+  `QueryContext` + `rows.Next()`. Now also checks `provider` and
+  `parent_session_id` columns (was only `model`), with per-DB
+  deduplication via `sync.Map`.
+- **CLI commands leaked database connections** — `listSessions` and
+  `doctor` now call `closeSources()` via `defer` to release cached
+  `*sql.DB` handles after scanning.
 
 - **Crush sessions showed zero targets / all-unvisited** —
   `trace.Session.Cwd` was never set for Crush sessions, so absolute
@@ -131,6 +172,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   in-memory cache invalidation. This allows the disk cache to reuse
   graphs across server restarts.
 - CI workflow bumped from Go 1.25 to Go 1.26.5 to match `go.mod`.
+- `projectPathCache`/`projectPathInit` globals moved to per-Adapter
+  `projectPathStore` struct (`Adapter.projects`), following the
+  `dbIndex`/`dbCache` pattern. Zero-value `Adapter{}` falls back to
+  path inference only.
+- `serve`, `open`, and `map` consolidated via `bindServeFlags` and
+  `openSingle` helpers, eliminating inline flag duplication.
+- Shared adapter helpers extracted: `adapter.HomePath`, `adapter.ReadableDir`,
+  `adapter.OpenFile`, `adapter.NotRecognizedErr` — used by claudecode,
+  codex, and pi adapters to remove duplicated `os.UserHomeDir`/`os.Stat`
+  patterns.
+- `agentLaunch` struct promoted to `adapter.AgentLaunch` (shared between
+  codex and crush), eliminating type duplication.
 - Go idioms modernized for 1.26: `b.Loop()`, `slices.ContainsFunc`,
   `min()`, `WaitGroup.Go`, `strings.Cut`, `maps.Copy`,
   `strings.SplitSeq`, `range int`, `new(value)`.
