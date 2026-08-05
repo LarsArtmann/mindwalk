@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/dustin/go-humanize/english"
 	"github.com/cosmtrek/mindwalk/internal/model"
 	"github.com/cosmtrek/mindwalk/internal/textutil"
 )
@@ -1626,10 +1627,8 @@ func summarizeExecWrapper(input map[string]any) string {
 	}
 
 	suffix := ""
-	if additionalCalls == 1 {
-		suffix = " (+1 more tool call)"
-	} else if additionalCalls > 1 {
-		suffix = fmt.Sprintf(" (+%d more tool calls)", additionalCalls)
+	if additionalCalls > 0 {
+		suffix = fmt.Sprintf(" (+%d more tool %s)", additionalCalls, english.PluralWord(additionalCalls, "call", "calls"))
 	}
 
 	commandLimit := toolSummaryVerbLimit - len([]rune(suffix))

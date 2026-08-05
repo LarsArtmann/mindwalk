@@ -20,6 +20,7 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 	"github.com/cosmtrek/mindwalk/internal/server"
+	"github.com/dustin/go-humanize"
 )
 
 func main() {
@@ -710,16 +711,7 @@ func dirStats(dir string) (count int, size int64) {
 }
 
 func humanBytes(n int64) string {
-	switch {
-	case n >= 1_000_000_000:
-		return fmt.Sprintf("%.1f GB", float64(n)/1_000_000_000)
-	case n >= 1_000_000:
-		return fmt.Sprintf("%.1f MB", float64(n)/1_000_000)
-	case n >= 1_000:
-		return fmt.Sprintf("%.1f KB", float64(n)/1_000)
-	default:
-		return fmt.Sprintf("%d B", n)
-	}
+	return humanize.Bytes(uint64(n))
 }
 
 func parseTrace(path string, crushDir string) (*model.Trace, error) {
