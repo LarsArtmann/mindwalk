@@ -103,8 +103,8 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 				meta.Model = entry.ModelID
 			}
 		case "message":
-			var msg piMessage
-			if json.Unmarshal(entry.Message, &msg) != nil {
+			msg, err := decodePiMessage(entry.Message)
+			if err != nil {
 				continue
 			}
 			switch msg.Role {
@@ -191,8 +191,8 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			// it as a user turn in ComputeStats, so it is dropped the same
 			// way injected user messages are.
 		case "message":
-			var msg piMessage
-			if json.Unmarshal(entry.Message, &msg) != nil {
+			msg, err := decodePiMessage(entry.Message)
+			if err != nil {
 				continue
 			}
 			switch msg.Role {
@@ -233,9 +233,11 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 					continue
 				}
 				delete(pending, msg.ToolCallID)
+				isError := msg.IsError != nil && *msg.IsError
 				trace.Events = append(trace.Events, adapter.BuildEvent(trace, call, adapter.ToolResult{
-					Content: contentText(msg.Content),
-					IsError: msg.IsError,
+					Content:      contentText(msg.Content),
+					IsError:      isError,
+					OutcomeKnown: msg.IsError != nil,
 				}))
 			case "bashExecution":
 				// A `!` command the user ran from the TUI still touches the
@@ -246,8 +248,9 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 					Timestamp: entry.Timestamp,
 				}
 				trace.Events = append(trace.Events, adapter.BuildEvent(trace, call, adapter.ToolResult{
-					Content: msg.Output,
-					IsError: msg.ExitCode != nil && *msg.ExitCode != 0,
+					Content:      msg.Output,
+					IsError:      msg.ExitCode != nil && *msg.ExitCode != 0,
+					OutcomeKnown: msg.ExitCode != nil,
 				}))
 			}
 		}
@@ -323,10 +326,38 @@ type piMessage struct {
 	Content    json.RawMessage `json:"content"`
 	Model      string          `json:"model"`
 	ToolCallID string          `json:"toolCallId"`
-	IsError    bool            `json:"isError"`
+	IsError    *bool           `json:"isError"`
 	Command    string          `json:"command"`
 	Output     string          `json:"output"`
 	ExitCode   *int            `json:"exitCode"`
+}
+
+func decodePiMessage(data json.RawMessage) (piMessage, error) {
+	var msg piMessage
+	if err := json.Unmarshal(data, &msg); err != nil {
+		return piMessage{}, err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return piMessage{}, err
+	}
+	msg.IsError = nil
+	if raw, ok := fields["isError"]; ok && strings.TrimSpace(string(raw)) != "null" {
+		var value bool
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return piMessage{}, err
+		}
+		msg.IsError = &value
+	}
+	msg.ExitCode = nil
+	if raw, ok := fields["exitCode"]; ok && strings.TrimSpace(string(raw)) != "null" {
+		var value int
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return piMessage{}, err
+		}
+		msg.ExitCode = &value
+	}
+	return msg, nil
 }
 
 type contentBlock struct {
