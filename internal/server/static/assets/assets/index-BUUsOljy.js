@@ -4744,24 +4744,22 @@ const qi = {
           role: "img",
           "aria-label": "Repository overview",
           children: [
-            s.dirs
-              .slice(0, 30)
-              .map(($) =>
-                e.jsx(
-                  "rect",
-                  {
-                    x: I($.rect.x),
-                    y: p($.rect.z),
-                    width: H($.rect.w),
-                    height: P($.rect.d),
-                    fill: "none",
-                    stroke: "var(--hairline)",
-                    strokeWidth: 0.3,
-                    opacity: 0.4,
-                  },
-                  $.path,
-                ),
+            s.dirs.slice(0, 30).map(($) =>
+              e.jsx(
+                "rect",
+                {
+                  x: I($.rect.x),
+                  y: p($.rect.z),
+                  width: H($.rect.w),
+                  height: P($.rect.d),
+                  fill: "none",
+                  stroke: "var(--hairline)",
+                  strokeWidth: 0.3,
+                  opacity: 0.4,
+                },
+                $.path,
               ),
+            ),
             s.files.map(($) => {
               const W = n.touchByPath.get($.path),
                 ee = $.path === r,
