@@ -73,7 +73,7 @@
             ]) ./internal/server/static;
           };
 
-          vendorHash = "sha256-WTD17flwo+M8rNAZ3/v9xHJ58dA3Iq+BpoUpR2JWkq8=";
+          vendorHash = "sha256-WbIEyrX10CTIQTcFIAXvC4Y48X++pCZSylQa03Cuvrk=";
 
           # Shared buildGoModule attributes for both binaries.
           commonGoArgs = {
