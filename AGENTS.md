@@ -43,8 +43,7 @@ reads Crush's `~/.local/share/crush/projects.json` registry and
 queries every project database, merging all sessions; a per-Adapter
 `sessionDBIndex` (`sync.Map`) routes each session id to its source
 database so `Parse`/`Summarize` open the right file. The adapter
-opens each database in read-only mode without taking the data-dir
-lock, and uses synthetic `crush://session/<id>` paths so the rest of
+uses synthetic `crush://session/<id>` paths so the rest of
 the server can route to it. The server's `scanSessions` short-circuits
 the directory walk for adapters whose paths are not real files, and
 `fingerprintPath` synthesises a stable zero fingerprint for `crush://`
@@ -60,6 +59,27 @@ displays them without a new code path. The agent-graph builders in
 `internal/adapter/crush/agents.go` use `enumerateDBPaths()` to
 iterate every known project database, and `openDBForPath()` to route
 launch reads to the correct database in auto-discover mode.
+
+**Crush reads go through github.com/LarsArtmann/go-crush-data**
+(published module, pinned in go.mod — never a replace directive).
+`internal/adapter/crush/handle.go` wraps `crushdata.DB`: `openAt`
+keeps the adapter's error contract (missing database → nil handle
+with no error so "no Crush installed" reads as an empty catalog;
+empty file / directory-in-the-way → distinctive errors naming the
+path), and the adapter's `dbCache` stores `*crushdata.DB` handles
+keyed by database path. The SDK owns: read-only DSN construction,
+schema capability probing (table-qualified), sessions/messages/
+read_files queries, and parts JSON decoding into sealed `Part`
+types; `parts.go` only folds decoded parts into trace events/marks
+(`decodeParts(raw, ts)` composes `crushdata.DecodeParts` + fold for
+raw-column callers). Schema-drift warnings come from
+`Schema().MissingColumns()` — the old probe checked
+`parent_session_id` against the messages table where it never
+exists, so every real database warned spuriously; the SDK checks
+each column against its real table. `trace <session>` from the CLI
+only routes correctly inside the adapter's own data dir (no
+`sessionDBIndex` without a prior `ListSessions` scan) — pre-existing
+limitation, unchanged.
 
 Computed agent graphs are persisted to `~/.mindwalk/agent-graphs/`
 as versioned JSON files keyed by a stable digest of the session's
