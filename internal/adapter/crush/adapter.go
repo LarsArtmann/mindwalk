@@ -10,7 +10,6 @@
 package crush
 
 import (
-	"database/sql"
 	"errors"
 	"os"
 	"os/exec"
@@ -18,6 +17,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	crushdata "github.com/LarsArtmann/go-crush-data"
 )
 
 const (
@@ -53,10 +54,11 @@ type Adapter struct {
 	// back to the single resolved database.
 	dbIndex *sync.Map
 
-	// dbCache caches open *sql.DB handles by file path so a long-lived
-	// server does not re-open the SQLite file on every Parse/Summarize
-	// call. Nil when the adapter was constructed without NewAdapter;
-	// in that case every call opens and closes its own handle.
+	// dbCache caches open *crushdata.DB handles by database path so a
+	// long-lived server does not re-open the SQLite file on every
+	// Parse/Summarize call. Nil when the adapter was constructed
+	// without NewAdapter; in that case every call opens and closes its
+	// own handle.
 	dbCache *sync.Map
 
 	// projects caches the projects.json registry so projectPathForDB
@@ -95,7 +97,7 @@ func (a Adapter) Close() error {
 	var firstErr error
 
 	a.dbCache.Range(func(_, value any) bool {
-		if db, ok := value.(*sql.DB); ok && db != nil {
+		if db, ok := value.(*crushdata.DB); ok && db != nil {
 			if err := db.Close(); err != nil && firstErr == nil {
 				firstErr = err
 			}

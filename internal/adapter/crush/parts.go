@@ -1,96 +1,26 @@
 package crush
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
+	crushdata "github.com/LarsArtmann/go-crush-data"
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 )
 
-// partKind enumerates the values Crush can stamp on messages.parts[*].type
-// (charmbracelet/crush/internal/message/content.go).
-//
-// Crush's parts are an interface{} tagged by a discriminator — there's
-// no shared Go struct exported by the public API — so we decode them
-// as raw JSON and match by type. Only the kinds that affect the
-// trace/UI are recognized; everything else falls through as text.
-const (
-	partText         = "text"
-	partReasoning    = "reasoning"
-	partToolCall     = "tool_call"
-	partToolResult   = "tool_result"
-	partFinish       = "finish"
-	partShellCommand = "shell_command"
-	partImageURL     = "image_url"
-	partBinary       = "binary"
-)
+// The raw on-disk shape of messages.parts (a discriminated
+// {"type","data"} union), its decoding into typed values, and the
+// schema-drift tolerance for unknown discriminators all live in the
+// go-crush-data SDK. This file folds decoded parts into the
+// mindwalk-specific trace view: tool calls paired with results,
+// subagent launches, reasoning durations, finish reasons, and
+// bang-mode shell commands.
 
-// rawPart is the on-disk shape of every messages.parts[*] entry. The
-// `data` field carries the part-specific payload as a JSON object,
-// the same shape Crush's ContentPart interface tags with `isPart()`.
-type rawPart struct {
-	Type string          `json:"type"`
-	Data json.RawMessage `json:"data"`
-}
-
-// toolCallData mirrors message.ToolCall from upstream Crush.
-type toolCallData struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	Input            string `json:"input"`
-	ProviderExecuted bool   `json:"provider_executed"`
-	Finished         bool   `json:"finished"`
-}
-
-// toolResultData mirrors message.ToolResult from upstream Crush.
-type toolResultData struct {
-	ToolCallID string `json:"tool_call_id"`
-	Name       string `json:"name"`
-	Content    string `json:"content"`
-	Data       string `json:"data"`
-	MIMEType   string `json:"mime_type"`
-	Metadata   string `json:"metadata"`
-	IsError    bool   `json:"is_error"`
-}
-
-// finishData mirrors message.Finish — only Reason is meaningful for the
-// trace, but we decode the rest so we can ignore unexpected payloads
-// without warning on a minor schema bump.
-type finishData struct {
-	Reason  string `json:"reason"`
-	Message string `json:"message,omitempty"`
-	Details string `json:"details,omitempty"`
-}
-
-// textData mirrors TextContent.
-type textData struct {
-	Text string `json:"text"`
-}
-
-// reasoningData mirrors ReasoningContent — we surface thinking parts
-// only when the upstream reasoning is non-empty and only the `Thinking`
-// field is read by the trace today.
-type reasoningData struct {
-	Thinking   string `json:"thinking"`
-	StartedAt  int64  `json:"started_at"`
-	FinishedAt int64  `json:"finished_at"`
-}
-
-// shellCommandData mirrors message.ShellCommand — Crush encodes bang
-// shell commands as their own part so a session replay can show them.
-// The visualizer skips them today; decoding the type here keeps the
-// schema in sync with Crush so future additions stay cheap.
-type shellCommandData struct {
-	Command  string `json:"command"`
-	Output   string `json:"output"`
-	ExitCode int    `json:"exit_code"`
-}
-
-// partsParser walks one message's parts JSON in declaration order.
-// Tool calls and their results are paired by tool_call_id; any
-// orphan result is dropped, and any tool call without a matching
-// result is emitted as an event with an empty ToolResult.
+// partsParser folds one message's decoded parts in declaration order.
+// Tool calls and their results are paired by tool_call_id; any orphan
+// result is kept for cross-message pairing by the agent graph reader,
+// and any tool call without a matching result is emitted as an event
+// with an empty ToolResult.
 //
 // State is held in the parser so callers can stream messages through
 // one instance and keep the in-flight tool calls memory-cheap.
@@ -107,7 +37,7 @@ type partsParser struct {
 	reasoningSecs int64
 	finishReason  string
 	finishMessage string
-	shellCommands []shellCommandData
+	shellCommands []crushdata.ShellCommandPart
 	bashCommands  map[string]bool
 }
 
@@ -120,123 +50,84 @@ func newPartsParser() *partsParser {
 	}
 }
 
-// add folds one decoded part into the parser state. The caller is
-// responsible for flushing text and events via finish().
-func (p *partsParser) add(part rawPart, timestamp string) error {
-	if part.Type == "" || len(part.Data) == 0 || string(part.Data) == "null" {
-		return nil
-	}
-
-	switch part.Type {
-	case partText:
-		var t textData
-		if err := json.Unmarshal(part.Data, &t); err != nil {
-			return fmt.Errorf("decode text part: %w", err)
-		}
-
-		if t.Text != "" {
+// add folds one decoded part into the parser state. Parts the SDK
+// could not classify arrive as UnknownPart and are ignored so a Crush
+// schema bump never crashes an older mindwalk binary.
+func (p *partsParser) add(part crushdata.Part, timestamp string) {
+	switch typed := part.(type) {
+	case crushdata.TextPart:
+		if typed.Text != "" {
 			if p.text.Len() > 0 {
 				p.text.WriteString("\n")
 			}
 
-			p.text.WriteString(t.Text)
+			p.text.WriteString(typed.Text)
 		}
-	case partReasoning:
-		var r reasoningData
-		if err := json.Unmarshal(part.Data, &r); err != nil {
-			return fmt.Errorf("decode reasoning part: %w", err)
-		}
-
-		if r.Thinking != "" {
-			p.reasoningText = r.Thinking
+	case crushdata.ReasoningPart:
+		if typed.Thinking != "" {
+			p.reasoningText = typed.Thinking
 		}
 
-		if r.FinishedAt > r.StartedAt {
-			p.reasoningSecs = r.FinishedAt - r.StartedAt
+		if typed.FinishedAt > typed.StartedAt {
+			p.reasoningSecs = typed.FinishedAt - typed.StartedAt
 		}
-	case partShellCommand:
-		var sc shellCommandData
-		if err := json.Unmarshal(part.Data, &sc); err != nil {
-			return fmt.Errorf("decode shell_command part: %w", err)
-		}
-
-		p.shellCommands = append(p.shellCommands, sc)
-	case partToolCall:
-		var tc toolCallData
-		if err := json.Unmarshal(part.Data, &tc); err != nil {
-			return fmt.Errorf("decode tool_call part: %w", err)
+	case crushdata.ShellCommandPart:
+		p.shellCommands = append(p.shellCommands, typed)
+	case crushdata.ToolCallPart:
+		if typed.ID == "" || typed.Name == "" {
+			return
 		}
 
-		if tc.ID == "" || tc.Name == "" {
-			return nil
-		}
-
-		input := parseCrushInput(tc.Input)
+		input := parseCrushInput(typed.Input)
 
 		call := adapter.ToolCall{
-			ID:               tc.ID,
-			Name:             tc.Name,
+			ID:               typed.ID,
+			Name:             typed.Name,
 			Input:            input,
 			Timestamp:        timestamp,
-			ProviderExecuted: tc.ProviderExecuted,
+			ProviderExecuted: typed.ProviderExecuted,
 		}
-		if tc.Name == "agent" {
+		if typed.Name == "agent" {
 			p.subagentSeen = true
 			if label := agentLabelFromInput(input); label != "" {
 				p.subagentNote = label
 			} else {
-				p.subagentNote = tc.Name
+				p.subagentNote = typed.Name
 			}
 		}
 
-		if _, exists := p.pending[tc.ID]; !exists {
-			p.pendingOrder = append(p.pendingOrder, tc.ID)
+		if _, exists := p.pending[typed.ID]; !exists {
+			p.pendingOrder = append(p.pendingOrder, typed.ID)
 		}
 
-		p.pending[tc.ID] = call
-		if tc.Name == "bash" || tc.Name == "Bash" {
+		p.pending[typed.ID] = call
+		if typed.Name == "bash" || typed.Name == "Bash" {
 			if cmd, ok := input["command"].(string); ok && cmd != "" {
 				p.bashCommands[cmd] = true
 			}
 		}
-	case partToolResult:
-		var tr toolResultData
-		if err := json.Unmarshal(part.Data, &tr); err != nil {
-			return fmt.Errorf("decode tool_result part: %w", err)
+	case crushdata.ToolResultPart:
+		if typed.ToolCallID == "" {
+			return
 		}
 
-		if tr.ToolCallID == "" {
-			return nil
+		p.results[typed.ToolCallID] = adapter.ToolResult{
+			ToolCallID: typed.ToolCallID,
+			Content:    typed.Content,
+			IsError:    typed.IsError,
 		}
-
-		p.results[tr.ToolCallID] = adapter.ToolResult{
-			ToolCallID: tr.ToolCallID,
-			Content:    tr.Content,
-			IsError:    tr.IsError,
-		}
-		p.resultOrder = append(p.resultOrder, tr.ToolCallID)
-	case partFinish:
-		var f finishData
-		if err := json.Unmarshal(part.Data, &f); err != nil {
-			return fmt.Errorf("decode finish part: %w", err)
-		}
-
-		if f.Reason == "stop" {
+		p.resultOrder = append(p.resultOrder, typed.ToolCallID)
+	case crushdata.FinishPart:
+		if typed.Reason == "stop" {
 			p.hasUserFinish = true
 		}
 
-		p.finishReason = f.Reason
-		p.finishMessage = f.Message
-	case partImageURL, partBinary:
-		// Image and binary attachments are dropped from the trace —
-		// the visualizer renders file edits, not base64 previews —
-		// but decoding the discriminator keeps schema drift loud.
-	default:
-		// Unknown part types are ignored so a Crush schema bump
-		// never crashes an older mindwalk binary.
+		p.finishReason = typed.Reason
+		p.finishMessage = typed.Message
+	case crushdata.UnknownPart:
+		// Image, binary, and future part kinds pass through as
+		// UnknownPart — nothing here consumes their payloads.
 	}
-
-	return nil
 }
 
 // agentLabelFromInput pulls the best label from an agent tool call's
@@ -263,7 +154,7 @@ func parseCrushInput(raw string) map[string]any {
 	return adapter.ParseJSONInput(raw)
 }
 
-// finish drains the parser and returns the materialised trace pieces:
+// finishResult is the materialised trace pieces of one message:
 //
 //   - text:        the concatenated message body (used to detect user
 //     turns and emit a user-message mark).
@@ -339,7 +230,7 @@ func (p *partsParser) finish() finishResult {
 		}
 
 		call := adapter.ToolCall{
-			ID:        fmt.Sprintf("shell-%d", i),
+			ID:        shellEventID(i),
 			Name:      "bash",
 			Input:     map[string]any{"command": sc.Command},
 			Timestamp: "",
@@ -355,28 +246,34 @@ func (p *partsParser) finish() finishResult {
 	return result
 }
 
-// decodeParts parses a single messages.parts JSON string. The
-// returned list preserves declaration order; the parser accumulates
-// tool calls/results internally so a single decode captures the whole
-// message.
-func decodeParts(raw string, timestamp string) (finishResult, error) {
+// shellEventID builds the synthetic event id for the i-th bang-mode
+// shell command.
+func shellEventID(i int) string {
+	return fmt.Sprintf("shell-%d", i)
+}
+
+// foldParts folds one message's decoded parts into its trace pieces.
+// Nil parts (empty payload, or JSON the SDK refused) yield the zero
+// result — a single corrupted message never poisons the trace.
+func foldParts(parts []crushdata.Part, timestamp string) finishResult {
 	parser := newPartsParser()
 
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" || trimmed == "[]" {
-		return parser.finish(), nil
-	}
-
-	var parts []rawPart
-	if err := json.Unmarshal([]byte(trimmed), &parts); err != nil {
-		return finishResult{}, fmt.Errorf("decode parts: %w", err)
-	}
-
 	for _, part := range parts {
-		if err := parser.add(part, timestamp); err != nil {
-			return finishResult{}, err
-		}
+		parser.add(part, timestamp)
 	}
 
-	return parser.finish(), nil
+	return parser.finish()
+}
+
+// decodeParts parses a single messages.parts JSON string and folds it
+// into the trace view. Production reads flow through the SDK's
+// already-decoded [crushdata.Message.Parts]; this composition serves
+// callers that hold the raw column text.
+func decodeParts(raw string, timestamp string) (finishResult, error) {
+	parts, err := crushdata.DecodeParts(raw)
+	if err != nil {
+		return finishResult{}, err
+	}
+
+	return foldParts(parts, timestamp), nil
 }

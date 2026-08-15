@@ -2,7 +2,6 @@ package crush
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	crushdata "github.com/LarsArtmann/go-crush-data"
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
@@ -78,13 +78,12 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 			continue
 		}
 
-		missing := schemaMissingColumns(h)
-		if len(missing) > 0 && a.recordOldSchema(pdb.DBPath) {
+		if missing := h.missingColumns(); len(missing) > 0 && a.recordOldSchema(pdb.DBPath) {
 			oldSchema = append(oldSchema, pdb.DBPath)
 			missingCols = unionStrings(missingCols, missing)
 		}
 
-		rows, err := h.db.QueryContext(context.Background(), buildListSessionsQuery(h.cols))
+		sessions, err := h.inner.Sessions(context.Background(), crushdata.SessionFilter{RootOnly: true})
 		if err != nil {
 			_ = h.close()
 
@@ -96,15 +95,8 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 			cwd = a.projectPathForDB(pdb.DBPath)
 		}
 
-		for rows.Next() {
-			meta, err := scanSessionMeta(rows)
-			if err != nil {
-				_ = rows.Close() //nolint:sqlclosecheck // loop-scoped, can't defer
-				_ = h.close()
-
-				return nil, err
-			}
-
+		for _, cs := range sessions {
+			meta := sessionMeta(cs)
 			meta.Cwd = cwd
 			if a.dbIndex != nil {
 				a.dbIndex.Store(meta.ID, pdb.DBPath)
@@ -113,9 +105,6 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 			all = append(all, meta)
 		}
 
-		_ = rows.Err()
-
-		_ = rows.Close()
 		_ = h.close()
 	}
 
@@ -131,40 +120,29 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 }
 
 func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
-	db, err := a.openReadOnly()
+	h, err := a.openReadOnly()
 	if err != nil {
 		return nil, err
 	}
 
-	if db == nil {
+	if h == nil {
 		return nil, nil
 	}
-	defer db.closeDiscard()
+	defer h.closeDiscard()
 
-	a.warnIfOldSchema(db)
-	cwd := a.projectPathForDB(db.path)
+	a.warnIfOldSchema(h)
+	cwd := a.projectPathForDB(h.path)
 
-	rows, err := db.db.QueryContext(context.Background(), buildListSessionsQuery(db.cols))
+	sessions, err := h.inner.Sessions(context.Background(), crushdata.SessionFilter{RootOnly: true})
 	if err != nil {
 		return nil, fmt.Errorf("list crush sessions: %w", err)
 	}
 
-	defer func() { _ = rows.Close() }()
-
-	var metas []model.SessionMeta
-
-	for rows.Next() {
-		meta, err := scanSessionMeta(rows)
-		if err != nil {
-			return nil, err
-		}
-
+	metas := make([]model.SessionMeta, 0, len(sessions))
+	for _, cs := range sessions {
+		meta := sessionMeta(cs)
 		meta.Cwd = cwd
 		metas = append(metas, meta)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	sort.Slice(metas, func(i, j int) bool {
@@ -179,33 +157,32 @@ func (a Adapter) listSingleDB() ([]model.SessionMeta, error) {
 // format `messageID$$toolCallID` is detected here so the rail can hide
 // the corresponding rows from the root listing.
 func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
-	db, err := a.openDBForPath(path)
+	h, err := a.openDBForPath(path)
 	if err != nil {
 		return model.SessionMeta{}, err
 	}
 
-	if db == nil {
+	if h == nil {
 		return model.SessionMeta{}, errDBUnavailable
 	}
-	defer db.closeDiscard()
+	defer h.closeDiscard()
 
 	id, isAgent, ok := splitSessionID(path)
 	if !ok {
 		return model.SessionMeta{}, fmt.Errorf("invalid Crush session id in path %q", path)
 	}
 
-	row := db.db.QueryRowContext(context.Background(), buildSessionByIDQuery(db.cols), id)
-
-	meta, err := scanSessionMeta(row)
+	cs, err := h.inner.Session(context.Background(), id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, crushdata.ErrSessionNotFound) {
 			return model.SessionMeta{}, adapter.NotRecognizedErr("Crush", path)
 		}
 
 		return model.SessionMeta{}, err
 	}
 
-	meta.Cwd = a.projectPathForDB(db.path)
+	meta := sessionMeta(cs)
+	meta.Cwd = a.projectPathForDB(h.path)
 	if isAgent || meta.Agent != nil {
 		meta.Auxiliary = true
 	}
@@ -220,7 +197,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 			meta.Agent.SourceID = parts[0]
 			meta.Agent.LaunchCallID = parts[1]
 			// RootSessionID is the parent session id, not the
-			// parent message id. scanSessionMeta already populated
+			// parent message id. sessionMeta already populated
 			// it from parent_session_id; only fall back to the
 			// source-id split when the row had no parent row.
 			if meta.Agent.RootSessionID == "" {
@@ -240,21 +217,21 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 }
 
 // Parse converts one Crush session into the shared model.Trace. The
-// implementation streams the messages table once, walks the parts JSON
-// for each row in declaration order, and emits one model.Event per
-// resolved tool call. User messages with finish.reason=stop also
-// produce a user-message mark so the judge layer sees the same task
-// text the rail does.
+// implementation streams the session's messages once via the
+// go-crush-data SDK, folds each message's decoded parts in declaration
+// order, and emits one model.Event per resolved tool call. User
+// messages with finish.reason=stop also produce a user-message mark so
+// the judge layer sees the same task text the rail does.
 func (a Adapter) Parse(path string) (*model.Trace, error) {
-	db, err := a.openDBForPath(path)
+	h, err := a.openDBForPath(path)
 	if err != nil {
 		return nil, err
 	}
 
-	if db == nil {
+	if h == nil {
 		return nil, errDBUnavailable
 	}
-	defer db.closeDiscard()
+	defer h.closeDiscard()
 
 	id, _, ok := splitSessionID(path)
 	if !ok {
@@ -272,25 +249,23 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		Marks:  []model.Mark{},
 	}
 
-	row := db.db.QueryRowContext(context.Background(), buildSessionByIDQuery(db.cols), id)
-
-	meta, err := scanSessionMeta(row)
+	cs, err := h.inner.Session(context.Background(), id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, crushdata.ErrSessionNotFound) {
 			return nil, adapter.NotRecognizedErr("Crush", path)
 		}
 
 		return nil, err
 	}
 
+	meta := sessionMeta(cs)
 	applySessionMeta(trace, meta)
-	trace.Session.Cwd = a.projectPathForDB(db.path)
+	trace.Session.Cwd = a.projectPathForDB(h.path)
 
-	rows, err := db.db.QueryContext(context.Background(), buildMessagesBySessionQuery(db.cols), id)
+	messages, err := h.inner.Messages(context.Background(), id)
 	if err != nil {
 		return nil, fmt.Errorf("read crush messages: %w", err)
 	}
-	defer func() { _ = rows.Close() }()
 
 	recognized := meta.ID != ""
 	pending := map[string]adapter.ToolCall{}
@@ -299,64 +274,46 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	prevModel := ""
 	prevProvider := ""
 
-	for rows.Next() {
-		var msg messageRow
-		if err := rows.Scan(
-			&msg.ID,
-			&msg.Role,
-			&msg.Parts,
-			&msg.Model,
-			&msg.Provider,
-			&msg.CreatedAt,
-			&msg.FinishedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan crush message: %w", err)
-		}
-
+	for _, msg := range messages {
 		recognized = true
-		ts := secondsToRFC3339(msg.CreatedAt)
-		applyMessageMeta(trace, msg, ts)
+		ts := timeToRFC3339(msg.CreatedAt)
+		applyMessageMeta(trace, msg.Model, msg.Provider, ts)
 
 		// Track model/provider switches mid-session.
-		if msg.Model.Valid && msg.Model.String != "" && prevModel != "" && msg.Model.String != prevModel {
+		if msg.Model != "" && prevModel != "" && msg.Model != prevModel {
 			trace.Marks = append(trace.Marks, model.Mark{
 				Seq:  len(pendingOrder),
 				Type: "model-switch",
-				Note: fmt.Sprintf("%s → %s", prevModel, msg.Model.String),
+				Note: fmt.Sprintf("%s → %s", prevModel, msg.Model),
 			})
 		}
 
-		if msg.Provider.Valid && msg.Provider.String != "" && prevProvider != "" &&
-			msg.Provider.String != prevProvider {
+		if msg.Provider != "" && prevProvider != "" && msg.Provider != prevProvider {
 			trace.Marks = append(trace.Marks, model.Mark{
 				Seq:  len(pendingOrder),
 				Type: "model-switch",
-				Note: fmt.Sprintf("%s → %s", prevProvider, msg.Provider.String),
+				Note: fmt.Sprintf("%s → %s", prevProvider, msg.Provider),
 			})
 		}
 
-		if msg.Model.Valid && msg.Model.String != "" {
-			prevModel = msg.Model.String
+		if msg.Model != "" {
+			prevModel = msg.Model
 		}
 
-		if msg.Provider.Valid && msg.Provider.String != "" {
-			prevProvider = msg.Provider.String
+		if msg.Provider != "" {
+			prevProvider = msg.Provider
 		}
 
-		parsed, err := decodeParts(msg.Parts, ts)
-		if err != nil {
-			// A malformed parts payload on one message shouldn't
-			// poison the whole trace — log nothing (the visualizer
-			// surfaces the trace even with a partial event log)
-			// and keep going.
-			continue
-		}
+		// Malformed parts payloads arrive as nil Parts — the SDK
+		// already refused to decode them, so the message folds to
+		// an empty result and the trace keeps going.
+		parsed := foldParts(msg.Parts, ts)
 
 		// User messages with finish.reason=stop represent the user
 		// turn boundary in Crush. The judge needs this so it can see
 		// what task the user actually typed without scanning the
 		// assistant's replies for the same shape.
-		if msg.Role == "user" && parsed.userFinish && parsed.text != "" {
+		if msg.Role == crushdata.RoleUser && parsed.userFinish && parsed.text != "" {
 			trace.Marks = append(trace.Marks, model.Mark{
 				Seq:  len(pendingOrder),
 				Type: "user-message",
@@ -364,7 +321,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			})
 		}
 
-		if parsed.subagent && msg.Role == "assistant" {
+		if parsed.subagent && msg.Role == crushdata.RoleAssistant {
 			note := parsed.subagentNote
 			if note == "" {
 				note = parsed.text
@@ -383,8 +340,8 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			duration := parsed.reasoningSecs
 			// Fall back to the message-level wall-clock duration when
 			// the reasoning part doesn't carry its own timestamps.
-			if duration == 0 && msg.FinishedAt.Valid && msg.FinishedAt.Int64 > msg.CreatedAt {
-				duration = msg.FinishedAt.Int64 - msg.CreatedAt
+			if duration == 0 && !msg.FinishedAt.IsZero() && msg.FinishedAt.After(msg.CreatedAt) {
+				duration = int64(msg.FinishedAt.Sub(msg.CreatedAt) / time.Second)
 			}
 
 			note := truncateNote(parsed.reasoningText, 200)
@@ -417,8 +374,8 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				Type: "finish-reason",
 				Note: note,
 			}
-			if msg.FinishedAt.Valid && msg.FinishedAt.Int64 > msg.CreatedAt {
-				mk.Duration = int(msg.FinishedAt.Int64 - msg.CreatedAt)
+			if !msg.FinishedAt.IsZero() && msg.FinishedAt.After(msg.CreatedAt) {
+				mk.Duration = int(msg.FinishedAt.Sub(msg.CreatedAt) / time.Second)
 			}
 
 			trace.Marks = append(trace.Marks, mk)
@@ -434,10 +391,6 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				results[call.ID] = parsed.results[i]
 			}
 		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	for _, id := range pendingOrder {
@@ -456,11 +409,10 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 
 	trace.Session.EventCount = len(trace.Events)
 	adapter.FallbackTraceSessionTitle(trace, path)
-	// Query the read_files table for exact read observability. The
-	// table was added in a later Crush migration, so older databases
-	// will return "no such table" — catch that and fall back to
-	// estimated reads.
-	readPaths := queryReadFiles(db.db, id)
+	// Read the read_files table for exact read observability. The
+	// table arrived in a later Crush migration; databases that predate
+	// it return an empty set and reads stay estimated.
+	readPaths := a.queryReadFiles(h, id)
 	if len(readPaths) > 0 {
 		for i := range trace.Events {
 			for j := range trace.Events[i].Targets {
@@ -492,6 +444,23 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	return trace, nil
 }
 
+// queryReadFiles returns the set of file paths the agent actually
+// opened, according to the read_files table. Databases that predate
+// the table (or fail to answer) yield nil.
+func (a Adapter) queryReadFiles(h *dbHandle, sessionID string) map[string]bool {
+	paths, err := h.inner.ReadFiles(context.Background(), sessionID)
+	if err != nil {
+		return nil
+	}
+
+	set := make(map[string]bool, len(paths))
+	for _, p := range paths {
+		set[p] = true
+	}
+
+	return set
+}
+
 // openReadOnly opens the database in read-only mode, returning (nil,
 // nil) when the file is absent so ListSessions can return an empty
 // catalog without treating "no Crush installed" as an error. Other
@@ -499,7 +468,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 // surfaced with the underlying cause and the resolved path so a
 // user can fix the configuration without re-deriving what went
 // wrong.
-func (a Adapter) openReadOnly() (*sqlHandle, error) {
+func (a Adapter) openReadOnly() (*dbHandle, error) {
 	path := a.dbPath()
 	if path == "" {
 		return nil, nil
@@ -508,139 +477,40 @@ func (a Adapter) openReadOnly() (*sqlHandle, error) {
 	return a.openCached(path)
 }
 
-// openReadOnlyAt opens a specific crush.db path in read-only mode.
-func openReadOnlyAt(path string) (*sqlHandle, error) {
-	info, err := os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-
-		return nil, fmt.Errorf("inspect crush database at %s: %w", path, err)
-	}
-
-	if info.IsDir() {
-		return nil, fmt.Errorf("crush database path %s is a directory, not a file", path)
-	}
-
-	if info.Size() == 0 {
-		return nil, fmt.Errorf("crush database at %s is empty (size 0)", path)
-	}
-
-	db, err := openSQLite(path)
-	if err != nil {
-		return nil, fmt.Errorf("open crush database at %s: %w", path, err)
-	}
-
-	return &sqlHandle{path: path, db: db, cols: probeSchema(db)}, nil
-}
-
 // openCached opens a database at path, using the adapter's dbCache
 // when available. Cached handles are kept open for reuse across
-// requests; their close() is a no-op so the connection pool survives.
-func (a Adapter) openCached(path string) (*sqlHandle, error) {
+// requests; their close() is a no-op so the connection survives.
+func (a Adapter) openCached(path string) (*dbHandle, error) {
 	if a.dbCache != nil {
 		if v, ok := a.dbCache.Load(path); ok {
-			if db, ok := v.(*sql.DB); ok && db != nil {
-				return &sqlHandle{path: path, db: db, cached: true, cols: probeSchema(db)}, nil
+			if db, ok := v.(*crushdata.DB); ok && db != nil {
+				return &dbHandle{path: path, inner: db, cached: true}, nil
 			}
 		}
 	}
 
-	h, err := openReadOnlyAt(path)
+	h, err := openAt(path)
 	if err != nil || h == nil {
 		return h, err
 	}
 
 	if a.dbCache != nil {
-		a.dbCache.Store(path, h.db)
+		a.dbCache.Store(path, h.inner)
 		h.cached = true
 	}
 
 	return h, nil
 }
 
-// sqlHandle bundles a *sql.DB with its source path so tests can
-// inspect where the connection came from. When cached is true the
-// handle came from the adapter's dbCache and close() is a no-op so
-// the connection pool survives across requests.
-type sqlHandle struct {
-	path   string
-	db     *sql.DB
-	cached bool
-	// cols caches which optional columns exist, probed once per
-	// database so queries adapt to old schemas without crashing.
-	cols schemaColumns
-}
-
-// schemaColumns records which optional columns exist in the database.
-// When a column is absent, queries substitute a literal default so
-// the scan succeeds without a "no such column" error.
-type schemaColumns struct {
-	sessionsCost       bool
-	messagesFinishedAt bool
-}
-
-// probeSchema checks which optional columns the database carries.
-// Old Crush databases may predate the migrations that added
-// sessions.cost and messages.finished_at; the queries must not
-// reference those columns when they are absent.
-func probeSchema(db *sql.DB) schemaColumns {
-	return schemaColumns{
-		sessionsCost:       columnExists(db, "sessions", "cost"),
-		messagesFinishedAt: columnExists(db, "messages", "finished_at"),
-	}
-}
-
-func columnExists(db *sql.DB, table, column string) bool {
-	rows, err := db.QueryContext(
-		context.Background(),
-		"SELECT 1 FROM pragma_table_info(?) WHERE name = ?",
-		table, column,
-	)
-	if err != nil {
-		return false
-	}
-	defer func() { _ = rows.Close() }()
-
-	hasNext := rows.Next()
-	_ = rows.Err()
-
-	return hasNext
-}
-
-func (h *sqlHandle) close() error {
-	if h == nil || h.db == nil || h.cached {
-		return nil
-	}
-
-	return h.db.Close()
-}
-
-// closeDiscard calls close() and discards its error. Suitable for use
-// with `defer` when the caller has no meaningful action on close
-// failure (the connection is going away regardless). Centralised so
-// every defer reads the same way and the clone detector doesn't trip
-// on the literal `defer func() { _ = db.close() }()` shape.
-func (h *sqlHandle) closeDiscard() {
-	_ = h.close()
-}
-
-// expectedSchemaColumns are the columns the adapter relies on. Missing
-// columns mean the database predates the corresponding Crush migration
-// and traces may lack metadata.
-var expectedSchemaColumns = []string{"model", "provider", "parent_session_id"}
-
-// warnIfOldSchema checks whether the messages table has the columns
-// the adapter expects. Missing columns are printed as a stderr warning,
-// deduplicated per database path so repeated scans stay quiet. Returns
+// warnIfOldSchema checks whether the database is missing any of the
+// well-known columns and prints a deduplicated stderr warning. Returns
 // true when the schema is old (columns missing).
-func (a Adapter) warnIfOldSchema(h *sqlHandle) bool {
+func (a Adapter) warnIfOldSchema(h *dbHandle) bool {
 	if h == nil || h.path == "" {
 		return false
 	}
 
-	missing := schemaMissingColumns(h)
+	missing := h.missingColumns()
 	if len(missing) == 0 {
 		return false
 	}
@@ -652,42 +522,6 @@ func (a Adapter) warnIfOldSchema(h *sqlHandle) bool {
 	a.reportOldSchemaSummary([]string{h.path}, missing)
 
 	return true
-}
-
-// schemaMissingColumns returns the expected schema columns that are
-// absent from the messages table.
-func schemaMissingColumns(h *sqlHandle) []string {
-	rows, err := h.db.QueryContext(
-		context.Background(),
-		"SELECT name FROM pragma_table_info('messages') WHERE name IN ('model','provider','parent_session_id')",
-	)
-	if err != nil {
-		return nil
-	}
-	defer func() { _ = rows.Close() }()
-
-	found := map[string]bool{}
-
-	for rows.Next() {
-		var col string
-		if rows.Scan(&col) == nil {
-			found[col] = true
-		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil
-	}
-
-	var missing []string
-
-	for _, col := range expectedSchemaColumns {
-		if !found[col] {
-			missing = append(missing, col)
-		}
-	}
-
-	return missing
 }
 
 // recordOldSchema marks path as having been warned about. It returns
@@ -796,7 +630,7 @@ func (a Adapter) enumerateDBPaths() []string {
 // during ListSessions; on a cache miss it falls back to the resolved
 // single database (which covers the mindwalk open/trace CLI paths that
 // bypass the server's session scan).
-func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
+func (a Adapter) openDBForPath(path string) (*dbHandle, error) {
 	if a.Dir != "" {
 		return a.openReadOnly()
 	}
@@ -813,164 +647,64 @@ func (a Adapter) openDBForPath(path string) (*sqlHandle, error) {
 	return a.openReadOnly()
 }
 
-// The build*Query functions construct SELECTs that match the schema
-// shipped in charmbracelet/crush's initial migration plus every later
-// addition we care about. Stable identifiers (id, role, parts,
-// created_at) come from the initial schema; model and provider come
-// from the 2025-06-27 migration; cost and finished_at from later
-// migrations. When the database predates a migration, the builder
-// substitutes a literal default so the scan never fails.
-// buildListSessionsQuery constructs the sessions SELECT, substituting
-// a zero literal for the cost column when it is absent on old schemas.
-func buildListSessionsQuery(sc schemaColumns) string {
-	costExpr := "0 AS cost"
-	if sc.sessionsCost {
-		costExpr = "cost"
-	}
-
-	return fmt.Sprintf(
-		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE parent_session_id IS NULL ORDER BY updated_at DESC`,
-		costExpr,
-	)
-}
-
-func buildAllSessionsQuery(sc schemaColumns) string {
-	costExpr := "0 AS cost"
-	if sc.sessionsCost {
-		costExpr = "cost"
-	}
-
-	return fmt.Sprintf(
-		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions ORDER BY updated_at DESC`,
-		costExpr,
-	)
-}
-
-func buildSessionByIDQuery(sc schemaColumns) string {
-	costExpr := "0 AS cost"
-	if sc.sessionsCost {
-		costExpr = "cost"
-	}
-
-	return fmt.Sprintf(
-		`SELECT id, title, parent_session_id, message_count, prompt_tokens, completion_tokens, %s, updated_at, created_at, todos FROM sessions WHERE id = ? LIMIT 1`,
-		costExpr,
-	)
-}
-
-func buildMessagesBySessionQuery(sc schemaColumns) string {
-	finishedExpr := "0 AS finished_at"
-	if sc.messagesFinishedAt {
-		finishedExpr = "finished_at"
-	}
-
-	return fmt.Sprintf(
-		`SELECT id, role, parts, model, provider, created_at, %s FROM messages WHERE session_id = ? ORDER BY created_at, id`,
-		finishedExpr,
-	)
-}
-
-const readFilesQuery = `SELECT path FROM read_files WHERE session_id = ?`
-
-// sessionRow is the scan target for every row in the sessions table.
-// The pointer fields are required because parent_session_id and todos
-// are nullable and the SQLite driver refuses to Scan NULL into a
-// plain string.
-type sessionRow struct {
-	ID               string
-	Title            string
-	ParentSessionID  sql.NullString
-	MessageCount     int64
-	PromptTokens     int64
-	CompletionTokens int64
-	Cost             float64
-	UpdatedAt        int64
-	CreatedAt        int64
-	Todos            sql.NullString
-}
-
-type messageRow struct {
-	ID         string
-	Role       string
-	Parts      string
-	Model      sql.NullString
-	Provider   sql.NullString
-	CreatedAt  int64
-	FinishedAt sql.NullInt64
-}
-
-// scanTarget is implemented by both *sql.Row and *sql.Rows so
-// Summarize and ListSessions share the same scan helper.
-type scanTarget interface {
-	Scan(dest ...any) error
-}
-
-// scanSessionMeta lifts a session row into the shared model and
-// stamps the canonical harness key/path. The path doubles as the
-// rail's deep-link handle so adapters always return the on-disk
-// location they read from.
-func scanSessionMeta(row scanTarget) (model.SessionMeta, error) {
-	var sr sessionRow
-	if err := row.Scan(
-		&sr.ID, &sr.Title, &sr.ParentSessionID, &sr.MessageCount,
-		&sr.PromptTokens, &sr.CompletionTokens, &sr.Cost, &sr.UpdatedAt, &sr.CreatedAt, &sr.Todos,
-	); err != nil {
-		return model.SessionMeta{}, err
-	}
-
-	if sr.ParentSessionID.Valid && sr.ParentSessionID.String != "" {
+// sessionMeta lifts an SDK Session into the shared model and stamps
+// the canonical harness key/path. The path doubles as the rail's
+// deep-link handle so adapters always return the on-disk location they
+// read from.
+func sessionMeta(cs crushdata.Session) model.SessionMeta {
+	if cs.ParentSessionID != "" {
 		// Non-null parent_session_id marks an agent-tool session.
 		// The Synthesized path is the agent-tool id (messageID$$toolCallID)
 		// so the rail and graph builder can find it back from the
 		// parent's agent tool calls.
 		agent := &model.AgentSessionMeta{
-			SourceID:        sr.ParentSessionID.String,
-			RootSessionID:   sr.ParentSessionID.String,
-			ParentSessionID: sr.ParentSessionID.String,
+			SourceID:        cs.ParentSessionID,
+			RootSessionID:   cs.ParentSessionID,
+			ParentSessionID: cs.ParentSessionID,
 		}
 		// Crush's own agent-tool session id embeds both the parent
 		// message id and the launching tool call id in the row's id
 		// column ("messageID$$toolCallID"). Capture them so the graph
 		// builder can match launches ↔ children by tool call id.
-		if messageID, callID, ok := splitAgentID(sr.ID); ok {
+		if messageID, callID, ok := splitAgentID(cs.ID); ok {
 			agent.LaunchCallID = callID
 			agent.SourceID = messageID
 		}
 
 		return model.SessionMeta{
-			Key:              SessionKey(sr.ID),
-			ID:               sr.ID,
+			Key:              SessionKey(cs.ID),
+			ID:               cs.ID,
 			Harness:          harnessName,
-			Path:             SessionPath(sr.ID),
-			Title:            sr.Title,
-			StartedAt:        secondsToRFC3339(sr.CreatedAt),
-			EndedAt:          secondsToRFC3339(sr.UpdatedAt),
-			EventCount:       int(sr.MessageCount),
+			Path:             SessionPath(cs.ID),
+			Title:            cs.Title,
+			StartedAt:        timeToRFC3339(cs.CreatedAt),
+			EndedAt:          timeToRFC3339(cs.UpdatedAt),
+			EventCount:       cs.MessageCount,
 			UserTurns:        0,
 			Auxiliary:        true,
 			Agent:            agent,
-			PromptTokens:     sr.PromptTokens,
-			CompletionTokens: sr.CompletionTokens,
-			Cost:             sr.Cost,
-		}, nil
+			PromptTokens:     cs.PromptTokens,
+			CompletionTokens: cs.CompletionTokens,
+			Cost:             cs.CostUSD,
+		}
 	}
 
 	return model.SessionMeta{
-		Key:              SessionKey(sr.ID),
-		ID:               sr.ID,
+		Key:              SessionKey(cs.ID),
+		ID:               cs.ID,
 		Harness:          harnessName,
-		Path:             SessionPath(sr.ID),
-		Title:            sr.Title,
-		StartedAt:        secondsToRFC3339(sr.CreatedAt),
-		EndedAt:          secondsToRFC3339(sr.UpdatedAt),
-		EventCount:       int(sr.MessageCount),
-		PromptTokens:     sr.PromptTokens,
-		CompletionTokens: sr.CompletionTokens,
-		Cost:             sr.Cost,
-	}, nil
+		Path:             SessionPath(cs.ID),
+		Title:            cs.Title,
+		StartedAt:        timeToRFC3339(cs.CreatedAt),
+		EndedAt:          timeToRFC3339(cs.UpdatedAt),
+		EventCount:       cs.MessageCount,
+		PromptTokens:     cs.PromptTokens,
+		CompletionTokens: cs.CompletionTokens,
+		Cost:             cs.CostUSD,
+	}
 }
 
-// applySessionMeta copies the rows of scanSessionMeta that matter to
+// applySessionMeta copies the parts of sessionMeta that matter to
 // the trace: title, started/ended timestamps, model (best-effort).
 // Cwd is not part of Crush's session schema; Parse sets
 // trace.Session.Cwd directly from the database path so path
@@ -998,16 +732,16 @@ func applySessionMeta(trace *model.Trace, meta model.SessionMeta) {
 }
 
 // applyMessageMeta updates the trace's running cwd/model window from
-// one row. Only assistant messages carry a model — every other row's
-// model column is NULL — so the first non-null assignment wins. The
-// same pattern applies to provider.
-func applyMessageMeta(trace *model.Trace, msg messageRow, ts string) {
-	if msg.Model.Valid && msg.Model.String != "" && trace.Session.Model == "" {
-		trace.Session.Model = msg.Model.String
+// one message. Only assistant messages carry a model — every other
+// row's model column is empty — so the first non-empty assignment
+// wins. The same pattern applies to provider.
+func applyMessageMeta(trace *model.Trace, msgModel, msgProvider, ts string) {
+	if msgModel != "" && trace.Session.Model == "" {
+		trace.Session.Model = msgModel
 	}
 
-	if msg.Provider.Valid && msg.Provider.String != "" && trace.Session.Provider == "" {
-		trace.Session.Provider = msg.Provider.String
+	if msgProvider != "" && trace.Session.Provider == "" {
+		trace.Session.Provider = msgProvider
 	}
 
 	if ts != "" {
@@ -1017,6 +751,17 @@ func applyMessageMeta(trace *model.Trace, msg messageRow, ts string) {
 
 		trace.Session.EndedAt = ts
 	}
+}
+
+// timeToRFC3339 renders an SDK timestamp in the ISO-8601 UTC shape the
+// rest of mindwalk expects. The zero time returns "" so an
+// empty/uninitialised timestamp doesn't trip downstream parsers.
+func timeToRFC3339(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+
+	return t.UTC().Format(time.RFC3339Nano)
 }
 
 // secondsToRFC3339 renders Crush's second-precision Unix timestamps in
@@ -1035,32 +780,6 @@ func secondsToRFC3339(s int64) string {
 	}
 
 	return time.Unix(s, 0).UTC().Format(time.RFC3339Nano)
-}
-
-// queryReadFiles returns the set of file paths the agent actually
-// opened, according to the read_files table. When the table does not
-// exist (older Crush databases), it returns nil.
-func queryReadFiles(db *sql.DB, sessionID string) map[string]bool {
-	rows, err := db.QueryContext(context.Background(), readFilesQuery, sessionID)
-	if err != nil {
-		return nil
-	}
-	defer func() { _ = rows.Close() }()
-
-	paths := map[string]bool{}
-
-	for rows.Next() {
-		var p string
-		if rows.Scan(&p) == nil && p != "" {
-			paths[p] = true
-		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil
-	}
-
-	return paths
 }
 
 // truncateNote clips s to maxRunes runes, appending an ellipsis when

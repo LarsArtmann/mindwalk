@@ -76,7 +76,7 @@ func (a Adapter) Diagnostics() []adapter.DiagnosticCheck {
 	for _, dbPath := range a.enumerateDBPaths() {
 		label := dbLabel(dbPath)
 
-		h, err := openReadOnlyAt(dbPath)
+		h, err := openAt(dbPath)
 		if err != nil {
 			checks = append(checks, adapter.DiagnosticCheck{
 				Name:   "db:" + label,
@@ -97,7 +97,7 @@ func (a Adapter) Diagnostics() []adapter.DiagnosticCheck {
 			continue
 		}
 
-		missing := schemaMissingColumns(h)
+		missing := h.missingColumns()
 		_ = h.close()
 
 		if len(missing) > 0 {
