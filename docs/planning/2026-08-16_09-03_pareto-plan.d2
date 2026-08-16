@@ -1,0 +1,58 @@
+direction: down
+
+P0: Parato Tier 0 — 1% gives 51% (correctness + structure) {
+  style.fill: "#1a1a20"
+  T01: Push sdk branch (v0.3.0)
+  T02: Merge sdk -> master
+  T03: Build+test, grep sqlite remnants
+  T04: Push master
+  T05: Read crush parts.go fold sites
+  T06: Set OutcomeKnown in crush adapter
+  T07: Observability regression test
+  T08: Full suite + race + push
+  T01 -> T02 -> T03 -> T04
+  T03 -> T05 -> T06 -> T07 -> T08
+}
+
+P1: Tier 1 — 4% gives 64% (merge completeness + verification debt) {
+  style.fill: "#16161c"
+  T09: Frontend typecheck
+  T10: AGENTS.md adapter list
+  T11: README crush consistency
+  T12: Disk store out of s.mu
+  T13: Server tests + race
+  T14: fingerprintPath comment
+  T15: golangci-lint run
+  T16: Fix lint findings
+  T17: nix flake check
+  T12 -> T13
+  T15 -> T16
+}
+
+P2: Tier 2 — 20% gives 80% (regression-proofing + polish) {
+  style.fill: "#121218"
+  T18: Merge-checklist doc
+  T19: schema<->types.ts parity test
+  T20: OutcomeKnown-adjacent sweep
+  T21: Fixture parent_session_id
+  T22: LSP restart
+  T23: port==0 no-op removal
+  T24: Upstream decision brief (user)
+}
+
+P3: Tier 3 — remainder (backlog) {
+  style.fill: "#0e0e14"
+  T25: SSE dedup: read flow
+  T26: SSE dedup: implement
+  T27: SSE dedup: vitest
+  T28: IterMessages adoption
+  T29: DecodeTodos spike
+  T30: gofumpt/treefmt parity
+  T31: Disk-cache benchmark
+  T32: Guided tour (BLOCKED)
+  T25 -> T26 -> T27
+}
+
+P0 -> P1 -> P2 -> P3: next
+T06 -> T20: same contract
+T19 -> T18: feeds checklist

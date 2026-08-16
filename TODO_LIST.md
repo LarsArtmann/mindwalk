@@ -21,6 +21,18 @@
 | ----------------- | ------------ | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Guided tour (T16) | 🔵 `BLOCKED` | Low    | 1h30m  | `CheatSheet.tsx:6` has an `onReplayTour` stub; `GuidedTour.tsx` does not exist yet. Requires frontend development iteration to build and test. |
 
+## Medium Impact
+
+| Task                                        | Status    | Impact | Effort | Evidence                                                                                                                     |
+| ------------------------------------------- | --------- | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Adopt `DB.IterMessages` for huge sessions   | 🔴 `TODO` | Medium | 30min  | go-crush-data v0.3.0 ships `IterMessages`; `internal/adapter/crush/sessions.go` materializes one slice per session (memory peak). |
+| `DecodeTodos` spike → UI todo state         | 🔴 `TODO` | Low    | 30min  | go-crush-data v0.3.0 ships `DecodeTodos`; mindwalk never surfaces todo state. Spike only — needs a UI home first.               |
+| Fix `testdata/crush/crush.db` old schema    | 🔴 `TODO` | Medium | 15min  | Fixture predates the SDK: missing `parent_session_id` column, emits warning during crush adapter tests.                          |
+
+> Post-merge recovery batch (OutcomeKnown gap, sdk→master merge, lint/nix/frontend
+> verification, merge checklist, parity test, and more — 31 tasks): see the Pareto
+> plan at `docs/planning/2026-08-16_09-03_pareto-plan-post-merge-v0.3.0.html`.
+
 ## Low Impact
 
 | Task                                    | Status    | Impact | Effort | Evidence                                                                                                                 |
