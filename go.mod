@@ -3,7 +3,7 @@ module github.com/cosmtrek/mindwalk
 go 1.26.5
 
 require (
-	github.com/LarsArtmann/go-crush-data v0.2.1
+	github.com/LarsArtmann/go-crush-data v0.3.0
 	github.com/dustin/go-humanize v1.0.1
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	modernc.org/sqlite v1.56.0
