@@ -70,6 +70,16 @@ func (a Adapter) ListSessions() ([]model.SessionMeta, error) {
 	return metas, nil
 }
 
+// SummaryInputs reports the sidecar files Summarize reads for path: child
+// agent sessions carry an agent-*.meta.json describing the spawning tool
+// call, so a sidecar change must invalidate a cached summary.
+func (a Adapter) SummaryInputs(path string) []string {
+	if !strings.HasPrefix(filepath.Base(path), "agent-") {
+		return nil
+	}
+	return []string{strings.TrimSuffix(path, ".jsonl") + ".meta.json"}
+}
+
 func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	f, closeFile, err := adapter.OpenFile(path)
 	if err != nil {
@@ -267,7 +277,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				}
 
 				delete(pending, item.ToolUseID)
-				event := buildEvent(trace, call, item)
+				event := buildEvent(trace, call, item, true)
 				trace.Events = append(trace.Events, event)
 			}
 		}
@@ -275,7 +285,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 
 	for _, id := range pendingOrder {
 		if call, ok := pending[id]; ok {
-			trace.Events = append(trace.Events, buildEvent(trace, call, contentItem{}))
+			trace.Events = append(trace.Events, buildEvent(trace, call, contentItem{}, false))
 		}
 	}
 
@@ -342,7 +352,22 @@ func (c *contentList) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &items); err != nil {
 		return err
 	}
-
+	var rawItems []map[string]json.RawMessage
+	if err := json.Unmarshal(data, &rawItems); err != nil {
+		return err
+	}
+	for i := range items {
+		items[i].IsError = nil
+		raw, ok := rawItems[i]["is_error"]
+		if !ok || strings.TrimSpace(string(raw)) == "null" {
+			continue
+		}
+		var value bool
+		if err := json.Unmarshal(raw, &value); err != nil {
+			return err
+		}
+		items[i].IsError = &value
+	}
 	c.Items = items
 
 	return nil
@@ -355,7 +380,7 @@ type contentItem struct {
 	Input     map[string]any `json:"input"`
 	ToolUseID string         `json:"tool_use_id"`
 	Content   any            `json:"content"`
-	IsError   bool           `json:"is_error"`
+	IsError   *bool          `json:"is_error"`
 	Text      string         `json:"text"`
 }
 
@@ -436,9 +461,11 @@ func isClaudeLine(line rawLine) bool {
 	}
 }
 
-func buildEvent(trace *model.Trace, call adapter.ToolCall, result contentItem) model.Event {
+func buildEvent(trace *model.Trace, call adapter.ToolCall, result contentItem, resultObserved bool) model.Event {
+	isError := result.IsError != nil && *result.IsError
 	return adapter.BuildEvent(trace, call, adapter.ToolResult{
-		Content: adapter.ContentToString(result.Content),
-		IsError: result.IsError,
+		Content:      adapter.ContentToString(result.Content),
+		IsError:      isError,
+		OutcomeKnown: resultObserved,
 	})
 }

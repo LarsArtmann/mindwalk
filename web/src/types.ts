@@ -149,6 +149,7 @@ export interface TraceEvent {
   outside?: OutsideTouch[];
   resultBytes: number;
   isError: boolean;
+  outcomeKnown?: boolean;
   summary: string;
   /** true when the tool was executed server-side by the model provider */
   providerExecuted?: boolean;
