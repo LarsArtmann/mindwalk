@@ -133,6 +133,14 @@ verdict reads "no signal" — an unverifiable criterion is a blind spot, not a
 failure. Pick the judge (any installed CLI) and its model in the panel; the
 report records who actually judged.
 
+Adapter observability grades (`reads` and `errors`, shown in the session
+header) say how much of the file-touch and error detection the source log
+lets mindwalk verify. Adapters that read a structural table flag their
+grade as `exact`; ones that mine tool outputs flag it as `estimated`. The
+judge treats `estimated` sessions as having narrower evidence: a criterion
+unverifiable from the log loses coverage regardless of which layer owns it,
+so the report can't reward or blame what the source couldn't see.
+
 The scorecard steps aside rather than getting in the way: sessions with no
 tool events or too little task text skip it, and a failed criteria draft
 degrades to a dimensions-only report. `--no-rubric` (or `"rubric": false` on
