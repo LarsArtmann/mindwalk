@@ -23,15 +23,18 @@
 
 ## Medium Impact
 
-| Task                                        | Status    | Impact | Effort | Evidence                                                                                                                     |
-| ------------------------------------------- | --------- | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| Adopt `DB.IterMessages` for huge sessions   | 🔴 `TODO` | Medium | 30min  | go-crush-data v0.3.0 ships `IterMessages`; `internal/adapter/crush/sessions.go` materializes one slice per session (memory peak). |
-| `DecodeTodos` spike → UI todo state         | 🔴 `TODO` | Low    | 30min  | go-crush-data v0.3.0 ships `DecodeTodos`; mindwalk never surfaces todo state. Spike only — needs a UI home first.               |
-| Fix `testdata/crush/crush.db` old schema    | 🔴 `TODO` | Medium | 15min  | Fixture predates the SDK: missing `parent_session_id` column, emits warning during crush adapter tests.                          |
+| Task                                        | Status      | Impact | Effort | Evidence                                                                                                                     |
+| ------------------------------------------- | ----------- | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Adopt `DB.IterMessages` for huge sessions   | 🔴 `TODO`   | Medium | 30min  | go-crush-data v0.3.0 ships `IterMessages`; `internal/adapter/crush/sessions.go` materializes one slice per session (memory peak). |
+| `DecodeTodos` spike → UI todo state         | 🔴 `TODO`   | Low    | 30min  | go-crush-data v0.3.0 ships `DecodeTodos`; mindwalk never surfaces todo state. Spike only — needs a UI home first.               |
+| Upstream-PR decision (T24)                  | 🔵 `BLOCKED` | Medium | n/a    | T06+T07 (OutcomeKnown + cross-message pairing) are upstream-applicable and self-contained; T12 (s.mu order) and the crush adapter itself are fork-only. User must choose before any push to `cosmtrek/mindwalk`. |
 
 > Post-merge recovery batch (OutcomeKnown gap, sdk→master merge, lint/nix/frontend
 > verification, merge checklist, parity test, and more — 31 tasks): see the Pareto
-> plan at `docs/planning/2026-08-16_09-03_pareto-plan-post-merge-v0.3.0.html`.
+> plan at `docs/planning/2026-08-16_09-03_pareto-plan-post-merge-v0.3.0.html`. Tier 0
+> through Tier 2 (T01–T24) executed 2026-08-16; commits `c2b9149`, `27371dc`,
+> `73444b1`, `ac5d8cc`, `4d28736`, `2f6919b`, `e7f2fb9`, `66f68c7`, `271d128`,
+> `fb72b87`. Backlog (T25–T32) parked below.
 
 ## Low Impact
 
