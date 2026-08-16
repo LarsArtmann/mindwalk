@@ -164,10 +164,14 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) Start(openBrowser bool) error {
+	// Port 0 asks the kernel for any free port; ln.Addr() below
+	// exposes the actual chosen port so the printed URL and the
+	// browser-launch URL agree. Validating cfg.Port at construction
+	// would still be nice, but rejecting 0 here would silently
+	// regress every user whose dev script relies on the OS-pick
+	// semantics; keeping the explicit zero-pass-through wires the
+	// behaviour to the listener.
 	port := s.cfg.Port
-	if port == 0 {
-		port = 0
-	}
 
 	host := s.cfg.Host
 	if host == "" {
