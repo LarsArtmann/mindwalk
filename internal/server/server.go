@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -74,6 +75,10 @@ type Server struct {
 	analyze     analyzeState
 	reportCache judge.Cache
 	reportIndex reportIndex
+
+	// httpServer is set inside Start so Shutdown can gracefully
+	// cancel in-flight SSE handlers when the CLI receives SIGTERM.
+	httpServer *http.Server
 }
 
 type repoMapEntry struct {
@@ -205,7 +210,29 @@ func (s *Server) Start(openBrowser bool) error {
 	}
 
 	fmt.Printf("mindwalk serving %s\n", addr)
-	return http.Serve(ln, s.handler())
+
+	// Use http.Server (not http.Serve) so callers can call Shutdown
+	// for graceful SSE teardown — http.Serve blocks until the
+	// listener closes, which never cancels in-flight SSE handlers.
+	s.httpServer = &http.Server{Handler: s.handler()}
+
+	if err := s.httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
+}
+
+// Shutdown gracefully stops the server started by Start, cancelling
+// in-flight SSE handlers within the supplied context. Safe to call
+// before Start (no-op). Subsequent Start calls reuse the listener
+// path but always create a fresh *http.Server.
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.httpServer == nil {
+		return nil
+	}
+
+	return s.httpServer.Shutdown(ctx)
 }
 
 func (s *Server) handler() http.Handler {

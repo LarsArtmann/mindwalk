@@ -6,10 +6,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
@@ -102,7 +106,7 @@ func serve(args []string) error {
 		return err
 	}
 
-	return server.New(serverConfigFromServeFlags(sf)).Start(!sf.noOpen)
+	return runWithSignalShutdown(server.New(serverConfigFromServeFlags(sf)), !sf.noOpen)
 }
 
 func open(args []string) error {
@@ -166,7 +170,49 @@ func openSingle(
 		return err
 	}
 
-	return server.New(build(sf, target)).Start(!sf.noOpen)
+	return runWithSignalShutdown(server.New(build(sf, target)), !sf.noOpen)
+}
+
+// runWithSignalShutdown starts the server with the given browser
+// flag and arranges for SIGINT/SIGTERM to trigger a graceful
+// shutdown. Previously Start blocked indefinitely on http.Serve and
+// ignored signals, leaving in-flight SSE handlers alive across
+// shell session restarts. We give in-flight handlers a 5-second
+// window to drain before exiting.
+func runWithSignalShutdown(srv *server.Server, openBrowser bool) error {
+	errCh := make(chan error, 1)
+
+	go func() { errCh <- srv.Start(openBrowser) }()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case err := <-errCh:
+		return err
+	case sig := <-sigCh:
+		fmt.Fprintf(os.Stderr, "mindwalk: received %s, shutting down\n", sig)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			fmt.Fprintf(os.Stderr, "mindwalk: shutdown: %v\n", err)
+		}
+
+		// Wait for Start to return (it does immediately after
+		// Shutdown completes) so we don't leak the goroutine.
+		select {
+		case err := <-errCh:
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				return err
+			}
+
+			return nil
+		case <-time.After(2 * time.Second):
+			return nil
+		}
+	}
 }
 
 func serverConfigFromServeFlags(sf *serveFlags) server.Config {
