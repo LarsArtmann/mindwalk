@@ -345,3 +345,31 @@ func BenchmarkFixtureParse(b *testing.B) {
 		}
 	}
 }
+
+// BenchmarkFixtureBuildAgentGraph measures the cold + warm graph
+// build path: ListSessions (for the catalog), then BuildAgentGraph.
+// This is the path /api/sessions/<key>/agent-graph exercises. v0.3.0
+// replaced the recursive CTE with a single WITH RECURSIVE — keep
+// this benchmark as the regression baseline for that change.
+func BenchmarkFixtureBuildAgentGraph(b *testing.B) {
+	dir := filepath.Join("..", "..", "..", "testdata", "crush")
+	a := Adapter{Dir: dir}
+
+	catalog, err := a.ListSessions()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	if len(catalog) == 0 {
+		b.Skip("fixture catalog is empty — nothing to graph")
+	}
+
+	root := catalog[0]
+	b.ReportAllocs()
+
+	for b.Loop() {
+		if _, err := a.BuildAgentGraph(root, catalog); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
