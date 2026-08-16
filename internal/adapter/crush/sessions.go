@@ -97,6 +97,7 @@ func (a Adapter) listAllProjectSessions() ([]model.SessionMeta, error) {
 
 		for _, cs := range sessions {
 			meta := sessionMeta(cs)
+
 			meta.Cwd = cwd
 			if a.dbIndex != nil {
 				a.dbIndex.Store(meta.ID, pdb.DBPath)
@@ -182,6 +183,7 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	}
 
 	meta := sessionMeta(cs)
+
 	meta.Cwd = a.projectPathForDB(h.path)
 	if isAgent || meta.Agent != nil {
 		meta.Auxiliary = true
