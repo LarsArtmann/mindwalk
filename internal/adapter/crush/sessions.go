@@ -268,6 +268,15 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read crush messages: %w", err)
 	}
+	// The cross-message result pair loop below needs every message in
+	// memory at once (Crush splits a tool_call and its tool_result
+	// across messages — see parts.go's resultOrder bookkeeping). The
+	// SDK ships DB.IterMessages for streaming, but switching requires
+	// either buffering externally (no memory win) or restructuring
+	// the algorithm to emit pending calls and resolve them when a
+	// later message supplies the result. The current slice keeps the
+	// adapter simple and stays off the hot path; revisit when
+	// session size routinely exceeds the working-set.
 
 	recognized := meta.ID != ""
 	pending := map[string]adapter.ToolCall{}
