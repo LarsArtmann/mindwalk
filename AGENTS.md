@@ -81,6 +81,22 @@ only routes correctly inside the adapter's own data dir (no
 `sessionDBIndex` without a prior `ListSessions` scan) — pre-existing
 limitation, unchanged.
 
+The Crush adapter pins go-crush-data at v0.3.0. v0.3.0 exposes
+`crushdata.IterMessages` for streaming message rows, `DecodeTodos`
+for parsing todo-list parts, and preserves sibling parts around a
+corrupted entry (it degrades to `UnknownPart` rather than
+discarding the message); it also replaces the recursive CTE in
+`AgentGraph` with a single `WITH RECURSIVE` so the graph builder
+runs about 5× faster on large sessions. Adopting those APIs and
+the `ToolResultPart.IsError` field on the result fold site lives
+behind the `OutcomeKnown` model field — every Crush tool result the
+SDK surfaces must be marked `OutcomeKnown: true` in
+`internal/adapter/crush/parts.go`, otherwise `model.ComputeStats`
+auto-degrades the error observability grade from Exact to
+Estimated on every session with deferred tool outputs (Crush
+splits a tool_call and its tool_result across messages; the
+adapter must pair them by `ToolCallID`, not array index).
+
 Computed agent graphs are persisted to `~/.mindwalk/agent-graphs/`
 as versioned JSON files keyed by a stable digest of the session's
 input file paths, sizes, and modification times. The cache auto-evicts
