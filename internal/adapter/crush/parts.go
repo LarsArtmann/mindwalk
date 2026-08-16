@@ -111,10 +111,14 @@ func (p *partsParser) add(part crushdata.Part, timestamp string) {
 			return
 		}
 
+		// IsError is decoded from the wire `is_error` field, so its
+		// presence (true or false) means the tool result was observed
+		// and the outcome is known.
 		p.results[typed.ToolCallID] = adapter.ToolResult{
-			ToolCallID: typed.ToolCallID,
-			Content:    typed.Content,
-			IsError:    typed.IsError,
+			ToolCallID:   typed.ToolCallID,
+			Content:      typed.Content,
+			IsError:      typed.IsError,
+			OutcomeKnown: true,
 		}
 		p.resultOrder = append(p.resultOrder, typed.ToolCallID)
 	case crushdata.FinishPart:
@@ -237,9 +241,10 @@ func (p *partsParser) finish() finishResult {
 		}
 		result.events = append(result.events, call)
 		result.results = append(result.results, adapter.ToolResult{
-			ToolCallID: call.ID,
-			Content:    sc.Output,
-			IsError:    sc.ExitCode != 0,
+			ToolCallID:   call.ID,
+			Content:      sc.Output,
+			IsError:      sc.ExitCode != 0,
+			OutcomeKnown: true,
 		})
 	}
 
