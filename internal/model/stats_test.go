@@ -80,11 +80,41 @@ func TestComputeStatsObservability(t *testing.T) {
 		wantErrors  string
 	}{
 		{"strong reads are exact", []Event{strongRead}, ObservabilityExact, ObservabilityExact, ObservabilityExact},
-		{"any weak read downgrades", []Event{strongRead, weakRead}, ObservabilityExact, ObservabilityEstimated, ObservabilityExact},
-		{"unknown outcome downgrades exact errors", []Event{strongRead, pending}, ObservabilityExact, ObservabilityExact, ObservabilityEstimated},
-		{"legacy failure remains known", []Event{legacyFailure}, ObservabilityExact, ObservabilityUnavailable, ObservabilityExact},
-		{"no reads is unavailable", []Event{hitOnly}, ObservabilityEstimated, ObservabilityUnavailable, ObservabilityEstimated},
-		{"empty error signal falls back to estimated", []Event{strongRead}, "", ObservabilityExact, ObservabilityEstimated},
+		{
+			"any weak read downgrades",
+			[]Event{strongRead, weakRead},
+			ObservabilityExact,
+			ObservabilityEstimated,
+			ObservabilityExact,
+		},
+		{
+			"unknown outcome downgrades exact errors",
+			[]Event{strongRead, pending},
+			ObservabilityExact,
+			ObservabilityExact,
+			ObservabilityEstimated,
+		},
+		{
+			"legacy failure remains known",
+			[]Event{legacyFailure},
+			ObservabilityExact,
+			ObservabilityUnavailable,
+			ObservabilityExact,
+		},
+		{
+			"no reads is unavailable",
+			[]Event{hitOnly},
+			ObservabilityEstimated,
+			ObservabilityUnavailable,
+			ObservabilityEstimated,
+		},
+		{
+			"empty error signal falls back to estimated",
+			[]Event{strongRead},
+			"",
+			ObservabilityExact,
+			ObservabilityEstimated,
+		},
 	}
 
 	for _, tt := range tests {

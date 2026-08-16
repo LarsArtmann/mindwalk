@@ -188,9 +188,11 @@ func TestDuplicateSessionIDsUseDistinctKeysAndCaches(t *testing.T) {
 			t.Fatalf("key %q loaded %q, want %q", session.Key, trace.Session.Path, session.Path)
 		}
 	}
+
 	s.traceStore.mu.Lock()
 	cached := len(s.traceStore.snapshots)
 	s.traceStore.mu.Unlock()
+
 	if cached != 2 {
 		t.Fatalf("trace cache entries = %d, want 2", cached)
 	}
@@ -466,6 +468,7 @@ func TestInflightLoadSurvivesPanickingLoader(t *testing.T) {
 	s.traceStore.mu.Lock()
 	leaked := len(s.traceStore.inflight)
 	s.traceStore.mu.Unlock()
+
 	if leaked != 0 {
 		t.Fatalf("inflight entries leaked: %d", leaked)
 	}
@@ -910,7 +913,12 @@ func TestAgentAPIsAreRootScoped(t *testing.T) {
 
 	secondChild := requestSessionResource(t, s, http.MethodGet, "/api/sessions/root-a/agents/child-a/trace")
 	if secondChild.Code != http.StatusOK || source.parses["child-a"] != parsesBeforeSecondChild {
-		t.Fatalf("child re-request reparsed: status=%d parses=%d body=%q", secondChild.Code, source.parses["child-a"], secondChild.Body.String())
+		t.Fatalf(
+			"child re-request reparsed: status=%d parses=%d body=%q",
+			secondChild.Code,
+			source.parses["child-a"],
+			secondChild.Body.String(),
+		)
 	}
 
 	for _, tc := range []struct {
@@ -2358,7 +2366,6 @@ func TestServerStartBindsPortZero(t *testing.T) {
 // Start was never called (e.g. if the goroutine is racing with a
 // SIGTERM before Serve has set s.httpServer). Must not panic.
 func TestServerShutdownBeforeStartIsNoOp(t *testing.T) {
-
 	srv := New(Config{
 		ClaudeDir: filepath.Join(t.TempDir(), "no-claude"),
 		CodexDir:  filepath.Join(t.TempDir(), "no-codex"),

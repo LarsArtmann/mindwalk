@@ -53,7 +53,10 @@ type inflightLoad struct {
 	err         error
 }
 
-func newTraceStore(loadSnapshot func(model.SessionMeta) (*model.Trace, *model.CityMap, error), loadRaw func(model.SessionMeta) (*model.Trace, error)) *traceStore {
+func newTraceStore(
+	loadSnapshot func(model.SessionMeta) (*model.Trace, *model.CityMap, error),
+	loadRaw func(model.SessionMeta) (*model.Trace, error),
+) *traceStore {
 	return &traceStore{
 		snapshots:    map[string]*traceEntry{},
 		raws:         map[string]*traceEntry{},
@@ -70,17 +73,26 @@ func (ts *traceStore) LoadSnapshot(meta model.SessionMeta) (*model.Trace, *model
 func (ts *traceStore) LoadRaw(meta model.SessionMeta) (*model.Trace, error) {
 	trace, _, err := ts.load(ts.raws, "raw", meta, func(meta model.SessionMeta) (*model.Trace, *model.CityMap, error) {
 		trace, err := ts.loadRaw(meta)
+
 		return trace, nil, err
 	})
+
 	return trace, err
 }
 
-func (ts *traceStore) load(layer map[string]*traceEntry, kind string, meta model.SessionMeta, loader func(model.SessionMeta) (*model.Trace, *model.CityMap, error)) (*model.Trace, *model.CityMap, error) {
+func (ts *traceStore) load(
+	layer map[string]*traceEntry,
+	kind string,
+	meta model.SessionMeta,
+	loader func(model.SessionMeta) (*model.Trace, *model.CityMap, error),
+) (*model.Trace, *model.CityMap, error) {
 	key := meta.Key
 	if key == "" {
 		key = adapter.SessionKey(meta.Harness, meta.Path)
 	}
+
 	inflightKey := kind + "\x00" + key
+
 	for {
 		// fingerprintPath (not fingerprintFile) so synthetic adapter paths
 		// (crush://session/<id>) get the stable zero fingerprint instead of
@@ -90,6 +102,7 @@ func (ts *traceStore) load(layer map[string]*traceEntry, kind string, meta model
 			ts.mu.Lock()
 			delete(layer, key)
 			ts.mu.Unlock()
+
 			return nil, nil, err
 		}
 
@@ -99,10 +112,13 @@ func (ts *traceStore) load(layer map[string]*traceEntry, kind string, meta model
 				entry.used = time.Now()
 				trace, city := entry.trace, entry.city
 				ts.mu.Unlock()
+
 				return trace, city, nil
 			}
+
 			delete(layer, key)
 		}
+
 		if load := ts.inflight[inflightKey]; load != nil {
 			done := load.done
 			shareSnapshot := fingerprint.equal(load.fingerprint)
@@ -116,8 +132,10 @@ func (ts *traceStore) load(layer map[string]*traceEntry, kind string, meta model
 			if shareSnapshot {
 				return load.trace, load.city, load.err
 			}
+
 			continue
 		}
+
 		load := &inflightLoad{done: make(chan struct{}), fingerprint: fingerprint}
 		ts.inflight[inflightKey] = load
 		ts.mu.Unlock()
@@ -126,6 +144,7 @@ func (ts *traceStore) load(layer map[string]*traceEntry, kind string, meta model
 		// parsing, the next request will see a mismatch and reload it instead
 		// of treating the partial snapshot as current.
 		ts.run(layer, inflightKey, key, load, meta, loader)
+
 		return load.trace, load.city, load.err
 	}
 }
@@ -136,23 +155,38 @@ func (ts *traceStore) load(layer map[string]*traceEntry, kind string, meta model
 // net/http's per-connection recover would swallow the panic while the
 // inflight entry stayed registered, and every later request for the key
 // would block forever on a done channel nothing closes.
-func (ts *traceStore) run(layer map[string]*traceEntry, inflightKey, key string, load *inflightLoad, meta model.SessionMeta, loader func(model.SessionMeta) (*model.Trace, *model.CityMap, error)) {
+func (ts *traceStore) run(
+	layer map[string]*traceEntry,
+	inflightKey, key string,
+	load *inflightLoad,
+	meta model.SessionMeta,
+	loader func(model.SessionMeta) (*model.Trace, *model.CityMap, error),
+) {
 	defer func() {
 		if r := recover(); r != nil {
 			load.trace, load.city = nil, nil
 			load.err = fmt.Errorf("load session %s: %v", key, r)
 			log.Printf("mindwalk: panic loading session %s: %v\n%s", key, r, debug.Stack())
 		}
+
 		ts.mu.Lock()
 		if load.err == nil {
 			now := time.Now()
-			layer[key] = &traceEntry{trace: load.trace, city: load.city, fingerprint: load.fingerprint, at: now, used: now}
+			layer[key] = &traceEntry{
+				trace:       load.trace,
+				city:        load.city,
+				fingerprint: load.fingerprint,
+				at:          now,
+				used:        now,
+			}
 			ts.evictLocked(layer)
 		}
+
 		delete(ts.inflight, inflightKey)
 		close(load.done)
 		ts.mu.Unlock()
 	}()
+
 	load.trace, load.city, load.err = loader(meta)
 }
 
@@ -160,17 +194,21 @@ func (ts *traceStore) run(layer map[string]*traceEntry, inflightKey, key string,
 // once it grows past traceCacheMaxEntries. Caller must hold mu.
 func (ts *traceStore) evictLocked(layer map[string]*traceEntry) {
 	for len(layer) > traceCacheMaxEntries {
-		var oldestKey string
-		var oldest time.Time
+		var (
+			oldestKey string
+			oldest    time.Time
+		)
 		for key, entry := range layer {
 			if oldestKey == "" || entry.used.Before(oldest) {
 				oldestKey = key
 				oldest = entry.used
 			}
 		}
+
 		if oldestKey == "" {
 			return
 		}
+
 		delete(layer, oldestKey)
 	}
 }

@@ -661,6 +661,7 @@ func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
 	if !FreshAgainstTrace(report, before) {
 		t.Fatal("expected fresh against the trace it was generated from")
 	}
+
 	if FreshAgainstTrace(report, after) {
 		t.Fatal("mid-window task change must stale the rubric-bearing report")
 	}
@@ -697,6 +698,7 @@ func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
 	if !FreshAgainstTrace(skipped, weakBefore) {
 		t.Fatal("weak-task-text skip should stay fresh while the evidence stays weak")
 	}
+
 	if FreshAgainstTrace(skipped, weakAfter) {
 		t.Fatal("enriched task evidence must stale the weak-task-text skip")
 	}

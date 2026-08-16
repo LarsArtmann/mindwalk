@@ -21,6 +21,7 @@ func TestHandlerRejectsNonLocalHost(t *testing.T) {
 		req.Host = host
 		resp := httptest.NewRecorder()
 		handler.ServeHTTP(resp, req)
+
 		if resp.Code != http.StatusForbidden {
 			t.Fatalf("Host %q status = %d, want 403", host, resp.Code)
 		}
@@ -32,6 +33,7 @@ func TestHandlerRejectsNonLocalHost(t *testing.T) {
 		req.Host = host
 		resp := httptest.NewRecorder()
 		handler.ServeHTTP(resp, req)
+
 		if resp.Code == http.StatusForbidden {
 			t.Fatalf("local Host %q rejected", host)
 		}
@@ -43,15 +45,19 @@ func TestAnalyzeRejectsCrossSiteRequests(t *testing.T) {
 	handler := s.handler()
 	post := func(origin, fetchSite string) int {
 		req := httptest.NewRequest(http.MethodPost, "/api/sessions/nope/analyze", nil)
+
 		req.Host = "127.0.0.1:8765"
 		if origin != "" {
 			req.Header.Set("Origin", origin)
 		}
+
 		if fetchSite != "" {
 			req.Header.Set("Sec-Fetch-Site", fetchSite)
 		}
+
 		resp := httptest.NewRecorder()
 		handler.ServeHTTP(resp, req)
+
 		return resp.Code
 	}
 
@@ -97,8 +103,10 @@ func TestCrossSiteGetPassesMiddleware(t *testing.T) {
 	req.Host = "127.0.0.1:8765"
 	req.Header.Set("Origin", "https://evil.example")
 	req.Header.Set("Sec-Fetch-Site", "cross-site")
+
 	resp := httptest.NewRecorder()
 	s.handler().ServeHTTP(resp, req)
+
 	if resp.Code == http.StatusForbidden {
 		t.Fatal("cross-site GET rejected; reads are CORS-protected, not middleware-gated")
 	}
@@ -109,15 +117,19 @@ func TestRepoMapUsesInjectedBuilder(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repoRoot, "a.go"), []byte("package demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	s := New(Config{})
 	calls := 0
+
 	s.buildCityMap = func(repo string, trace *model.Trace) (*model.CityMap, error) {
 		calls++
+
 		return emptyCityMap(repo), nil
 	}
 	if _, err := s.repoCityMap(repoRoot); err != nil {
 		t.Fatal(err)
 	}
+
 	if calls != 1 {
 		t.Fatalf("injected builder calls = %d, want 1", calls)
 	}
@@ -126,21 +138,25 @@ func TestRepoMapUsesInjectedBuilder(t *testing.T) {
 func TestAgentGraphCacheIsBounded(t *testing.T) {
 	s := New(Config{})
 	s.mu.Lock()
+
 	base := time.Now()
-	for i := 0; i < agentGraphMaxEntries+5; i++ {
+	for i := range agentGraphMaxEntries + 5 {
 		s.agentGraphs[string(rune('a'+i))] = agentGraphCacheEntry{
 			graph: &model.AgentGraph{},
 			used:  base.Add(time.Duration(i) * time.Second),
 		}
 	}
+
 	s.evictAgentGraphsLocked()
 	n := len(s.agentGraphs)
 	_, newestKept := s.agentGraphs[string(rune('a'+agentGraphMaxEntries+4))]
 	_, oldestKept := s.agentGraphs["a"]
 	s.mu.Unlock()
+
 	if n != agentGraphMaxEntries {
 		t.Fatalf("agent graph cache size = %d, want %d", n, agentGraphMaxEntries)
 	}
+
 	if !newestKept || oldestKept {
 		t.Fatalf("eviction order wrong: newestKept=%v oldestKept=%v", newestKept, oldestKept)
 	}

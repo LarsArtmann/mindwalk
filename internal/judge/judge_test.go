@@ -302,6 +302,7 @@ func TestCacheRoundTripAndFreshness(t *testing.T) {
 	if loaded == nil || loaded.Session.ID != "s1" {
 		t.Fatalf("loaded = %#v", loaded)
 	}
+
 	if !FreshAgainstTrace(loaded, trace) {
 		t.Fatal("expected fresh")
 	}
@@ -319,6 +320,7 @@ func TestCacheRoundTripAndFreshness(t *testing.T) {
 	if FreshAgainstTrace(loaded, trace) {
 		t.Fatal("expected stale after event growth")
 	}
+
 	if FreshAgainstTrace(&model.Report{Judge: model.ReportJudge{PromptVersion: PromptVersion}}, sampleTrace()) {
 		t.Fatal("report without a digest must be stale")
 	}

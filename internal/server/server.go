@@ -127,7 +127,7 @@ const (
 	repoMapTTL        = 30 * time.Second
 	repoMapMaxEntries = 16
 	// agent graphs are small but were the one unbounded cache; bound them the
-	// same way as traces
+	// same way as traces.
 	agentGraphMaxEntries = 16
 	// readHeaderTimeout caps how long a slow client can hold a
 	// connection open while sending headers. 10s is enough for a
@@ -153,6 +153,7 @@ func New(cfg Config) *Server {
 	// Method values, not results: the store observes buildCityMap overrides
 	// made after construction (tests swap it per case).
 	s.traceStore = newTraceStore(s.loadTraceAndMap, s.parseSessionTrace)
+
 	return s
 }
 
@@ -257,6 +258,7 @@ func (s *Server) handler() http.Handler {
 	mux.HandleFunc("/api/adapters", s.handleAdapters)
 	mux.HandleFunc("/api/repomap", s.handleRepoMap)
 	mux.HandleFunc("/", s.handleStatic)
+
 	return requireLoopback(mux)
 }
 
@@ -274,20 +276,26 @@ func requireLoopback(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !loopbackHost(r.Host) {
 			http.Error(w, "forbidden: non-local Host", http.StatusForbidden)
+
 			return
 		}
+
 		if r.Method != http.MethodGet {
 			if origin := r.Header.Get("Origin"); origin != "" && !sameOrigin(origin, r.Host) {
 				http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
+
 				return
 			}
+
 			switch r.Header.Get("Sec-Fetch-Site") {
 			case "", "same-origin", "none":
 			default:
 				http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
+
 				return
 			}
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -297,7 +305,9 @@ func loopbackHost(hostport string) bool {
 	if h, _, err := net.SplitHostPort(hostport); err == nil {
 		host = h
 	}
+
 	host = normalizeHost(host)
+
 	return host == "127.0.0.1" || host == "localhost" || host == "::1"
 }
 
@@ -310,6 +320,7 @@ func sameOrigin(origin, requestHost string) bool {
 	if err != nil || parsed.Scheme != "http" || parsed.Host == "" {
 		return false
 	}
+
 	return hostPortKey(parsed.Host) == hostPortKey(requestHost)
 }
 
@@ -320,6 +331,7 @@ func hostPortKey(hostport string) string {
 	if err != nil {
 		host, port = hostport, "80"
 	}
+
 	return normalizeHost(host) + ":" + port
 }
 
@@ -330,6 +342,7 @@ func normalizeHost(host string) string {
 	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
 		host = host[1 : len(host)-1]
 	}
+
 	return strings.ToLower(host)
 }
 
@@ -605,6 +618,7 @@ func (s *Server) repoCityMap(repo string) (*model.CityMap, error) {
 	if entry, ok := s.repoMaps[repo]; ok && time.Since(entry.builtAt) < repoMapTTL {
 		return entry.city, nil
 	}
+
 	city, err := s.buildCityMap(repo, nil)
 	if err != nil {
 		return nil, err
@@ -920,6 +934,7 @@ func (s *Server) summarizeCached(source adapter.Source, path string, info fs.Fil
 
 	key := summaryKey(source, path)
 	sidecar := summarySidecarDigest(source, path)
+
 	s.mu.Lock()
 	if cached, ok := s.summaries[key]; ok && cached.size == info.Size() && cached.modTime.Equal(info.ModTime()) &&
 		cached.sidecar == sidecar {
@@ -959,11 +974,14 @@ func summarySidecarDigest(source adapter.Source, path string) string {
 	if !ok {
 		return ""
 	}
+
 	inputs := sidecars.SummaryInputs(path)
 	if len(inputs) == 0 {
 		return ""
 	}
+
 	var material strings.Builder
+
 	for _, input := range inputs {
 		if fingerprint, err := fingerprintFile(input); err == nil {
 			fmt.Fprintf(&material, "%s\x00%d\x00%d\n", input, fingerprint.size, fingerprint.modTime.UnixNano())
@@ -971,6 +989,7 @@ func summarySidecarDigest(source adapter.Source, path string) string {
 			fmt.Fprintf(&material, "%s\x00missing\n", input)
 		}
 	}
+
 	return material.String()
 }
 
@@ -1168,7 +1187,11 @@ func (s *Server) runAgentGraphInflight(
 
 		s.mu.Lock()
 		if load.err == nil {
-			s.agentGraphs[key] = agentGraphCacheEntry{fingerprint: load.fingerprint, graph: load.graph, used: time.Now()}
+			s.agentGraphs[key] = agentGraphCacheEntry{
+				fingerprint: load.fingerprint,
+				graph:       load.graph,
+				used:        time.Now(),
+			}
 			s.evictAgentGraphsLocked()
 			// Capture the snapshot for the disk write, then drop the
 			// lock before performing I/O. Holding mu across the write
@@ -1198,17 +1221,21 @@ func (s *Server) runAgentGraphInflight(
 // recently used entries. Caller must hold mu.
 func (s *Server) evictAgentGraphsLocked() {
 	for len(s.agentGraphs) > agentGraphMaxEntries {
-		var oldestKey string
-		var oldest time.Time
+		var (
+			oldestKey string
+			oldest    time.Time
+		)
 		for key, entry := range s.agentGraphs {
 			if oldestKey == "" || entry.used.Before(oldest) {
 				oldestKey = key
 				oldest = entry.used
 			}
 		}
+
 		if oldestKey == "" {
 			return
 		}
+
 		delete(s.agentGraphs, oldestKey)
 	}
 }

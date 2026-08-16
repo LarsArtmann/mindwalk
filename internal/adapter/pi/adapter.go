@@ -377,26 +377,34 @@ func decodePiMessage(data json.RawMessage) (piMessage, error) {
 	if err := json.Unmarshal(data, &msg); err != nil {
 		return piMessage{}, err
 	}
+
 	var fields map[string]json.RawMessage
 	if err := json.Unmarshal(data, &fields); err != nil {
 		return piMessage{}, err
 	}
+
 	msg.IsError = nil
+
 	if raw, ok := fields["isError"]; ok && strings.TrimSpace(string(raw)) != "null" {
 		var value bool
 		if err := json.Unmarshal(raw, &value); err != nil {
 			return piMessage{}, err
 		}
+
 		msg.IsError = &value
 	}
+
 	msg.ExitCode = nil
+
 	if raw, ok := fields["exitCode"]; ok && strings.TrimSpace(string(raw)) != "null" {
 		var value int
 		if err := json.Unmarshal(raw, &value); err != nil {
 			return piMessage{}, err
 		}
+
 		msg.ExitCode = &value
 	}
+
 	return msg, nil
 }
 

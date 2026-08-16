@@ -153,9 +153,11 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 	if errorSignal == "" {
 		errorSignal = ObservabilityEstimated
 	}
+
 	if errorSignal == ObservabilityExact && unknownOutcomes {
 		errorSignal = ObservabilityEstimated
 	}
+
 	stats.Observability.Errors = errorSignal
 
 	return stats

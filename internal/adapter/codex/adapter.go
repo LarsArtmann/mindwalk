@@ -91,13 +91,16 @@ func (a Adapter) SummaryInputs(_ string) []string {
 	if a.IndexPath != "" {
 		return []string{a.IndexPath}
 	}
+
 	var inputs []string
 	if dir := filepath.Clean(a.SessionDir()); dir != "" && dir != "." {
 		inputs = append(inputs, filepath.Join(filepath.Dir(dir), "session_index.jsonl"))
 	}
+
 	if candidate := DefaultIndexPath(); candidate != "" && (len(inputs) == 0 || inputs[0] != candidate) {
 		inputs = append(inputs, candidate)
 	}
+
 	return inputs
 }
 
@@ -314,6 +317,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 				if _, exists := results[callID]; exists {
 					return
 				}
+
 				result.IsError, result.OutcomeKnown = toolOutputStatus(call.Name, result.Content)
 				results[callID] = result
 
@@ -356,6 +360,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			if json.Unmarshal(line.Payload, &payload) != nil {
 				return
 			}
+
 			payload.Success = exactBoolPointer(line.Payload, "success")
 			if payload.Type == "context_compacted" {
 				trace.Marks = append(trace.Marks, model.Mark{Seq: len(callOrder), Type: "compaction"})
@@ -793,12 +798,14 @@ var exitCodeRe = regexp.MustCompile(`(?im)^(?:Process exited with code|Exit code
 
 func commandOutputStatus(output string) (failed bool, known bool) {
 	trimmed := strings.TrimSpace(output)
+
 	var envelope map[string]json.RawMessage
 	if json.Unmarshal([]byte(trimmed), &envelope) == nil {
 		if _, ok := exactString(envelope, "output"); ok {
 			if exitCode, ok := exactInt(envelope, "exit_code"); ok {
 				return exitCode != 0, true
 			}
+
 			if raw, ok := envelope["metadata"]; ok {
 				var metadata map[string]json.RawMessage
 				if json.Unmarshal(raw, &metadata) == nil {
@@ -808,6 +815,7 @@ func commandOutputStatus(output string) (failed bool, known bool) {
 				}
 			}
 		}
+
 		if _, ok := exactString(envelope, "message"); ok {
 			if timedOut, ok := exactBool(envelope, "timed_out"); ok && timedOut {
 				return true, true
@@ -824,6 +832,7 @@ func commandOutputStatus(output string) (failed bool, known bool) {
 	if strings.HasPrefix(status, "script running with cell id ") {
 		return false, false
 	}
+
 	switch status {
 	case "script completed":
 		return false, true
@@ -850,6 +859,7 @@ func commandOutputStatus(output string) (failed bool, known bool) {
 	if len(match) == 2 {
 		return match[1] != "0", true
 	}
+
 	return false, false
 }
 
@@ -862,6 +872,7 @@ func toolOutputStatus(tool, output string) (failed bool, known bool) {
 			return true, true
 		}
 	}
+
 	return false, false
 }
 
@@ -870,10 +881,12 @@ func exactBoolPointer(data json.RawMessage, key string) *bool {
 	if json.Unmarshal(data, &fields) != nil {
 		return nil
 	}
+
 	value, ok := exactBool(fields, key)
 	if !ok {
 		return nil
 	}
+
 	return &value
 }
 
@@ -882,10 +895,12 @@ func exactBool(fields map[string]json.RawMessage, key string) (bool, bool) {
 	if !ok || strings.TrimSpace(string(raw)) == "null" {
 		return false, false
 	}
+
 	var value bool
 	if json.Unmarshal(raw, &value) != nil {
 		return false, false
 	}
+
 	return value, true
 }
 
@@ -894,10 +909,12 @@ func exactInt(fields map[string]json.RawMessage, key string) (int, bool) {
 	if !ok || strings.TrimSpace(string(raw)) == "null" {
 		return 0, false
 	}
+
 	var value int
 	if json.Unmarshal(raw, &value) != nil {
 		return 0, false
 	}
+
 	return value, true
 }
 
@@ -906,10 +923,12 @@ func exactString(fields map[string]json.RawMessage, key string) (string, bool) {
 	if !ok || strings.TrimSpace(string(raw)) == "null" {
 		return "", false
 	}
+
 	var value string
 	if json.Unmarshal(raw, &value) != nil {
 		return "", false
 	}
+
 	return value, true
 }
 

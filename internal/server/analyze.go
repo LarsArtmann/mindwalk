@@ -118,6 +118,7 @@ func (s *Server) reportStateFor(meta model.SessionMeta) string {
 	if report == nil {
 		return ""
 	}
+
 	if !judge.FreshAgainstSummary(report, meta) {
 		return "stale"
 	}
@@ -349,6 +350,7 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli
 	if err == nil && !noRubric && s.reportCache.Dir != "" {
 		persisted = s.reportCache.Store(key, report) == nil
 	}
+
 	if persisted {
 		// Polls landing between the store and the index's next directory scan
 		// must find the report once the job entry is dropped below.
