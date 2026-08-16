@@ -132,8 +132,10 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 	}
 	// The reads grade: prefer the adapter-supplied signal (structural
 	// truth from a read_files table); fall back to deriving from weak
-	// target flags when the adapter did not supply one.
-	readsSignal := signals.Reads
+	// target flags when the adapter did not supply one. Inputs that
+	// are not one of the three known values are silently clamped to
+	// the empty string so derived logic runs.
+	readsSignal := clampObservability(signals.Reads)
 	if readsSignal == "" {
 		switch {
 		case readEvents == 0:
@@ -147,7 +149,7 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 
 	stats.Observability.Reads = readsSignal
 
-	errorSignal := signals.Errors
+	errorSignal := clampObservability(signals.Errors)
 	if errorSignal == "" {
 		errorSignal = ObservabilityEstimated
 	}
@@ -157,6 +159,21 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 	stats.Observability.Errors = errorSignal
 
 	return stats
+}
+
+// clampObservability returns s if it is one of the three known
+// observability grade values; otherwise it returns "". Callers
+// should treat an empty result as "fall back to derived/default".
+// This guards against stringly-typed adapter bugs: a misspelling
+// or future drift in the grade constant must not silently propagate
+// to the Stats payload.
+func clampObservability(s string) string {
+	switch s {
+	case ObservabilityExact, ObservabilityEstimated, ObservabilityUnavailable:
+		return s
+	default:
+		return ""
+	}
 }
 
 func countAction(counts *ActionCounts, action string) {

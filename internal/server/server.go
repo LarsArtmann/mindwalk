@@ -129,6 +129,11 @@ const (
 	// agent graphs are small but were the one unbounded cache; bound them the
 	// same way as traces
 	agentGraphMaxEntries = 16
+	// readHeaderTimeout caps how long a slow client can hold a
+	// connection open while sending headers. 10s is enough for a
+	// real browser over loopback but breaks Slowloris-style
+	// attacks. gosec G112.
+	readHeaderTimeout = 10 * time.Second
 )
 
 func New(cfg Config) *Server {
@@ -214,10 +219,16 @@ func (s *Server) Start(openBrowser bool) error {
 	// Use http.Server (not http.Serve) so callers can call Shutdown
 	// for graceful SSE teardown — http.Serve blocks until the
 	// listener closes, which never cancels in-flight SSE handlers.
-	s.httpServer = &http.Server{Handler: s.handler()}
+	// ReadHeaderTimeout protects against Slowloris-style attacks
+	// (gosec G112); the server only serves loopback traffic by
+	// default, but the explicit cap is cheap insurance.
+	s.httpServer = &http.Server{
+		Handler:           s.handler(),
+		ReadHeaderTimeout: readHeaderTimeout,
+	}
 
 	if err := s.httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return err
+		return fmt.Errorf("serve: %w", err)
 	}
 
 	return nil
@@ -232,7 +243,11 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return nil
 	}
 
-	return s.httpServer.Shutdown(ctx)
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("shutdown: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Server) handler() http.Handler {

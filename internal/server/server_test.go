@@ -2252,6 +2252,14 @@ func TestEvictAgentGraphCacheNUnderCap(t *testing.T) {
 	}
 }
 
+// loopbackAddrZero is the canonical "any free port on loopback"
+// listener address. Repeated as a constant so goconst does not
+// flag it in three tests.
+const (
+	loopbackAddrZero = "127.0.0.1:0"
+	testLoopbackHost = "127.0.0.1"
+)
+
 // TestServerStartBindsPortZero exercises the kernel-pick path that
 // lets `mindwalk serve --port 0` (or any embedder wanting a free
 // port) avoid hand-rolling port discovery. We pin the contract:
@@ -2259,6 +2267,8 @@ func TestEvictAgentGraphCacheNUnderCap(t *testing.T) {
 // the listener's Addr, and serve HTTP traffic on it. The previous
 // `port == 0 { port = 0 }` branch was a no-op that this test would
 // have caught had it existed when the conditional was added.
+//
+//nolint:cyclop // Single-shot integration-style test; refactoring would obscure the contract being pinned.
 func TestServerStartBindsPortZero(t *testing.T) {
 	t.Parallel()
 
@@ -2266,7 +2276,7 @@ func TestServerStartBindsPortZero(t *testing.T) {
 		ClaudeDir: filepath.Join(t.TempDir(), "no-claude"),
 		CodexDir:  filepath.Join(t.TempDir(), "no-codex"),
 		PiDir:     filepath.Join(t.TempDir(), "no-pi"),
-		Host:      "127.0.0.1",
+		Host:      testLoopbackHost,
 		Port:      0,
 	})
 
@@ -2274,7 +2284,8 @@ func TestServerStartBindsPortZero(t *testing.T) {
 	// port, then close it before Start. This is racey with the rest
 	// of the test environment, but on loopback there is always at
 	// least one free port, so the listener won't fail.
-	probe, err := net.Listen("tcp", "127.0.0.1:0")
+	//nolint:noctx // test loopback; context plumbing would obscure the contract being pinned
+	probe, err := net.Listen("tcp", loopbackAddrZero)
 	if err != nil {
 		t.Fatalf("probe Listen: %v", err)
 	}
@@ -2287,15 +2298,17 @@ func TestServerStartBindsPortZero(t *testing.T) {
 	// Start is blocking; run it on a goroutine and capture the
 	// address by calling Serve on a listener we manage ourselves
 	// so we don't need to depend on Start exposing the bound port.
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	//nolint:noctx // test loopback; context plumbing would obscure the contract being pinned
+	listener, err := net.Listen("tcp", loopbackAddrZero)
 	if err != nil {
 		t.Fatalf("Listen: %v", err)
 	}
 
-	srvAddr := ln.Addr().String()
-	tcpAddr, ok := ln.Addr().(*net.TCPAddr)
+	srvAddr := listener.Addr().String()
+
+	tcpAddr, ok := listener.Addr().(*net.TCPAddr)
 	if !ok {
-		t.Fatalf("expected *net.TCPAddr, got %T", ln.Addr())
+		t.Fatalf("expected *net.TCPAddr, got %T", listener.Addr())
 	}
 
 	if tcpAddr.Port == 0 {
@@ -2309,7 +2322,7 @@ func TestServerStartBindsPortZero(t *testing.T) {
 	// listener with a non-zero port.
 	done := make(chan error, 1)
 
-	go func() { done <- http.Serve(ln, srv.handler()) }()
+	go func() { done <- http.Serve(listener, srv.handler()) }()
 
 	// Round-trip a request to prove the listener actually serves
 	// HTTP on the bound port.
@@ -2326,8 +2339,8 @@ func TestServerStartBindsPortZero(t *testing.T) {
 	// Shut the server down. net.ErrClosed is acceptable — we are
 	// only proving that the loopback listener is reusable and the
 	// handler chain answers /api/adapters with 200.
-	if err := ln.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
-		t.Logf("ln.Close: %v (continuing)", err)
+	if err := listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		t.Logf("listener.Close: %v (continuing)", err)
 	}
 
 	select {
