@@ -284,6 +284,33 @@ func TestFixtureReadObservability(t *testing.T) {
 	}
 }
 
+// TestFixtureErrorObservability pins the regression for T06: the
+// crush adapter must mark every observed tool_result as
+// OutcomeKnown so the error observability grade becomes exact when
+// no event was left unmatched. ComputeStats will auto-degrade back
+// to estimated the moment any event carries OutcomeKnown=false,
+// which acts as a tripwire for future schema drift.
+func TestFixtureErrorObservability(t *testing.T) {
+	dir := fixtureDir(t)
+
+	trace, err := Adapter{Dir: dir}.Parse(SessionPath("fixture-root"))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+
+	for i, ev := range trace.Events {
+		if !ev.IsError && !ev.OutcomeKnown {
+			t.Errorf("event[%d] (%s) has unknown outcome; parts.go should mark observed results as known",
+				i, ev.Tool)
+		}
+	}
+
+	if trace.Stats.Observability.Errors != model.ObservabilityExact {
+		t.Fatalf("errors observability = %q, want exact (every observed result is OutcomeKnown)",
+			trace.Stats.Observability.Errors)
+	}
+}
+
 // BenchmarkFixtureListSessions measures the cold-open + session-listing
 // path. Each iteration opens the SQLite file read-only, runs the
 // sessions query, and closes the handle.

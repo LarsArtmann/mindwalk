@@ -383,15 +383,41 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 			trace.Marks = append(trace.Marks, mk)
 		}
 
-		for i, call := range parsed.events {
+		for _, call := range parsed.events {
 			if _, exists := pending[call.ID]; !exists {
 				pendingOrder = append(pendingOrder, call.ID)
 			}
 
 			pending[call.ID] = call
-			if i < len(parsed.results) {
-				results[call.ID] = parsed.results[i]
+			// Match each event to its result by ToolCallID rather than
+			// array index. Index alignment assumes every result lives
+			// in the same message as its call; when Crush splits a
+			// tool_call and tool_result across messages, the orphan
+			// results are appended under p.resultOrder in declaration
+			// order and partsParser keeps them at the tail of
+			// finishResult.results — looking up by ID covers both shapes.
+			results[call.ID] = resultFor(parsed.results, call.ID)
+		}
+		// Fold cross-message results whose originating call lives in
+		// an earlier message: the per-call loop above only sees
+		// events from THIS message, so any result left in
+		// parsed.results without a matching in-message call would
+		// otherwise stay unpaired and ComputeStats would mark every
+		// such event OutcomeKnown=false.
+		for _, r := range parsed.results {
+			if r.ToolCallID == "" {
+				continue
 			}
+
+			if _, seen := pending[r.ToolCallID]; !seen {
+				continue
+			}
+
+			if existing, ok := results[r.ToolCallID]; ok && existing.OutcomeKnown {
+				continue
+			}
+
+			results[r.ToolCallID] = r
 		}
 	}
 
@@ -436,7 +462,7 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	trace.Stats = model.ComputeStats(
 		trace,
 		0,
-		model.ObservabilitySignals{Errors: model.ObservabilityEstimated, Reads: readsGrade},
+		model.ObservabilitySignals{Errors: model.ObservabilityExact, Reads: readsGrade},
 	)
 
 	if !recognized {
@@ -444,6 +470,22 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 	}
 
 	return trace, nil
+}
+
+// resultFor finds the ToolResult whose ToolCallID matches toolCallID in
+// a parsed message's results slice, returning an empty ToolResult when
+// no result was paired. The crush adapter pairs results by ID rather
+// than by parallel-slice index because Crush splits tool_call and
+// tool_result parts across messages — index alignment would silently
+// drop every cross-message outcome.
+func resultFor(results []adapter.ToolResult, toolCallID string) adapter.ToolResult {
+	for _, r := range results {
+		if r.ToolCallID == toolCallID {
+			return r
+		}
+	}
+
+	return adapter.ToolResult{}
 }
 
 // queryReadFiles returns the set of file paths the agent actually
