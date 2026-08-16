@@ -63,12 +63,7 @@ type Server struct {
 	sessionCatalog  map[string]model.SessionMeta
 	sessionAt       time.Time
 	freshGen        uint64
-	traces          map[string]*model.Trace
-	maps            map[string]*model.CityMap
-	cacheAt         map[string]time.Time
-	cacheUsed       map[string]time.Time
-	cacheFile       map[string]fileFingerprint
-	inflight        map[string]*inflightLoad
+	traceStore      *traceStore
 	agentGraphs     map[string]agentGraphCacheEntry
 	agentGraphLoads map[string]*inflightAgentGraph
 	summaries       map[string]summaryCacheEntry
@@ -78,19 +73,12 @@ type Server struct {
 
 	analyze     analyzeState
 	reportCache judge.Cache
+	reportIndex reportIndex
 }
 
 type repoMapEntry struct {
 	city    *model.CityMap
 	builtAt time.Time
-}
-
-type inflightLoad struct {
-	done        chan struct{}
-	fingerprint fileFingerprint
-	trace       *model.Trace
-	city        *model.CityMap
-	err         error
 }
 
 type fileFingerprint struct {
@@ -106,6 +94,7 @@ type agentGraphFingerprint struct {
 type agentGraphCacheEntry struct {
 	fingerprint agentGraphFingerprint
 	graph       *model.AgentGraph
+	used        time.Time
 }
 
 type inflightAgentGraph struct {
@@ -116,11 +105,12 @@ type inflightAgentGraph struct {
 }
 
 type summaryCacheEntry struct {
-	size          int64
-	modTime       time.Time
-	sidecar       fileFingerprint
-	sidecarExists bool
-	meta          model.SessionMeta
+	size    int64
+	modTime time.Time
+	// sidecar is opaque validation material for the companion files the
+	// source declared via SummaryInputs; empty when there are none.
+	sidecar string
+	meta    model.SessionMeta
 }
 
 const (
@@ -131,18 +121,15 @@ const (
 	// serve current as the tree changes without rebuilding on every request.
 	repoMapTTL        = 30 * time.Second
 	repoMapMaxEntries = 16
+	// agent graphs are small but were the one unbounded cache; bound them the
+	// same way as traces
+	agentGraphMaxEntries = 16
 )
 
 func New(cfg Config) *Server {
-	return &Server{
+	s := &Server{
 		cfg:             cfg,
 		adapters:        buildAdapters(cfg),
-		traces:          map[string]*model.Trace{},
-		maps:            map[string]*model.CityMap{},
-		cacheAt:         map[string]time.Time{},
-		cacheUsed:       map[string]time.Time{},
-		cacheFile:       map[string]fileFingerprint{},
-		inflight:        map[string]*inflightLoad{},
 		agentGraphs:     map[string]agentGraphCacheEntry{},
 		agentGraphLoads: map[string]*inflightAgentGraph{},
 		summaries:       map[string]summaryCacheEntry{},
@@ -153,6 +140,10 @@ func New(cfg Config) *Server {
 		analyze:     analyzeState{jobs: map[string]*analyzeJob{}},
 		reportCache: judge.Cache{Dir: judge.DefaultCacheDir()},
 	}
+	// Method values, not results: the store observes buildCityMap overrides
+	// made after construction (tests swap it per case).
+	s.traceStore = newTraceStore(s.loadTraceAndMap, s.parseSessionTrace)
+	return s
 }
 
 // Close releases resources held by adapters (database connection pools,
@@ -173,13 +164,6 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) Start(openBrowser bool) error {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/sessions", s.handleSessions)
-	mux.HandleFunc("/api/sessions/", s.handleSessionResource)
-	mux.HandleFunc("/api/adapters", s.handleAdapters)
-	mux.HandleFunc("/api/repomap", s.handleRepoMap)
-	mux.HandleFunc("/", s.handleStatic)
-
 	port := s.cfg.Port
 	if port == 0 {
 		port = 0
@@ -217,8 +201,90 @@ func (s *Server) Start(openBrowser bool) error {
 	}
 
 	fmt.Printf("mindwalk serving %s\n", addr)
+	return http.Serve(ln, s.handler())
+}
 
-	return http.Serve(ln, mux)
+func (s *Server) handler() http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/sessions", s.handleSessions)
+	mux.HandleFunc("/api/sessions/", s.handleSessionResource)
+	mux.HandleFunc("/api/adapters", s.handleAdapters)
+	mux.HandleFunc("/api/repomap", s.handleRepoMap)
+	mux.HandleFunc("/", s.handleStatic)
+	return requireLoopback(mux)
+}
+
+// requireLoopback rejects requests that did not originate locally. Binding to
+// 127.0.0.1 alone does not keep browsers out: any web page can fire
+// cross-site requests straight at a loopback port, and DNS rebinding can
+// point an attacker-controlled name at 127.0.0.1. The Host check pins the
+// name rebinding would forge; the Origin / Sec-Fetch-Site check stops
+// cross-site state changes — POST /analyze starts a judge run that costs
+// tokens and minutes. An Origin must name this server exactly: another
+// loopback origin (a different local server's page, or another port) is
+// still cross-origin. Requests without an Origin header (curl, same-origin
+// navigations) pass untouched.
+func requireLoopback(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !loopbackHost(r.Host) {
+			http.Error(w, "forbidden: non-local Host", http.StatusForbidden)
+			return
+		}
+		if r.Method != http.MethodGet {
+			if origin := r.Header.Get("Origin"); origin != "" && !sameOrigin(origin, r.Host) {
+				http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
+				return
+			}
+			switch r.Header.Get("Sec-Fetch-Site") {
+			case "", "same-origin", "none":
+			default:
+				http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func loopbackHost(hostport string) bool {
+	host := hostport
+	if h, _, err := net.SplitHostPort(hostport); err == nil {
+		host = h
+	}
+	host = normalizeHost(host)
+	return host == "127.0.0.1" || host == "localhost" || host == "::1"
+}
+
+// sameOrigin reports whether the Origin header names this server: scheme
+// http (the server never terminates TLS) and the same normalized host:port
+// the request was addressed to. "null" and malformed origins fail parsing
+// and are rejected.
+func sameOrigin(origin, requestHost string) bool {
+	parsed, err := url.Parse(origin)
+	if err != nil || parsed.Scheme != "http" || parsed.Host == "" {
+		return false
+	}
+	return hostPortKey(parsed.Host) == hostPortKey(requestHost)
+}
+
+// hostPortKey normalizes a host:port for origin comparison: lowercased host,
+// IPv6 brackets stripped, the http default port made explicit.
+func hostPortKey(hostport string) string {
+	host, port, err := net.SplitHostPort(hostport)
+	if err != nil {
+		host, port = hostport, "80"
+	}
+	return normalizeHost(host) + ":" + port
+}
+
+// normalizeHost lowercases a host and strips one matched pair of IPv6
+// brackets. Unmatched brackets stay put, so a malformed host ("localhost]")
+// remains malformed instead of normalizing into an allowed value.
+func normalizeHost(host string) string {
+	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
+		host = host[1 : len(host)-1]
+	}
+	return strings.ToLower(host)
 }
 
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
@@ -437,8 +503,9 @@ func (s *Server) handleSessionAgentTrace(w http.ResponseWriter, r *http.Request,
 
 		return
 	}
-
-	trace, err := s.parseSessionTrace(child)
+	// The raw layer caches the unprojected parse; projecting onto the root
+	// city clones, so the cached trace is never mutated.
+	trace, err := s.traceStore.LoadRaw(child)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 
@@ -492,8 +559,7 @@ func (s *Server) repoCityMap(repo string) (*model.CityMap, error) {
 	if entry, ok := s.repoMaps[repo]; ok && time.Since(entry.builtAt) < repoMapTTL {
 		return entry.city, nil
 	}
-
-	city, err := citymap.Builder{}.Build(repo, nil)
+	city, err := s.buildCityMap(repo, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -807,11 +873,10 @@ func (s *Server) summarizeCached(source adapter.Source, path string, info fs.Fil
 	}
 
 	key := summaryKey(source, path)
-	sidecar, sidecarExists := summarySidecarFingerprint(source, path)
-
+	sidecar := summarySidecarDigest(source, path)
 	s.mu.Lock()
 	if cached, ok := s.summaries[key]; ok && cached.size == info.Size() && cached.modTime.Equal(info.ModTime()) &&
-		cached.sidecarExists == sidecarExists && cached.sidecar.equal(sidecar) {
+		cached.sidecar == sidecar {
 		meta := cached.meta
 		s.mu.Unlock()
 
@@ -830,25 +895,37 @@ func (s *Server) summarizeCached(source adapter.Source, path string, info fs.Fil
 
 	s.mu.Lock()
 	s.summaries[key] = summaryCacheEntry{
-		size:          info.Size(),
-		modTime:       info.ModTime(),
-		sidecar:       sidecar,
-		sidecarExists: sidecarExists,
-		meta:          meta,
+		size:    info.Size(),
+		modTime: info.ModTime(),
+		sidecar: sidecar,
+		meta:    meta,
 	}
 	s.mu.Unlock()
 
 	return meta, nil
 }
 
-func summarySidecarFingerprint(source adapter.Source, path string) (fileFingerprint, bool) {
-	if source.Harness() != "claude-code" || !strings.HasPrefix(filepath.Base(path), "agent-") {
-		return fileFingerprint{}, false
+// summarySidecarDigest fingerprints the companion files the source declares
+// for path. The server holds no harness-specific sidecar knowledge — sources
+// that keep files beside their session logs implement SummarySidecarSource.
+func summarySidecarDigest(source adapter.Source, path string) string {
+	sidecars, ok := source.(adapter.SummarySidecarSource)
+	if !ok {
+		return ""
 	}
-
-	fingerprint, err := fingerprintFile(strings.TrimSuffix(path, ".jsonl") + ".meta.json")
-
-	return fingerprint, err == nil
+	inputs := sidecars.SummaryInputs(path)
+	if len(inputs) == 0 {
+		return ""
+	}
+	var material strings.Builder
+	for _, input := range inputs {
+		if fingerprint, err := fingerprintFile(input); err == nil {
+			fmt.Fprintf(&material, "%s\x00%d\x00%d\n", input, fingerprint.size, fingerprint.modTime.UnixNano())
+		} else {
+			fmt.Fprintf(&material, "%s\x00missing\n", input)
+		}
+	}
+	return material.String()
 }
 
 func (s *Server) pruneSummaryCache(seen map[string]bool) {
@@ -872,63 +949,7 @@ func (s *Server) traceAndMap(selector string) (*model.Trace, *model.CityMap, err
 }
 
 func (s *Server) traceAndMapMeta(meta model.SessionMeta) (*model.Trace, *model.CityMap, error) {
-	key := meta.Key
-	if key == "" {
-		key = adapter.SessionKey(meta.Harness, meta.Path)
-	}
-
-	for {
-		fingerprint, err := fingerprintPath(meta.Path)
-		if err != nil {
-			s.mu.Lock()
-			s.deleteTraceCacheLocked(key)
-			s.mu.Unlock()
-
-			return nil, nil, err
-		}
-
-		s.mu.Lock()
-		if trace := s.traces[key]; trace != nil {
-			cachedFingerprint, versioned := s.cacheFile[key]
-			if versioned && cachedFingerprint.equal(fingerprint) && time.Since(s.cacheAt[key]) < traceCacheTTL {
-				city := s.maps[key]
-				s.cacheUsed[key] = time.Now()
-				s.mu.Unlock()
-
-				return trace, city, nil
-			}
-
-			s.deleteTraceCacheLocked(key)
-		}
-
-		if load := s.inflight[key]; load != nil {
-			done := load.done
-			shareSnapshot := fingerprint.equal(load.fingerprint)
-			s.mu.Unlock()
-			<-done
-
-			// Requests that observed the same source version must receive the
-			// same trace/city snapshot, even if the active file grows while the
-			// shared parse is running. A request that already observed a newer
-			// version retries after the older load completes.
-			if shareSnapshot {
-				return load.trace, load.city, load.err
-			}
-
-			continue
-		}
-
-		load := &inflightLoad{done: make(chan struct{}), fingerprint: fingerprint}
-		s.inflight[key] = load
-		s.mu.Unlock()
-
-		// Keep the pre-parse fingerprint. If the active session grows during
-		// parsing, the next request will see a mismatch and reload it instead
-		// of treating the partial snapshot as current.
-		s.runInflight(key, load, meta, fingerprint)
-
-		return load.trace, load.city, load.err
-	}
+	return s.traceStore.LoadSnapshot(meta)
 }
 
 func (s *Server) agentGraph(root model.SessionMeta) (*model.AgentGraph, error) {
@@ -981,6 +1002,8 @@ func (s *Server) agentGraph(root model.SessionMeta) (*model.AgentGraph, error) {
 
 		s.mu.Lock()
 		if cached, ok := s.agentGraphs[root.Key]; ok && cached.fingerprint == fingerprint {
+			cached.used = time.Now()
+			s.agentGraphs[root.Key] = cached
 			s.mu.Unlock()
 
 			return cached.graph, nil
@@ -1009,7 +1032,7 @@ func (s *Server) agentGraph(root model.SessionMeta) (*model.AgentGraph, error) {
 		if graph, ok := loadAgentGraphFromDisk(fingerprint.digest); ok {
 			s.mu.Lock()
 
-			s.agentGraphs[root.Key] = agentGraphCacheEntry{fingerprint: fingerprint, graph: graph}
+			s.agentGraphs[root.Key] = agentGraphCacheEntry{fingerprint: fingerprint, graph: graph, used: time.Now()}
 			if s.agentGraphLoads[root.Key] == load {
 				delete(s.agentGraphLoads, root.Key)
 			}
@@ -1094,7 +1117,8 @@ func (s *Server) runAgentGraphInflight(
 
 		s.mu.Lock()
 		if load.err == nil {
-			s.agentGraphs[key] = agentGraphCacheEntry{fingerprint: load.fingerprint, graph: load.graph}
+			s.agentGraphs[key] = agentGraphCacheEntry{fingerprint: load.fingerprint, graph: load.graph, used: time.Now()}
+			s.evictAgentGraphsLocked()
 			storeAgentGraphToDisk(load.fingerprint.digest, load.graph)
 		}
 
@@ -1107,6 +1131,25 @@ func (s *Server) runAgentGraphInflight(
 	}()
 
 	load.graph, load.err = source.BuildAgentGraph(root, catalog)
+}
+
+// evictAgentGraphsLocked bounds the graph cache by dropping the least
+// recently used entries. Caller must hold mu.
+func (s *Server) evictAgentGraphsLocked() {
+	for len(s.agentGraphs) > agentGraphMaxEntries {
+		var oldestKey string
+		var oldest time.Time
+		for key, entry := range s.agentGraphs {
+			if oldestKey == "" || entry.used.Before(oldest) {
+				oldestKey = key
+				oldest = entry.used
+			}
+		}
+		if oldestKey == "" {
+			return
+		}
+		delete(s.agentGraphs, oldestKey)
+	}
 }
 
 // agentGraphCacheVersion is the on-disk format version. Bumping this
@@ -1285,39 +1328,6 @@ func (s *Server) findCatalogSession(key string) (model.SessionMeta, error) {
 	return meta, nil
 }
 
-// runInflight executes the shared load for key and publishes the result on
-// load. The finalize step — cache the result, drop the inflight entry, close
-// load.done — runs in a defer so a panicking loader cannot skip it. Without
-// that, net/http's per-connection recover would swallow the panic while the
-// inflight entry stayed registered, and every later request for the key
-// would block forever on a done channel nothing closes.
-func (s *Server) runInflight(key string, load *inflightLoad, meta model.SessionMeta, fingerprint fileFingerprint) {
-	defer func() {
-		if r := recover(); r != nil {
-			load.trace, load.city = nil, nil
-			load.err = fmt.Errorf("load session %s: %v", key, r)
-			log.Printf("mindwalk: panic loading session %s: %v\n%s", key, r, debug.Stack())
-		}
-
-		s.mu.Lock()
-		if load.err == nil {
-			s.traces[key] = load.trace
-			s.maps[key] = load.city
-			s.cacheFile[key] = fingerprint
-			now := time.Now()
-			s.cacheAt[key] = now
-			s.cacheUsed[key] = now
-			s.evictTraceCacheLocked()
-		}
-
-		delete(s.inflight, key)
-		close(load.done)
-		s.mu.Unlock()
-	}()
-
-	load.trace, load.city, load.err = s.loadTraceAndMap(meta)
-}
-
 func (s *Server) loadTraceAndMap(meta model.SessionMeta) (*model.Trace, *model.CityMap, error) {
 	trace, err := s.parseSessionTrace(meta)
 	if err != nil {
@@ -1339,6 +1349,7 @@ func (s *Server) loadTraceAndMap(meta model.SessionMeta) (*model.Trace, *model.C
 
 	city, err := s.buildCityMap(repoRoot, trace)
 	if err != nil {
+		log.Printf("mindwalk: citymap build failed for %s: %v; serving empty map", repoRoot, err)
 		city = emptyCityMap(repoRoot)
 	} else {
 		assignFileIDs(trace, city)
@@ -1438,14 +1449,6 @@ func (s *Server) findSession(selector string) (model.SessionMeta, error) {
 	return model.SessionMeta{}, errors.New("session not found")
 }
 
-func (s *Server) deleteTraceCacheLocked(key string) {
-	delete(s.traces, key)
-	delete(s.maps, key)
-	delete(s.cacheAt, key)
-	delete(s.cacheUsed, key)
-	delete(s.cacheFile, key)
-}
-
 func fingerprintFile(path string) (fileFingerprint, error) {
 	info, err := os.Stat(path)
 	if err != nil {
@@ -1473,29 +1476,6 @@ func fingerprintPath(path string) (fileFingerprint, error) {
 
 func (f fileFingerprint) equal(other fileFingerprint) bool {
 	return f.size == other.size && f.modTime.Equal(other.modTime)
-}
-
-func (s *Server) evictTraceCacheLocked() {
-	for len(s.traces) > traceCacheMaxEntries {
-		var (
-			oldestKey string
-			oldest    time.Time
-		)
-
-		for key := range s.traces {
-			used := s.cacheUsed[key]
-			if oldestKey == "" || used.Before(oldest) {
-				oldestKey = key
-				oldest = used
-			}
-		}
-
-		if oldestKey == "" {
-			return
-		}
-
-		s.deleteTraceCacheLocked(oldestKey)
-	}
 }
 
 func (s *Server) openSessionKey() string {

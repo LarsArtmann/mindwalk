@@ -276,7 +276,7 @@ func readClaudeAgentLaunches(path string) ([]*claudeAgentLaunch, error) {
 				}
 
 				launch.resultObserved = true
-				launch.resultError = item.IsError
+				launch.resultError = item.IsError != nil && *item.IsError
 			}
 		}
 	})

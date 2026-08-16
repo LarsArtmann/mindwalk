@@ -80,7 +80,10 @@ type Event struct {
 	Outside     []OutsideTouch `json:"outside,omitempty"`
 	ResultBytes int            `json:"resultBytes"`
 	IsError     bool           `json:"isError"`
-	Summary     string         `json:"summary"`
+	// OutcomeKnown distinguishes a recorded success from an unknown non-error
+	// result. IsError remains sufficient to identify failures in older traces.
+	OutcomeKnown bool   `json:"outcomeKnown,omitempty"`
+	Summary      string `json:"summary"`
 	// ProviderExecuted is true when the tool was executed server-side
 	// by the model provider rather than locally by the harness. Only
 	// the crush adapter sets this today.

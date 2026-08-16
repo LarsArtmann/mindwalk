@@ -26,6 +26,7 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 	weakReads := 0
 	repeatedReads := 0
 	errors := 0
+	unknownOutcomes := false
 	firstEdit := -1
 
 	stats := Stats{FilesInRepo: filesInRepo}
@@ -37,6 +38,8 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 			errors++
 
 			countAction(&stats.Errors, event.Action)
+		} else if !event.OutcomeKnown {
+			unknownOutcomes = true
 		}
 
 		stats.ResultBytes += int64(event.ResultBytes)
@@ -148,7 +151,9 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 	if errorSignal == "" {
 		errorSignal = ObservabilityEstimated
 	}
-
+	if errorSignal == ObservabilityExact && unknownOutcomes {
+		errorSignal = ObservabilityEstimated
+	}
 	stats.Observability.Errors = errorSignal
 
 	return stats

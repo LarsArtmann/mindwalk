@@ -114,6 +114,14 @@ type AgentGraphSource interface {
 	BuildAgentGraph(root model.SessionMeta, catalog []model.SessionMeta) (*model.AgentGraph, error)
 }
 
+// SummarySidecarSource lists companion files whose contents feed Summarize
+// for a session path. Which files a harness keeps beside its session logs is
+// adapter knowledge; callers only fingerprint the returned paths to decide
+// whether a cached summary is still valid.
+type SummarySidecarSource interface {
+	SummaryInputs(path string) []string
+}
+
 // IsAgentGraphSource reports whether a source implements the agent-graph
 // capability. Used by the server's adapter-status endpoint.
 func IsAgentGraphSource(src Source) bool {
@@ -193,9 +201,10 @@ type ToolCall struct {
 }
 
 type ToolResult struct {
-	ToolCallID string
-	Content    string
-	IsError    bool
+	ToolCallID   string
+	Content      string
+	IsError      bool
+	OutcomeKnown bool
 }
 
 // SessionKey identifies one session file independently of the harness-level
@@ -388,6 +397,7 @@ func BuildEvent(trace *model.Trace, call ToolCall, result ToolResult) model.Even
 		Outside:          outside,
 		ResultBytes:      len(result.Content),
 		IsError:          result.IsError,
+		OutcomeKnown:     result.OutcomeKnown,
 		Summary:          SummarizeTool(call.Name, call.Input, targets, outside, result.IsError),
 		ProviderExecuted: call.ProviderExecuted,
 	}

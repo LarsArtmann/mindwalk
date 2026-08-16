@@ -35,8 +35,11 @@ mindwalk
 
 The installer verifies the binary against `checksums.txt` and installs to
 `~/.local/bin` (override with `INSTALL_DIR`; pin a release with `VERSION`).
-Windows archives are on [GitHub Releases](https://github.com/cosmtrek/mindwalk/releases).
+Windows archives are on [GitHub Releases](https://github.com/cosmtrek/mindwalk/releases)
 To build from source: `make setup && make build` → `bin/mindwalk`.
+
+>[!TIP]
+>**Nix** users can add mindwalk via [numtide/llm-agents](https://github.com/numtide/llm-agents.nix) flake.
 
 With no arguments, mindwalk scans `~/.claude/projects`, `~/.codex/sessions`,
 and `~/.pi/agent/sessions`, and the per-project `.crush/crush.db` (or
