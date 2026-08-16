@@ -1473,14 +1473,17 @@ func fingerprintFile(path string) (fileFingerprint, error) {
 	return fileFingerprint{size: info.Size(), modTime: info.ModTime()}, nil
 }
 
-// fingerprintPath handles paths that are not real on-disk files.
+// fingerprintPath handles paths that may not be real on-disk files.
 // Adapters that surface sessions via a database (Crush) hand the
 // rest of the server a synthetic "crush://session/<id>" handle;
-// os.Stat rejects those, but the per-call result still needs a
-// fingerprint to drive the trace cache. We synthesise a stable zero
-// fingerprint for those cases — the cache always misses, so each
-// request goes back to the adapter, which is fine for a DB-backed
-// source.
+// os.Stat rejects those, but the trace cache still needs a
+// fingerprint key for every session. We synthesise a stable zero
+// fingerprint for those paths so the cache always misses — every
+// request is delegated to the adapter, which can answer from its
+// own in-memory or DB layer. The choice is deliberate: a hash of
+// session metadata would let two different sessions masquerade as
+// one if their paths happened to collide, so the trade is "always
+// hit the source" instead.
 func fingerprintPath(path string) (fileFingerprint, error) {
 	if crush.IsSessionPath(path) {
 		return fileFingerprint{}, nil
