@@ -365,6 +365,7 @@ func BenchmarkFixtureBuildAgentGraph(b *testing.B) {
 	}
 
 	root := catalog[0]
+
 	b.ReportAllocs()
 
 	for b.Loop() {

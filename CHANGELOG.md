@@ -377,6 +377,43 @@ finished_at` when the columns are absent.
   `min()`, `WaitGroup.Go`, `strings.Cut`, `maps.Copy`,
   `strings.SplitSeq`, `range int`, `new(value)`.
 - All errcheck warnings resolved; LSP shows 0 project warnings.
+- **`server.storeAgentGraphToDisk` no longer holds `s.mu` across the
+  filesystem write** — the snapshot is captured under the lock and
+  the disk write happens after `Unlock()`. Reduces lock-hold time
+  for in-flight agent-graph requests and avoids blocking SSE
+  handlers while a slow disk absorbs a write.
+- **Dead `port == 0 { port = 0 }` branch removed** — `net.Listen`
+  already returns a `*net.TCPListener` whose `.Addr().(*net.TCPAddr).Port`
+  reflects the OS-assigned free port; the conditional was a no-op.
+- **Crush cross-message tool_call/result pairing** — `Parse` now
+  folds `tool_result`s from later messages against the
+  corresponding `tool_call.id` recorded earlier, so outcome
+  observability reaches "exact" instead of "estimated" when an
+  assistant message and its tool results live in different
+  messages. Regression test
+  `TestFixtureErrorObservability` pins the behaviour.
+- **Crush `parts.go` folds set `OutcomeKnown: true`** — the
+  same-message `ToolResultPart` and `ShellCommandPart` paths now
+  carry the explicit `OutcomeKnown` flag, matching the four
+  adapters' contract.
+- **`server.fingerprintPath` documents its zero-fingerprint
+  trade-off** — a comment explains why an unknown-shape session
+  path always misses the cache rather than risking a
+  collision-prone metadata hash.
+- **`docs/MERGE_CHECKLIST.md`** — three-tier pre-merge review
+  (parity, lint, runtime) plus invariants every PR must preserve.
+- **Schema↔`types.ts` parity test**
+  (`internal/model/trace_schema_parity_test.go`) — every required
+  `trace.schema.json` property must appear in the frontend
+  `TraceEvent` union; uses a brace-tracking TS scanner so it
+  catches drift on new fields.
+- **`BenchmarkFixtureBuildAgentGraph`** — pinned baseline
+  (~720 µs/op, 54 KB/op, 852 allocs/op) on the committed fixture
+  for the v0.3.0 CTE-backed build path. Future regressions
+  surface here.
+- **`DecodeTodos` spike (`todo_spike_test.go`)** — confirms the
+  v0.3.0 SDK path works end-to-end against the committed fixture
+  (which currently has zero todo rows, so no UI yet).
 
 ## [0.0.0] - initial
 

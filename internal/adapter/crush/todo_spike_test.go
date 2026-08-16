@@ -1,3 +1,4 @@
+//nolint:testpackage,paralleltest // See docstring below for the paralleltest exception.
 package crush
 
 import (
@@ -19,10 +20,10 @@ import (
 // Note: this test writes briefly to the committed fixture DB while
 // ListSessions probes its schema (see openCached path), so it runs
 // serially with sibling tests to avoid "database is locked" under
-// -race.
+// -race. Do NOT mark t.Parallel().
 func TestSpikeDecodeTodosFromFixture(t *testing.T) {
-
 	dir := fixtureDir(t)
+
 	a := Adapter{Dir: dir}
 
 	// ListSessions populates the dbIndex so openDBForPath can
@@ -34,13 +35,14 @@ func TestSpikeDecodeTodosFromFixture(t *testing.T) {
 
 	for _, meta := range metas {
 		path := SessionPath(meta.ID)
-		h, openErr := a.openDBForPath(path)
+
+		handle, openErr := a.openDBForPath(path)
 		if openErr != nil {
 			t.Fatalf("openDBForPath(%s): %v", path, openErr)
 		}
 
-		sess, sessionErr := h.inner.Session(t.Context(), meta.ID)
-		_ = h.close()
+		sess, sessionErr := handle.inner.Session(t.Context(), meta.ID)
+		_ = handle.close()
 
 		if sessionErr != nil {
 			t.Fatalf("Session(%s): %v", meta.ID, sessionErr)
@@ -63,6 +65,7 @@ func TestSpikeDecodeTodosFromFixture(t *testing.T) {
 
 		if len(todos) > 0 {
 			t.Logf("session %s: decoded %d todo entries", meta.ID, len(todos))
+
 			for _, todo := range todos {
 				t.Logf("  status=%s content=%.100q", todo.Status, todo.Content)
 			}

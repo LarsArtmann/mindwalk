@@ -1,3 +1,4 @@
+//nolint:testpackage // Match the rest of the model test files (agent_schema_test, schema_test, etc).
 package model
 
 import (
@@ -52,6 +53,7 @@ func TestTraceSchemaParityWithTypesScript(t *testing.T) {
 	events := schema.Properties["events"].Items
 
 	var missing []string
+
 	for _, name := range events.Required {
 		if _, ok := lookupTSField(typesBytes, "TraceEvent", name); !ok {
 			missing = append(missing, name)
