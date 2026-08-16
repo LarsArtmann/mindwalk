@@ -1108,6 +1108,11 @@ func (s *Server) runAgentGraphInflight(
 	root model.SessionMeta,
 	catalog []model.SessionMeta,
 ) {
+	var (
+		storeDigest [sha256.Size]byte
+		storeGraph  *model.AgentGraph
+	)
+
 	defer func() {
 		if r := recover(); r != nil {
 			load.graph = nil
@@ -1119,7 +1124,13 @@ func (s *Server) runAgentGraphInflight(
 		if load.err == nil {
 			s.agentGraphs[key] = agentGraphCacheEntry{fingerprint: load.fingerprint, graph: load.graph, used: time.Now()}
 			s.evictAgentGraphsLocked()
-			storeAgentGraphToDisk(load.fingerprint.digest, load.graph)
+			// Capture the snapshot for the disk write, then drop the
+			// lock before performing I/O. Holding mu across the write
+			// would block every concurrent agent-graph request behind
+			// the slowest disk — load.graph is read-only after the
+			// assignment above, so the snapshot is safe to publish.
+			storeDigest = load.fingerprint.digest
+			storeGraph = load.graph
 		}
 
 		if s.agentGraphLoads[key] == load {
@@ -1128,6 +1139,10 @@ func (s *Server) runAgentGraphInflight(
 
 		close(load.done)
 		s.mu.Unlock()
+
+		if storeGraph != nil {
+			storeAgentGraphToDisk(storeDigest, storeGraph)
+		}
 	}()
 
 	load.graph, load.err = source.BuildAgentGraph(root, catalog)
