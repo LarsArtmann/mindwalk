@@ -40,7 +40,7 @@
 
 | Task                                    | Status    | Impact | Effort | Evidence                                                                                                                 |
 | --------------------------------------- | --------- | ------ | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| SSE frontend deduplication on reconnect | 🔴 `TODO` | Low    | 30min  | Server now emits `id:` lines and honors `Last-Event-ID`, but `App.tsx:568` still blindly appends. Frontend dedup needed. |
+| ~~SSE frontend deduplication on reconnect~~ | ~~Done~~ | Low | — | `web/src/api/client.ts:88` `makeProgressDeduper` + `openAnalyzeStream` at `client.ts:107` filter replays via `e.lastEventId`. Tested in `web/src/api/client.test.ts`. No outstanding work. |
 
 ---
 
