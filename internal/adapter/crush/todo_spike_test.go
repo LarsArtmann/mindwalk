@@ -15,8 +15,12 @@ import (
 // field + UI surface; if it fails, the todo column shape
 // differs from what the SDK expects and the follow-up changes
 // first.
+//
+// Note: this test writes briefly to the committed fixture DB while
+// ListSessions probes its schema (see openCached path), so it runs
+// serially with sibling tests to avoid "database is locked" under
+// -race.
 func TestSpikeDecodeTodosFromFixture(t *testing.T) {
-	t.Parallel()
 
 	dir := fixtureDir(t)
 	a := Adapter{Dir: dir}
