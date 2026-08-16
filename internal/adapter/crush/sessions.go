@@ -404,20 +404,20 @@ func (a Adapter) Parse(path string) (*model.Trace, error) {
 		// parsed.results without a matching in-message call would
 		// otherwise stay unpaired and ComputeStats would mark every
 		// such event OutcomeKnown=false.
-		for _, r := range parsed.results {
-			if r.ToolCallID == "" {
+		for _, crossMessageResult := range parsed.results {
+			if crossMessageResult.ToolCallID == "" {
 				continue
 			}
 
-			if _, seen := pending[r.ToolCallID]; !seen {
+			if _, seen := pending[crossMessageResult.ToolCallID]; !seen {
 				continue
 			}
 
-			if existing, ok := results[r.ToolCallID]; ok && existing.OutcomeKnown {
+			if existing, ok := results[crossMessageResult.ToolCallID]; ok && existing.OutcomeKnown {
 				continue
 			}
 
-			results[r.ToolCallID] = r
+			results[crossMessageResult.ToolCallID] = crossMessageResult
 		}
 	}
 

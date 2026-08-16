@@ -291,6 +291,8 @@ func TestFixtureReadObservability(t *testing.T) {
 // to estimated the moment any event carries OutcomeKnown=false,
 // which acts as a tripwire for future schema drift.
 func TestFixtureErrorObservability(t *testing.T) {
+	t.Parallel()
+
 	dir := fixtureDir(t)
 
 	trace, err := Adapter{Dir: dir}.Parse(SessionPath("fixture-root"))
