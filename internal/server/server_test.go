@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -2270,8 +2272,6 @@ const (
 //
 //nolint:cyclop // Single-shot integration-style test; refactoring would obscure the contract being pinned.
 func TestServerStartBindsPortZero(t *testing.T) {
-	t.Parallel()
-
 	srv := New(Config{
 		ClaudeDir: filepath.Join(t.TempDir(), "no-claude"),
 		CodexDir:  filepath.Join(t.TempDir(), "no-codex"),
@@ -2358,7 +2358,6 @@ func TestServerStartBindsPortZero(t *testing.T) {
 // Start was never called (e.g. if the goroutine is racing with a
 // SIGTERM before Serve has set s.httpServer). Must not panic.
 func TestServerShutdownBeforeStartIsNoOp(t *testing.T) {
-	t.Parallel()
 
 	srv := New(Config{
 		ClaudeDir: filepath.Join(t.TempDir(), "no-claude"),
@@ -2371,5 +2370,63 @@ func TestServerShutdownBeforeStartIsNoOp(t *testing.T) {
 
 	if err := srv.Shutdown(ctx); err != nil {
 		t.Fatalf("Shutdown on un-started server: %v", err)
+	}
+}
+
+// TestAgentGraphCacheConcurrentEvictionUnderLoad races many goroutines
+// that fill the agent-graph cache past agentGraphMaxEntries, then
+// triggers eviction. The invariant: after all goroutines finish, the
+// cache size never exceeds agentGraphMaxEntries. This is the test
+// the post-merge plan's item 32 called out as missing — it would
+// have caught any future regression in evictAgentGraphsLocked that
+// loses entries under concurrent reads/writes.
+//
+//nolint:paralleltest // spawns its own goroutines; a parallel group would race with siblings on the same Server.
+func TestAgentGraphCacheConcurrentEvictionUnderLoad(t *testing.T) {
+	const (
+		writers         = 8
+		insertsPerWrite = 64 // 8 * 64 = 512 > agentGraphMaxEntries
+	)
+
+	srv := New(Config{
+		ClaudeDir: filepath.Join(t.TempDir(), "no-claude"),
+		CodexDir:  filepath.Join(t.TempDir(), "no-codex"),
+		PiDir:     filepath.Join(t.TempDir(), "no-pi"),
+	})
+
+	var waitGroup sync.WaitGroup
+
+	waitGroup.Add(writers)
+
+	for workerID := range writers {
+		go func(workerID int) {
+			defer waitGroup.Done()
+
+			for i := range insertsPerWrite {
+				key := fmt.Sprintf("w%d-k%d", workerID, i)
+
+				srv.mu.Lock()
+				srv.agentGraphs[key] = agentGraphCacheEntry{
+					fingerprint: agentGraphFingerprint{},
+					graph:       &model.AgentGraph{Version: model.AgentGraphVersion, RootSessionKey: key},
+					used:        time.Now(),
+				}
+				srv.evictAgentGraphsLocked()
+				srv.mu.Unlock()
+			}
+		}(workerID)
+	}
+
+	waitGroup.Wait()
+
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	if len(srv.agentGraphs) > agentGraphMaxEntries {
+		t.Fatalf("cache size %d exceeds cap %d after concurrent eviction", len(srv.agentGraphs), agentGraphMaxEntries)
+	}
+
+	if len(srv.agentGraphs) == 0 {
+		t.Fatal("cache is empty after 512 inserts; entries were lost")
 	}
 }
