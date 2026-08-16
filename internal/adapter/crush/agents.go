@@ -1,10 +1,12 @@
 package crush
 
 import (
+	"context"
 	"encoding/json"
 	"sort"
 	"strings"
 
+	crushdata "github.com/LarsArtmann/go-crush-data"
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
@@ -37,21 +39,18 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, catalog []model.Sessio
 	}
 
 	for _, dbPath := range a.enumerateDBPaths() {
-		db, err := openReadOnlyAt(dbPath)
+		db, err := openAt(dbPath)
 		if err != nil || db == nil {
 			continue
 		}
 
-		if rows, err := db.db.Query(buildAllSessionsQuery(db.cols)); err == nil {
-			for rows.Next() {
-				meta, err := scanSessionMeta(rows)
-				if err == nil && meta.Agent != nil {
+		sessions, err := db.inner.Sessions(context.Background(), crushdata.SessionFilter{})
+		if err == nil {
+			for _, cs := range sessions {
+				if meta := sessionMeta(cs); meta.Agent != nil {
 					paths[meta.Path] = true
 				}
 			}
-
-			_ = rows.Err()
-			_ = rows.Close() //nolint:sqlclosecheck // loop-scoped, can't defer
 		}
 
 		_ = db.close()
@@ -99,10 +98,8 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 	childrenByParent := indexChildrenByParent(catalog)
 
-	if extras, err := a.loadAgentChildren(); err == nil {
-		for _, child := range extras {
-			childrenByParent[child.Agent.RootSessionID] = append(childrenByParent[child.Agent.RootSessionID], child)
-		}
+	for _, child := range a.loadAgentChildren() {
+		childrenByParent[child.Agent.RootSessionID] = append(childrenByParent[child.Agent.RootSessionID], child)
 	}
 
 	launches, err := a.readAgentLaunches(root.Path)
@@ -198,43 +195,34 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 // loadAgentChildren reads every auxiliary (agent-tool) session
 // from every known database. ListSessions hides these from the rail, but
 // the agent graph builder needs them so it can match launches to
-// child rows. Errors are non-fatal: the catalog the caller passed
-// in is the source of truth, this is just a supplement.
-func (a Adapter) loadAgentChildren() ([]model.SessionMeta, error) {
+// child rows. Databases that fail to open or answer are skipped — the
+// catalog the caller passed in remains the source of truth.
+func (a Adapter) loadAgentChildren() []model.SessionMeta {
 	var children []model.SessionMeta
 
 	for _, dbPath := range a.enumerateDBPaths() {
-		db, err := openReadOnlyAt(dbPath)
+		db, err := openAt(dbPath)
 		if err != nil || db == nil {
 			continue
 		}
 
-		rows, err := db.db.Query(buildAllSessionsQuery(db.cols))
+		sessions, err := db.inner.Sessions(context.Background(), crushdata.SessionFilter{})
 		if err != nil {
 			_ = db.close()
 
 			continue
 		}
 
-		for rows.Next() {
-			meta, err := scanSessionMeta(rows)
-			if err != nil {
-				continue
-			}
-
-			if meta.Agent != nil {
+		for _, cs := range sessions {
+			if meta := sessionMeta(cs); meta.Agent != nil {
 				children = append(children, meta)
 			}
 		}
 
-		_ = rows.Err()
-
-		_ = rows.Err()
-		_ = rows.Close() //nolint:sqlclosecheck // loop-scoped, can't defer
 		_ = db.close()
 	}
 
-	return children, nil
+	return children
 }
 
 // indexChildrenByParent groups the catalog's auxiliary sessions by the
@@ -288,11 +276,10 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	}
 	defer db.closeDiscard()
 
-	rows, err := db.db.Query(buildMessagesBySessionQuery(db.cols), sessionID)
+	messages, err := db.inner.Messages(context.Background(), sessionID)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = rows.Close() }()
 
 	launches := []adapter.AgentLaunch{}
 	launchByCallID := make(map[string]int)
@@ -300,24 +287,8 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 	seenResults := make(map[string]bool)
 	seq := 0
 
-	for rows.Next() {
-		var msg messageRow
-		if err := rows.Scan(
-			&msg.ID,
-			&msg.Role,
-			&msg.Parts,
-			&msg.Model,
-			&msg.Provider,
-			&msg.CreatedAt,
-			&msg.FinishedAt,
-		); err != nil {
-			return nil, err
-		}
-
-		parsed, err := decodeParts(msg.Parts, "")
-		if err != nil {
-			continue
-		}
+	for _, msg := range messages {
+		parsed := foldParts(msg.Parts, "")
 		// Record each agent tool call (first occurrence wins).
 		// The events loop runs first so a tool result observed in
 		// the same message finds its corresponding launch.
@@ -358,10 +329,6 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 			launches[idx].Output = result.Content
 			launches[idx].OutputObserved = true
 		}
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
 	}
 
 	return launches, nil

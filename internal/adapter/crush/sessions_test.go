@@ -329,12 +329,14 @@ func TestProjectPathForDBEmptyInput(t *testing.T) {
 }
 
 // TestWarnIfOldSchemaDetectsMissingColumns verifies that a database
-// without the expected columns is detected as old-schema.
+// without the optional columns is detected as old-schema.
 func TestWarnIfOldSchemaDetectsMissingColumns(t *testing.T) {
 	tmp := t.TempDir()
-	dbPath := filepath.Join(tmp, "old.db")
-	// Create a database with a deliberately minimal messages table
-	// missing model, provider, and parent_session_id.
+	// The SDK opens <dir>/crush.db, so the file must carry that name.
+	dbPath := filepath.Join(tmp, "crush.db")
+	// Create a database with the required tables but none of the
+	// optional columns (sessions.cost/parent_session_id,
+	// messages.model/provider/finished_at).
 	dir := filepath.Dir(dbPath)
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
@@ -349,6 +351,16 @@ func TestWarnIfOldSchemaDetectsMissingColumns(t *testing.T) {
 	t.Cleanup(func() { _ = handle.Close() })
 
 	if _, err := handle.Exec(`
+		CREATE TABLE sessions (
+			id TEXT PRIMARY KEY,
+			title TEXT NOT NULL,
+			message_count INTEGER NOT NULL DEFAULT 0,
+			prompt_tokens INTEGER NOT NULL DEFAULT 0,
+			completion_tokens INTEGER NOT NULL DEFAULT 0,
+			updated_at INTEGER NOT NULL,
+			created_at INTEGER NOT NULL,
+			todos TEXT
+		);
 		CREATE TABLE messages (
 			id TEXT PRIMARY KEY,
 			session_id TEXT NOT NULL,
@@ -361,12 +373,22 @@ func TestWarnIfOldSchemaDetectsMissingColumns(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h := &sqlHandle{path: dbPath, db: handle}
+	h, err := openAt(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if h == nil {
+		t.Fatal("openAt returned nil handle for an existing database")
+	}
+
+	t.Cleanup(func() { _ = h.close() })
+
 	a := NewAdapter("")
 
-	missing := schemaMissingColumns(h)
-	if len(missing) != 3 {
-		t.Fatalf("expected 3 missing columns, got %d: %v", len(missing), missing)
+	missing := h.missingColumns()
+	if len(missing) != 5 {
+		t.Fatalf("expected 5 missing columns, got %d: %v", len(missing), missing)
 	}
 
 	if a.warnIfOldSchema(h) != true {
@@ -380,10 +402,10 @@ func TestWarnIfOldSchemaDetectsMissingColumns(t *testing.T) {
 }
 
 // TestWarnIfOldSchemaSkipsGoodSchema verifies that a database with all
-// expected columns does not trigger a warning.
+// well-known columns does not trigger a warning.
 func TestWarnIfOldSchemaSkipsGoodSchema(t *testing.T) {
 	tmp := t.TempDir()
-	dbPath := filepath.Join(tmp, "good.db")
+	dbPath := filepath.Join(tmp, "crush.db")
 
 	handle, err := sql.Open("sqlite", "file:"+dbPath+"?_pragma=journal_mode(WAL)")
 	if err != nil {
@@ -394,6 +416,18 @@ func TestWarnIfOldSchemaSkipsGoodSchema(t *testing.T) {
 	t.Cleanup(func() { _ = handle.Close() })
 
 	if _, err := handle.Exec(`
+		CREATE TABLE sessions (
+			id TEXT PRIMARY KEY,
+			parent_session_id TEXT,
+			title TEXT NOT NULL,
+			message_count INTEGER NOT NULL DEFAULT 0,
+			prompt_tokens INTEGER NOT NULL DEFAULT 0,
+			completion_tokens INTEGER NOT NULL DEFAULT 0,
+			cost REAL NOT NULL DEFAULT 0.0,
+			updated_at INTEGER NOT NULL,
+			created_at INTEGER NOT NULL,
+			todos TEXT
+		);
 		CREATE TABLE messages (
 			id TEXT PRIMARY KEY,
 			session_id TEXT NOT NULL,
@@ -401,18 +435,28 @@ func TestWarnIfOldSchemaSkipsGoodSchema(t *testing.T) {
 			parts TEXT NOT NULL DEFAULT '[]',
 			model TEXT,
 			provider TEXT,
-			parent_session_id TEXT,
 			created_at INTEGER NOT NULL,
-			updated_at INTEGER NOT NULL
+			updated_at INTEGER NOT NULL,
+			finished_at INTEGER
 		);
 	`); err != nil {
 		t.Fatal(err)
 	}
 
-	h := &sqlHandle{path: dbPath, db: handle}
+	h, err := openAt(dbPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if h == nil {
+		t.Fatal("openAt returned nil handle for an existing database")
+	}
+
+	t.Cleanup(func() { _ = h.close() })
+
 	a := NewAdapter("")
 
-	missing := schemaMissingColumns(h)
+	missing := h.missingColumns()
 	if len(missing) != 0 {
 		t.Fatalf("expected 0 missing columns, got %d: %v", len(missing), missing)
 	}
