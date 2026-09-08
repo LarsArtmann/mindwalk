@@ -17,9 +17,9 @@
 
 ## Medium Impact
 
-| Task                         | Status       | Impact | Effort | Evidence                                                                                                                                      |
-| ---------------------------- | ------------ | ------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Upstream-PR decision (T24)   | 🔵 `BLOCKED` | Medium | n/a    | T06+T07 (OutcomeKnown + cross-message pairing) are upstream-applicable and self-contained; T12 (s.mu order) and the crush adapter itself are fork-only. User must choose before any push to `cosmtrek/mindwalk`. |
+| Task                       | Status       | Impact | Effort | Evidence                                                                                                                                                                                                         |
+| -------------------------- | ------------ | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Upstream-PR decision (T24) | 🔵 `BLOCKED` | Medium | n/a    | T06+T07 (OutcomeKnown + cross-message pairing) are upstream-applicable and self-contained; T12 (s.mu order) and the crush adapter itself are fork-only. User must choose before any push to `cosmtrek/mindwalk`. |
 
 > Post-merge recovery batch (OutcomeKnown gap, sdk→master merge, lint/nix/frontend
 > verification, merge checklist, parity test, and more — 31 tasks): see the Pareto
@@ -31,9 +31,9 @@
 
 ## Low Impact
 
-| Task                                    | Status    | Impact | Effort | Evidence                                                                                                                 |
-| --------------------------------------- | --------- | ------ | ------ | ------------------------------------------------------------------------------------------------------------------------ |
-| ~~SSE frontend deduplication on reconnect~~ | ~~Done~~ | Low | — | `web/src/api/client.ts:88` `makeProgressDeduper` + `openAnalyzeStream` at `client.ts:107` filter replays via `e.lastEventId`. Tested in `web/src/api/client.test.ts`. No outstanding work. |
+| Task                                        | Status   | Impact | Effort | Evidence                                                                                                                                                                                   |
+| ------------------------------------------- | -------- | ------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ~~SSE frontend deduplication on reconnect~~ | ~~Done~~ | Low    | —      | `web/src/api/client.ts:88` `makeProgressDeduper` + `openAnalyzeStream` at `client.ts:107` filter replays via `e.lastEventId`. Tested in `web/src/api/client.test.ts`. No outstanding work. |
 
 ---
 

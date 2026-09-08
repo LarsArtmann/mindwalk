@@ -104,8 +104,8 @@ Raw ideas:
 - Relative timestamps ("2h ago"), color-coded harness indicators, a coverage
   gauge, error markers on the timeline strip, and a report summary verdict.
 - Set up Vitest so the pure-logic modules (`reducer.ts`, `filters.ts`,
-  `treeLayout.ts`, `sceneUtils.ts`) gain unit coverage. *(Done —
-  Vitest + jsdom is live; see TODO_LIST notes.)*
+  `treeLayout.ts`, `sceneUtils.ts`) gain unit coverage. _(Done —
+  Vitest + jsdom is live; see TODO_LIST notes.)_
 - Surface the session's todo state (Crush `todos` column, decoded by
   go-crush-data `DecodeTodos`; the data path is proven by the crush
   adapter's `todo_spike_test.go`) — a todo-list panel or timeline

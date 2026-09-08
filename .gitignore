@@ -4,6 +4,7 @@
 
 # Build artifacts
 web/tsconfig.tsbuildinfo
+/bin/
 
 # SQLite transient files
 *.db-wal

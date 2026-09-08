@@ -38,8 +38,8 @@ The installer verifies the binary against `checksums.txt` and installs to
 Windows archives are on [GitHub Releases](https://github.com/cosmtrek/mindwalk/releases)
 To build from source: `make setup && make build` → `bin/mindwalk`.
 
->[!TIP]
->**Nix** users can add mindwalk via [numtide/llm-agents](https://github.com/numtide/llm-agents.nix) flake.
+> [!TIP]
+> **Nix** users can add mindwalk via [numtide/llm-agents](https://github.com/numtide/llm-agents.nix) flake.
 
 ## Quick start
 

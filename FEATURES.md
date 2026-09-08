@@ -113,19 +113,19 @@
 
 ## Testing and CI
 
-| Feature              | Status                | Notes                                                                                     |
-| -------------------- | --------------------- | ----------------------------------------------------------------------------------------- |
-| Go test suite        | 🟢 `FULLY_FUNCTIONAL` | 12 packages, all green; `-race` enabled                                                   |
-| Crush fixture tests  | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/crush.db`; end-to-end server test, parts parser, agent graph              |
-| CI workflow          | 🟢 `FULLY_FUNCTIONAL` | `.github/workflows/ci.yml`; `go test`, `go vet`, `golangci-lint`, `-race`, frontend `tsc` |
-| CLI test isolation   | 🟢 `FULLY_FUNCTIONAL` | `TestMain` redirects `CRUSH_GLOBAL_DATA`/`XDG_DATA_HOME`/`MINDWALK_HOME`                  |
-| Schema validation    | 🟢 `FULLY_FUNCTIONAL` | `internal/model/schema_test.go`; all 5 schemas validated against Go types                 |
-| Property-based tests | 🟢 `FULLY_FUNCTIONAL` | `testing/quick` for `normalizePath`, citymap determinism, `truncateNote`                  |
-| Fuzz tests           | 🟢 `FULLY_FUNCTIONAL` | `testing.F` for `gitDiffTargets`, `decodeParts`, `splitAgentID`                           |
-| Fixture builder      | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/build.go`; regenerates `crush.db` from scratch                            |
-| E2E browser tests    | ⚪ `PLANNED`          | Playwright config exists (`web/playwright.config.ts`); agent-lens spec only               |
-| Frontend unit tests  | 🟢 `FULLY_FUNCTIONAL` | Vitest + jsdom; 44 tests across reducer, filters, treeLayout; wired into CI               |
-| Schema↔TS parity test | 🟢 `FULLY_FUNCTIONAL` | `internal/model/trace_schema_parity_test.go`; every required `trace.schema.json` property must appear in `web/src/types.ts` `TraceEvent` union |
-| Agent-graph benchmark | 🟢 `FULLY_FUNCTIONAL` | `BenchmarkFixtureBuildAgentGraph`; pins the v0.3.0 CTE-backed build path on the committed fixture |
-| Merge checklist       | 🟢 `FULLY_FUNCTIONAL` | `docs/MERGE_CHECKLIST.md`; three-tier pre-merge review (parity, lint, runtime)             |
-| Crush error-observability regression test | 🟢 `FULLY_FUNCTIONAL` | `TestFixtureErrorObservability`; pins OutcomeKnown contract + cross-message result pairing |
+| Feature                                   | Status                | Notes                                                                                                                                          |
+| ----------------------------------------- | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Go test suite                             | 🟢 `FULLY_FUNCTIONAL` | 12 packages, all green; `-race` enabled                                                                                                        |
+| Crush fixture tests                       | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/crush.db`; end-to-end server test, parts parser, agent graph                                                                   |
+| CI workflow                               | 🟢 `FULLY_FUNCTIONAL` | `.github/workflows/ci.yml`; `go test`, `go vet`, `golangci-lint`, `-race`, frontend `tsc`                                                      |
+| CLI test isolation                        | 🟢 `FULLY_FUNCTIONAL` | `TestMain` redirects `CRUSH_GLOBAL_DATA`/`XDG_DATA_HOME`/`MINDWALK_HOME`                                                                       |
+| Schema validation                         | 🟢 `FULLY_FUNCTIONAL` | `internal/model/schema_test.go`; all 5 schemas validated against Go types                                                                      |
+| Property-based tests                      | 🟢 `FULLY_FUNCTIONAL` | `testing/quick` for `normalizePath`, citymap determinism, `truncateNote`                                                                       |
+| Fuzz tests                                | 🟢 `FULLY_FUNCTIONAL` | `testing.F` for `gitDiffTargets`, `decodeParts`, `splitAgentID`                                                                                |
+| Fixture builder                           | 🟢 `FULLY_FUNCTIONAL` | `testdata/crush/build.go`; regenerates `crush.db` from scratch                                                                                 |
+| E2E browser tests                         | ⚪ `PLANNED`          | Playwright config exists (`web/playwright.config.ts`); agent-lens spec only                                                                    |
+| Frontend unit tests                       | 🟢 `FULLY_FUNCTIONAL` | Vitest + jsdom; 44 tests across reducer, filters, treeLayout; wired into CI                                                                    |
+| Schema↔TS parity test                     | 🟢 `FULLY_FUNCTIONAL` | `internal/model/trace_schema_parity_test.go`; every required `trace.schema.json` property must appear in `web/src/types.ts` `TraceEvent` union |
+| Agent-graph benchmark                     | 🟢 `FULLY_FUNCTIONAL` | `BenchmarkFixtureBuildAgentGraph`; pins the v0.3.0 CTE-backed build path on the committed fixture                                              |
+| Merge checklist                           | 🟢 `FULLY_FUNCTIONAL` | `docs/MERGE_CHECKLIST.md`; three-tier pre-merge review (parity, lint, runtime)                                                                 |
+| Crush error-observability regression test | 🟢 `FULLY_FUNCTIONAL` | `TestFixtureErrorObservability`; pins OutcomeKnown contract + cross-message result pairing                                                     |
