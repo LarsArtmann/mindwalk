@@ -7,8 +7,8 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     proxy: {
-      "/api": "http://127.0.0.1:8765"
-    }
+      "/api": "http://127.0.0.1:8765",
+    },
   },
   build: {
     sourcemap: true,
@@ -21,8 +21,8 @@ export default defineConfig({
           if (id.includes("node_modules/three/")) return "three";
           if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react";
           return undefined;
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });

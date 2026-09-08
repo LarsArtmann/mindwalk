@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/model"
 )
 
@@ -17,11 +18,7 @@ type Cache struct {
 // DefaultCacheDir is ~/.mindwalk/reports — mindwalk's own data directory,
 // never inside ~/.claude, ~/.codex, or the inspected repository.
 func DefaultCacheDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".mindwalk", "reports")
+	return adapter.HomePath(".mindwalk", "reports")
 }
 
 func (c Cache) path(sessionKey string) string {
@@ -40,10 +37,12 @@ func (c Cache) Load(sessionKey string) *model.Report {
 	if c.Dir == "" || sessionKey == "" {
 		return nil
 	}
+
 	data, err := os.ReadFile(c.path(sessionKey))
 	if err != nil {
 		return nil
 	}
+
 	var report model.Report
 	if json.Unmarshal(data, &report) != nil {
 		return nil
@@ -62,6 +61,7 @@ func (c Cache) Load(sessionKey string) *model.Report {
 			report.Dimensions[i].Findings = []model.ReportFinding{}
 		}
 	}
+
 	if report.Rubric != nil {
 		for i := range report.Rubric.Tasks {
 			for j := range report.Rubric.Tasks[i].Criteria {
@@ -71,6 +71,7 @@ func (c Cache) Load(sessionKey string) *model.Report {
 			}
 		}
 	}
+
 	return &report
 }
 
@@ -88,6 +89,7 @@ func FreshAgainstTrace(report *model.Report, trace *model.Trace) bool {
 		report.Judge.InputDigest != InputDigest(trace) {
 		return false
 	}
+
 	return rubricFresh(report, trace)
 }
 
@@ -117,6 +119,7 @@ func rubricFresh(report *model.Report, trace *model.Trace) bool {
 	if rubric == nil {
 		return true
 	}
+
 	switch rubric.Status {
 	case model.RubricStatusScored:
 		if report.Judge.RubricPromptVersion != RubricPromptVersion {
@@ -127,6 +130,7 @@ func rubricFresh(report *model.Report, trace *model.Trace) bool {
 		if rubric.Source != model.RubricSourceFull && rubric.Source != model.RubricSourceTask {
 			return false
 		}
+
 		return rubric.TaskDigest == TaskDigest(trace, rubric.Source)
 	case model.RubricStatusUnavailable:
 		// Deterministic skips stay fresh only while their condition still
@@ -142,6 +146,7 @@ func rubricFresh(report *model.Report, trace *model.Trace) bool {
 			return len(taskMessages(trace.Marks)) > 0 && taskTextRunes(trace.Marks) < weakTaskTextRunes
 		}
 	}
+
 	return true
 }
 
@@ -149,9 +154,11 @@ func (c Cache) Store(sessionKey string, report *model.Report) error {
 	if c.Dir == "" || sessionKey == "" {
 		return nil
 	}
+
 	if err := os.MkdirAll(c.Dir, 0o755); err != nil {
 		return err
 	}
+
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return err
@@ -163,18 +170,25 @@ func (c Cache) Store(sessionKey string, report *model.Report) error {
 	if err != nil {
 		return err
 	}
+
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
-		os.Remove(tmp.Name())
+		_ = tmp.Close()
+		_ = os.Remove(tmp.Name())
+
 		return err
 	}
+
 	if err := tmp.Close(); err != nil {
-		os.Remove(tmp.Name())
+		_ = os.Remove(tmp.Name())
+
 		return err
 	}
+
 	if err := os.Rename(tmp.Name(), c.path(sessionKey)); err != nil {
-		os.Remove(tmp.Name())
+		_ = os.Remove(tmp.Name())
+
 		return err
 	}
+
 	return nil
 }

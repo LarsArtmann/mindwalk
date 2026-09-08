@@ -1,5 +1,7 @@
 # <img src="assets/logo.svg" alt="" width="30" /> mindwalk
 
+> **Fork notice:** This is a fork of [cosmtrek/mindwalk](https://github.com/cosmtrek/mindwalk) that adds support for [Crush](https://github.com/charmbracelet/crush) sessions. Changes include a database-backed Crush adapter (`internal/adapter/crush`), agent-graph linking for subagent sessions, `--crush-dir` / `--no-crush` CLI flags, and the `/api/adapters` endpoint.
+
 A visualization tool that replays coding-agent sessions on a 3D map of your codebase.
 
 https://github.com/user-attachments/assets/5153481b-3805-45e6-a61f-372250a969eb
@@ -16,7 +18,7 @@ raw JSONL line by line doesn't answer any of that.
 Draw the repository as a night map, and play the session back as light moving
 through it: where the agent searched, read, and edited, the map glows —
 everything else stays dark. The agent's understanding of the task becomes a
-shape you can see at a glance. One Go binary reads Claude Code, Codex, and pi
+shape you can see at a glance. One Go binary reads Claude Code, Codex, pi, and Crush
 session logs, fully local; viewing sends nothing anywhere. The one exception
 is the optional session evaluation: when you explicitly run it, a summary of
 that session (task wording, file paths, event digests) is sent to the model
@@ -40,18 +42,39 @@ To build from source: `make setup && make build` → `bin/mindwalk`.
 >**Nix** users can add mindwalk via [numtide/llm-agents](https://github.com/numtide/llm-agents.nix) flake.
 
 With no arguments, mindwalk scans `~/.claude/projects`, `~/.codex/sessions`,
-and `~/.pi/agent/sessions`, serves the UI on a random local port, and opens a
-browser:
+and `~/.pi/agent/sessions`, and the per-project `.crush/crush.db` (or
+`~/.local/share/crush/crush.db`), serves the UI on a random local port,
+and opens a browser:
 
 ```text
-mindwalk serve [--port N] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR]
-mindwalk open [--no-open] <session.jsonl>   open one specific session
-mindwalk map [--no-open] <repo>             open a repository map, no session needed
-mindwalk build <repo> [-o out]              write the repository citymap JSON
-mindwalk trace <session> [-o out]           write the normalized trace JSON
-mindwalk analyze <session> [--judge claude|codex] [--model name] [--no-rubric]
+mindwalk serve [--port N] [--host HOST] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR] [--crush-dir DIR]
+mindwalk open [--no-open] [--host HOST] <session>          open one specific session
+mindwalk map [--no-open] [--host HOST] <repo>              open a repository map, no session needed
+mindwalk build <repo> [-o out]               write the repository citymap JSON
+mindwalk trace <session> [-o out]            write the normalized trace JSON
+mindwalk analyze <session> [--judge claude|codex|crush] [--model name] [--no-rubric]
                                             evaluate one session (see below)
+mindwalk sessions [--json] [--harness NAME] [--limit N]   list discovered sessions
+mindwalk doctor                              print adapter status and diagnostics
+mindwalk version                             print build revision and Go version
+mindwalk cache clear|status                  manage the agent-graph disk cache
 ```
+
+Pass `--host 0.0.0.0` to any of `serve`, `open`, or `map` to expose the UI
+on your LAN instead of localhost.
+
+### Data directories and caches
+
+mindwalk stores computed agent graphs and evaluation reports under
+`~/.mindwalk/`:
+
+| Path                        | Purpose                                              |
+| --------------------------- | ---------------------------------------------------- |
+| `~/.mindwalk/agent-graphs/` | Persisted agent-graph cache (auto-evicted at 100 MB) |
+| `~/.mindwalk/reports/`      | Cached evaluation reports from `mindwalk analyze`    |
+
+Set the `MINDWALK_HOME` environment variable to override the base
+directory (useful for tests and CI).
 
 ## Reading the picture
 
@@ -98,7 +121,7 @@ how the session went. A report has two layers:
 - **Process dimensions** — exploration, scope, wandering, verification: four
   fixed lenses, the same for every session, so reports stay comparable.
 - **Task scorecard** — before scoring, the judge drafts criteria from your
-  own request wording: what would count as done for *this* task, grouped per
+  own request wording: what would count as done for _this_ task, grouped per
   task when the session carried several. Each criterion is then scored
   against the session, alongside the dimensions, in one pass.
 
@@ -110,6 +133,14 @@ verdict reads "no signal" — an unverifiable criterion is a blind spot, not a
 failure. Pick the judge (any installed CLI) and its model in the panel; the
 report records who actually judged.
 
+Adapter observability grades (`reads` and `errors`, shown in the session
+header) say how much of the file-touch and error detection the source log
+lets mindwalk verify. Adapters that read a structural table flag their
+grade as `exact`; ones that mine tool outputs flag it as `estimated`. The
+judge treats `estimated` sessions as having narrower evidence: a criterion
+unverifiable from the log loses coverage regardless of which layer owns it,
+so the report can't reward or blame what the source couldn't see.
+
 The scorecard steps aside rather than getting in the way: sessions with no
 tool events or too little task text skip it, and a failed criteria draft
 degrades to a dimensions-only report. `--no-rubric` (or `"rubric": false` on
@@ -118,7 +149,7 @@ scorecard is built — and why it is shaped the way it is — is covered in
 [docs/dynamic-rubric-evaluation.md](docs/dynamic-rubric-evaluation.md).
 
 **What leaves your machine, and only when you ask:** evaluation runs your own
-`claude` or `codex` CLI — up to two sealed calls, one drafting criteria and
+`claude`, `codex`, or `crush` CLI — up to two sealed calls, one drafting criteria and
 one scoring. Both send only that session's summary — the user messages'
 wording, file paths, and one-line event digests — to the model behind your
 account. Nothing is sent while viewing sessions, and no other session is

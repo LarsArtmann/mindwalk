@@ -1,6 +1,19 @@
-import { Ellipsis, Loader, Pause, Play, RotateCcw, StepBack, StepForward, Video } from "lucide-react";
+import {
+  Ellipsis,
+  Loader,
+  Pause,
+  Play,
+  Repeat,
+  RotateCcw,
+  StepBack,
+  StepForward,
+  Video,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Action, Mark, Trace, TraceEvent } from "../types";
+import { EventSummary } from "./EventSummary";
 
 interface TimelineProps {
   trace?: Trace;
@@ -29,6 +42,7 @@ interface MarkGroup {
   pos: number;
   count: number;
   note?: string;
+  duration?: number;
 }
 
 const MARK_SLOTS = 220;
@@ -36,7 +50,10 @@ const MARK_SLOTS = 220;
 const MARK_LABEL: Record<Mark["type"], string> = {
   compaction: "context compaction",
   "user-message": "user message",
-  subagent: "subagent"
+  subagent: "subagent",
+  thinking: "agent thinking",
+  "finish-reason": "turn ended",
+  "model-switch": "model switched",
 };
 
 const STRIP_ACTIONS: Action[] = ["search", "read", "edit", "verify", "exec"];
@@ -47,19 +64,33 @@ export function Timeline({
   onChange,
   onSubagentMark,
   onExport,
-  exporting = false
+  exporting = false,
 }: TimelineProps) {
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState<Speed>(1);
+  const [looping, setLooping] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [zoomStart, setZoomStart] = useState(0);
+  const [zoomEnd, setZoomEnd] = useState(1);
   const menuRef = useRef<HTMLDivElement>(null);
+  const stripRef = useRef<HTMLDivElement>(null);
   const total = trace?.events.length ?? 0;
   const max = Math.max(0, total - 1);
   const seq = Math.min(currentSeq, max);
   const event = trace?.events[seq];
 
+  // zoomed range in event indices
+  const zLo = Math.round(zoomStart * max);
+  const zHi = Math.round(zoomEnd * max);
+  const zMax = Math.max(0, zHi - zLo);
+  const zSeq = Math.max(0, Math.min(zMax, seq - zLo));
+  const isZoomed = zoomStart > 0.001 || zoomEnd < 0.999;
+
   useEffect(() => {
     setPlaying(false);
+    setZoomStart(0);
+    setZoomEnd(1);
+    setLooping(false);
   }, [trace]);
 
   // while a video export is recording, the recorder owns the playhead — force
@@ -83,13 +114,28 @@ export function Timeline({
     const step = Math.max(1, Math.round((speed * interval) / BASE_TICK_MS));
     const timer = window.setInterval(() => {
       if (seqRef.current >= maxRef.current) {
+        if (looping) {
+          const loopFrom = zoomStart > 0.001 ? Math.round(zoomStart * maxRef.current) : 0;
+          onChange(loopFrom);
+          return;
+        }
         setPlaying(false);
         return;
       }
-      onChange(Math.min(seqRef.current + step, maxRef.current));
+      const loopTo =
+        zoomEnd < 0.999
+          ? Math.min(maxRef.current, Math.round(zoomEnd * maxRef.current))
+          : maxRef.current;
+      const next = seqRef.current + step;
+      if (next > loopTo && looping) {
+        const loopFrom = zoomStart > 0.001 ? Math.round(zoomStart * maxRef.current) : 0;
+        onChange(loopFrom);
+        return;
+      }
+      onChange(Math.min(next, maxRef.current));
     }, interval);
     return () => window.clearInterval(timer);
-  }, [playing, speed, total, onChange, exporting]);
+  }, [playing, speed, total, onChange, exporting, looping, zoomStart, zoomEnd, max]);
 
   const togglePlay = useCallback(() => {
     if (!playingRef.current && seqRef.current >= maxRef.current) onChange(0);
@@ -104,7 +150,7 @@ export function Timeline({
     (delta: number) => {
       onChange(Math.min(maxRef.current, Math.max(0, seqRef.current + delta)));
     },
-    [onChange]
+    [onChange],
   );
 
   const jumpEvent = useCallback(
@@ -117,21 +163,24 @@ export function Timeline({
         }
       }
     },
-    [trace, onChange]
+    [trace, onChange],
   );
 
   const markSeqs = useMemo(() => {
-    const clamped = (trace?.marks ?? []).map((mark) => Math.min(mark.seq, Math.max(0, (trace?.events.length ?? 1) - 1)));
+    const clamped = (trace?.marks ?? []).map((mark) =>
+      Math.min(mark.seq, Math.max(0, (trace?.events.length ?? 1) - 1)),
+    );
     return [...new Set(clamped)].sort((a, b) => a - b);
   }, [trace]);
 
   const jumpMark = useCallback(
     (dir: 1 | -1) => {
       const cur = seqRef.current;
-      const next = dir === 1 ? markSeqs.find((s) => s > cur) : [...markSeqs].reverse().find((s) => s < cur);
+      const next =
+        dir === 1 ? markSeqs.find((s) => s > cur) : [...markSeqs].reverse().find((s) => s < cur);
       if (next !== undefined) onChange(next);
     },
-    [markSeqs, onChange]
+    [markSeqs, onChange],
   );
 
   // playback shortcuts; scene and rail keep their own (⌘B lives in App).
@@ -186,6 +235,43 @@ export function Timeline({
   // transport + scrubber are inert with no trace, or while an export owns the playhead
   const locked = total === 0 || exporting;
 
+  // zoom: center on the playhead, shrink the window by a factor
+  const zoomBy = useCallback(
+    (factor: number) => {
+      if (max <= 0) return;
+      const center = seq / max;
+      const span = (zoomEnd - zoomStart) * factor;
+      const clamped = Math.max(0.05, Math.min(1, span));
+      let start = center - clamped / 2;
+      let end = center + clamped / 2;
+      if (start < 0) {
+        end -= start;
+        start = 0;
+      }
+      if (end > 1) {
+        start -= end - 1;
+        end = 1;
+      }
+      setZoomStart(Math.max(0, start));
+      setZoomEnd(Math.min(1, end));
+    },
+    [max, seq, zoomStart, zoomEnd],
+  );
+
+  const resetZoom = useCallback(() => {
+    setZoomStart(0);
+    setZoomEnd(1);
+  }, []);
+
+  const onStripWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (locked || max <= 0) return;
+      e.preventDefault();
+      zoomBy(e.deltaY < 0 ? 0.7 : 1.4);
+    },
+    [locked, max, zoomBy],
+  );
+
   useEffect(() => {
     if (locked) setMenuOpen(false);
   }, [locked]);
@@ -208,11 +294,12 @@ export function Timeline({
 
   const buckets = useMemo<Bucket[]>(() => {
     if (!trace || total === 0) return [];
-    const n = Math.min(BUCKETS, total);
+    const zTotal = Math.max(1, zHi - zLo + 1);
+    const n = Math.min(BUCKETS, zTotal);
     const out: Bucket[] = [];
     for (let b = 0; b < n; b++) {
-      const from = Math.floor((b * total) / n);
-      const to = Math.floor(((b + 1) * total) / n);
+      const from = zLo + Math.floor((b * zTotal) / n);
+      const to = zLo + Math.floor(((b + 1) * zTotal) / n);
       const byAction = new Map<Action, number>();
       for (let i = from; i < to; i++) {
         const action = trace.events[i].action;
@@ -232,7 +319,7 @@ export function Timeline({
       out.push({ count: to - from, dominant });
     }
     return out;
-  }, [trace, total]);
+  }, [trace, total, zLo, zHi]);
 
   const peak = useMemo(() => buckets.reduce((acc, b) => Math.max(acc, b.count), 1), [buckets]);
 
@@ -242,23 +329,59 @@ export function Timeline({
     for (const mark of trace.marks) {
       // tail marks can carry seq == events.length; clamp keeps them on the strip
       const seqC = Math.min(mark.seq, max);
-      const pos = max > 0 ? seqC / max : 0;
+      if (seqC < zLo || seqC > zHi) continue;
+      const pos = zMax > 0 ? (seqC - zLo) / zMax : 0;
       const key = `${mark.type}:${Math.round(pos * MARK_SLOTS)}`;
       const group = groups.get(key);
       if (group) {
         group.count++;
         group.seq = Math.min(group.seq, seqC);
       } else {
-        groups.set(key, { type: mark.type, seq: seqC, pos, count: 1, note: mark.note });
+        groups.set(key, {
+          type: mark.type,
+          seq: seqC,
+          pos,
+          count: 1,
+          note: mark.note,
+          duration: mark.duration,
+        });
       }
     }
     return [...groups.values()];
-  }, [trace, max]);
+  }, [trace, max, zLo, zHi, zMax]);
+
+  const errorPositions = useMemo(() => {
+    if (!trace || total === 0) return [];
+    return trace.events
+      .filter((e) => e.isError && e.seq >= zLo && e.seq <= zHi)
+      .map((e) => ({
+        seq: e.seq,
+        pos: zMax > 0 ? (Math.min(e.seq, max) - zLo) / zMax : 0,
+        summary: e.summary,
+      }));
+  }, [trace, total, max, zLo, zHi, zMax]);
 
   return (
     <footer className="deck">
       <div className="deck-main">
-        <div className="strip">
+        {isZoomed ? (
+          <div className="strip-minimap" aria-hidden>
+            <div
+              className="strip-minimap-window"
+              style={{
+                left: `${zoomStart * 100}%`,
+                width: `${(zoomEnd - zoomStart) * 100}%`,
+              }}
+              onClick={resetZoom}
+              title="Click to reset zoom"
+            />
+            <div
+              className="strip-minimap-playhead"
+              style={{ left: `${(seq / Math.max(max, 1)) * 100}%` }}
+            />
+          </div>
+        ) : null}
+        <div className="strip" ref={stripRef} onWheel={onStripWheel}>
           <div className="strip-marks">
             {markGroups.map((group, i) => (
               <button
@@ -267,7 +390,7 @@ export function Timeline({
                 className={`strip-mark ${group.type}`}
                 style={{ left: `${group.pos * 100}%` }}
                 disabled={locked}
-                title={`${group.note || MARK_LABEL[group.type]}${group.count > 1 ? ` ×${group.count}` : ""}`}
+                title={`${group.note || MARK_LABEL[group.type]}${group.count > 1 ? ` ×${group.count}` : ""}${group.duration ? ` (${group.duration}s)` : ""}`}
                 aria-label={`Jump to ${group.note || MARK_LABEL[group.type]} at event ${group.seq + 1}${group.count > 1 ? `, ${group.count} marks` : ""}`}
                 onClick={() =>
                   group.type === "subagent" && onSubagentMark
@@ -277,6 +400,18 @@ export function Timeline({
               />
             ))}
           </div>
+          {errorPositions.length > 0 ? (
+            <div className="strip-errors" aria-hidden>
+              {errorPositions.map((err, i) => (
+                <span
+                  key={`err-${err.seq}-${i}`}
+                  className="strip-error"
+                  style={{ left: `${err.pos * 100}%` }}
+                  title={`Error at step ${err.seq + 1} — ${err.summary}`}
+                />
+              ))}
+            </div>
+          ) : null}
           <div className="strip-bars" aria-hidden>
             {buckets.map((bucket, i) => (
               <span
@@ -287,14 +422,18 @@ export function Timeline({
             ))}
           </div>
           {total > 0 ? (
-            <div className="strip-playhead" style={{ left: `${(seq / Math.max(max, 1)) * 100}%` }} aria-hidden />
+            <div
+              className="strip-playhead"
+              style={{ left: `${(zSeq / Math.max(zMax, 1)) * 100}%` }}
+              aria-hidden
+            />
           ) : null}
           <input
             className="strip-input"
             type="range"
-            min={0}
-            max={max}
-            value={seq}
+            min={zLo}
+            max={Math.max(zLo, zHi)}
+            value={Math.max(zLo, Math.min(zHi, seq))}
             disabled={locked}
             onChange={(e) => onChange(Number(e.currentTarget.value))}
             aria-label="Playback position"
@@ -302,10 +441,18 @@ export function Timeline({
           />
         </div>
 
-        <div className="deck-pos">
+        <div
+          className="deck-pos"
+          data-hint="Event position and wall-clock timestamp at the playhead"
+        >
           {/* reserve the widest count for this session ("599 / 599") so the
               ticking digits never resize the strip beside them */}
-          <span className="deck-pos-count" style={{ minWidth: `${String(Math.max(total, 1)).length * 2 + 3}ch` }}>
+          <span
+            className="deck-pos-count"
+            style={{
+              minWidth: `${String(Math.max(total, 1)).length * 2 + 3}ch`,
+            }}
+          >
             {total > 0 ? `${seq + 1} / ${total}` : "0 / 0"}
           </span>
           <span className="deck-pos-clock">{event?.ts ? clock(event.ts) : "—"}</span>
@@ -338,6 +485,47 @@ export function Timeline({
             aria-label="Step forward one event"
           >
             <StepForward size={15} />
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => zoomBy(0.7)}
+            disabled={locked || total < 2}
+            title="Zoom in (scroll on strip)"
+            aria-label="Zoom into timeline"
+          >
+            <ZoomIn size={15} />
+          </button>
+          <button
+            className="icon-btn"
+            onClick={() => (isZoomed ? resetZoom() : zoomBy(1.4))}
+            disabled={locked || total < 2}
+            title={isZoomed ? "Reset zoom" : "Zoom out (scroll on strip)"}
+            aria-label={isZoomed ? "Reset zoom" : "Zoom out of timeline"}
+          >
+            <ZoomOut size={15} />
+          </button>
+          <div className="transport-speed-chips" role="group" aria-label="Playback speed">
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                className={s === speed ? "speed-chip active" : "speed-chip"}
+                onClick={() => setSpeed(s)}
+                aria-pressed={s === speed}
+                aria-label={`${s}x speed`}
+              >
+                {s}×
+              </button>
+            ))}
+          </div>
+          <button
+            className={looping ? "icon-btn active" : "icon-btn"}
+            onClick={() => setLooping((v) => !v)}
+            disabled={locked}
+            title={looping ? "Loop on (wraps within zoom range)" : "Loop off"}
+            aria-label={looping ? "Disable loop playback" : "Enable loop playback"}
+            aria-pressed={looping}
+          >
+            <Repeat size={15} />
           </button>
           <div className="transport-more" ref={menuRef}>
             {/* the trigger doubles as status: recording spinner while an export
@@ -406,22 +594,17 @@ export function Timeline({
       </div>
 
       <div className="deck-foot">
-        <div className="readout-now">
-          {event ? (
-            <>
-              <span className={`action-dot ${event.action}`} />
-              <span className="readout-tool">{event.tool}</span>
-              {event.isError ? <span className="err">error</span> : null}
-              <span className="readout-summary" title={event.summary}>
-                {event.summary}
-              </span>
-            </>
-          ) : (
+        {event ? (
+          <EventSummary event={event} total={total} />
+        ) : (
+          <div className="readout-now">
             <span className="readout-summary">
-              {trace ? "No recorded activity for this agent." : "Select a session to start the walk."}
+              {trace
+                ? "No recorded activity for this agent."
+                : "Select a session to start the walk."}
             </span>
-          )}
-        </div>
+          </div>
+        )}
         <div className="deck-legend" aria-hidden>
           <span className="legend-group">
             {STRIP_ACTIONS.map((action) => (
@@ -444,8 +627,25 @@ export function Timeline({
               <span className="legend-glyph user-message" />
               user turn
             </span>
+            <span className="legend-item">
+              <span className="legend-glyph thinking" />
+              thinking
+            </span>
+            <span className="legend-item">
+              <span className="legend-glyph finish-reason" />
+              turn ended
+            </span>
+            <span className="legend-item">
+              <span className="legend-glyph model-switch" />
+              model switched
+            </span>
           </span>
         </div>
+      </div>
+      <div className="sr-live" aria-live="polite" role="status">
+        {event
+          ? `Event ${seq + 1} of ${total}: ${event.action} — ${event.tool}${event.summary ? `, ${event.summary}` : ""}`
+          : ""}
       </div>
     </footer>
   );
@@ -454,5 +654,7 @@ export function Timeline({
 function clock(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return [d.getHours(), d.getMinutes(), d.getSeconds()].map((n) => String(n).padStart(2, "0")).join(":");
+  return [d.getHours(), d.getMinutes(), d.getSeconds()]
+    .map((n) => String(n).padStart(2, "0"))
+    .join(":");
 }

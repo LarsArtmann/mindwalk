@@ -38,7 +38,10 @@ export function haloTexture(): THREE.Texture {
   return haloMap;
 }
 
-export function labelTexture(text: string): { texture: THREE.Texture; aspect: number } {
+export function labelTexture(text: string): {
+  texture: THREE.Texture;
+  aspect: number;
+} {
   const font = '500 30px "Schibsted Grotesk Variable", "PingFang SC", sans-serif';
   const measure = document.createElement("canvas").getContext("2d")!;
   measure.font = font;

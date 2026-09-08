@@ -16,6 +16,7 @@ func TestTraceStoreLayersAreIndependent(t *testing.T) {
 	if err := os.WriteFile(session, []byte("{}\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	meta := model.SessionMeta{Key: "s", Harness: "test", Path: session}
 
 	snapshotLoads, rawLoads := 0, 0
@@ -25,26 +26,30 @@ func TestTraceStoreLayersAreIndependent(t *testing.T) {
 	ts := newTraceStore(
 		func(model.SessionMeta) (*model.Trace, *model.CityMap, error) {
 			snapshotLoads++
+
 			return snapshotTrace, city, nil
 		},
 		func(model.SessionMeta) (*model.Trace, error) {
 			rawLoads++
+
 			return rawTrace, nil
 		},
 	)
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		trace, gotCity, err := ts.LoadSnapshot(meta)
 		if err != nil || trace != snapshotTrace || gotCity != city {
 			t.Fatalf("snapshot load %d: trace=%v city=%v err=%v", i, trace, gotCity, err)
 		}
 	}
-	for i := 0; i < 2; i++ {
+
+	for i := range 2 {
 		trace, err := ts.LoadRaw(meta)
 		if err != nil || trace != rawTrace {
 			t.Fatalf("raw load %d: trace=%v err=%v", i, trace, err)
 		}
 	}
+
 	if snapshotLoads != 1 || rawLoads != 1 {
 		t.Fatalf("loads = snapshot:%d raw:%d, want 1 each", snapshotLoads, rawLoads)
 	}

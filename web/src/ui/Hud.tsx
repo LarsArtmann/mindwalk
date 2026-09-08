@@ -22,6 +22,15 @@ interface HudProps {
 
 const CHURN_PANEL_ROWS = 8;
 
+/** truncatePath shortens long filesystem paths for HUD display. Keeps
+ * the leading segment and a meaningful tail so the project name stays
+ * visible. Paths under 40 characters are returned unchanged. */
+function truncatePath(path: string, max = 40): string {
+	if (path.length <= max) return path;
+	const tail = Math.min(28, max - 3);
+	return path.slice(0, max - tail - 1) + "…" + path.slice(-tail);
+}
+
 // memo: the app re-renders every playback tick; the HUD only changes when the
 // session, the view toggle, or the touch counts under the playhead change
 export const Hud = memo(function Hud({
@@ -34,16 +43,28 @@ export const Hud = memo(function Hud({
   churn,
   onSelectFile,
   onOpenAgents,
-  locked = false
+  locked = false,
 }: HudProps) {
+<<<<<<< HEAD
+=======
   const stats = trace?.stats;
   const readFinal = stats ? stats.fovea - stats.edited : 0;
   const unvisitedNow = stats ? Math.max(0, stats.filesInRepo - editedNow - readNow - seenNow) : 0;
   const unvisitedFinal = stats ? Math.max(0, stats.filesInRepo - stats.fovea - stats.parafovea) : 0;
   const ghostCount = city ? city.files.reduce((n, file) => n + (file.ghost ? 1 : 0), 0) : 0;
   const errorCount = stats ? countActions(stats.errors) : 0;
-  const showReview = stats ? errorCount > 0 || stats.churnFiles > 0 || stats.actions.edit > 0 : false;
+  const showReview = stats
+    ? errorCount > 0 || stats.churnFiles > 0 || stats.actions.edit > 0
+    : false;
+  const hasEvents = !!trace && trace.events.length > 0;
+  const hasTargets = !!trace && trace.events.some((e) => e.targets.length > 0);
+  const hasFileActions =
+    !!trace &&
+    trace.events.some((e) => (e.action === "read" || e.action === "edit") && !e.providerExecuted);
+  const showNoTargetsWarning = hasEvents && !hasTargets;
+  const noTargetsIsMisconfigured = showNoTargetsWarning && hasFileActions;
 
+>>>>>>> 1ebd078 (feat: SUPERB web polish + vitest test scaffold + agent-graph hardening)
   const [churnOpen, setChurnOpen] = useState(false);
   const churnPanelRef = useRef<HTMLDivElement | null>(null);
   const churnToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -55,7 +76,8 @@ export const Hud = memo(function Hud({
     if (!churnOpen) return;
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (churnPanelRef.current?.contains(target) || churnToggleRef.current?.contains(target)) return;
+      if (churnPanelRef.current?.contains(target) || churnToggleRef.current?.contains(target))
+        return;
       setChurnOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
@@ -68,6 +90,21 @@ export const Hud = memo(function Hud({
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [churnOpen]);
+
+  const stats = trace?.stats;
+  const readFinal = stats ? stats.fovea - stats.edited : 0;
+  const unvisitedNow = stats ? Math.max(0, stats.filesInRepo - editedNow - readNow - seenNow) : 0;
+  const unvisitedFinal = stats ? Math.max(0, stats.filesInRepo - stats.fovea - stats.parafovea) : 0;
+  const ghostCount = city ? city.files.reduce((n, file) => n + (file.ghost ? 1 : 0), 0) : 0;
+  const errorCount = stats ? countActions(stats.errors) : 0;
+  const showReview = stats
+    ? errorCount > 0 || stats.churnFiles > 0 || stats.actions.edit > 0
+    : false;
+  const hasEvents = !!trace && trace.events.length > 0;
+  const hasTargets = !!trace && trace.events.some((e) => e.targets.length > 0);
+  const hasFileActions = !!trace && trace.events.some((e) => (e.action === "read" || e.action === "edit") && !e.providerExecuted);
+  const showNoTargetsWarning = hasEvents && !hasTargets;
+  const noTargetsIsMisconfigured = showNoTargetsWarning && hasFileActions;
 
   return (
     <div className="hud" aria-hidden={!city}>
@@ -90,7 +127,17 @@ export const Hud = memo(function Hud({
           <div className="hud-commit">
             <span>{city.repo.commit || "worktree"}</span>
             {city.repo.dirty ? <span className="dirty">● dirty</span> : null}
-            {trace?.session.model ? <span>{trace.session.model}</span> : null}
+            {trace?.session.model ? (
+              <span>
+                {trace.session.model}
+                {trace.session.provider ? ` (${trace.session.provider})` : ""}
+              </span>
+            ) : null}
+            {trace?.session.cwd ? (
+              <span data-hint="Working directory the adapter resolved for this session">
+                {truncatePath(trace.session.cwd)}
+              </span>
+            ) : null}
             {stats ? (
               <span data-hint="Files in the repository map — the denominator of the coverage spectrum below">
                 {stats.filesInRepo} files
@@ -103,11 +150,25 @@ export const Hud = memo(function Hud({
             ) : null}
           </div>
         ) : null}
+        {showNoTargetsWarning ? (
+          <div
+            className="hud-warning"
+            data-hint={
+              noTargetsIsMisconfigured
+                ? "The adapter found file read/edit calls but could not map any to repository files — check that the session's working directory matches the loaded repository"
+                : "This session had no file read/edit operations — only commands or reasoning steps"
+            }
+          >
+            {noTargetsIsMisconfigured
+              ? "no file targets resolved — cwd may not match repository"
+              : "no file operations in this session"}
+          </div>
+        ) : null}
         {stats ? (
           <>
             {/* the spectrum doubles as scene legend and live tally: each entry is
                 a touch state, counted at the playhead → across the whole walk */}
-            <div className="spectrum">
+            <div className="spectrum" data-hint="Coverage spectrum: each color is a touch state. Counts update live at the playhead. Hover any entry for details.">
               <SpectrumStat
                 kind="edit"
                 label="edited"
@@ -149,6 +210,7 @@ export const Hud = memo(function Hud({
             {/* session scale: quiet background numbers, final totals only —
                 unlike the playhead-live spectrum above */}
             <div className="hud-quiet">
+              <CoverageGauge edited={editedNow} read={readNow} seen={seenNow} total={stats.filesInRepo} />
               <span data-hint={`Tool calls — ${mixHint(stats.actions)}`}>
                 {countActions(stats.actions)} calls
               </span>
@@ -217,8 +279,13 @@ export const Hud = memo(function Hud({
                       className="warn"
                       data-hint={`Edit events after the session's last build or test run — ${verifyRuns(stats.actions.verify)} total; pass/fail is not tracked`}
                     >
-                      {stats.editsAfterLastVerify} edit{stats.editsAfterLastVerify === 1 ? "" : "s"} after
-                      last verify
+<<<<<<< HEAD
+                      {stats.editsAfterLastVerify} edit{stats.editsAfterLastVerify === 1 ? "" : "s"}{" "}
+                      after last verify
+=======
+                      {stats.editsAfterLastVerify} edit
+                      {stats.editsAfterLastVerify === 1 ? "" : "s"} after last verify
+>>>>>>> 1ebd078 (feat: SUPERB web polish + vitest test scaffold + agent-graph hardening)
                     </span>
                   ) : (
                     <span
@@ -260,12 +327,53 @@ export const Hud = memo(function Hud({
   );
 });
 
+function CoverageGauge({
+  edited,
+  read,
+  seen,
+  total,
+}: {
+  edited: number;
+  read: number;
+  seen: number;
+  total: number;
+}) {
+  const touched = edited + read + seen;
+  const pct = total > 0 ? Math.min(100, (touched / total) * 100) : 0;
+  const R = 8;
+  const C = 2 * Math.PI * R;
+  const dash = (pct / 100) * C;
+  return (
+    <span
+      className="coverage-gauge"
+      data-hint={`Coverage: ${touched} of ${total} files touched (${pct.toFixed(0)}%)`}
+    >
+      <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden>
+        <circle cx="10" cy="10" r={R} fill="none" stroke="var(--hairline)" strokeWidth="2.5" />
+        <circle
+          cx="10"
+          cy="10"
+          r={R}
+          fill="none"
+          stroke="var(--moss)"
+          strokeWidth="2.5"
+          strokeDasharray={`${dash} ${C}`}
+          strokeLinecap="round"
+          transform="rotate(-90 10 10)"
+          style={{ transition: "stroke-dasharray 0.3s ease" }}
+        />
+      </svg>
+      <span className="coverage-gauge-pct">{pct.toFixed(0)}%</span>
+    </span>
+  );
+}
+
 function SpectrumStat({
   kind,
   label,
   now,
   final,
-  hint
+  hint,
 }: {
   kind: "edit" | "read" | "hit" | "unvisited" | "ghost";
   label: string;

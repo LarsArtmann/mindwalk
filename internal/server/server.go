@@ -1,8 +1,10 @@
 package server
 
 import (
+	"context"
 	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,6 +27,7 @@ import (
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
 	"github.com/cosmtrek/mindwalk/internal/adapter/codex"
+	"github.com/cosmtrek/mindwalk/internal/adapter/crush"
 	"github.com/cosmtrek/mindwalk/internal/adapter/pi"
 	"github.com/cosmtrek/mindwalk/internal/citymap"
 	"github.com/cosmtrek/mindwalk/internal/judge"
@@ -35,14 +38,21 @@ import (
 var embeddedStatic embed.FS
 
 type Config struct {
-	Port        int
-	ClaudeDir   string
-	CodexDir    string
-	PiDir       string
-	OpenSession string
-	Dev         bool
-	RepoRoot    string
-	MapOnly     bool
+	Port      int
+	Host      string
+	ClaudeDir string
+	CodexDir  string
+	CrushDir  string
+	PiDir     string
+	// DisableCrush skips registering the Crush adapter entirely.
+	// Useful for projects where the .crush directory does not
+	// belong to the user (e.g. vendored test fixtures) or for
+	// users who never want the Crush scan to run.
+	DisableCrush bool
+	OpenSession  string
+	Dev          bool
+	RepoRoot     string
+	MapOnly      bool
 }
 
 type Server struct {
@@ -65,6 +75,10 @@ type Server struct {
 	analyze     analyzeState
 	reportCache judge.Cache
 	reportIndex reportIndex
+
+	// httpServer is set inside Start so Shutdown can gracefully
+	// cancel in-flight SSE handlers when the CLI receives SIGTERM.
+	httpServer *http.Server
 }
 
 type repoMapEntry struct {
@@ -113,14 +127,19 @@ const (
 	repoMapTTL        = 30 * time.Second
 	repoMapMaxEntries = 16
 	// agent graphs are small but were the one unbounded cache; bound them the
-	// same way as traces
+	// same way as traces.
 	agentGraphMaxEntries = 16
+	// readHeaderTimeout caps how long a slow client can hold a
+	// connection open while sending headers. 10s is enough for a
+	// real browser over loopback but breaks Slowloris-style
+	// attacks. gosec G112.
+	readHeaderTimeout = 10 * time.Second
 )
 
 func New(cfg Config) *Server {
 	s := &Server{
 		cfg:             cfg,
-		adapters:        []adapter.Source{claudecode.Adapter{Dir: cfg.ClaudeDir}, codex.Adapter{Dir: cfg.CodexDir}, pi.Adapter{Dir: cfg.PiDir}},
+		adapters:        buildAdapters(cfg),
 		agentGraphs:     map[string]agentGraphCacheEntry{},
 		agentGraphLoads: map[string]*inflightAgentGraph{},
 		summaries:       map[string]summaryCacheEntry{},
@@ -134,7 +153,23 @@ func New(cfg Config) *Server {
 	// Method values, not results: the store observes buildCityMap overrides
 	// made after construction (tests swap it per case).
 	s.traceStore = newTraceStore(s.loadTraceAndMap, s.parseSessionTrace)
+
 	return s
+}
+
+// Close releases resources held by adapters (database connection pools,
+// file handles). Adapters that do not implement adapter.Closer are
+// skipped. Safe to call multiple times.
+func (s *Server) Close() error {
+	var firstErr error
+	for _, src := range s.adapters {
+		if c, ok := src.(adapter.Closer); ok {
+			if err := c.Close(); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+	return firstErr
 }
 
 func (s *Server) Start(openBrowser bool) error {
@@ -142,7 +177,11 @@ func (s *Server) Start(openBrowser bool) error {
 	if port == 0 {
 		port = 0
 	}
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+	host := s.cfg.Host
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	ln, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return err
 	}
@@ -164,15 +203,49 @@ func (s *Server) Start(openBrowser bool) error {
 		_ = openURL(pageURL)
 	}
 	fmt.Printf("mindwalk serving %s\n", addr)
-	return http.Serve(ln, s.handler())
+
+	// Use http.Server (not http.Serve) so callers can call Shutdown
+	// for graceful SSE teardown — http.Serve blocks until the
+	// listener closes, which never cancels in-flight SSE handlers.
+	// ReadHeaderTimeout protects against Slowloris-style attacks
+	// (gosec G112); the server only serves loopback traffic by
+	// default, but the explicit cap is cheap insurance.
+	s.httpServer = &http.Server{
+		Handler:           s.handler(),
+		ReadHeaderTimeout: readHeaderTimeout,
+	}
+
+	if err := s.httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("serve: %w", err)
+	}
+
+	return nil
+}
+
+// Shutdown gracefully stops the server started by Start, cancelling
+// in-flight SSE handlers within the supplied context. Safe to call
+// before Start (no-op). Subsequent Start calls reuse the listener
+// path but always create a fresh *http.Server.
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.httpServer == nil {
+		return nil
+	}
+
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("shutdown: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Server) handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/sessions", s.handleSessions)
 	mux.HandleFunc("/api/sessions/", s.handleSessionResource)
+	mux.HandleFunc("/api/adapters", s.handleAdapters)
 	mux.HandleFunc("/api/repomap", s.handleRepoMap)
 	mux.HandleFunc("/", s.handleStatic)
+
 	return requireLoopback(mux)
 }
 
@@ -190,20 +263,26 @@ func requireLoopback(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !loopbackHost(r.Host) {
 			http.Error(w, "forbidden: non-local Host", http.StatusForbidden)
+
 			return
 		}
+
 		if r.Method != http.MethodGet {
 			if origin := r.Header.Get("Origin"); origin != "" && !sameOrigin(origin, r.Host) {
 				http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
+
 				return
 			}
+
 			switch r.Header.Get("Sec-Fetch-Site") {
 			case "", "same-origin", "none":
 			default:
 				http.Error(w, "forbidden: cross-site request", http.StatusForbidden)
+
 				return
 			}
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -213,7 +292,9 @@ func loopbackHost(hostport string) bool {
 	if h, _, err := net.SplitHostPort(hostport); err == nil {
 		host = h
 	}
+
 	host = normalizeHost(host)
+
 	return host == "127.0.0.1" || host == "localhost" || host == "::1"
 }
 
@@ -226,6 +307,7 @@ func sameOrigin(origin, requestHost string) bool {
 	if err != nil || parsed.Scheme != "http" || parsed.Host == "" {
 		return false
 	}
+
 	return hostPortKey(parsed.Host) == hostPortKey(requestHost)
 }
 
@@ -236,6 +318,7 @@ func hostPortKey(hostport string) string {
 	if err != nil {
 		host, port = hostport, "80"
 	}
+
 	return normalizeHost(host) + ":" + port
 }
 
@@ -246,12 +329,12 @@ func normalizeHost(host string) string {
 	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
 		host = host[1 : len(host)-1]
 	}
+
 	return strings.ToLower(host)
 }
 
 func (s *Server) handleSessions(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	sessions, err := s.listSessionsFresh(r.URL.Query().Get("fresh") == "1")
@@ -273,6 +356,35 @@ type sessionListItem struct {
 	ReportState string `json:"reportState,omitempty"`
 }
 
+type adapterInfo struct {
+	Harness      string `json:"harness"`
+	SessionDir   string `json:"sessionDir"`
+	SessionCount int    `json:"sessionCount"`
+	AgentGraph   bool   `json:"agentGraph"`
+}
+
+func (s *Server) handleAdapters(w http.ResponseWriter, r *http.Request) {
+	if requireGET(w, r) {
+		return
+	}
+	s.mu.Lock()
+	counts := make(map[string]int, len(s.adapters))
+	for _, sess := range s.sessions {
+		counts[sess.Harness]++
+	}
+	s.mu.Unlock()
+	infos := make([]adapterInfo, 0, len(s.adapters))
+	for _, src := range s.adapters {
+		infos = append(infos, adapterInfo{
+			Harness:      src.Harness(),
+			SessionDir:   src.SessionDir(),
+			SessionCount: counts[src.Harness()],
+			AgentGraph:   adapter.IsAgentGraphSource(src),
+		})
+	}
+	writeJSON(w, infos)
+}
+
 func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/sessions/"), "/")
 	if len(parts) == 2 && parts[1] == "agents" {
@@ -281,6 +393,10 @@ func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(parts) == 4 && parts[1] == "agents" && parts[3] == "trace" {
 		s.handleSessionAgentTrace(w, r, parts[0], parts[2])
+		return
+	}
+	if len(parts) == 3 && parts[1] == "analyze" && parts[2] == "stream" {
+		s.handleSessionAnalyzeStream(w, r, parts[0])
 		return
 	}
 	if len(parts) != 2 {
@@ -323,8 +439,7 @@ func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSessionAgents(w http.ResponseWriter, r *http.Request, selector string) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	root, err := s.findSession(selector)
@@ -341,8 +456,7 @@ func (s *Server) handleSessionAgents(w http.ResponseWriter, r *http.Request, sel
 }
 
 func (s *Server) handleSessionAgentTrace(w http.ResponseWriter, r *http.Request, selector, nodeID string) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	root, err := s.findSession(selector)
@@ -410,8 +524,7 @@ func (s *Server) handleSessionAgentTrace(w http.ResponseWriter, r *http.Request,
 // for arbitrary session repos, so accepting a repo path here does not widen the
 // read surface. The builder only reads the tree (git ls-files / walk).
 func (s *Server) handleRepoMap(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	if requireGET(w, r) {
 		return
 	}
 	repo := r.URL.Query().Get("repo")
@@ -431,14 +544,13 @@ func (s *Server) handleRepoMap(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) repoCityMap(repo string) (*model.CityMap, error) {
-	if abs, err := filepath.Abs(repo); err == nil {
-		repo = abs
-	}
+	repo = adapter.NormalizePath(repo)
 	s.repoMapMu.Lock()
 	defer s.repoMapMu.Unlock()
 	if entry, ok := s.repoMaps[repo]; ok && time.Since(entry.builtAt) < repoMapTTL {
 		return entry.city, nil
 	}
+
 	city, err := s.buildCityMap(repo, nil)
 	if err != nil {
 		return nil, err
@@ -484,7 +596,8 @@ func (s *Server) listSessionsObserved(fresh bool, observedFreshGen uint64) ([]mo
 	s.scanMu.Lock()
 	defer s.scanMu.Unlock()
 	s.mu.Lock()
-	if s.sessions != nil && ((!fresh && time.Since(s.sessionAt) < sessionListTTL) || (fresh && s.freshGen != observedFreshGen)) {
+	if s.sessions != nil &&
+		((!fresh && time.Since(s.sessionAt) < sessionListTTL) || (fresh && s.freshGen != observedFreshGen)) {
 		sessions := append([]model.SessionMeta(nil), s.sessions...)
 		s.mu.Unlock()
 		return sessions, nil
@@ -538,7 +651,27 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	}
 	seen := map[string]bool{}
 	var files []sessionFile
+	counts := map[string]int{}
 	for _, source := range s.adapters {
+		// Most harnesses store sessions as files on disk. The
+		// Crush adapter uses a SQLite database instead, so we
+		// additionally ask it for its enumerated metadata and
+		// short-circuit before the directory walk. Each Crush
+		// path is synthetic (crush://...) so the legacy WalkDir
+		// would not find it; we record it here and let the
+		// summarise pass below pick it up.
+		metas, err := source.ListSessions()
+		if err != nil {
+			return nil, fmt.Errorf("%s sessions: %w", source.Harness(), err)
+		}
+		counts[source.Harness()] = len(metas)
+		if !sourceUsesFilesystem(metas) {
+			for _, meta := range metas {
+				seen[summaryKey(source, meta.Path)] = true
+				files = append(files, sessionFile{source: source, path: meta.Path})
+			}
+			continue
+		}
 		dir := source.SessionDir()
 		if dir == "" {
 			continue
@@ -546,7 +679,7 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 			continue
 		}
-		err := filepath.WalkDir(dir, func(path string, entry os.DirEntry, walkErr error) error {
+		err = filepath.WalkDir(dir, func(path string, entry os.DirEntry, walkErr error) error {
 			if walkErr != nil {
 				return nil
 			}
@@ -562,6 +695,7 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 			}
 			seen[summaryKey(source, path)] = true
 			files = append(files, sessionFile{source: source, path: path, info: info})
+			counts[source.Harness()]++
 			return nil
 		})
 		if err != nil {
@@ -572,23 +706,18 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	// summarizing reads every uncached session file; spread the parsing
 	// across cores so a cold scan doesn't serialize gigabytes of JSONL
 	results := make([]*model.SessionMeta, len(files))
-	workers := runtime.NumCPU()
-	if workers > len(files) {
-		workers = len(files)
-	}
+	workers := min(runtime.NumCPU(), len(files))
 	if workers > 1 {
 		jobs := make(chan int)
 		var wg sync.WaitGroup
-		for w := 0; w < workers; w++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
+		for range workers {
+			wg.Go(func() {
 				for i := range jobs {
 					if meta, err := s.summarizeCached(files[i].source, files[i].path, files[i].info); err == nil {
 						results[i] = &meta
 					}
 				}
-			}()
+			})
 		}
 		for i := range files {
 			jobs <- i
@@ -618,7 +747,39 @@ func (s *Server) scanSessions() ([]model.SessionMeta, error) {
 	s.sessionCatalog = catalog
 	s.mu.Unlock()
 	s.pruneSummaryCache(seen)
+	log.Printf("mindwalk: found %d session(s) — %s", len(sessions), formatAdapterCounts(counts))
 	return sessions, nil
+}
+
+// formatAdapterCounts renders a per-harness session count summary
+// for the log line emitted by scanSessions. Output order is
+// deterministic so the line is stable across cold scans.
+func formatAdapterCounts(counts map[string]int) string {
+	names := make([]string, 0, len(counts))
+	for name := range counts {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	parts := make([]string, 0, len(names))
+	for _, name := range names {
+		parts = append(parts, fmt.Sprintf("%d %s", counts[name], name))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// sourceUsesFilesystem reports whether a list of metas came from a
+// filesystem walk rather than an explicit adapter enumeration. The
+// Crush adapter returns synthetic paths rooted at
+// "crush://session/" so the presence of a single such path is a
+// strong signal the adapter is database-backed and the legacy
+// directory walk should be skipped.
+func sourceUsesFilesystem(metas []model.SessionMeta) bool {
+	for _, meta := range metas {
+		if crush.IsSessionPath(meta.Path) {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Server) summarizeAnyCached(path string, info fs.FileInfo) (model.SessionMeta, error) {
@@ -638,14 +799,24 @@ func (s *Server) summarizeAnyCached(path string, info fs.FileInfo) (model.Sessio
 
 func (s *Server) summarizeCached(source adapter.Source, path string, info fs.FileInfo) (model.SessionMeta, error) {
 	if info == nil {
-		var err error
-		info, err = os.Stat(path)
+		// Adapters that store sessions outside the filesystem
+		// (e.g. Crush's SQLite database) surface a synthetic path
+		// that os.Stat will reject. Fall through to a direct
+		// adapter call instead of running the fingerprint short
+		// circuit and sidecar file checks that only make sense
+		// for real on-disk files.
+		meta, err := source.Summarize(path)
 		if err != nil {
 			return model.SessionMeta{}, err
 		}
+		if meta.Key == "" {
+			meta.Key = adapter.SessionKey(source.Harness(), path)
+		}
+		return meta, nil
 	}
 	key := summaryKey(source, path)
 	sidecar := summarySidecarDigest(source, path)
+
 	s.mu.Lock()
 	if cached, ok := s.summaries[key]; ok && cached.size == info.Size() && cached.modTime.Equal(info.ModTime()) &&
 		cached.sidecar == sidecar {
@@ -681,11 +852,14 @@ func summarySidecarDigest(source adapter.Source, path string) string {
 	if !ok {
 		return ""
 	}
+
 	inputs := sidecars.SummaryInputs(path)
 	if len(inputs) == 0 {
 		return ""
 	}
+
 	var material strings.Builder
+
 	for _, input := range inputs {
 		if fingerprint, err := fingerprintFile(input); err == nil {
 			fmt.Fprintf(&material, "%s\x00%d\x00%d\n", input, fingerprint.size, fingerprint.modTime.UnixNano())
@@ -693,6 +867,7 @@ func summarySidecarDigest(source adapter.Source, path string) string {
 			fmt.Fprintf(&material, "%s\x00missing\n", input)
 		}
 	}
+
 	return material.String()
 }
 
@@ -782,16 +957,42 @@ func (s *Server) agentGraph(root model.SessionMeta) (*model.AgentGraph, error) {
 		s.agentGraphLoads[root.Key] = load
 		s.mu.Unlock()
 
+		// On a memory miss, try the disk cache before paying for
+		// a fresh BuildAgentGraph call. The digest is stable across
+		// restarts so this warms cold starts.
+		if graph, ok := loadAgentGraphFromDisk(fingerprint.digest); ok {
+			s.mu.Lock()
+			s.agentGraphs[root.Key] = agentGraphCacheEntry{fingerprint: fingerprint, graph: graph}
+			if s.agentGraphLoads[root.Key] == load {
+				delete(s.agentGraphLoads, root.Key)
+			}
+			close(load.done)
+			s.mu.Unlock()
+			return graph, nil
+		}
+
 		s.runAgentGraphInflight(root.Key, load, graphSource, root, catalog)
 		return load.graph, load.err
 	}
 }
 
 func fingerprintAgentGraphInputs(paths []string, freshGen uint64) (agentGraphFingerprint, error) {
+	diskDigest, err := agentGraphDiskDigest(paths)
+	if err != nil {
+		return agentGraphFingerprint{}, err
+	}
+	return agentGraphFingerprint{digest: diskDigest, freshGen: freshGen}, nil
+}
+
+// agentGraphDiskDigest hashes the database file paths, sizes, and
+// modification times into a stable key that survives server restarts.
+// Synthetic crush:// paths are hashed by their string form. The
+// returned digest is the disk cache key for a graph built from the
+// given inputs.
+func agentGraphDiskDigest(paths []string) ([sha256.Size]byte, error) {
 	paths = append([]string(nil), paths...)
 	sort.Strings(paths)
 	var material strings.Builder
-	fmt.Fprintf(&material, "fresh:%d\n", freshGen)
 	previous := ""
 	for _, path := range paths {
 		path = filepath.Clean(path)
@@ -799,20 +1000,35 @@ func fingerprintAgentGraphInputs(paths []string, freshGen uint64) (agentGraphFin
 			continue
 		}
 		previous = path
+		if crush.IsSessionPath(path) {
+			fmt.Fprintf(&material, "%s\x00synthetic\n", path)
+			continue
+		}
 		info, err := os.Stat(path)
 		if os.IsNotExist(err) {
 			fmt.Fprintf(&material, "%s\x00missing\n", path)
 			continue
 		}
 		if err != nil {
-			return agentGraphFingerprint{}, err
+			return [sha256.Size]byte{}, err
 		}
 		fmt.Fprintf(&material, "%s\x00%d\x00%d\n", path, info.Size(), info.ModTime().UnixNano())
 	}
-	return agentGraphFingerprint{digest: sha256.Sum256([]byte(material.String())), freshGen: freshGen}, nil
+	return sha256.Sum256([]byte(material.String())), nil
 }
 
-func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, source adapter.AgentGraphSource, root model.SessionMeta, catalog []model.SessionMeta) {
+func (s *Server) runAgentGraphInflight(
+	key string,
+	load *inflightAgentGraph,
+	source adapter.AgentGraphSource,
+	root model.SessionMeta,
+	catalog []model.SessionMeta,
+) {
+	var (
+		storeDigest [sha256.Size]byte
+		storeGraph  *model.AgentGraph
+	)
+
 	defer func() {
 		if r := recover(); r != nil {
 			load.graph = nil
@@ -821,14 +1037,29 @@ func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, sou
 		}
 		s.mu.Lock()
 		if load.err == nil {
-			s.agentGraphs[key] = agentGraphCacheEntry{fingerprint: load.fingerprint, graph: load.graph, used: time.Now()}
+			s.agentGraphs[key] = agentGraphCacheEntry{
+				fingerprint: load.fingerprint,
+				graph:       load.graph,
+				used:        time.Now(),
+			}
 			s.evictAgentGraphsLocked()
+			// Capture the snapshot for the disk write, then drop the
+			// lock before performing I/O. Holding mu across the write
+			// would block every concurrent agent-graph request behind
+			// the slowest disk — load.graph is read-only after the
+			// assignment above, so the snapshot is safe to publish.
+			storeDigest = load.fingerprint.digest
+			storeGraph = load.graph
 		}
 		if s.agentGraphLoads[key] == load {
 			delete(s.agentGraphLoads, key)
 		}
 		close(load.done)
 		s.mu.Unlock()
+
+		if storeGraph != nil {
+			storeAgentGraphToDisk(storeDigest, storeGraph)
+		}
 	}()
 	load.graph, load.err = source.BuildAgentGraph(root, catalog)
 }
@@ -837,18 +1068,158 @@ func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, sou
 // recently used entries. Caller must hold mu.
 func (s *Server) evictAgentGraphsLocked() {
 	for len(s.agentGraphs) > agentGraphMaxEntries {
-		var oldestKey string
-		var oldest time.Time
+		var (
+			oldestKey string
+			oldest    time.Time
+		)
 		for key, entry := range s.agentGraphs {
 			if oldestKey == "" || entry.used.Before(oldest) {
 				oldestKey = key
 				oldest = entry.used
 			}
 		}
+
 		if oldestKey == "" {
 			return
 		}
+
 		delete(s.agentGraphs, oldestKey)
+	}
+}
+
+// agentGraphCacheVersion is the on-disk format version. Bumping this
+// invalidates all existing cache files so a format change never serves
+// a stale or incompatible graph.
+const agentGraphCacheVersion = 1
+
+// agentGraphCacheFile wraps a persisted graph with a version tag so
+// future format changes can reject old files cleanly.
+type agentGraphCacheFile struct {
+	Version int              `json:"version"`
+	Graph   model.AgentGraph `json:"graph"`
+}
+
+// maxAgentGraphCacheBytes is the soft cap for the total disk cache.
+// When exceeded, oldest files are evicted until usage drops below it.
+const maxAgentGraphCacheBytes = 100 * 1024 * 1024 // 100 MB
+
+// agentGraphCacheDir returns the disk directory for persisted agent
+// graphs. Created lazily on first store. When MINDWALK_HOME is set
+// (e.g. to /dev/null in tests), the cache lives there instead.
+func agentGraphCacheDir() string {
+	home := adapter.MindwalkHome()
+	if home == "" {
+		return ""
+	}
+	return filepath.Join(home, "agent-graphs")
+}
+
+// loadAgentGraphFromDisk tries to read a previously persisted agent
+// graph for the given digest. Returns (nil, false) on any miss,
+// version mismatch, or corruption.
+func loadAgentGraphFromDisk(digest [sha256.Size]byte) (*model.AgentGraph, bool) {
+	dir := agentGraphCacheDir()
+	if dir == "" {
+		return nil, false
+	}
+	path := filepath.Join(dir, hex.EncodeToString(digest[:])+".json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, false
+	}
+	var file agentGraphCacheFile
+	if err := json.Unmarshal(data, &file); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: corrupt file %s: %v", path, err)
+		return nil, false
+	}
+	if file.Version != agentGraphCacheVersion {
+		log.Printf("mindwalk: agent-graph disk cache: version %d in %s (expected %d), ignoring",
+			file.Version, path, agentGraphCacheVersion)
+		return nil, false
+	}
+	log.Printf("mindwalk: agent-graph disk cache hit: %s", path)
+	return &file.Graph, true
+}
+
+// storeAgentGraphToDisk writes the graph to disk keyed by digest so
+// the next cold start can skip rebuilding it. Errors are logged but
+// never block the caller — the disk cache is best-effort.
+func storeAgentGraphToDisk(digest [sha256.Size]byte, graph *model.AgentGraph) {
+	dir := agentGraphCacheDir()
+	if dir == "" {
+		return
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: cannot create dir %s: %v", dir, err)
+		return
+	}
+	file := agentGraphCacheFile{Version: agentGraphCacheVersion, Graph: *graph}
+	data, err := json.Marshal(file)
+	if err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: marshal error: %v", err)
+		return
+	}
+	path := filepath.Join(dir, hex.EncodeToString(digest[:])+".json")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: write %s: %v", path, err)
+		return
+	}
+	log.Printf("mindwalk: agent-graph disk cache miss: stored %s", path)
+	evictAgentGraphCache(dir)
+}
+
+// evictAgentGraphCache removes oldest cache files when the total size
+// of the directory exceeds maxAgentGraphCacheBytes. Files are sorted
+// by modification time (oldest first) and deleted until usage is under
+// the cap.
+func evictAgentGraphCache(dir string) {
+	evictAgentGraphCacheN(dir, maxAgentGraphCacheBytes)
+}
+
+// evictAgentGraphCacheN is the size-parameterised core of
+// evictAgentGraphCache, extracted so tests can exercise eviction with a
+// small threshold instead of writing 100 MB of fixture files.
+func evictAgentGraphCacheN(dir string, maxBytes int64) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	type cacheFile struct {
+		path    string
+		size    int64
+		modTime int64
+	}
+	var files []cacheFile
+	var total int64
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		files = append(files, cacheFile{
+			path:    filepath.Join(dir, entry.Name()),
+			size:    info.Size(),
+			modTime: info.ModTime().UnixNano(),
+		})
+		total += info.Size()
+	}
+	if total <= maxBytes {
+		return
+	}
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].modTime < files[j].modTime
+	})
+	for _, f := range files {
+		if total <= maxBytes {
+			break
+		}
+		if err := os.Remove(f.path); err == nil {
+			total -= f.size
+			log.Printf("mindwalk: agent-graph disk cache: evicted %s", f.path)
+		}
 	}
 }
 
@@ -874,7 +1245,7 @@ func (s *Server) loadTraceAndMap(meta model.SessionMeta) (*model.Trace, *model.C
 	if repoRoot == "" {
 		repoRoot = s.cfg.RepoRoot
 	}
-	if repoRoot == "" {
+	if repoRoot == "" && !crush.IsSessionPath(meta.Path) {
 		repoRoot = filepath.Dir(meta.Path)
 	}
 	city, err := s.buildCityMap(repoRoot, trace)
@@ -886,7 +1257,7 @@ func (s *Server) loadTraceAndMap(meta model.SessionMeta) (*model.Trace, *model.C
 	}
 	// Recompute with the citymap's file count, carrying over the adapter's
 	// grade for its error signal — the recount cannot re-derive it.
-	trace.Stats = model.ComputeStats(trace, repoFileCount(city), trace.Stats.Observability.Errors)
+	trace.Stats = model.ComputeStats(trace, repoFileCount(city), model.ObservabilitySignals{Errors: trace.Stats.Observability.Errors})
 	return trace, city, nil
 }
 
@@ -970,6 +1341,24 @@ func fingerprintFile(path string) (fileFingerprint, error) {
 	return fileFingerprint{size: info.Size(), modTime: info.ModTime()}, nil
 }
 
+// fingerprintPath handles paths that may not be real on-disk files.
+// Adapters that surface sessions via a database (Crush) hand the
+// rest of the server a synthetic "crush://session/<id>" handle;
+// os.Stat rejects those, but the trace cache still needs a
+// fingerprint key for every session. We synthesise a stable zero
+// fingerprint for those paths so the cache always misses — every
+// request is delegated to the adapter, which can answer from its
+// own in-memory or DB layer. The choice is deliberate: a hash of
+// session metadata would let two different sessions masquerade as
+// one if their paths happened to collide, so the trade is "always
+// hit the source" instead.
+func fingerprintPath(path string) (fileFingerprint, error) {
+	if crush.IsSessionPath(path) {
+		return fileFingerprint{}, nil
+	}
+	return fingerprintFile(path)
+}
+
 func (f fileFingerprint) equal(other fileFingerprint) bool {
 	return f.size == other.size && f.modTime.Equal(other.modTime)
 }
@@ -996,8 +1385,8 @@ func summaryKey(source adapter.Source, path string) string {
 }
 
 func summaryPath(key string) string {
-	if idx := strings.IndexByte(key, 0); idx >= 0 {
-		return key[idx+1:]
+	if _, rest, ok := strings.Cut(key, "\x00"); ok {
+		return rest
 	}
 	return key
 }
@@ -1030,7 +1419,7 @@ func traceAgainstCity(trace *model.Trace, city *model.CityMap) *model.Trace {
 	}
 	clone.Marks = append([]model.Mark{}, trace.Marks...)
 	assignFileIDs(&clone, city)
-	clone.Stats = model.ComputeStats(&clone, repoFileCount(city), trace.Stats.Observability.Errors)
+	clone.Stats = model.ComputeStats(&clone, repoFileCount(city), model.ObservabilitySignals{Errors: trace.Stats.Observability.Errors})
 	return &clone
 }
 
@@ -1083,6 +1472,31 @@ func writeJSON(w http.ResponseWriter, v any) {
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	_ = enc.Encode(v)
+}
+
+// buildAdapters assembles the registered adapter sources. Each
+// adapter can be disabled via a Config flag; the Crush adapter is
+// off by default when the user passes --no-crush.
+func buildAdapters(cfg Config) []adapter.Source {
+	sources := []adapter.Source{
+		claudecode.Adapter{Dir: cfg.ClaudeDir},
+		codex.Adapter{Dir: cfg.CodexDir},
+		pi.Adapter{Dir: cfg.PiDir},
+	}
+	if cfg.DisableCrush {
+		return sources
+	}
+	return append(sources, crushAdapter(cfg.CrushDir))
+}
+
+// crushAdapter builds a Crush adapter. An empty explicit override
+// leaves the adapter to discover the per-project .crush directory
+// itself; an explicit path is used verbatim and disables discovery
+// so users can pin a specific installation. The same convention is
+// available via the --crush-dir CLI flag, where the default value
+// is an empty string so the adapter's project walk runs.
+func crushAdapter(explicit string) adapter.Source {
+	return crush.NewAdapter(explicit)
 }
 
 func openURL(url string) error {

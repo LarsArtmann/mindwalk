@@ -3,19 +3,28 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"runtime/debug"
+	"strings"
+	"syscall"
+	"time"
 
 	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/adapter/claudecode"
 	"github.com/cosmtrek/mindwalk/internal/adapter/codex"
+	"github.com/cosmtrek/mindwalk/internal/adapter/crush"
 	"github.com/cosmtrek/mindwalk/internal/adapter/pi"
 	"github.com/cosmtrek/mindwalk/internal/citymap"
 	"github.com/cosmtrek/mindwalk/internal/judge"
 	"github.com/cosmtrek/mindwalk/internal/model"
 	"github.com/cosmtrek/mindwalk/internal/server"
+	"github.com/dustin/go-humanize"
 )
 
 func main() {
@@ -29,6 +38,7 @@ func run(args []string) error {
 	if len(args) == 0 {
 		return serve(args)
 	}
+
 	switch args[0] {
 	case "serve":
 		return serve(args[1:])
@@ -42,64 +52,184 @@ func run(args []string) error {
 		return trace(args[1:])
 	case "analyze":
 		return analyze(args[1:])
+	case "sessions":
+		return listSessions(args[1:])
+	case "doctor":
+		return doctor(args[1:])
+	case "version":
+		return printVersion()
+	case "cache":
+		return manageCache(args[1:])
 	case "-h", "--help", "help":
 		usage()
+
 		return nil
 	default:
 		return fmt.Errorf("unknown command %q", args[0])
 	}
 }
 
+// serveFlags holds the flags shared by every command that starts a
+// server. The same FlagSet-backed struct covers serve, open, map, and
+// any future command that needs the discovery plumbing.
+type serveFlags struct {
+	port    int
+	host    string
+	dev     bool
+	noOpen  bool
+	adapter *adapterFlags
+}
+
+// bindServeFlags wires the serve-side flags onto fs and returns the
+// parsed struct. Pass-through for dev is omitted by map because it
+// only matters when the UI assets are under web/dist.
+func bindServeFlags(fs *flag.FlagSet, withDev bool) *serveFlags {
+	sf := &serveFlags{}
+	fs.IntVar(&sf.port, "port", 0, "port to bind")
+	fs.StringVar(&sf.host, "host", "127.0.0.1", "host to bind (use 0.0.0.0 for LAN access)")
+
+	sf.adapter = parseAdapterFlags(fs)
+	if withDev {
+		fs.BoolVar(&sf.dev, "dev", false, "prefer web/dist from the working tree")
+	}
+
+	fs.BoolVar(&sf.noOpen, "no-open", false, "serve without opening a browser")
+
+	return sf
+}
+
 func serve(args []string) error {
 	fs := flag.NewFlagSet("serve", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind on 127.0.0.1")
-	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
-	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
-	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
-	dev := fs.Bool("dev", false, "prefer web/dist from the working tree")
-	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
+
+	sf := bindServeFlags(fs, true)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, Dev: *dev}).Start(!*noOpen)
+
+	return runWithSignalShutdown(server.New(serverConfigFromServeFlags(sf)), !sf.noOpen)
 }
 
 func open(args []string) error {
-	fs := flag.NewFlagSet("open", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind on 127.0.0.1")
-	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
-	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
-	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
-	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if fs.NArg() != 1 {
-		return fmt.Errorf("usage: mindwalk open [--no-open] <session.jsonl>")
-	}
-	session, err := filepath.Abs(fs.Arg(0))
-	if err != nil {
-		return err
-	}
-	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, OpenSession: session}).Start(!*noOpen)
+	return openSingle(
+		args,
+		"open",
+		false,
+		"usage: mindwalk open [--no-open] [--no-crush] [--host 0.0.0.0] <session>",
+		func(sf *serveFlags, target string) server.Config {
+			cfg := serverConfigFromServeFlags(sf)
+			cfg.OpenSession = target
+
+			return cfg
+		},
+	)
 }
 
 func openMap(args []string) error {
-	fs := flag.NewFlagSet("map", flag.ExitOnError)
-	port := fs.Int("port", 0, "port to bind on 127.0.0.1")
-	dev := fs.Bool("dev", false, "prefer web/dist from the working tree")
-	noOpen := fs.Bool("no-open", false, "serve without opening a browser")
+	return openSingle(
+		args,
+		"map",
+		true,
+		"usage: mindwalk map [--no-open] [--host 0.0.0.0] <repo>",
+		func(sf *serveFlags, target string) server.Config {
+			cfg := serverConfigFromServeFlags(sf)
+			cfg.RepoRoot = target
+			cfg.MapOnly = true
+
+			return cfg
+		},
+	)
+}
+
+// openSingle runs the shared wiring for every "open one thing against a
+// running server" command. A single positional argument must remain after
+// flag parsing; its absolute path is handed to build to produce the final
+// Config. WithDev turns on the --dev flag, which is meaningless when the
+// command never serves the embedded UI.
+func openSingle(
+	args []string,
+	name string,
+	withDev bool,
+	usage string,
+	build func(sf *serveFlags, target string) server.Config,
+) error {
+	fs := flag.NewFlagSet(name, flag.ExitOnError)
+
+	sf := bindServeFlags(fs, withDev)
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
+
 	if fs.NArg() != 1 {
-		return fmt.Errorf("usage: mindwalk map [--no-open] <repo>")
+		fmt.Fprintln(os.Stderr, usage)
+
+		return fmt.Errorf("usage: mindwalk %s <argument>", name)
 	}
-	repo, err := filepath.Abs(fs.Arg(0))
+
+	target, err := filepath.Abs(fs.Arg(0))
 	if err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, Dev: *dev, RepoRoot: repo, MapOnly: true}).Start(!*noOpen)
+
+	return runWithSignalShutdown(server.New(build(sf, target)), !sf.noOpen)
+}
+
+const shutdownGracePeriod = 5 * time.Second
+
+// runWithSignalShutdown starts the server with the given browser
+// flag and arranges for SIGINT/SIGTERM to trigger a graceful
+// shutdown. Previously Start blocked indefinitely on http.Serve and
+// ignored signals, leaving in-flight SSE handlers alive across
+// shell session restarts. We give in-flight handlers a 5-second
+// window to drain before exiting.
+func runWithSignalShutdown(srv *server.Server, openBrowser bool) error {
+	errCh := make(chan error, 1)
+
+	go func() { errCh <- srv.Start(openBrowser) }()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	select {
+	case err := <-errCh:
+		return err
+	case sig := <-sigCh:
+		fmt.Fprintf(os.Stderr, "mindwalk: received %s, shutting down\n", sig)
+
+		ctx, cancel := context.WithTimeout(context.Background(), shutdownGracePeriod)
+		defer cancel()
+
+		if err := srv.Shutdown(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			fmt.Fprintf(os.Stderr, "mindwalk: shutdown: %v\n", err)
+		}
+
+		// Wait for Start to return (it does immediately after
+		// Shutdown completes) so we don't leak the goroutine.
+		select {
+		case err := <-errCh:
+			if err != nil && !errors.Is(err, http.ErrServerClosed) {
+				return err
+			}
+
+			return nil
+		case <-time.After(2 * time.Second):
+			return nil
+		}
+	}
+}
+
+func serverConfigFromServeFlags(sf *serveFlags) server.Config {
+	af := sf.adapter
+
+	return server.Config{
+		Port:         sf.port,
+		Host:         sf.host,
+		ClaudeDir:    af.claudeDir,
+		CodexDir:     af.codexDir,
+		PiDir:        af.piDir,
+		CrushDir:     af.crushDir,
+		DisableCrush: af.noCrush,
+		Dev:          sf.dev,
+	}
 }
 
 func build(args []string) error {
@@ -107,13 +237,16 @@ func build(args []string) error {
 	if err != nil {
 		return err
 	}
+
 	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk build <repo> [-o out]")
+		return errors.New("usage: mindwalk build <repo> [-o out]")
 	}
+
 	city, err := citymap.Builder{}.Build(positional[0], nil)
 	if err != nil {
 		return err
 	}
+
 	return writeJSON(out, city)
 }
 
@@ -122,13 +255,27 @@ func trace(args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk trace <session.jsonl> [-o out]")
+
+	crushDir := ""
+
+	for i, arg := range positional {
+		if arg == "--crush-dir" && i+1 < len(positional) {
+			crushDir = positional[i+1]
+			positional = append(positional[:i], positional[i+2:]...)
+
+			break
+		}
 	}
-	tr, err := parseTrace(positional[0])
+
+	if len(positional) != 1 {
+		return errors.New("usage: mindwalk trace [--crush-dir DIR] <session> [-o out]")
+	}
+
+	tr, err := parseTrace(positional[0], crushDir)
 	if err != nil {
 		return err
 	}
+
 	return writeJSON(out, tr)
 }
 
@@ -141,9 +288,11 @@ func judgeMatches(report *model.Report, cli, modelName string) bool {
 	if cli != "" && report.Judge.CLI != cli {
 		return false
 	}
+
 	if modelName != "" && report.Judge.Model != modelName && report.Judge.RequestedModel != modelName {
 		return false
 	}
+
 	return true
 }
 
@@ -151,30 +300,53 @@ func analyze(args []string) error {
 	fs := flag.NewFlagSet("analyze", flag.ExitOnError)
 	out := fs.String("o", "", "write the report to this file instead of stdout")
 	judgeCLI := fs.String("judge", "", "judge CLI to use: claude or codex (default: auto-detect)")
-	judgeModel := fs.String("model", "", "judge model override, e.g. sonnet or gpt-5.6-sol (default: the CLI's default)")
+	judgeModel := fs.String(
+		"model",
+		"",
+		"judge model override, e.g. sonnet or gpt-5.6-sol (default: the CLI's default)",
+	)
 	noCache := fs.Bool("no-cache", false, "re-run the judge even when a fresh cached report exists")
-	noRubric := fs.Bool("no-rubric", false, "skip the task rubric layer: one dimensions-only judge call, bypassing the report cache")
+	noRubric := fs.Bool(
+		"no-rubric",
+		false,
+		"skip the task rubric layer: one dimensions-only judge call, bypassing the report cache",
+	)
+	crushDir := fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
+	noCrush := fs.Bool("no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
 	timeout := fs.Duration("timeout", judge.DefaultTimeout, "judge subprocess timeout")
 	// Accept flags after the positional argument, matching trace/build.
 	var positional []string
+
 	for {
 		if err := fs.Parse(args); err != nil {
 			return err
 		}
+
 		if fs.NArg() == 0 {
 			break
 		}
+
 		positional = append(positional, fs.Arg(0))
 		args = fs.Args()[1:]
 	}
+
 	if len(positional) != 1 {
-		return fmt.Errorf("usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache] [--no-rubric]")
+		return errors.New(
+			"usage: mindwalk analyze <session.jsonl> [-o out] [--judge claude|codex] [--model name] [--no-cache] [--no-rubric]",
+		)
 	}
-	session, err := filepath.Abs(positional[0])
-	if err != nil {
-		return err
+
+	session := positional[0]
+	if !strings.HasPrefix(session, "crush://") {
+		var err error
+
+		session, err = filepath.Abs(positional[0])
+		if err != nil {
+			return err
+		}
 	}
-	tr, err := parseTrace(session)
+
+	tr, err := parseTrace(session, crushDirFor(*crushDir, *noCrush))
 	if err != nil {
 		return err
 	}
@@ -195,43 +367,449 @@ func analyze(args []string) error {
 		if judge.FreshAgainstTrace(cached, tr) && judgeMatches(cached, *judgeCLI, *judgeModel) &&
 			judge.RubricSatisfied(cached) {
 			fmt.Fprintln(os.Stderr, "mindwalk: using cached report (pass --no-cache to re-run)")
+
 			return writeJSON(*out, cached)
 		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
+
 	fmt.Fprintf(os.Stderr, "mindwalk: judging %d events, this can take a minute or two…\n", tr.Session.EventCount)
-	report, err := judge.Analyze(ctx, tr, judge.Options{CLI: *judgeCLI, Model: *judgeModel, NoRubric: *noRubric, CachedReport: cached})
+
+	report, err := judge.Analyze(
+		ctx,
+		tr,
+		judge.Options{CLI: *judgeCLI, Model: *judgeModel, NoRubric: *noRubric, CachedReport: cached},
+	)
 	if err != nil {
 		return err
 	}
+
 	if !*noRubric {
 		if err := cache.Store(key, report); err != nil {
 			fmt.Fprintln(os.Stderr, "mindwalk: report cache write failed:", err)
 		}
 	}
+
 	return writeJSON(*out, report)
 }
 
-func parseTrace(path string) (*model.Trace, error) {
+// adapterFlags holds the common adapter-discovery flags shared by
+// serve, open, sessions, and doctor.
+type adapterFlags struct {
+	claudeDir string
+	codexDir  string
+	piDir     string
+	crushDir  string
+	noCrush   bool
+}
+
+// parseAdapterFlags registers the adapter-discovery flags onto fs
+// and returns a pointer to the struct that fs.Parse will populate.
+// The pointer MUST be used after fs.Parse has run — StringVar/BoolVar
+// write into the struct fields, so dereferencing before Parse would
+// capture only the defaults (the classic flag-package footgun).
+func parseAdapterFlags(fs *flag.FlagSet) *adapterFlags {
+	af := &adapterFlags{}
+	fs.StringVar(&af.claudeDir, "claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
+	fs.StringVar(&af.codexDir, "codex-dir", codex.DefaultDir(), "Codex sessions directory")
+	fs.StringVar(&af.piDir, "pi-dir", pi.DefaultDir(), "pi sessions directory")
+	fs.StringVar(
+		&af.crushDir,
+		"crush-dir",
+		"",
+		"Crush data directory override (containing crush.db); empty = auto-discover",
+	)
+	fs.BoolVar(&af.noCrush, "no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
+
+	return af
+}
+
+func (f adapterFlags) sources() []adapter.Source {
+	sources := []adapter.Source{
+		claudecode.Adapter{Dir: f.claudeDir},
+		codex.Adapter{Dir: f.codexDir},
+		pi.Adapter{Dir: f.piDir},
+	}
+	if f.noCrush {
+		return sources
+	}
+
+	if f.crushDir == "" {
+		return append(sources, crush.NewAdapter(""))
+	}
+
+	return append(sources, crush.NewAdapter(f.crushDir))
+}
+
+// closeSources closes any source that implements adapter.Closer. Safe
+// to call on mixed source lists where only some adapters hold open
+// resources (e.g. crush's database connection pool).
+func closeSources(srcs []adapter.Source) {
+	for _, src := range srcs {
+		if c, ok := src.(adapter.Closer); ok {
+			_ = c.Close()
+		}
+	}
+}
+
+// sessionEntry is the JSON representation of one discovered session,
+// used when `mindwalk sessions --json` is requested.
+type sessionEntry struct {
+	Harness    string `json:"harness"`
+	StartedAt  string `json:"startedAt,omitempty"`
+	EventCount int    `json:"eventCount"`
+	Title      string `json:"title,omitempty"`
+	Cwd        string `json:"cwd,omitempty"`
+	Path       string `json:"path"`
+}
+
+// listSessions prints every discovered session across all adapters
+// without starting the server. Supports --json for machine-readable
+// output, --harness to filter by adapter, and --limit to cap results.
+func listSessions(args []string) error {
+	fs := flag.NewFlagSet("sessions", flag.ExitOnError)
+	af := parseAdapterFlags(fs)
+	jsonOut := fs.Bool("json", false, "output sessions as JSON")
+	harnessFilter := fs.String("harness", "", "filter by harness (claude-code, codex, pi, crush)")
+
+	limit := fs.Int("limit", 0, "maximum sessions to list (0 = all)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	srcs := af.sources()
+	defer closeSources(srcs)
+
+	entries := []sessionEntry{}
+
+	for _, src := range srcs {
+		h := src.Harness()
+		if *harnessFilter != "" && h != *harnessFilter {
+			continue
+		}
+
+		metas, err := src.ListSessions()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "mindwalk: %s: %v\n", h, err)
+
+			continue
+		}
+
+		for _, m := range metas {
+			if *limit > 0 && len(entries) >= *limit {
+				break
+			}
+
+			if *jsonOut {
+				entries = append(entries, sessionEntry{
+					Harness:    h,
+					StartedAt:  m.StartedAt,
+					EventCount: m.EventCount,
+					Title:      m.Title,
+					Cwd:        m.Cwd,
+					Path:       m.Path,
+				})
+			} else {
+				cwd := ""
+				if m.Cwd != "" {
+					cwd = "  cwd=" + m.Cwd
+				}
+
+				fmt.Printf("%-8s  %s  %4d events  %s%s\n", h, m.StartedAt, m.EventCount, m.Title, cwd)
+			}
+		}
+
+		if *limit > 0 && len(entries) >= *limit {
+			break
+		}
+	}
+
+	if *jsonOut {
+		return writeJSON("", entries)
+	}
+
+	return nil
+}
+
+// doctor prints adapter status, data-directory paths, session
+// counts, and diagnostic checks so users can verify their
+// configuration and troubleshoot issues.
+func doctor(args []string) error {
+	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
+
+	af := parseAdapterFlags(fs)
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	srcs := af.sources()
+	defer closeSources(srcs)
+
+	for _, src := range srcs {
+		h := src.Harness()
+		metas, err := src.ListSessions()
+		status := "ok"
+		count := 0
+
+		if err != nil {
+			status = "error: " + err.Error()
+		} else {
+			count = len(metas)
+		}
+
+		dirStatus := ""
+
+		if d := src.SessionDir(); d != "" {
+			if adapter.ReadableDir(d) {
+				dirStatus = " [dir ok]"
+			} else {
+				dirStatus = " [dir missing]"
+			}
+		}
+
+		fmt.Printf("%-8s  sessions=%-4d  %s%s\n", h, count, status, dirStatus)
+
+		if diag, ok := src.(adapter.DiagnosticsSource); ok {
+			for _, check := range diag.Diagnostics() {
+				fmt.Printf("         %-16s  %-5s  %s\n", check.Name, check.Status, check.Detail)
+			}
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("Data directories:")
+	fmt.Printf("  claude-dir  %s\n", af.claudeDir)
+	fmt.Printf("  codex-dir   %s\n", af.codexDir)
+	fmt.Printf("  pi-dir      %s\n", af.piDir)
+
+	if af.noCrush {
+		fmt.Printf("  crush       disabled\n")
+	} else if af.crushDir != "" {
+		fmt.Printf("  crush-dir   %s\n", af.crushDir)
+	} else {
+		fmt.Printf("  crush       auto-discover\n")
+	}
+
+	return nil
+}
+
+// printVersion reports the build info: Go version, module version, and
+// VCS revision (when built from a git checkout).
+func printVersion() error {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		fmt.Println("mindwalk (no build info)")
+
+		return nil
+	}
+
+	rev := "unknown"
+	dirty := ""
+
+	for _, setting := range info.Settings {
+		switch setting.Key {
+		case "vcs.revision":
+			if len(setting.Value) >= 8 {
+				rev = setting.Value[:8]
+			} else {
+				rev = setting.Value
+			}
+		case "vcs.modified":
+			if setting.Value == "true" {
+				dirty = " (dirty)"
+			}
+		}
+	}
+
+	fmt.Printf("mindwalk %s%s\n", rev, dirty)
+	fmt.Printf("  go %s\n", info.GoVersion)
+
+	if info.Main.Version != "" && info.Main.Version != "(devel)" {
+		fmt.Printf("  module %s\n", info.Main.Version)
+	}
+
+	return nil
+}
+
+// manageCache handles the `mindwalk cache` subcommand: clear or status.
+func manageCache(args []string) error {
+	if len(args) == 0 {
+		return errors.New("usage: mindwalk cache <clear|status>")
+	}
+
+	switch args[0] {
+	case "clear":
+		return clearCache()
+	case "status":
+		return cacheStatus()
+	default:
+		return fmt.Errorf("unknown cache subcommand %q (use: clear, status)", args[0])
+	}
+}
+
+// cacheHome resolves the ~/.mindwalk base directory (or MINDWALK_HOME
+// override) shared by the server's caches.
+func cacheHome() string {
+	return adapter.MindwalkHome()
+}
+
+func clearCache() error {
+	graphsDir, err := cacheSubdir("agent-graphs")
+	if err != nil {
+		return err
+	}
+
+	reportsDir, err := cacheSubdir("reports")
+	if err != nil {
+		return err
+	}
+
+	removedGraphs := clearDir(graphsDir)
+	removedReports := clearDir(reportsDir)
+
+	fmt.Printf("cleared %d file(s) from %s\n", removedGraphs, graphsDir)
+	fmt.Printf("cleared %d file(s) from %s\n", removedReports, reportsDir)
+
+	return nil
+}
+
+func cacheStatus() error {
+	graphsDir, err := cacheSubdir("agent-graphs")
+	if err != nil {
+		return err
+	}
+
+	reportsDir, err := cacheSubdir("reports")
+	if err != nil {
+		return err
+	}
+
+	gCount, gSize := dirStats(graphsDir)
+	rCount, rSize := dirStats(reportsDir)
+
+	fmt.Printf("agent-graphs:  %d file(s), %s in %s\n", gCount, humanBytes(gSize), graphsDir)
+	fmt.Printf("reports:       %d file(s), %s in %s\n", rCount, humanBytes(rSize), reportsDir)
+
+	return nil
+}
+
+// cacheSubdir resolves the mindwalk base directory and joins a
+// relative subdirectory underneath it. Both the clear and the status
+// subcommands need to talk about the agent-graphs cache the same way,
+// and both must surface the same "no home dir" error so users see one
+// consistent message regardless of which subcommand they ran.
+func cacheSubdir(name string) (string, error) {
+	home, err := requireCacheHome()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(home, name), nil
+}
+
+func requireCacheHome() (string, error) {
+	home := cacheHome()
+	if home == "" {
+		return "", errors.New("cannot resolve mindwalk home directory")
+	}
+
+	return home, nil
+}
+
+func clearDir(dir string) int {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0
+	}
+
+	var removed int
+
+	for _, entry := range entries {
+		if err := os.RemoveAll(filepath.Join(dir, entry.Name())); err == nil {
+			removed++
+		}
+	}
+
+	return removed
+}
+
+func dirStats(dir string) (count int, size int64) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return 0, 0
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		count++
+		size += info.Size()
+	}
+
+	return count, size
+}
+
+func humanBytes(n int64) string {
+	return humanize.Bytes(uint64(n))
+}
+
+func parseTrace(path string, crushDir string) (*model.Trace, error) {
 	var lastErr error
-	for _, source := range []adapter.Source{claudecode.Adapter{}, codex.Adapter{}, pi.Adapter{}} {
+
+	for _, source := range traceSources(crushDir) {
 		trace, err := source.Parse(path)
 		if err == nil {
 			return trace, nil
 		}
+
 		lastErr = err
 	}
+
 	if lastErr != nil {
 		return nil, lastErr
 	}
-	return nil, fmt.Errorf("no session adapters configured")
+
+	return nil, errors.New("no session adapters configured")
+}
+
+// traceSources returns the adapter sources parseTrace will try, in
+// order. An empty crushDir means "auto-discover"; a non-empty
+// value pins a specific installation. The noCrush flag is signalled
+// by passing a path that cannot possibly exist.
+func traceSources(crushDir string) []adapter.Source {
+	sources := []adapter.Source{claudecode.Adapter{}, codex.Adapter{}, pi.Adapter{}}
+	if crushDir == "" {
+		return append(sources, crush.Adapter{})
+	}
+
+	return append(sources, crush.Adapter{Dir: crushDir})
+}
+
+// crushDirFor resolves the crush directory based on the --crush-dir
+// and --no-crush flag values. Empty string means auto-discover.
+func crushDirFor(override string, noCrush bool) string {
+	if noCrush {
+		return "/dev/null/mindwalk-no-crush"
+	}
+
+	return override
 }
 
 func parseOutputArgs(args []string) ([]string, string, error) {
-	var out string
-	var positional []string
+	var (
+		out        string
+		positional []string
+	)
+
 	for i := 0; i < len(args); i++ {
 		switch args[i] {
 		case "-o", "--output":
@@ -239,17 +817,22 @@ func parseOutputArgs(args []string) ([]string, string, error) {
 			if i >= len(args) {
 				return nil, "", fmt.Errorf("%s requires a value", args[i-1])
 			}
+
 			out = args[i]
 		default:
 			positional = append(positional, args[i])
 		}
 	}
+
 	return positional, out, nil
 }
 
 func writeJSON(out string, v any) error {
-	var f *os.File
-	var err error
+	var (
+		f   *os.File
+		err error
+	)
+
 	if out == "" {
 		f = os.Stdout
 	} else {
@@ -257,10 +840,12 @@ func writeJSON(out string, v any) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 	}
+
 	enc := json.NewEncoder(f)
 	enc.SetIndent("", "  ")
+
 	return enc.Encode(v)
 }
 
@@ -269,10 +854,20 @@ func usage() {
 
 Usage:
   mindwalk                        serve on a random local port and open the UI
-  mindwalk serve [--port N] [--no-open] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR]
-  mindwalk open [--no-open] <session.jsonl> open a specific Claude Code, Codex, or pi session
+  mindwalk serve [--port N] [--host HOST] [--no-open] [--no-crush] [--claude-dir DIR] [--codex-dir DIR] [--pi-dir DIR] [--crush-dir DIR]
+  mindwalk open [--no-open] [--no-crush] [--crush-dir DIR] <session> open a specific Claude Code, Codex, pi, or Crush session
   mindwalk map [--no-open] <repo>  open the repository citymap with no session
   mindwalk build <repo> [-o out]  write citymap.json
   mindwalk trace <session> [-o out] write trace.json
-  mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] [--no-rubric] evaluate a session with a local agent CLI`)
+  mindwalk analyze <session> [-o out] [--judge claude|codex] [--no-cache] [--no-rubric] evaluate a session with a local agent CLI
+  mindwalk sessions [--json] [--harness NAME] [--limit N] [--no-crush]  list all discovered sessions
+  mindwalk doctor [--no-crush] [--crush-dir DIR]    print adapter status, session counts, and diagnostics
+  mindwalk version                                print build version
+  mindwalk cache <clear|status>                   manage the agent-graph disk cache
+
+Examples:
+  mindwalk serve --crush-dir ~/.local/share/crush   # point at a specific Crush install
+  mindwalk serve --no-crush                         # skip the Crush scan entirely
+  mindwalk serve --host 0.0.0.0 --port 8080         # serve on the LAN
+  mindwalk trace crush://session/<id>              # export a Crush session as trace.json`)
 }

@@ -38,7 +38,10 @@ export function Dock({ panels, openSheet, openPop, onToggle, onClosePop }: DockP
   const pop = panels.find((panel) => panel.id === openPop && panel.presentation === "pop");
   const sections: PanelSection[] = ["scene", "session"];
   const grouped = sections
-    .map((section) => ({ section, items: panels.filter((panel) => panel.section === section) }))
+    .map((section) => ({
+      section,
+      items: panels.filter((panel) => panel.section === section),
+    }))
     .filter((group) => group.items.length > 0);
 
   // pops are transient: click-away or Escape dismisses, like any menu; the

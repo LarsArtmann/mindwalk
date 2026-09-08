@@ -206,8 +206,22 @@
         "eventsBeforeFirstEdit": 2,
         "regressionRate": 0,
         "errorRate": 0,
-        "actions": { "search": 1, "read": 0, "edit": 1, "exec": 1, "verify": 1, "other": 0 },
-        "errors": { "search": 0, "read": 0, "edit": 0, "exec": 0, "verify": 0, "other": 0 },
+        "actions": {
+          "search": 1,
+          "read": 0,
+          "edit": 1,
+          "exec": 1,
+          "verify": 1,
+          "other": 0
+        },
+        "errors": {
+          "search": 0,
+          "read": 0,
+          "edit": 0,
+          "exec": 0,
+          "verify": 0,
+          "other": 0
+        },
         "maxEditsPerFile": 1,
         "churnFiles": 0,
         "userTurns": 1,
@@ -258,8 +272,22 @@
         "eventsBeforeFirstEdit": 0,
         "regressionRate": 0,
         "errorRate": 0,
-        "actions": { "search": 0, "read": 1, "edit": 0, "exec": 0, "verify": 1, "other": 0 },
-        "errors": { "search": 0, "read": 0, "edit": 0, "exec": 0, "verify": 0, "other": 0 },
+        "actions": {
+          "search": 0,
+          "read": 1,
+          "edit": 0,
+          "exec": 0,
+          "verify": 1,
+          "other": 0
+        },
+        "errors": {
+          "search": 0,
+          "read": 0,
+          "edit": 0,
+          "exec": 0,
+          "verify": 0,
+          "other": 0
+        },
         "maxEditsPerFile": 0,
         "churnFiles": 0,
         "userTurns": 0,
@@ -319,8 +347,22 @@
         "eventsBeforeFirstEdit": 0,
         "regressionRate": 0,
         "errorRate": 0,
-        "actions": { "search": 1, "read": 1, "edit": 0, "exec": 0, "verify": 1, "other": 0 },
-        "errors": { "search": 0, "read": 0, "edit": 0, "exec": 0, "verify": 0, "other": 0 },
+        "actions": {
+          "search": 1,
+          "read": 1,
+          "edit": 0,
+          "exec": 0,
+          "verify": 1,
+          "other": 0
+        },
+        "errors": {
+          "search": 0,
+          "read": 0,
+          "edit": 0,
+          "exec": 0,
+          "verify": 0,
+          "other": 0
+        },
         "maxEditsPerFile": 0,
         "churnFiles": 0,
         "userTurns": 0,
@@ -352,8 +394,22 @@
         "eventsBeforeFirstEdit": 0,
         "regressionRate": 0,
         "errorRate": 0,
-        "actions": { "search": 0, "read": 0, "edit": 0, "exec": 0, "verify": 0, "other": 0 },
-        "errors": { "search": 0, "read": 0, "edit": 0, "exec": 0, "verify": 0, "other": 0 },
+        "actions": {
+          "search": 0,
+          "read": 0,
+          "edit": 0,
+          "exec": 0,
+          "verify": 0,
+          "other": 0
+        },
+        "errors": {
+          "search": 0,
+          "read": 0,
+          "edit": 0,
+          "exec": 0,
+          "verify": 0,
+          "other": 0
+        },
         "maxEditsPerFile": 0,
         "churnFiles": 0,
         "userTurns": 0,
@@ -373,7 +429,11 @@
     "judgeClis": ["codex"],
     "report": {
       "version": 1,
-      "session": { "id": "synthetic-root", "harness": "codex", "eventCount": 4 },
+      "session": {
+        "id": "synthetic-root",
+        "harness": "codex",
+        "eventCount": 4
+      },
       "judge": {
         "cli": "codex",
         "model": "fictional-model",

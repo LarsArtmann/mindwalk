@@ -13,7 +13,7 @@ export const touchColors: Record<Touch | "selected", THREE.Color> = {
   // washed out to white and stopped matching the HUD legend
   read: new THREE.Color("#a5c8f1"),
   edit: new THREE.Color("#f0ad5a"),
-  selected: new THREE.Color("#f6ead2")
+  selected: new THREE.Color("#f6ead2"),
 };
 
 // Distance along `dir` that fits every point inside the camera frustum.
@@ -23,7 +23,7 @@ export const touchColors: Record<Touch | "selected", THREE.Color> = {
 export function fitDistance(
   camera: THREE.PerspectiveCamera,
   dir: THREE.Vector3,
-  points: Iterable<THREE.Vector3>
+  points: Iterable<THREE.Vector3>,
 ): number | null {
   if (!Number.isFinite(camera.aspect) || camera.aspect <= 0) return null;
   const forward = dir.clone().negate();
@@ -37,7 +37,7 @@ export function fitDistance(
     distance = Math.max(
       distance,
       Math.abs(point.dot(right)) / tanH - depth,
-      Math.abs(point.dot(up)) / tanV - depth
+      Math.abs(point.dot(up)) / tanV - depth,
     );
   }
   return distance;
@@ -53,7 +53,7 @@ export function ensureVisible(
   world: THREE.Vector3,
   viewW: number,
   viewH: number,
-  reservedRight: number
+  reservedRight: number,
 ) {
   if (viewW === 0 || viewH === 0) return;
   const forward = camera.getWorldDirection(new THREE.Vector3());

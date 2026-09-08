@@ -175,7 +175,8 @@ func TestAnalyzeDegradesWhenRubricGenerationFails(t *testing.T) {
 		t.Fatal("degraded run should use the legacy prompt")
 	}
 	rubric := report.Rubric
-	if rubric == nil || rubric.Status != model.RubricStatusUnavailable || rubric.Reason != model.RubricReasonGenerationFailed {
+	if rubric == nil || rubric.Status != model.RubricStatusUnavailable ||
+		rubric.Reason != model.RubricReasonGenerationFailed {
 		t.Fatalf("rubric = %#v", rubric)
 	}
 	if report.Judge.RubricPromptVersion != 0 {
@@ -246,7 +247,7 @@ func TestRubricTaskEvidenceContract(t *testing.T) {
 	// covered by the task digest.
 	longMarks := func(text3 string) []model.Mark {
 		var marks []model.Mark
-		for i := 0; i < maxUserMessages+5; i++ {
+		for i := range maxUserMessages + 5 {
 			note := fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)
 			if i == 2 {
 				note = text3
@@ -290,7 +291,7 @@ func TestRubricTaskEvidenceContract(t *testing.T) {
 
 	// Past the task budget the message is truly absent — anchoring it fails.
 	var many []model.Mark
-	for i := 0; i < maxTaskMessages+3; i++ {
+	for i := range maxTaskMessages + 3 {
 		many = append(many, model.Mark{Seq: i, Type: "user-message", Note: fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)})
 	}
 	beyond := `{"tasks":[{"title":"锚到被裁掉的消息","type":"other","anchor_user_messages":[2],"criteria":[
@@ -352,7 +353,12 @@ func TestAnalyzeReusesCachedRubric(t *testing.T) {
 }
 
 func TestAnalyzeFailsWhenScoringMissesCriterion(t *testing.T) {
-	missing := strings.Replace(validScoring, ",\n{\"id\":\"scoped-changes\",\"coverage\":\"sufficient\",\"findings\":[]}]", "]", 1)
+	missing := strings.Replace(
+		validScoring,
+		",\n{\"id\":\"scoped-changes\",\"coverage\":\"sufficient\",\"findings\":[]}]",
+		"]",
+		1,
+	)
 	if missing == validScoring {
 		t.Fatal("fixture replacement did not apply")
 	}
@@ -368,8 +374,12 @@ func TestAnalyzeScoringDropsUnknownAndDuplicateIDs(t *testing.T) {
 	// The invented entry is deliberately malformed (unknown coverage, unknown
 	// severity): unknown ids must be dropped before any validation touches
 	// them — noise the contract discards may never fail the scoring pass.
-	noisy := strings.Replace(validScoring, `"criteria":[`,
-		`"criteria":[{"id":"invented","coverage":"mostly","findings":[{"claim":"x","severity":"blocker","evidence_seqs":[0]}]},{"id":"repro-first","coverage":"none","findings":[]},`, 1)
+	noisy := strings.Replace(
+		validScoring,
+		`"criteria":[`,
+		`"criteria":[{"id":"invented","coverage":"mostly","findings":[{"claim":"x","severity":"blocker","evidence_seqs":[0]}]},{"id":"repro-first","coverage":"none","findings":[]},`,
+		1,
+	)
 	// First repro-first occurrence wins (the injected duplicate with coverage
 	// none comes first here — so the duplicate is the original below).
 	report, err := Analyze(context.Background(), rubricTrace(), Options{
@@ -398,9 +408,12 @@ func TestAnalyzeRejectsUnknownCoverage(t *testing.T) {
 
 func TestAnalyzeCriterionEvidenceDiscipline(t *testing.T) {
 	// Hallucinated seq stripped, all-invalid finding dropped entirely.
-	tweaked := strings.Replace(validScoring,
+	tweaked := strings.Replace(
+		validScoring,
 		`{"id":"repro-first","coverage":"sufficient","findings":[{"claim":"先抽样了真实数据","severity":"info","evidence_seqs":[0]}]}`,
-		`{"id":"repro-first","coverage":"sufficient","findings":[{"claim":"部分幻觉","severity":"warning","evidence_seqs":[0,999]},{"claim":"全是幻觉","severity":"problem","evidence_seqs":[888]}]}`, 1)
+		`{"id":"repro-first","coverage":"sufficient","findings":[{"claim":"部分幻觉","severity":"warning","evidence_seqs":[0,999]},{"claim":"全是幻觉","severity":"problem","evidence_seqs":[888]}]}`,
+		1,
+	)
 	report, err := Analyze(context.Background(), rubricTrace(), Options{
 		Runner: &recordingRunner{outputs: []string{validRubric, tweaked}},
 	})
@@ -408,7 +421,8 @@ func TestAnalyzeCriterionEvidenceDiscipline(t *testing.T) {
 		t.Fatal(err)
 	}
 	criterion := criteriaByID(report.Rubric)["repro-first"]
-	if len(criterion.Findings) != 1 || len(criterion.Findings[0].EvidenceSeqs) != 1 || criterion.Findings[0].EvidenceSeqs[0] != 0 {
+	if len(criterion.Findings) != 1 || len(criterion.Findings[0].EvidenceSeqs) != 1 ||
+		criterion.Findings[0].EvidenceSeqs[0] != 0 {
 		t.Fatalf("findings = %#v", criterion.Findings)
 	}
 	// The fully hallucinated problem finding may not drive the verdict.
@@ -440,9 +454,21 @@ func TestParseRubricBounds(t *testing.T) {
 		"duplicate id":     wrap(task("t", 1, "same-id", "same-id", "c-three", "c-four")),
 		"unknown anchor":   wrap(task("t", 9, "c-one", "c-two", "c-three", "c-four")),
 		"duplicate anchor": wrap(task("a", 1, "c-one", "c-two", "c-three"), task("b", 1, "c-four", "c-five", "c-six")),
-		"missing anchor":   wrap(`{"title":"t","type":"other","anchor_user_messages":[],"criteria":[` + criterion("c-one") + `]}`),
-		"overlong text": wrap(fmt.Sprintf(`{"title":"t","type":"other","anchor_user_messages":[1],"criteria":[{"id":"c-one","title":"t","why":"%s","good":"g","bad":"b"},%s,%s,%s]}`,
-			strings.Repeat("长", maxRubricTextRunes+1), criterion("c-two"), criterion("c-three"), criterion("c-four"))),
+		"missing anchor": wrap(
+			`{"title":"t","type":"other","anchor_user_messages":[],"criteria":[` + criterion("c-one") + `]}`,
+		),
+		"overlong text": wrap(
+			fmt.Sprintf(
+				`{"title":"t","type":"other","anchor_user_messages":[1],"criteria":[{"id":"c-one","title":"t","why":"%s","good":"g","bad":"b"},%s,%s,%s]}`,
+				strings.Repeat(
+					"长",
+					maxRubricTextRunes+1,
+				),
+				criterion("c-two"),
+				criterion("c-three"),
+				criterion("c-four"),
+			),
+		),
 	}
 	for name, raw := range cases {
 		if _, err := parseRubric(raw, rendered); err == nil {
@@ -452,14 +478,14 @@ func TestParseRubricBounds(t *testing.T) {
 
 	// Too many tasks / criteria in total.
 	var tasks []string
-	for i := 0; i < maxRubricTasks+1; i++ {
+	for i := range maxRubricTasks + 1 {
 		tasks = append(tasks, task(fmt.Sprintf("t%d", i), i+1, fmt.Sprintf("c-%d", i)))
 	}
 	if _, err := parseRubric(wrap(tasks...), rendered); err == nil {
 		t.Fatal("too many tasks: expected error")
 	}
 	var ids []string
-	for i := 0; i < maxCriteriaPerTask+1; i++ {
+	for i := range maxCriteriaPerTask + 1 {
 		ids = append(ids, fmt.Sprintf("c-%d", i))
 	}
 	if _, err := parseRubric(wrap(task("t", 1, ids...)), rendered); err == nil {
@@ -534,7 +560,7 @@ func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
 	longTrace := func(text3 string) *model.Trace {
 		trace := sampleTrace()
 		trace.Marks = nil
-		for i := 0; i < maxUserMessages+5; i++ {
+		for i := range maxUserMessages + 5 {
 			note := fmt.Sprintf("请求 %d：一个足够长的任务描述", i+1)
 			if i == 2 {
 				note = text3
@@ -565,6 +591,7 @@ func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
 	if !FreshAgainstTrace(report, before) {
 		t.Fatal("expected fresh against the trace it was generated from")
 	}
+
 	if FreshAgainstTrace(report, after) {
 		t.Fatal("mid-window task change must stale the rubric-bearing report")
 	}
@@ -574,7 +601,7 @@ func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
 	weakTrace := func(text3 string) *model.Trace {
 		trace := sampleTrace()
 		trace.Marks = nil
-		for i := 0; i < maxUserMessages+5; i++ {
+		for i := range maxUserMessages + 5 {
 			note := "好"
 			if i == 2 {
 				note = text3
@@ -596,6 +623,7 @@ func TestFreshTracksTaskEvidenceBeyondScoringWindow(t *testing.T) {
 	if !FreshAgainstTrace(skipped, weakBefore) {
 		t.Fatal("weak-task-text skip should stay fresh while the evidence stays weak")
 	}
+
 	if FreshAgainstTrace(skipped, weakAfter) {
 		t.Fatal("enriched task evidence must stale the weak-task-text skip")
 	}

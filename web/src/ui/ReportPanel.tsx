@@ -2,6 +2,7 @@ import { useCallback, useState, type ReactNode } from "react";
 import { AlertTriangle, RefreshCw, Sparkles, X } from "lucide-react";
 import type {
   JudgeChoice,
+  JudgeProgress,
   ReportDimension,
   ReportFinding,
   ReportStatus,
@@ -9,12 +10,14 @@ import type {
   RubricCriterion,
   RubricTask,
   Severity,
-  Verdict
+  Verdict,
 } from "../types";
 
 interface ReportPanelProps {
   status?: ReportStatus;
   analyzing: boolean;
+  /** live progress events from the SSE stream; empty when not running */
+  progress: JudgeProgress[];
   locked: boolean;
   onAnalyze: (choice: JudgeChoice) => void;
   onClose: () => void;
@@ -23,10 +26,22 @@ interface ReportPanelProps {
 }
 
 const DIMENSION_WORDS: Record<string, { title: string; hint: string }> = {
-  exploration: { title: "Exploration", hint: "Did the agent build enough understanding before editing?" },
-  scope: { title: "Scope", hint: "Does the footprint match what the task needed?" },
-  wandering: { title: "Wandering", hint: "Purposeful path, or circles and dead ends?" },
-  verification: { title: "Verification", hint: "Were edits verified, and errors followed up?" }
+  exploration: {
+    title: "Exploration",
+    hint: "Did the agent build enough understanding before editing?",
+  },
+  scope: {
+    title: "Scope",
+    hint: "Does the footprint match what the task needed?",
+  },
+  wandering: {
+    title: "Wandering",
+    hint: "Purposeful path, or circles and dead ends?",
+  },
+  verification: {
+    title: "Verification",
+    hint: "Were edits verified, and errors followed up?",
+  },
 };
 
 /** the mainstream models each judge CLI can be pinned to; "" keeps its default */
@@ -35,13 +50,13 @@ const JUDGE_MODELS: Record<string, { value: string; label: string }[]> = {
     { value: "", label: "default model" },
     { value: "sonnet", label: "sonnet" },
     { value: "opus", label: "opus" },
-    { value: "fable", label: "fable" }
+    { value: "fable", label: "fable" },
   ],
   codex: [
     { value: "", label: "default model" },
     { value: "gpt-5.6-sol", label: "gpt-5.6 sol" },
-    { value: "gpt-5.6-terra", label: "gpt-5.6 terra" }
-  ]
+    { value: "gpt-5.6-terra", label: "gpt-5.6 terra" },
+  ],
 };
 
 const JUDGE_CHOICE_KEY = "mindwalk:judge-choice";
@@ -53,7 +68,7 @@ function loadStoredChoice(): JudgeChoice {
       const parsed = JSON.parse(raw) as Partial<JudgeChoice>;
       return {
         cli: typeof parsed.cli === "string" ? parsed.cli : "",
-        model: typeof parsed.model === "string" ? parsed.model : ""
+        model: typeof parsed.model === "string" ? parsed.model : "",
       };
     }
   } catch {
@@ -72,7 +87,15 @@ function resolveChoice(choice: JudgeChoice, clis: string[]): JudgeChoice {
 
 // dock panel content: the session evaluation. The Dock owns positioning;
 // this owns only its own markup.
-export function ReportPanel({ status, analyzing, locked, onAnalyze, onClose, onJumpTo }: ReportPanelProps) {
+export function ReportPanel({
+  status,
+  analyzing,
+  progress,
+  locked,
+  onAnalyze,
+  onClose,
+  onJumpTo,
+}: ReportPanelProps) {
   // the judge choice persists across sessions and reloads; the picker shows
   // wherever a run can start (empty, failed, stale)
   const [storedChoice, setStoredChoice] = useState<JudgeChoice>(loadStoredChoice);
@@ -108,10 +131,15 @@ export function ReportPanel({ status, analyzing, locked, onAnalyze, onClose, onJ
       <PanelBody
         status={status}
         analyzing={analyzing}
+        progress={progress}
         locked={locked}
         analyze={analyze}
         onJumpTo={onJumpTo}
-        picker={clis.length > 0 ? <JudgePicker clis={clis} choice={choice} onChange={changeChoice} /> : null}
+        picker={
+          clis.length > 0 ? (
+            <JudgePicker clis={clis} choice={choice} onChange={changeChoice} />
+          ) : null
+        }
       />
     </div>
   );
@@ -120,7 +148,7 @@ export function ReportPanel({ status, analyzing, locked, onAnalyze, onClose, onJ
 function JudgePicker({
   clis,
   choice,
-  onChange
+  onChange,
 }: {
   clis: string[];
   choice: JudgeChoice;
@@ -157,16 +185,63 @@ function JudgePicker({
   );
 }
 
+// phase metadata for the progress indicator: icon character and label
+const PHASE_META: Record<string, { icon: string; label: string }> = {
+  start: { icon: "○", label: "Starting" },
+  rubric: { icon: "✎", label: "Rubric" },
+  scoring: { icon: "≡", label: "Scoring" },
+  done: { icon: "✓", label: "Done" },
+  error: { icon: "✗", label: "Error" },
+};
+
+function RunningPanel({ progress }: { progress: JudgeProgress[] }) {
+  const latest = progress.length > 0 ? progress[progress.length - 1] : null;
+  const phase = latest?.phase ?? "start";
+  const meta = PHASE_META[phase] ?? PHASE_META.start;
+  return (
+    <div className="report-note">
+      <p className="report-running">
+        <span className="report-progress-icon" aria-hidden>
+          {meta.icon}
+        </span>{" "}
+        {latest?.message ?? "Judging the trajectory…"}
+      </p>
+      {progress.length > 1 && (
+        <ul className="report-progress-log">
+          {progress.slice(0, -1).map((p, i) => {
+            const m = PHASE_META[p.phase] ?? PHASE_META.start;
+            return (
+              <li key={i} className="report-progress-step">
+                <span className="report-progress-icon done" aria-hidden>
+                  {m.icon}
+                </span>{" "}
+                {p.message}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <p className="report-progress-hint">
+        The judge first drafts task-specific criteria from your request, then scores the session
+        against them plus four process dimensions. Usually a minute or two; you can keep exploring
+        meanwhile.
+      </p>
+    </div>
+  );
+}
+
 function PanelBody({
   status,
   analyzing,
+  progress,
   locked,
   analyze,
   onJumpTo,
-  picker
+  picker,
 }: {
   status?: ReportStatus;
   analyzing: boolean;
+  progress: JudgeProgress[];
   locked: boolean;
   analyze: () => void;
   onJumpTo: (seq: number) => void;
@@ -176,15 +251,7 @@ function PanelBody({
     return <p className="report-note">Checking for an existing report…</p>;
   }
   if (status.state === "running" || analyzing) {
-    return (
-      <div className="report-note">
-        <p className="report-running">Judging the trajectory…</p>
-        <p>
-          The judge first drafts task-specific criteria from your request, then scores the session against
-          them plus four process dimensions. Usually a minute or two; you can keep exploring meanwhile.
-        </p>
-      </div>
-    );
+    return <RunningPanel progress={progress} />;
   }
   if (status.state === "failed") {
     return (
@@ -205,16 +272,17 @@ function PanelBody({
     if (!status.judgeAvailable) {
       return (
         <p className="report-note">
-          Evaluation needs a local agent CLI as judge. Install <code>claude</code> or <code>codex</code> and
-          make it available on PATH.
+          Evaluation needs a local agent CLI as judge. Install <code>claude</code>,{" "}
+          <code>codex</code>, or <code>crush</code> and make it available on PATH.
         </p>
       );
     }
     return (
       <div className="report-note">
         <p>
-          Ask an agent to evaluate this session: how it explored, whether the footprint matched the task,
-          where it wandered, and how it verified its work. Every finding links back to the timeline.
+          Ask an agent to evaluate this session: how it explored, whether the footprint matched the
+          task, where it wandered, and how it verified its work. Every finding links back to the
+          timeline.
         </p>
         {picker}
         <button className="report-run" onClick={analyze}>
@@ -222,8 +290,8 @@ function PanelBody({
           Evaluate session
         </button>
         <p className="report-cost">
-          Runs the selected CLI under your own account and sends it a summary of this session — task wording,
-          file paths, event digests — for the model to read. About a minute.
+          Runs the selected CLI under your own account and sends it a summary of this session — task
+          wording, file paths, event digests — for the model to read. About a minute.
         </p>
       </div>
     );
@@ -243,13 +311,19 @@ function PanelBody({
           <button
             className="report-rerun"
             onClick={analyze}
-            title={status.stale ? "Re-evaluate with the current trace" : "Run a fresh evaluation of this session"}
+            title={
+              status.stale
+                ? "Re-evaluate with the current trace"
+                : "Run a fresh evaluation of this session"
+            }
           >
             <RefreshCw size={12} />
             Re-evaluate
           </button>
         </div>
       </div>
+      <ReportVerdict dimensions={report.dimensions} />
+      <RadarChart dimensions={report.dimensions} />
       {/* the lede: one line of what was asked, then the judge's overview —
           the report reads summary-first, details after */}
       <p className="report-task">{report.taskSummary}</p>
@@ -286,14 +360,16 @@ function PanelBody({
 function RubricSection({
   rubric,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   rubric?: Rubric;
   locked: boolean;
   onJumpTo: (seq: number) => void;
 }) {
   if (!rubric) {
-    return <p className="report-rubric-note">This report has no task rubric — re-evaluate to add one.</p>;
+    return (
+      <p className="report-rubric-note">This report has no task rubric — re-evaluate to add one.</p>
+    );
   }
   if (rubric.status !== "scored" || !rubric.tasks?.length) {
     const text =
@@ -306,7 +382,9 @@ function RubricSection({
   }
   const tasks = rubric.tasks;
   const criteria = tasks.flatMap((task) => task.criteria);
-  const thin = criteria.filter((criterion) => criterion.coverage && criterion.coverage !== "sufficient");
+  const thin = criteria.filter(
+    (criterion) => criterion.coverage && criterion.coverage !== "sufficient",
+  );
   const showHint = criteria.length > 0 && thin.length / criteria.length > 0.4;
   const multi = tasks.length > 1;
   return (
@@ -314,8 +392,8 @@ function RubricSection({
       <p className="report-chapter">Tasks</p>
       {showHint ? (
         <p className="report-rubric-hint">
-          {thin.length} of {criteria.length} criteria had thin evidence — the log may not show enough to
-          judge them.
+          {thin.length} of {criteria.length} criteria had thin evidence — the log may not show
+          enough to judge them.
         </p>
       ) : null}
       {tasks.map((task, i) => (
@@ -343,7 +421,7 @@ function RubricTaskBlock({
   task,
   multi,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   task: RubricTask;
   multi: boolean;
@@ -362,7 +440,9 @@ function RubricTaskBlock({
             if (startSeq !== undefined) onJumpTo(startSeq);
           }}
           disabled={locked || startSeq === undefined}
-          title={startSeq !== undefined ? `Jump to this task's start (step ${startSeq + 1})` : undefined}
+          title={
+            startSeq !== undefined ? `Jump to this task's start (step ${startSeq + 1})` : undefined
+          }
         >
           {/* no state dot here: each criterion below carries its own verdict
               chip, and severity dots stay the panel's only dot vocabulary */}
@@ -384,7 +464,7 @@ function RubricTaskBlock({
 function Criterion({
   criterion,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   criterion: RubricCriterion;
   locked: boolean;
@@ -393,7 +473,7 @@ function Criterion({
   const hint = [
     criterion.why,
     criterion.good ? `good: ${criterion.good}` : "",
-    criterion.bad ? `bad: ${criterion.bad}` : ""
+    criterion.bad ? `bad: ${criterion.bad}` : "",
   ]
     .filter(Boolean)
     .join("\n");
@@ -404,7 +484,9 @@ function Criterion({
           {criterion.title}
         </span>
         <span className="report-criterion-badges">
-          {criterion.coverage === "partial" ? <span className="coverage-badge">partial evidence</span> : null}
+          {criterion.coverage === "partial" ? (
+            <span className="coverage-badge">partial evidence</span>
+          ) : null}
           <span
             className={`verdict verdict-${criterion.verdict}`}
             title={
@@ -418,7 +500,12 @@ function Criterion({
         </span>
       </div>
       {criterion.findings.map((finding) => (
-        <FindingButton key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`} finding={finding} locked={locked} onJumpTo={onJumpTo} />
+        <FindingButton
+          key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`}
+          finding={finding}
+          locked={locked}
+          onJumpTo={onJumpTo}
+        />
       ))}
     </section>
   );
@@ -427,7 +514,7 @@ function Criterion({
 function FindingButton({
   finding,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   finding: ReportFinding;
   locked: boolean;
@@ -456,21 +543,31 @@ function FindingButton({
 function Dimension({
   dimension,
   locked,
-  onJumpTo
+  onJumpTo,
 }: {
   dimension: ReportDimension;
   locked: boolean;
   onJumpTo: (seq: number) => void;
 }) {
-  const words = DIMENSION_WORDS[dimension.name] ?? { title: dimension.name, hint: "" };
+  const words = DIMENSION_WORDS[dimension.name] ?? {
+    title: dimension.name,
+    hint: "",
+  };
   return (
     <section className="report-dimension">
       <div className="report-dimension-head" data-hint={words.hint}>
         <span className="report-dimension-name">{words.title}</span>
-        <span className={`verdict verdict-${dimension.verdict}`}>{verdictWord(dimension.verdict)}</span>
+        <span className={`verdict verdict-${dimension.verdict}`}>
+          {verdictWord(dimension.verdict)}
+        </span>
       </div>
       {dimension.findings.map((finding) => (
-        <FindingButton key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`} finding={finding} locked={locked} onJumpTo={onJumpTo} />
+        <FindingButton
+          key={`${finding.severity}|${finding.evidenceSeqs?.join(",")}|${finding.claim}`}
+          finding={finding}
+          locked={locked}
+          onJumpTo={onJumpTo}
+        />
       ))}
     </section>
   );
@@ -484,8 +581,142 @@ function severityClass(severity: Severity): string {
   return `sev-${severity}`;
 }
 
+function ReportVerdict({ dimensions }: { dimensions: ReportDimension[] }) {
+  const counts = dimensions.reduce(
+    (acc, dim) => {
+      acc[dim.verdict] = (acc[dim.verdict] ?? 0) + 1;
+      return acc;
+    },
+    {} as Record<Verdict, number>,
+  );
+  const problems = counts.problem ?? 0;
+  const warnings = counts.warning ?? 0;
+  const goods = counts.good ?? 0;
+  const insuff = counts["insufficient-data"] ?? 0;
+
+  let label: string;
+  let cls: string;
+  if (problems > 0) {
+    label = `${problems} problem${problems > 1 ? "s" : ""}${warnings > 0 ? `, ${warnings} warning${warnings > 1 ? "s" : ""}` : ""}`;
+    cls = "verdict-problem";
+  } else if (warnings > 0) {
+    label = `${warnings} warning${warnings > 1 ? "s" : ""}${goods > 0 ? `, ${goods} passing` : ""}`;
+    cls = "verdict-warning";
+  } else if (goods === dimensions.length) {
+    label = "All dimensions passing";
+    cls = "verdict-good";
+  } else if (insuff > 0) {
+    label = `${insuff} dimension${insuff > 1 ? "s" : ""} lack signal`;
+    cls = "verdict-insufficient";
+  } else {
+    label = `${dimensions.length} dimensions evaluated`;
+    cls = "verdict-neutral";
+  }
+  return (
+    <div className={`report-verdict ${cls}`}>
+      <span className="verdict-label">{label}</span>
+    </div>
+  );
+}
+
 function day(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toISOString().slice(0, 10);
+}
+
+function verdictScore(verdict: Verdict): number {
+  switch (verdict) {
+    case "good":
+      return 1.0;
+    case "warning":
+      return 0.5;
+    case "problem":
+      return 0.0;
+    case "insufficient-data":
+      return 0.25;
+  }
+}
+
+function overallVerdictColor(dimensions: ReportDimension[]): string {
+  const verdicts = dimensions.map((d) => d.verdict);
+  if (verdicts.includes("problem")) return "var(--alarm, #e05555)";
+  if (verdicts.includes("warning")) return "var(--amber, #e0a458)";
+  if (verdicts.every((v) => v === "good")) return "var(--moss)";
+  return "var(--muted)";
+}
+
+function RadarChart({ dimensions }: { dimensions: ReportDimension[] }) {
+  if (dimensions.length < 3) return null;
+  const S = 130;
+  const C = S / 2;
+  const R = S * 0.35;
+  const axes = dimensions.slice(0, 4);
+  const angle = (i: number) => (Math.PI * 2 * i) / axes.length - Math.PI / 2;
+  const pointAt = (score: number, i: number) => {
+    const a = angle(i);
+    return [C + Math.cos(a) * R * score, C + Math.sin(a) * R * score];
+  };
+  const polygon = axes.map((dim, i) => pointAt(verdictScore(dim.verdict), i).join(",")).join(" ");
+  const color = overallVerdictColor(dimensions);
+  return (
+    <div className="radar-chart">
+      <svg
+        width={S}
+        height={S}
+        viewBox={`0 0 ${S} ${S}`}
+        role="img"
+        aria-label="Dimension radar chart"
+      >
+        {[0.25, 0.5, 0.75, 1].map((ring) => {
+          const pts = axes.map((_, i) => pointAt(ring, i).join(",")).join(" ");
+          return (
+            <polygon
+              key={ring}
+              points={pts}
+              fill="none"
+              stroke="var(--hairline)"
+              strokeWidth="0.5"
+              opacity={0.6}
+            />
+          );
+        })}
+        {axes.map((_, i) => {
+          const [x, y] = pointAt(1, i);
+          return (
+            <line
+              key={i}
+              x1={C}
+              y1={C}
+              x2={x}
+              y2={y}
+              stroke="var(--hairline)"
+              strokeWidth="0.5"
+              opacity={0.4}
+            />
+          );
+        })}
+        <polygon points={polygon} fill={color} fillOpacity={0.2} stroke={color} strokeWidth="1.5" />
+        {axes.map((dim, i) => {
+          const [x, y] = pointAt(1.18, i);
+          const words = DIMENSION_WORDS[dim.name] ?? {
+            title: dim.name,
+            hint: "",
+          };
+          return (
+            <text
+              key={dim.name}
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="radar-label"
+            >
+              {words.title}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
 }

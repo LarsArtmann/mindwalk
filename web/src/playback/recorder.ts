@@ -61,13 +61,16 @@ export function recordPlayback(opts: RecordOptions): Promise<RecordResult> {
   const fps = opts.fps ?? DEFAULT_FPS;
 
   if (!recordingSupported()) {
-    return Promise.reject(new Error("This browser can't record the canvas (MediaRecorder unavailable)."));
+    return Promise.reject(
+      new Error("This browser can't record the canvas (MediaRecorder unavailable)."),
+    );
   }
   if (total <= 0) {
     return Promise.reject(new Error("Nothing to record — load a session first."));
   }
 
-  const durationMs = opts.durationMs ?? Math.min(MAX_DURATION_MS, Math.max(1000, total * PER_EVENT_MS));
+  const durationMs =
+    opts.durationMs ?? Math.min(MAX_DURATION_MS, Math.max(1000, total * PER_EVENT_MS));
   const mimeType = pickMimeType();
   const stream = canvas.captureStream(fps);
   const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
@@ -92,7 +95,10 @@ export function recordPlayback(opts: RecordOptions): Promise<RecordResult> {
       // requested; trust recorder.mimeType so the blob type and file extension
       // match what was actually recorded
       const actualType = recorder.mimeType || mimeType || "video/webm";
-      resolve({ blob: new Blob(chunks, { type: actualType }), extension: extensionForMime(actualType) });
+      resolve({
+        blob: new Blob(chunks, { type: actualType }),
+        extension: extensionForMime(actualType),
+      });
     };
 
     const fail = (err: Error) => {

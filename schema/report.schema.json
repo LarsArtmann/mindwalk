@@ -63,7 +63,9 @@
         "type": "object",
         "required": ["name", "verdict", "findings"],
         "properties": {
-          "name": { "enum": ["exploration", "scope", "wandering", "verification"] },
+          "name": {
+            "enum": ["exploration", "scope", "wandering", "verification"]
+          },
           "verdict": {
             "enum": ["good", "warning", "problem", "insufficient-data"],
             "description": "max(finding severity), forced to insufficient-data when the trace observability grades the dimension's source signal unavailable"
@@ -120,7 +122,11 @@
                   "type": "object",
                   "required": ["id", "title", "verdict", "findings"],
                   "properties": {
-                    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$", "maxLength": 48 },
+                    "id": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                      "maxLength": 48
+                    },
                     "title": { "type": "string" },
                     "why": { "type": "string" },
                     "good": { "type": "string" },

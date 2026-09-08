@@ -39,7 +39,9 @@
         "launchSeq": { "type": "integer", "minimum": 0 },
         "launchCallId": { "type": "string", "minLength": 1 },
         "status": { "enum": ["main", "launched", "failed", "unknown"] },
-        "traceAvailability": { "enum": ["available", "missing", "unavailable"] },
+        "traceAvailability": {
+          "enum": ["available", "missing", "unavailable"]
+        },
         "traceSessionKey": { "type": "string", "minLength": 1 },
         "traceEventCount": { "type": "integer", "minimum": 0 },
         "linkQuality": { "enum": ["exact", "derived", "unavailable"] },
@@ -50,6 +52,7 @@
             "codex-parent-thread-id",
             "claude-tool-use-id",
             "claude-subagents-directory",
+            "crush-agent-id",
             "unavailable"
           ]
         }

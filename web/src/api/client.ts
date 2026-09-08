@@ -1,4 +1,12 @@
-import type { AgentGraph, CityMap, JudgeChoice, ReportStatus, SessionMeta, Trace } from "../types";
+import type {
+  AgentGraph,
+  CityMap,
+  JudgeChoice,
+  JudgeProgress,
+  ReportStatus,
+  SessionMeta,
+  Trace,
+} from "../types";
 
 async function getJSON<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -32,7 +40,9 @@ export function getCityMap(key: string): Promise<CityMap> {
 }
 
 export function getSessionSnapshot(key: string): Promise<{ trace: Trace; city: CityMap }> {
-  return getJSON<{ trace: Trace; city: CityMap }>(`/api/sessions/${encodeURIComponent(key)}/snapshot`);
+  return getJSON<{ trace: Trace; city: CityMap }>(
+    `/api/sessions/${encodeURIComponent(key)}/snapshot`,
+  );
 }
 
 export function getSessionAgents(rootKey: string): Promise<AgentGraph> {
@@ -41,7 +51,7 @@ export function getSessionAgents(rootKey: string): Promise<AgentGraph> {
 
 export function getAgentTrace(rootKey: string, agentID: string): Promise<Trace> {
   return getJSON<Trace>(
-    `/api/sessions/${encodeURIComponent(rootKey)}/agents/${encodeURIComponent(agentID)}/trace`
+    `/api/sessions/${encodeURIComponent(rootKey)}/agents/${encodeURIComponent(agentID)}/trace`,
   );
 }
 
@@ -52,17 +62,71 @@ export function getSessionReport(key: string): Promise<ReportStatus> {
 // kicks off a judge run on the server; progress is observed by polling
 // getSessionReport until state leaves "running". The choice picks judge CLI
 // and model; omitted fields fall back to the server's defaults.
-export async function startSessionAnalyze(key: string, choice?: JudgeChoice): Promise<ReportStatus> {
+export async function startSessionAnalyze(
+  key: string,
+  choice?: JudgeChoice,
+): Promise<ReportStatus> {
   const res = await fetch(`/api/sessions/${encodeURIComponent(key)}/analyze`, {
     method: "POST",
     headers: choice ? { "Content-Type": "application/json" } : undefined,
-    body: choice ? JSON.stringify(choice) : undefined
+    body: choice ? JSON.stringify(choice) : undefined,
   });
   if (!res.ok) {
     const detail = (await res.text()).trim();
     throw new Error(detail || `${res.status} ${res.statusText}`);
   }
   return res.json() as Promise<ReportStatus>;
+}
+
+// makeProgressDeduper returns a guard that drops progress events the client
+// has already seen. The browser's EventSource tracks the last received "id:"
+// and sends it back as Last-Event-ID on reconnect, but the server may still
+// replay the boundary event, and a server restart loses the in-memory offset
+// entirely. This guard is the last line of defence: it remembers the highest
+// id it has accepted and rejects any event at or below it. Events without an
+// id (NaN) pass through unchanged.
+export function makeProgressDeduper(): (rawId: string) => boolean {
+  let lastId = -1;
+
+  return (rawId: string): boolean => {
+    const id = rawId === "" ? NaN : Number(rawId);
+    if (Number.isNaN(id)) return true;
+    if (id <= lastId) return false;
+    lastId = id;
+
+    return true;
+  };
+}
+
+// opens an SSE connection that streams judge progress events while an
+// evaluation runs. The callbacks fire on each "progress" event (one per
+// judge milestone) and once on the terminal "status" event. Returns the
+// EventSource so the caller can close it when the session changes or the
+// component unmounts. Replayed progress events (same id) are dropped so a
+// transparent reconnect never duplicates milestones in the UI.
+export function openAnalyzeStream(
+  key: string,
+  onProgress: (p: JudgeProgress) => void,
+  onStatus: (s: ReportStatus) => void,
+): EventSource {
+  const es = new EventSource(`/api/sessions/${encodeURIComponent(key)}/analyze/stream`);
+  const isNew = makeProgressDeduper();
+  es.addEventListener("progress", (e: MessageEvent) => {
+    if (!isNew(e.lastEventId)) return;
+    try {
+      onProgress(JSON.parse(e.data) as JudgeProgress);
+    } catch {
+      // ignore malformed events
+    }
+  });
+  es.addEventListener("status", (e: MessageEvent) => {
+    try {
+      onStatus(JSON.parse(e.data) as ReportStatus);
+    } catch {
+      // ignore malformed events
+    }
+  });
+  return es;
 }
 
 // backs the static full-repo map view: the citymap for a repo, with no session

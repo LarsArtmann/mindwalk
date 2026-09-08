@@ -11,6 +11,7 @@ func TestParseClaudeEnvelopePicksMainModel(t *testing.T) {
 	raw := `{"type":"result","result":"{\"ok\":true}","modelUsage":{
 		"claude-haiku-4-5":{"inputTokens":523,"outputTokens":13},
 		"claude-sonnet-5":{"inputTokens":1,"cacheReadInputTokens":3289,"cacheCreationInputTokens":5563}}}`
+
 	got := parseClaudeEnvelope(raw)
 	if got.Text != `{"ok":true}` {
 		t.Fatalf("text = %q", got.Text)
@@ -24,6 +25,7 @@ func TestParseClaudeEnvelopePicksMainModel(t *testing.T) {
 
 func TestParseClaudeEnvelopeFallsBackToRawText(t *testing.T) {
 	raw := `plain text, not an envelope {"ok":true}`
+
 	got := parseClaudeEnvelope(raw)
 	if got.Text != raw || got.Model != "" {
 		t.Fatalf("fallback = %#v", got)
@@ -35,7 +37,22 @@ func TestCodexModelReadsPreamble(t *testing.T) {
 	if got := codexModel(raw); got != "gpt-5.6-sol" {
 		t.Fatalf("model = %q", got)
 	}
+
 	if got := codexModel("no preamble at all"); got != "" {
+		t.Fatalf("expected empty model, got %q", got)
+	}
+}
+
+func TestCrushModelReadsVerboseLog(t *testing.T) {
+	raw := "INFO Running in non-interactive mode\n" +
+		"INFO Created session for non-interactive run session_id=abc\n" +
+		"INFO ModelProvider called provider=zai model=glm-5.2\n" +
+		"INFO Skill turn summary component=skills\n"
+	if got := crushModel(raw); got != "glm-5.2" {
+		t.Fatalf("model = %q, want glm-5.2", got)
+	}
+
+	if got := crushModel("no model provider line at all"); got != "" {
 		t.Fatalf("expected empty model, got %q", got)
 	}
 }
@@ -54,6 +71,7 @@ func TestTruncateFailureDetailPreservesUTF8(t *testing.T) {
 	if !utf8.ValidString(got) {
 		t.Fatalf("truncated detail is not valid UTF-8: %q", got)
 	}
+
 	want := strings.Repeat("a", 499) + "界"
 	if got != want {
 		t.Fatalf("truncated detail = %q, want %q", got, want)

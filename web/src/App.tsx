@@ -8,22 +8,37 @@ import {
   getSessionReport,
   getSessionSnapshot,
   listSessions,
-  startSessionAnalyze
+  openAnalyzeStream,
+  startSessionAnalyze,
 } from "./api/client";
-import { Crosshair, Sparkles, Mountain, TreePine, Users } from "lucide-react";
-import type { AgentGraph, CityMap, JudgeChoice, ReportStatus, Trace } from "./types";
+import {
+  Crosshair,
+  ListOrdered,
+  Maximize2,
+  Mountain,
+  Sparkles,
+  TreePine,
+  Users,
+} from "lucide-react";
+import type { AgentGraph, CityMap, JudgeChoice, JudgeProgress, ReportStatus, Trace } from "./types";
+import { getDemoData } from "./api/demo";
 import { Dock, type PanelDescriptor } from "./ui/Dock";
 import { AgentsPanel } from "./ui/AgentsPanel";
+import { CheatSheet } from "./ui/CheatSheet";
+import { CommandPalette } from "./ui/CommandPalette";
+import { EventList } from "./ui/EventList";
 import { ReportPanel } from "./ui/ReportPanel";
 import { ViewPanel } from "./ui/ViewPanel";
 import { PlaybackEngine } from "./playback/reducer";
 import { downloadBlob, recordingSupported, recordPlayback } from "./playback/recorder";
 import { CityScene } from "./scene/CityScene";
 import { TreeScene } from "./scene/TreeScene";
+import { Treemap2D, hasWebGL } from "./scene/Treemap2D";
 import { sessionVisible } from "./state/filters";
 import { useAppStore } from "./state/store";
 import { Hud } from "./ui/Hud";
 import { Inspector } from "./ui/Inspector";
+import { Minimap } from "./ui/Minimap";
 import { SessionRail } from "./ui/SessionRail";
 import { toggleRailShortcut } from "./ui/shortcuts";
 import { Timeline } from "./ui/Timeline";
@@ -61,6 +76,7 @@ export default function App() {
     harnessFilter,
     railCollapsed,
     mapOnly,
+    hudHidden,
     setView,
     setSessions,
     setActiveSession,
@@ -72,7 +88,8 @@ export default function App() {
     setError,
     setHideEmpty,
     setHarnessFilter,
-    setRailCollapsed
+    setRailCollapsed,
+    setHudHidden,
   } = useAppStore();
   const urlSessionConsumed = useRef(false);
   const scanGeneration = useRef(0);
@@ -88,7 +105,11 @@ export default function App() {
   const [exporting, setExporting] = useState(false);
   const [openSheet, setOpenSheet] = useState<string | null>(null);
   const [openPop, setOpenPop] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [cheatOpen, setCheatOpen] = useState(false);
+  const [heatMode, setHeatMode] = useState(false);
   const [reportStatus, setReportStatus] = useState<ReportStatus | undefined>();
+  const [judgeProgress, setJudgeProgress] = useState<JudgeProgress[]>([]);
   const [agentGraph, setAgentGraph] = useState<AgentGraph | undefined>();
   const [activeAgentID, setActiveAgentID] = useState<string | null>(null);
   const [agentGraphLoading, setAgentGraphLoading] = useState(false);
@@ -174,54 +195,54 @@ export default function App() {
     }
   }, []);
 
-  const loadSession = useCallback(async (key: string) => {
-    const generation = ++loadGeneration.current;
-    const currentLensGeneration = lensGeneration.current;
-    beginLoading();
-    setError(undefined);
-    try {
-      const { trace: nextTrace, city: nextCity } = await getSessionSnapshot(key);
-      if (
-        generation !== loadGeneration.current ||
-        currentLensGeneration !== lensGeneration.current ||
-        activeSessionKeyRef.current !== key
-      ) {
-        return;
-      }
-      rootTraceRef.current = nextTrace;
-      rootCityRef.current = nextCity;
-      actorTraceCache.current.set(MAIN_ACTOR_KEY, nextTrace);
-      const activeChildID = activeAgentIDRef.current;
-      if (activeChildID === null) {
-        setData(nextTrace, nextCity);
-        const remembered = actorPlayheads.current.get(MAIN_ACTOR_KEY);
-        if (remembered !== undefined) {
-          setCurrentSeq(Math.min(remembered, Math.max(0, nextTrace.events.length - 1)));
+  const loadSession = useCallback(
+    async (key: string) => {
+      const generation = ++loadGeneration.current;
+      const currentLensGeneration = lensGeneration.current;
+      beginLoading();
+      setError(undefined);
+      try {
+        const { trace: nextTrace, city: nextCity } = await getSessionSnapshot(key);
+        if (
+          generation !== loadGeneration.current ||
+          currentLensGeneration !== lensGeneration.current ||
+          activeSessionKeyRef.current !== key
+        ) {
+          return;
         }
-        setSelectedPath(undefined);
-      } else {
-        const childTrace = actorTraceCache.current.get(activeChildID);
-        if (childTrace) {
-          const seq = useAppStore.getState().currentSeq;
-          setData(childTrace, nextCity);
-          setCurrentSeq(Math.min(seq, Math.max(0, childTrace.events.length - 1)));
+        rootTraceRef.current = nextTrace;
+        rootCityRef.current = nextCity;
+        actorTraceCache.current.set(MAIN_ACTOR_KEY, nextTrace);
+        const activeChildID = activeAgentIDRef.current;
+        if (activeChildID === null) {
+          setData(nextTrace, nextCity);
+          const remembered = actorPlayheads.current.get(MAIN_ACTOR_KEY);
+          if (remembered !== undefined) {
+            setCurrentSeq(Math.min(remembered, Math.max(0, nextTrace.events.length - 1)));
+          }
+          setSelectedPath(undefined);
+        } else {
+          const childTrace = actorTraceCache.current.get(activeChildID);
+          if (childTrace) {
+            const seq = useAppStore.getState().currentSeq;
+            setData(childTrace, nextCity);
+            setCurrentSeq(Math.min(seq, Math.max(0, childTrace.events.length - 1)));
+          }
         }
+      } catch (err) {
+        if (generation === loadGeneration.current && activeSessionKeyRef.current === key) {
+          setError(describeError(err, "loading the session"));
+        }
+      } finally {
+        endLoading();
       }
-    } catch (err) {
-      if (generation === loadGeneration.current && activeSessionKeyRef.current === key) {
-        setError(describeError(err, "loading the session"));
-      }
-    } finally {
-      endLoading();
-    }
-  }, [beginLoading, endLoading, setCurrentSeq, setData, setError, setSelectedPath]);
+    },
+    [beginLoading, endLoading, setCurrentSeq, setData, setError, setSelectedPath],
+  );
 
   const invalidateActorTracesForRescan = useCallback(() => {
     const activeActorID = activeAgentIDRef.current;
-    actorPlayheads.current.set(
-      activeActorID ?? MAIN_ACTOR_KEY,
-      useAppStore.getState().currentSeq
-    );
+    actorPlayheads.current.set(activeActorID ?? MAIN_ACTOR_KEY, useAppStore.getState().currentSeq);
     agentTraceRequest.current++;
     pendingAgentIDRef.current = undefined;
     actorTraceCache.current.clear();
@@ -243,71 +264,95 @@ export default function App() {
     }
   }, [setCurrentSeq, setData, setSelectedPath]);
 
-  const scan = useCallback(async (fresh: boolean) => {
-    const generation = ++scanGeneration.current;
-    beginLoading();
-    setError(undefined);
-    try {
-      const data = await listSessions(fresh);
-      if (generation !== scanGeneration.current) return;
-      setSessions(data);
-      let preferred: string | undefined;
-      if (!urlSessionConsumed.current) {
-        urlSessionConsumed.current = true;
-        const selector = new URL(window.location.href).searchParams.get("session") ?? undefined;
-        const exact = selector ? data.find((session) => session.key === selector) : undefined;
-        const legacyMatches = selector && !exact ? data.filter((session) => session.id === selector) : [];
-        const fromUrl = exact?.key ?? (legacyMatches.length === 1 ? legacyMatches[0].key : undefined);
-        if (fromUrl) {
-          preferred = fromUrl;
-        } else if (legacyMatches.length > 1) {
-          console.warn(`session id "${selector}" is ambiguous; falling back to the latest session`);
-        } else if (selector) {
-          console.warn(`session "${selector}" not found; falling back to the latest session`);
+  const scan = useCallback(
+    async (fresh: boolean) => {
+      const generation = ++scanGeneration.current;
+      beginLoading();
+      setError(undefined);
+      try {
+        const data = await listSessions(fresh);
+        if (generation !== scanGeneration.current) return;
+        setSessions(data);
+        let preferred: string | undefined;
+        if (!urlSessionConsumed.current) {
+          urlSessionConsumed.current = true;
+          const selector = new URL(window.location.href).searchParams.get("session") ?? undefined;
+          const exact = selector ? data.find((session) => session.key === selector) : undefined;
+          const legacyMatches =
+            selector && !exact ? data.filter((session) => session.id === selector) : [];
+          const fromUrl =
+            exact?.key ?? (legacyMatches.length === 1 ? legacyMatches[0].key : undefined);
+          if (fromUrl) {
+            preferred = fromUrl;
+          } else if (legacyMatches.length > 1) {
+            console.warn(
+              `session id "${selector}" is ambiguous; falling back to the latest session`,
+            );
+          } else if (selector) {
+            console.warn(`session "${selector}" not found; falling back to the latest session`);
+          }
         }
+        // a session can disappear between scans; fall back instead of pinning a dead key
+        const currentActiveKey = activeSessionKeyRef.current;
+        const stillListed =
+          currentActiveKey !== undefined &&
+          data.some((session) => session.key === currentActiveKey);
+        // prefer a session the rail will actually show; if the filters hide
+        // everything, the newest session still beats a blank stage
+        const fallback = (
+          data.find((session) => sessionVisible(session, { hideEmpty, harness: harnessFilter })) ??
+          data[0]
+        )?.key;
+        const next = preferred ?? (stillListed ? currentActiveKey : fallback);
+        if (next !== currentActiveKey) {
+          const lens = resetLens();
+          activeSessionKeyRef.current = next;
+          if (!next) loadGeneration.current++;
+          setActiveSession(next);
+          if (next) void loadAgentGraph(next, lens);
+        } else if (fresh && next) {
+          invalidateActorTracesForRescan();
+          void loadAgentGraph(next);
+        }
+        if (next) await loadSession(next);
+      } catch (err) {
+        if (generation === scanGeneration.current) {
+          setError(describeError(err, "scanning sessions"));
+        }
+      } finally {
+        endLoading();
       }
-      // a session can disappear between scans; fall back instead of pinning a dead key
-      const currentActiveKey = activeSessionKeyRef.current;
-      const stillListed =
-        currentActiveKey !== undefined && data.some((session) => session.key === currentActiveKey);
-      // prefer a session the rail will actually show; if the filters hide
-      // everything, the newest session still beats a blank stage
-      const fallback = (
-        data.find((session) => sessionVisible(session, { hideEmpty, harness: harnessFilter })) ?? data[0]
-      )?.key;
-      const next = preferred ?? (stillListed ? currentActiveKey : fallback);
-      if (next !== currentActiveKey) {
-        const lens = resetLens();
-        activeSessionKeyRef.current = next;
-        if (!next) loadGeneration.current++;
-        setActiveSession(next);
-        if (next) void loadAgentGraph(next, lens);
-      } else if (fresh && next) {
-        invalidateActorTracesForRescan();
-        void loadAgentGraph(next);
-      }
-      if (next) await loadSession(next);
-    } catch (err) {
-      if (generation === scanGeneration.current) {
-        setError(describeError(err, "scanning sessions"));
-      }
-    } finally {
-      endLoading();
-    }
-  }, [beginLoading, endLoading, harnessFilter, hideEmpty, invalidateActorTracesForRescan, loadAgentGraph, loadSession, resetLens, setActiveSession, setError, setSessions]);
+    },
+    [
+      beginLoading,
+      endLoading,
+      harnessFilter,
+      hideEmpty,
+      invalidateActorTracesForRescan,
+      loadAgentGraph,
+      loadSession,
+      resetLens,
+      setActiveSession,
+      setError,
+      setSessions,
+    ],
+  );
 
-  const loadRepoMap = useCallback(async (repo?: string) => {
-    beginLoading();
-    setError(undefined);
-    try {
-      const city = await getRepoMap(repo);
-      setCityOnly(city);
-    } catch (err) {
-      setError(describeError(err, "loading the repository map"));
-    } finally {
-      endLoading();
-    }
-  }, [beginLoading, endLoading, setCityOnly, setError]);
+  const loadRepoMap = useCallback(
+    async (repo?: string) => {
+      beginLoading();
+      setError(undefined);
+      try {
+        const city = await getRepoMap(repo);
+        setCityOnly(city);
+      } catch (err) {
+        setError(describeError(err, "loading the repository map"));
+      } finally {
+        endLoading();
+      }
+    },
+    [beginLoading, endLoading, setCityOnly, setError],
+  );
 
   // open the static map for a repo in a new tab so the running session stays put
   const openMap = useCallback((repo?: string) => {
@@ -315,95 +360,104 @@ export default function App() {
     window.open(url, "_blank", "noopener");
   }, []);
 
-  const selectSession = useCallback((key: string) => {
-    if (activeSessionKeyRef.current === key) return;
-    const lens = resetLens();
-    activeSessionKeyRef.current = key;
-    setActiveSession(key);
-    void loadAgentGraph(key, lens);
-    void loadSession(key);
-  }, [loadAgentGraph, loadSession, resetLens, setActiveSession]);
+  const selectSession = useCallback(
+    (key: string) => {
+      if (activeSessionKeyRef.current === key) return;
+      const lens = resetLens();
+      activeSessionKeyRef.current = key;
+      setActiveSession(key);
+      void loadAgentGraph(key, lens);
+      void loadSession(key);
+    },
+    [loadAgentGraph, loadSession, resetLens, setActiveSession],
+  );
 
   const saveActivePlayhead = useCallback(() => {
     const key = activeAgentIDRef.current ?? MAIN_ACTOR_KEY;
     actorPlayheads.current.set(key, useAppStore.getState().currentSeq);
   }, []);
 
-  const showCachedActor = useCallback((agentID: string | null, nextTrace: Trace, nextCity: CityMap) => {
-    saveActivePlayhead();
-    activeAgentIDRef.current = agentID;
-    setActiveAgentID(agentID);
-    setData(nextTrace, nextCity);
-    const remembered = actorPlayheads.current.get(agentID ?? MAIN_ACTOR_KEY);
-    if (remembered !== undefined) {
-      setCurrentSeq(Math.min(remembered, Math.max(0, nextTrace.events.length - 1)));
-    }
-    setSelectedPath(undefined);
-  }, [saveActivePlayhead, setCurrentSeq, setData, setSelectedPath]);
+  const showCachedActor = useCallback(
+    (agentID: string | null, nextTrace: Trace, nextCity: CityMap) => {
+      saveActivePlayhead();
+      activeAgentIDRef.current = agentID;
+      setActiveAgentID(agentID);
+      setData(nextTrace, nextCity);
+      const remembered = actorPlayheads.current.get(agentID ?? MAIN_ACTOR_KEY);
+      if (remembered !== undefined) {
+        setCurrentSeq(Math.min(remembered, Math.max(0, nextTrace.events.length - 1)));
+      }
+      setSelectedPath(undefined);
+    },
+    [saveActivePlayhead, setCurrentSeq, setData, setSelectedPath],
+  );
 
-  const selectAgent = useCallback(async (agentID: string | null) => {
-    if (exportingRef.current) return;
-    const rootKey = activeSessionKeyRef.current;
-    const nextCity = rootCityRef.current;
-    if (!rootKey || !nextCity) return;
+  const selectAgent = useCallback(
+    async (agentID: string | null) => {
+      if (exportingRef.current) return;
+      const rootKey = activeSessionKeyRef.current;
+      const nextCity = rootCityRef.current;
+      if (!rootKey || !nextCity) return;
 
-    const request = ++agentTraceRequest.current;
-    pendingAgentIDRef.current = undefined;
-    setLoadingAgentID(undefined);
-    setAgentPanelError(undefined);
-    setAgentRetryID(undefined);
+      const request = ++agentTraceRequest.current;
+      pendingAgentIDRef.current = undefined;
+      setLoadingAgentID(undefined);
+      setAgentPanelError(undefined);
+      setAgentRetryID(undefined);
 
-    if (activeAgentIDRef.current === agentID) return;
+      if (activeAgentIDRef.current === agentID) return;
 
-    const cachedTrace =
-      agentID === null ? rootTraceRef.current : actorTraceCache.current.get(agentID);
-    if (cachedTrace) {
-      showCachedActor(agentID, cachedTrace, nextCity);
-      return;
-    }
-    if (agentID === null) return;
-
-    const node = agentGraph?.agents.find((agent) => agent.id === agentID);
-    if (!node || node.traceAvailability !== "available") return;
-
-    const generation = lensGeneration.current;
-    pendingAgentIDRef.current = agentID;
-    setLoadingAgentID(agentID);
-    try {
-      const nextTrace = await getAgentTrace(rootKey, agentID);
-      if (
-        generation !== lensGeneration.current ||
-        request !== agentTraceRequest.current ||
-        pendingAgentIDRef.current !== agentID ||
-        activeSessionKeyRef.current !== rootKey ||
-        exportingRef.current
-      ) {
+      const cachedTrace =
+        agentID === null ? rootTraceRef.current : actorTraceCache.current.get(agentID);
+      if (cachedTrace) {
+        showCachedActor(agentID, cachedTrace, nextCity);
         return;
       }
-      actorTraceCache.current.set(agentID, nextTrace);
-      showCachedActor(agentID, nextTrace, rootCityRef.current ?? nextCity);
-    } catch (err) {
-      if (
-        generation === lensGeneration.current &&
-        request === agentTraceRequest.current &&
-        pendingAgentIDRef.current === agentID &&
-        activeSessionKeyRef.current === rootKey
-      ) {
-        setAgentPanelError(describeError(err, `loading the ${node.label} trace`));
-        setAgentRetryID(agentID);
+      if (agentID === null) return;
+
+      const node = agentGraph?.agents.find((agent) => agent.id === agentID);
+      if (!node || node.traceAvailability !== "available") return;
+
+      const generation = lensGeneration.current;
+      pendingAgentIDRef.current = agentID;
+      setLoadingAgentID(agentID);
+      try {
+        const nextTrace = await getAgentTrace(rootKey, agentID);
+        if (
+          generation !== lensGeneration.current ||
+          request !== agentTraceRequest.current ||
+          pendingAgentIDRef.current !== agentID ||
+          activeSessionKeyRef.current !== rootKey ||
+          exportingRef.current
+        ) {
+          return;
+        }
+        actorTraceCache.current.set(agentID, nextTrace);
+        showCachedActor(agentID, nextTrace, rootCityRef.current ?? nextCity);
+      } catch (err) {
+        if (
+          generation === lensGeneration.current &&
+          request === agentTraceRequest.current &&
+          pendingAgentIDRef.current === agentID &&
+          activeSessionKeyRef.current === rootKey
+        ) {
+          setAgentPanelError(describeError(err, `loading the ${node.label} trace`));
+          setAgentRetryID(agentID);
+        }
+      } finally {
+        if (
+          generation === lensGeneration.current &&
+          request === agentTraceRequest.current &&
+          pendingAgentIDRef.current === agentID &&
+          activeSessionKeyRef.current === rootKey
+        ) {
+          pendingAgentIDRef.current = undefined;
+          setLoadingAgentID(undefined);
+        }
       }
-    } finally {
-      if (
-        generation === lensGeneration.current &&
-        request === agentTraceRequest.current &&
-        pendingAgentIDRef.current === agentID &&
-        activeSessionKeyRef.current === rootKey
-      ) {
-        pendingAgentIDRef.current = undefined;
-        setLoadingAgentID(undefined);
-      }
-    }
-  }, [agentGraph, showCachedActor]);
+    },
+    [agentGraph, showCachedActor],
+  );
 
   const retryAgents = useCallback(() => {
     const key = activeSessionKeyRef.current;
@@ -433,7 +487,7 @@ export default function App() {
       const { blob, extension } = await recordPlayback({
         canvas,
         total,
-        setSeq: setCurrentSeq
+        setSeq: setCurrentSeq,
       });
       const name = trace?.session.id || exportSessionKey || "session";
       downloadBlob(blob, `mindwalk-${name}.${extension}`);
@@ -474,6 +528,7 @@ export default function App() {
     setOpenSheet(null);
     setOpenPop(null);
     setReportStatus(undefined);
+    setJudgeProgress([]);
     if (activeSessionKey && !mapOnly) void refreshReport(activeSessionKey);
   }, [activeSessionKey, mapOnly, refreshReport]);
 
@@ -500,18 +555,31 @@ export default function App() {
     });
   }, [scan, refreshReport, mapOnly]);
 
+  // While an evaluation is running, stream real-time progress via SSE and
+  // poll the rail badges for other sessions' evaluations. The SSE
+  // connection delivers progress events (one per judge milestone) and a
+  // terminal "status" event that replaces the need to poll the report
+  // endpoint for the active session.
   useEffect(() => {
     if (reportStatus?.state !== "running" || !activeSessionKey) return;
-    const timer = setInterval(() => {
-      void refreshReport(activeSessionKey);
-      void refreshSessionList();
-    }, 2500);
+    setJudgeProgress([]);
+    const es = openAnalyzeStream(
+      activeSessionKey,
+      (p) => setJudgeProgress((prev) => [...prev, p]),
+      (s) => {
+        if (activeSessionKeyRef.current === activeSessionKey) {
+          setReportStatus(s);
+        }
+        es.close();
+      },
+    );
+    const timer = setInterval(() => void refreshSessionList(), 5000);
     return () => {
+      es.close();
       clearInterval(timer);
-      // one more list pass so the rail badge leaves "evaluating" promptly
       void refreshSessionList();
     };
-  }, [reportStatus?.state, activeSessionKey, refreshReport, refreshSessionList]);
+  }, [reportStatus?.state, activeSessionKey, refreshSessionList]);
 
   // while the report status is unknown (first request failed or still on its
   // way), keep asking — otherwise a single dropped request would pin the
@@ -525,24 +593,30 @@ export default function App() {
   // a judge can be running for a session other than the active one; keep the
   // rail badges honest by polling the list until every run finishes (the
   // running-state effect above already polls while the active session runs)
-  const anyEvaluating = useMemo(() => sessions.some((s) => s.reportState === "running"), [sessions]);
+  const anyEvaluating = useMemo(
+    () => sessions.some((s) => s.reportState === "running"),
+    [sessions],
+  );
   useEffect(() => {
     if (!anyEvaluating || reportStatus?.state === "running") return;
     const timer = setInterval(() => void refreshSessionList(), 5000);
     return () => clearInterval(timer);
   }, [anyEvaluating, reportStatus?.state, refreshSessionList]);
 
-  const analyzeSession = useCallback(async (choice: JudgeChoice) => {
-    const key = activeSessionKeyRef.current;
-    if (!key) return;
-    try {
-      const status = await startSessionAnalyze(key, choice);
-      if (activeSessionKeyRef.current === key) setReportStatus(status);
-      void refreshSessionList();
-    } catch (err) {
-      setError(describeError(err, "starting the evaluation"));
-    }
-  }, [setError, refreshSessionList]);
+  const analyzeSession = useCallback(
+    async (choice: JudgeChoice) => {
+      const key = activeSessionKeyRef.current;
+      if (!key) return;
+      try {
+        const status = await startSessionAnalyze(key, choice);
+        if (activeSessionKeyRef.current === key) setReportStatus(status);
+        void refreshSessionList();
+      } catch (err) {
+        setError(describeError(err, "starting the evaluation"));
+      }
+    },
+    [setError, refreshSessionList],
+  );
 
   // selecting a file in the scene opens the inspect sheet; deselecting keeps
   // whatever panel the user had open
@@ -551,11 +625,19 @@ export default function App() {
       setSelectedPath(path);
       if (path) setOpenSheet("inspect");
     },
-    [setSelectedPath]
+    [setSelectedPath],
   );
 
   const closeSheet = useCallback(() => setOpenSheet(null), []);
   const closePop = useCallback(() => setOpenPop(null), []);
+  const zoomToFit = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("mindwalk:zoom-to-fit"));
+  }, []);
+  const loadDemo = useCallback(() => {
+    const { trace, city } = getDemoData();
+    setData(trace, city);
+    setActiveSession(undefined);
+  }, [setData, setActiveSession]);
   const openAgents = useCallback(() => {
     if (!exportingRef.current) setOpenSheet("agents");
   }, []);
@@ -594,22 +676,29 @@ export default function App() {
       const path = event?.targets.find((target) => target.path)?.path;
       setSelectedPath(path);
     },
-    [saveActivePlayhead, setCurrentSeq, setData, setSelectedPath]
+    [saveActivePlayhead, setCurrentSeq, setData, setSelectedPath],
   );
 
-  const openAgentsAtMark = useCallback((seq: number) => {
-    setCurrentSeq(seq);
-    setOpenSheet("agents");
-  }, [setCurrentSeq]);
+  const openAgentsAtMark = useCallback(
+    (seq: number) => {
+      setCurrentSeq(seq);
+      setOpenSheet("agents");
+    },
+    [setCurrentSeq],
+  );
 
-  const jumpToHistory = useCallback((seq: number) => {
-    if (exportingRef.current) return;
-    setCurrentSeq(seq);
-  }, [setCurrentSeq]);
+  const jumpToHistory = useCallback(
+    (seq: number) => {
+      if (exportingRef.current) return;
+      setCurrentSeq(seq);
+    },
+    [setCurrentSeq],
+  );
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() !== "b" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (e.key.toLowerCase() !== "b" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey)
+        return;
       e.preventDefault();
       const store = useAppStore.getState();
       store.setRailCollapsed(!store.railCollapsed);
@@ -624,13 +713,52 @@ export default function App() {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() !== "v" || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
       const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      )
+        return;
       if (exportingRef.current) return;
       const store = useAppStore.getState();
       store.setView(store.view === "tree" ? "terrain" : "tree");
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Cmd+P / Ctrl+P opens the file command palette; ? opens the cheat sheet;
+  // H toggles the HUD overlay. All skip when typing in inputs.
+  useEffect(() => {
+    const isTyping = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+    };
+    const onPalette = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "p" || !(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey)
+        return;
+      e.preventDefault();
+      setPaletteOpen(true);
+    };
+    const onCheat = (e: KeyboardEvent) => {
+      if (e.key !== "?" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTyping(e.target)) return;
+      e.preventDefault();
+      setCheatOpen((v) => !v);
+    };
+    const onHud = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "h" || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      if (isTyping(e.target)) return;
+      const store = useAppStore.getState();
+      store.setHudHidden(!store.hudHidden);
+    };
+    window.addEventListener("keydown", onPalette);
+    window.addEventListener("keydown", onCheat);
+    window.addEventListener("keydown", onHud);
+    return () => {
+      window.removeEventListener("keydown", onPalette);
+      window.removeEventListener("keydown", onCheat);
+      window.removeEventListener("keydown", onHud);
+    };
   }, []);
 
   useEffect(() => {
@@ -646,7 +774,8 @@ export default function App() {
   const reportBadge = useMemo(() => {
     if (reportStatus?.state === "running") return "running" as const;
     if (reportStatus?.state === "failed") return "failed" as const;
-    if (reportStatus?.state === "done") return reportStatus.stale ? ("stale" as const) : ("done" as const);
+    if (reportStatus?.state === "done")
+      return reportStatus.stale ? ("stale" as const) : ("done" as const);
     return null;
   }, [reportStatus]);
 
@@ -664,6 +793,18 @@ export default function App() {
         ? "height ∝ depth × revisits"
         : "height ∝ lines";
 
+  const editCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (!trace) return counts;
+    for (const ev of trace.events) {
+      if (ev.action !== "edit") continue;
+      for (const t of ev.targets) {
+        counts.set(t.path, (counts.get(t.path) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [trace]);
+
   const engine = useMemo(() => new PlaybackEngine(trace, city), [trace, city]);
   const playback = useMemo(() => engine.snapshotAt(currentSeq), [engine, currentSeq]);
   // live tallies for the HUD spectrum; touchByPath mirrors the backend stats scope
@@ -680,7 +821,7 @@ export default function App() {
   }, [playback]);
   const selectedFile = useMemo(
     () => (selectedPath ? city?.files.find((file) => file.path === selectedPath) : undefined),
-    [city, selectedPath]
+    [city, selectedPath],
   );
   // mirrors the backend churn definition (stats.churnFiles): per path, the
   // number of events that carried an edit touch; churn means three or more
@@ -700,7 +841,15 @@ export default function App() {
   }, [trace]);
 
   return (
-    <main className={mapOnly ? "app-frame rail-collapsed" : railCollapsed ? "app-frame rail-collapsed" : "app-frame"}>
+    <main
+      className={
+        mapOnly
+          ? "app-frame rail-collapsed"
+          : railCollapsed
+            ? "app-frame rail-collapsed"
+            : "app-frame"
+      }
+    >
       {mapOnly ? null : (
         <SessionRail
           sessions={sessions}
@@ -732,7 +881,24 @@ export default function App() {
               <PanelLeftOpen size={15} />
             </button>
           ) : null}
-          {view === "tree" ? (
+          {city ? (
+            <button
+              className="zoom-fit-btn"
+              onClick={zoomToFit}
+              title="Recenter the map (zoom to fit)"
+              aria-label="Recenter the map"
+            >
+              <Maximize2 size={15} />
+            </button>
+          ) : null}
+          {!hasWebGL() && city ? (
+            <Treemap2D
+              city={city}
+              playback={playback}
+              selectedPath={selectedPath}
+              onSelect={selectFile}
+            />
+          ) : view === "tree" ? (
             <TreeScene
               city={city}
               playback={playback}
@@ -750,18 +916,30 @@ export default function App() {
               locHeights={mapOnly}
             />
           )}
-          <Hud
-            trace={trace}
-            city={city}
-            agentLabel={agentLabel}
-            editedNow={touchCounts.edited}
-            readNow={touchCounts.read}
-            seenNow={touchCounts.seen}
-            churn={churn}
-            onSelectFile={selectFile}
-            onOpenAgents={!mapOnly && trace ? openAgents : undefined}
-            locked={exporting}
-          />
+          {city && hasWebGL() && !hudHidden ? (
+            <Minimap
+              city={city}
+              playback={playback}
+              selectedPath={selectedPath}
+              onSelect={selectFile}
+              heatMode={heatMode}
+              editCounts={editCounts}
+            />
+          ) : null}
+          {!hudHidden ? (
+            <Hud
+              trace={trace}
+              city={city}
+              agentLabel={agentLabel}
+              editedNow={touchCounts.edited}
+              readNow={touchCounts.read}
+              seenNow={touchCounts.seen}
+              churn={churn}
+              onSelectFile={selectFile}
+              onOpenAgents={!mapOnly && trace ? openAgents : undefined}
+              locked={exporting}
+            />
+          ) : null}
           {city ? (
             <Dock
               panels={[
@@ -772,8 +950,15 @@ export default function App() {
                   section: "scene",
                   presentation: "pop",
                   render: () => (
-                    <ViewPanel view={view} onViewChange={setView} note={viewNote} locked={exporting} />
-                  )
+                    <ViewPanel
+                      view={view}
+                      onViewChange={setView}
+                      note={viewNote}
+                      locked={exporting}
+                      heatMode={heatMode}
+                      onHeatModeChange={setHeatMode}
+                    />
+                  ),
                 },
                 {
                   id: "inspect",
@@ -785,13 +970,36 @@ export default function App() {
                     <Inspector
                       file={selectedFile}
                       touch={selectedFile ? playback.touchByPath.get(selectedFile.path) : undefined}
-                      history={selectedFile ? (playback.historyByPath.get(selectedFile.path) ?? []) : []}
+                      history={
+                        selectedFile ? (playback.historyByPath.get(selectedFile.path) ?? []) : []
+                      }
                       onClose={closeSheet}
                       onJumpTo={jumpToHistory}
                       locked={exporting}
+                      currentSeq={currentSeq}
+                      total={trace?.events.length ?? 0}
                     />
-                  )
+                  ),
                 },
+                ...(!mapOnly && trace
+                  ? [
+                      {
+                        id: "events",
+                        icon: ListOrdered,
+                        hint: "Event list — browse and jump to any event",
+                        section: "session",
+                        presentation: "sheet",
+                        render: () => (
+                          <EventList
+                            trace={trace}
+                            currentSeq={currentSeq}
+                            onChange={setCurrentSeq}
+                            locked={exporting}
+                          />
+                        ),
+                      } satisfies PanelDescriptor,
+                    ]
+                  : []),
                 ...(!mapOnly && trace
                   ? [
                       {
@@ -813,8 +1021,8 @@ export default function App() {
                             onRetry={retryAgents}
                             onClose={closeSheet}
                           />
-                        )
-                      } satisfies PanelDescriptor
+                        ),
+                      } satisfies PanelDescriptor,
                     ]
                   : []),
                 ...(!mapOnly && trace
@@ -830,15 +1038,16 @@ export default function App() {
                           <ReportPanel
                             status={reportStatus}
                             analyzing={reportStatus?.state === "running"}
+                            progress={judgeProgress}
                             locked={exporting}
                             onAnalyze={(choice) => void analyzeSession(choice)}
                             onClose={closeSheet}
                             onJumpTo={jumpToEvidence}
                           />
-                        )
-                      } satisfies PanelDescriptor
+                        ),
+                      } satisfies PanelDescriptor,
                     ]
-                  : [])
+                  : []),
               ]}
               openSheet={openSheet}
               openPop={openPop}
@@ -846,19 +1055,29 @@ export default function App() {
               onClosePop={closePop}
             />
           ) : null}
-          {!mapOnly && !loading && sessions.length === 0 ? (
+          {!mapOnly && !loading && sessions.length === 0 && !trace ? (
             <div className="empty-stage">
               <div className="card">
                 <h2>No sessions found</h2>
                 <p>
-                  mindwalk scans <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>, and{" "}
-                  <code>~/.pi/agent/sessions</code> for agent traces. Run a session there, then refresh.
+                  mindwalk scans <code>~/.claude/projects</code>, <code>~/.codex/sessions</code>,
+                  and <code>~/.pi/agent/sessions</code> for agent traces. Run a session there, then
+                  refresh.
                 </p>
+                <button className="demo-btn" onClick={loadDemo}>
+                  Try a demo session →
+                </button>
               </div>
             </div>
           ) : null}
           {loading ? (
-            <div className="toast">{mapOnly ? "Building the map…" : sessions.length === 0 ? "Scanning sessions…" : "Reading trace…"}</div>
+            <div className="toast">
+              {mapOnly
+                ? "Building the map…"
+                : sessions.length === 0
+                  ? "Scanning sessions…"
+                  : "Reading trace…"}
+            </div>
           ) : null}
           {error ? <div className="toast error">{error}</div> : null}
         </div>
@@ -871,6 +1090,15 @@ export default function App() {
           onSubagentMark={openAgentsAtMark}
         />
       </section>
+      {paletteOpen && city ? (
+        <CommandPalette
+          files={city.files}
+          touchByPath={playback.touchByPath}
+          onSelect={selectFile}
+          onClose={() => setPaletteOpen(false)}
+        />
+      ) : null}
+      {cheatOpen ? <CheatSheet onClose={() => setCheatOpen(false)} /> : null}
     </main>
   );
 }

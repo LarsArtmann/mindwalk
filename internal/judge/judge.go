@@ -3,7 +3,9 @@ package judge
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,6 +31,10 @@ type Options struct {
 	// rubric whose task digest still matches is reused instead of regenerated,
 	// so criteria stay stable across re-evaluations.
 	CachedReport *model.Report
+	// OnProgress, if set, receives a step-level update at each pipeline
+	// milestone (rubric skip/reuse/generate, scoring, done/error). The server
+	// streams these to the browser via SSE; tests and the CLI leave it nil.
+	OnProgress func(Progress)
 }
 
 // Analyze runs the judge over one trace and returns the evaluation report.
@@ -45,35 +51,62 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 			if err != nil {
 				return nil, err
 			}
+
 			cli = detected
 		}
+
 		runner = CLIRunner{CLI: cli, Model: opts.Model}
 	}
 
+	emitProgress(opts.OnProgress, ProgressStart)
+
 	input := BuildInput(trace)
+
 	var rubric *model.Rubric
+
 	if !opts.NoRubric {
-		acquired, err := acquireRubric(ctx, runner, trace, opts.CachedReport)
+		acquired, err := acquireRubric(ctx, runner, trace, opts.CachedReport, opts.OnProgress)
 		if err != nil {
+			emitProgress(opts.OnProgress, Progress{Phase: "error", Step: "fail", Message: err.Error()})
+
 			return nil, err
 		}
+
 		rubric = acquired
+	} else {
+		emitProgress(opts.OnProgress, Progress{Phase: "rubric", Step: "skip", Message: "Rubric layer disabled"})
 	}
+
 	sysPrompt, scoringInput := prompt, input
 	if rubric != nil && rubric.Status == model.RubricStatusScored {
 		sysPrompt = scoringPrompt
 		scoringInput = "# RUBRIC (data)\n\n" + scoringRubricJSON(rubric) + "\n\n# SESSION\n\n" + input
 	}
 
+	emitProgress(
+		opts.OnProgress,
+		Progress{Phase: "scoring", Step: "score", Message: "Scoring session against dimensions and criteria…"},
+	)
+
 	var lastErr error
-	for attempt := 0; attempt < 2; attempt++ {
+
+	for range 2 {
 		result, err := runner.Run(ctx, sysPrompt, scoringInput)
 		if err != nil {
+			emitProgress(opts.OnProgress, Progress{Phase: "error", Step: "fail", Message: err.Error()})
+
 			return nil, err
 		}
+
 		report, err := parseOutput(result.Text, trace, rubric)
 		if err != nil {
 			lastErr = err
+
+			emitProgress(
+				opts.OnProgress,
+				Progress{Phase: "scoring", Step: "retry", Message: "Judge output invalid, retrying…"},
+			)
+
 			continue
 		}
 		// Prefer the model the CLI says it used; fall back to what was asked
@@ -82,6 +115,7 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 		if judgeModel == "" {
 			judgeModel = opts.Model
 		}
+
 		report.Judge = model.ReportJudge{
 			CLI:            runner.Name(),
 			Model:          judgeModel,
@@ -93,8 +127,14 @@ func Analyze(ctx context.Context, trace *model.Trace, opts Options) (*model.Repo
 		if report.Rubric != nil && report.Rubric.Status == model.RubricStatusScored {
 			report.Judge.RubricPromptVersion = RubricPromptVersion
 		}
+
+		emitProgress(opts.OnProgress, Progress{Phase: "done", Step: "complete", Message: "Evaluation complete"})
+
 		return report, nil
 	}
+
+	emitProgress(opts.OnProgress, Progress{Phase: "error", Step: "fail", Message: "judge output invalid after retry"})
+
 	return nil, fmt.Errorf("judge output invalid after retry: %w", lastErr)
 }
 
@@ -129,6 +169,7 @@ func parseOutput(raw string, trace *model.Trace, rubric *model.Rubric) (*model.R
 	if err != nil {
 		return nil, err
 	}
+
 	var out llmOutput
 	if err := json.Unmarshal([]byte(payload), &out); err != nil {
 		return nil, fmt.Errorf("judge JSON: %w", err)
@@ -140,21 +181,26 @@ func parseOutput(raw string, trace *model.Trace, rubric *model.Rubric) (*model.R
 	}
 
 	byName := map[string]*model.ReportDimension{}
+
 	for _, dim := range out.Dimensions {
-		if !knownDimension(dim.Name) {
+		if !slices.Contains(model.DimensionNames, dim.Name) {
 			continue
 		}
+
 		target, ok := byName[dim.Name]
 		if !ok {
 			target = &model.ReportDimension{Name: dim.Name, Findings: []model.ReportFinding{}}
 			byName[dim.Name] = target
 		}
+
 		findings, err := filterFindings(dim.Findings, validSeqs)
 		if err != nil {
 			return nil, err
 		}
+
 		target.Findings = append(target.Findings, findings...)
 	}
+
 	if len(byName) != len(model.DimensionNames) {
 		return nil, fmt.Errorf("judge output covers %d of %d dimensions", len(byName), len(model.DimensionNames))
 	}
@@ -171,6 +217,7 @@ func parseOutput(raw string, trace *model.Trace, rubric *model.Rubric) (*model.R
 		TaskSummary: out.TaskSummary,
 		Narrative:   out.Narrative,
 	}
+
 	for _, name := range model.DimensionNames {
 		dim := byName[name]
 		if len(trace.Events) == 0 {
@@ -181,24 +228,32 @@ func parseOutput(raw string, trace *model.Trace, rubric *model.Rubric) (*model.R
 		} else {
 			dim.Verdict = rollupVerdict(name, dim.Findings, trace.Stats.Observability)
 		}
+
 		report.Dimensions = append(report.Dimensions, *dim)
 	}
+
 	if rubric != nil {
 		if rubric.Status == model.RubricStatusScored {
 			scored, err := scoreRubric(rubric, &out, validSeqs)
 			if err != nil {
 				return nil, err
 			}
+
 			report.Rubric = scored
 		} else {
 			report.Rubric = rubric
 		}
 	}
+
 	for _, moment := range out.NotableMoments {
 		if validSeqs[moment.Seq] && moment.Note != "" {
-			report.NotableMoments = append(report.NotableMoments, model.ReportMoment{Seq: moment.Seq, Note: moment.Note})
+			report.NotableMoments = append(
+				report.NotableMoments,
+				model.ReportMoment{Seq: moment.Seq, Note: moment.Note},
+			)
 		}
 	}
+
 	return report, nil
 }
 
@@ -213,25 +268,30 @@ func filterFindings(raw []llmFinding, validSeqs map[int]bool) ([]model.ReportFin
 		if finding.Claim == "" {
 			continue
 		}
+
 		seqs := make([]int, 0, len(finding.EvidenceSeqs))
 		for _, seq := range finding.EvidenceSeqs {
 			if validSeqs[seq] {
 				seqs = append(seqs, seq)
 			}
 		}
+
 		if len(seqs) == 0 {
 			continue
 		}
+
 		severity, err := normalizeSeverity(finding.Severity)
 		if err != nil {
 			return nil, err
 		}
+
 		findings = append(findings, model.ReportFinding{
 			Claim:        finding.Claim,
 			Severity:     severity,
 			EvidenceSeqs: seqs,
 		})
 	}
+
 	return findings, nil
 }
 
@@ -245,13 +305,17 @@ func scoreRubric(rubric *model.Rubric, out *llmOutput, validSeqs map[int]bool) (
 		coverage string
 		findings []model.ReportFinding
 	}
+
 	expected := map[string]bool{}
+
 	for _, task := range rubric.Tasks {
 		for _, criterion := range task.Criteria {
 			expected[criterion.ID] = true
 		}
 	}
+
 	scores := map[string]score{}
+
 	for _, criterion := range out.Criteria {
 		// Unknown ids are dropped before any validation: an invented entry is
 		// noise the contract discards, and its malformed coverage or findings
@@ -259,17 +323,21 @@ func scoreRubric(rubric *model.Rubric, out *llmOutput, validSeqs map[int]bool) (
 		if !expected[criterion.ID] {
 			continue
 		}
+
 		if _, dup := scores[criterion.ID]; dup {
 			continue
 		}
+
 		coverage, err := normalizeCoverage(criterion.Coverage)
 		if err != nil {
 			return nil, err
 		}
+
 		findings, err := filterFindings(criterion.Findings, validSeqs)
 		if err != nil {
 			return nil, err
 		}
+
 		scores[criterion.ID] = score{coverage: coverage, findings: findings}
 	}
 
@@ -282,19 +350,23 @@ func scoreRubric(rubric *model.Rubric, out *llmOutput, validSeqs map[int]bool) (
 	}
 	for i, task := range rubric.Tasks {
 		copied := task
+
 		copied.Criteria = make([]model.RubricCriterion, len(task.Criteria))
 		for j, criterion := range task.Criteria {
 			result, ok := scores[criterion.ID]
 			if !ok {
 				return nil, fmt.Errorf("judge output misses rubric criterion %q", criterion.ID)
 			}
+
 			criterion.Coverage = result.coverage
 			criterion.Findings = result.findings
 			criterion.Verdict = rollupCriterion(result.coverage, result.findings)
 			copied.Criteria[j] = criterion
 		}
+
 		scored.Tasks[i] = copied
 	}
+
 	return scored, nil
 }
 
@@ -302,12 +374,15 @@ func scoreRubric(rubric *model.Rubric, out *llmOutput, validSeqs map[int]bool) (
 // judge never decides verdicts. Blind spots recorded by the deterministic
 // layer force insufficient-data regardless of what the judge observed.
 func rollupVerdict(name string, findings []model.ReportFinding, obs model.Observability) string {
-	if obs.Reads == model.ObservabilityUnavailable && (name == model.DimensionExploration || name == model.DimensionWandering) {
+	if obs.Reads == model.ObservabilityUnavailable &&
+		(name == model.DimensionExploration || name == model.DimensionWandering) {
 		return model.VerdictInsufficientData
 	}
+
 	if obs.Errors == model.ObservabilityUnavailable && name == model.DimensionVerification {
 		return model.VerdictInsufficientData
 	}
+
 	return rollupSeverities(findings)
 }
 
@@ -318,11 +393,13 @@ func rollupCriterion(coverage string, findings []model.ReportFinding) string {
 	if coverage == model.CoverageNone {
 		return model.VerdictInsufficientData
 	}
+
 	return rollupSeverities(findings)
 }
 
 func rollupSeverities(findings []model.ReportFinding) string {
 	verdict := model.VerdictGood
+
 	for _, finding := range findings {
 		switch finding.Severity {
 		case model.SeverityProblem:
@@ -331,16 +408,8 @@ func rollupSeverities(findings []model.ReportFinding) string {
 			verdict = model.VerdictWarning
 		}
 	}
-	return verdict
-}
 
-func knownDimension(name string) bool {
-	for _, known := range model.DimensionNames {
-		if name == known {
-			return true
-		}
-	}
-	return false
+	return verdict
 }
 
 // normalizeSeverity forgives casing and whitespace but nothing else: an
@@ -380,18 +449,23 @@ func extractJSON(text string) (string, error) {
 	depth := 0
 	inString := false
 	escaped := false
+
 	for i, r := range text {
 		if start == -1 {
 			if r == '{' {
 				start = i
 				depth = 1
 			}
+
 			continue
 		}
+
 		if escaped {
 			escaped = false
+
 			continue
 		}
+
 		switch r {
 		case '\\':
 			if inString {
@@ -412,5 +486,6 @@ func extractJSON(text string) (string, error) {
 			}
 		}
 	}
-	return "", fmt.Errorf("no JSON object in judge output")
+
+	return "", errors.New("no JSON object in judge output")
 }

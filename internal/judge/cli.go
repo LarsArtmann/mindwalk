@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/cosmtrek/mindwalk/internal/adapter"
 	"github.com/cosmtrek/mindwalk/internal/textutil"
 )
 
@@ -29,13 +31,14 @@ type Runner interface {
 }
 
 // SupportedCLIs lists judge CLIs in detection preference order.
-var SupportedCLIs = []string{"claude", "codex"}
+var SupportedCLIs = []string{"claude", "codex", "crush"}
 
 // DetectCLI returns the first supported judge CLI found on PATH.
 func DetectCLI() (string, error) {
 	if clis := DetectCLIs(); len(clis) > 0 {
 		return clis[0], nil
 	}
+
 	return "", fmt.Errorf("no judge CLI found on PATH (looked for %s)", strings.Join(SupportedCLIs, ", "))
 }
 
@@ -43,11 +46,13 @@ func DetectCLI() (string, error) {
 // order; the UI offers the full list so the user can pick the judge.
 func DetectCLIs() []string {
 	var clis []string
+
 	for _, cli := range SupportedCLIs {
 		if _, err := exec.LookPath(cli); err == nil {
 			clis = append(clis, cli)
 		}
 	}
+
 	return clis
 }
 
@@ -56,27 +61,26 @@ func DetectCLIs() []string {
 // IsWorkDir to recognize sessions recorded there as mindwalk's own judge runs
 // (a fallback for codex CLIs that predate --ephemeral).
 func WorkDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(home, ".mindwalk", "judge")
+	return adapter.HomePath(".mindwalk", "judge")
 }
 
 // IsWorkDir reports whether path is the judge working directory.
 func IsWorkDir(path string) bool {
 	dir := WorkDir()
+
 	return dir != "" && path != "" && filepath.Clean(path) == dir
 }
 
 func ensureWorkDir() (string, error) {
 	dir := WorkDir()
 	if dir == "" {
-		return "", fmt.Errorf("judge workdir: cannot resolve home directory")
+		return "", errors.New("judge workdir: cannot resolve home directory")
 	}
+
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return "", fmt.Errorf("judge workdir: %w", err)
 	}
+
 	return dir, nil
 }
 
@@ -100,13 +104,16 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 	if err != nil {
 		return RunResult{}, err
 	}
+
 	var cmd *exec.Cmd
+
 	switch r.CLI {
 	case "claude":
 		// --output-format json wraps the reply in a result envelope whose
 		// modelUsage names the model that actually answered; see
 		// parseClaudeEnvelope.
-		args := []string{"-p",
+		args := []string{
+			"-p",
 			"--no-session-persistence", // never a session file for mindwalk to re-scan
 			"--tools", "",
 			"--strict-mcp-config",   // with no --mcp-config: zero MCP servers
@@ -116,6 +123,7 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		if r.Model != "" {
 			args = append(args, "--model", r.Model)
 		}
+
 		cmd = exec.CommandContext(ctx, "claude", append(args, prompt)...)
 		cmd.Stdin = strings.NewReader(input)
 	case "codex":
@@ -137,25 +145,54 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 		if r.Model != "" {
 			args = append(args, "-c", "model="+r.Model)
 		}
+
 		cmd = exec.CommandContext(ctx, "codex", append(args, "-")...)
+		cmd.Stdin = strings.NewReader(prompt + "\n\n" + input)
+	case "crush":
+		// crush run reads the prompt from stdin when no prompt argument is
+		// given, so a large evidence document never hits argv size limits.
+		// --quiet keeps stdout to the reply text only; --verbose emits the
+		// model that answered on stderr (see crushModel). crush persists its
+		// sessions, but it writes them into <workdir>/.crush and the Crush
+		// adapter drops sessions whose cwd is the judge workdir
+		// (judge.IsWorkDir) — the same belt codex relies on.
+		args := []string{"run", "--quiet", "--verbose"}
+		if r.Model != "" {
+			args = append(args, "-m", r.Model)
+		}
+
+		cmd = exec.CommandContext(ctx, "crush", args...)
 		cmd.Stdin = strings.NewReader(prompt + "\n\n" + input)
 	default:
 		return RunResult{}, fmt.Errorf("unsupported judge CLI %q", r.CLI)
 	}
+
 	cmd.Dir = workdir
+
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
+
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		detail := strings.TrimSpace(stderr.String())
 		if detail == "" {
 			detail = strings.TrimSpace(stdout.String())
 		}
+
 		detail = truncateFailureDetail(detail)
+
 		return RunResult{}, fmt.Errorf("%s failed: %w: %s", r.CLI, err, detail)
 	}
+
 	if r.CLI == "claude" {
 		return parseClaudeEnvelope(stdout.String()), nil
+	}
+
+	if r.CLI == "crush" {
+		// --verbose logs the model that answered on stderr as
+		// "model=<name>"; absent a match the model stays unrecorded.
+		return RunResult{Text: stdout.String(), Model: crushModel(stderr.String())}, nil
 	}
 	// codex prints its config preamble (with the "model:" line) on stderr;
 	// older versions used stdout, so check both.
@@ -163,6 +200,7 @@ func (r CLIRunner) Run(ctx context.Context, prompt, input string) (RunResult, er
 	if model == "" {
 		model = codexModel(stdout.String())
 	}
+
 	return RunResult{Text: stdout.String(), Model: model}, nil
 }
 
@@ -171,7 +209,8 @@ func truncateFailureDetail(detail string) string {
 }
 
 func codexExecArgs(workdir string) []string {
-	return []string{"exec",
+	return []string{
+		"exec",
 		"--ephemeral",          // no session file for mindwalk to re-scan
 		"--ignore-user-config", // no user MCP servers or profiles; auth stays
 		"--ignore-rules",       // no user/project execpolicy rules
@@ -216,8 +255,11 @@ func parseClaudeEnvelope(raw string) RunResult {
 	if err := json.Unmarshal([]byte(strings.TrimSpace(raw)), &envelope); err != nil || envelope.Result == "" {
 		return RunResult{Text: raw}
 	}
+
 	model := ""
+
 	var maxInput int64 = -1
+
 	for name, usage := range envelope.ModelUsage {
 		total := usage.InputTokens + usage.CacheReadInputTokens + usage.CacheCreationInputTokens
 		if total > maxInput {
@@ -225,6 +267,7 @@ func parseClaudeEnvelope(raw string) RunResult {
 			model = name
 		}
 	}
+
 	return RunResult{Text: envelope.Result, Model: model}
 }
 
@@ -236,5 +279,19 @@ func codexModel(raw string) string {
 	if match := codexModelLine.FindStringSubmatch(raw); match != nil {
 		return match[1]
 	}
+
+	return ""
+}
+
+var crushModelField = regexp.MustCompile(`(?m)ModelProvider called.*model=(\S+)`)
+
+// crushModel pulls the model name from the structured log line crush --verbose
+// emits when it resolves its model provider ("ModelProvider called ... model=X");
+// absent a match the model stays unrecorded.
+func crushModel(raw string) string {
+	if match := crushModelField.FindStringSubmatch(raw); match != nil {
+		return match[1]
+	}
+
 	return ""
 }

@@ -30,6 +30,41 @@ type analyzeJob struct {
 	// rubric on/off). A concurrent request for the same session with a
 	// different configuration must conflict, not silently receive this run.
 	config string
+	// progress holds the step-level events the judge emits during the run.
+	// A pointer so snapshot's copy-by-value stays safe — the mutex lives in
+	// the pointee, not the job.
+	progress *progressLog
+}
+
+// progressLog is a mutex-protected append-only log of judge progress events.
+// The analyze goroutine appends; the SSE handler tails via since.
+type progressLog struct {
+	mu   sync.Mutex
+	data []judge.Progress
+}
+
+func newProgressLog() *progressLog { return &progressLog{} }
+
+func (p *progressLog) append(evt judge.Progress) {
+	p.mu.Lock()
+	p.data = append(p.data, evt)
+	p.mu.Unlock()
+}
+
+// since returns all events with index >= start and the next index to pass
+// on the next call (0 for a fresh connection).
+func (p *progressLog) since(start int) ([]judge.Progress, int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if start >= len(p.data) {
+		return nil, len(p.data)
+	}
+
+	events := make([]judge.Progress, len(p.data)-start)
+	copy(events, p.data[start:])
+
+	return events, len(p.data)
 }
 
 // jobConfig renders a request's evaluation configuration as the job identity.
@@ -52,10 +87,12 @@ type analyzeState struct {
 func (a *analyzeState) snapshot(key string) (analyzeJob, bool) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+
 	job, ok := a.jobs[key]
 	if !ok {
 		return analyzeJob{}, false
 	}
+
 	return *job, true
 }
 
@@ -65,6 +102,7 @@ func (a *analyzeState) snapshot(key string) (analyzeJob, bool) {
 // disk probe); the panel's FreshAgainstTrace check stays the precise one.
 func (s *Server) reportStateFor(meta model.SessionMeta) string {
 	job, ok := s.analyze.snapshot(meta.Key)
+
 	var report *model.Report
 	switch {
 	case ok && !job.done:
@@ -76,12 +114,15 @@ func (s *Server) reportStateFor(meta model.SessionMeta) string {
 	default:
 		report = s.reportIndex.load(s.reportCache, meta.Key)
 	}
+
 	if report == nil {
 		return ""
 	}
+
 	if !judge.FreshAgainstSummary(report, meta) {
 		return "stale"
 	}
+
 	return "done"
 }
 
@@ -91,7 +132,9 @@ func (s *Server) judgeInfo() ([]string, bool) {
 	if s.analyze.runner != nil {
 		return []string{s.analyze.runner.Name()}, true
 	}
+
 	clis := judge.DetectCLIs()
+
 	return clis, len(clis) > 0
 }
 
@@ -110,22 +153,33 @@ type reportStatus struct {
 }
 
 func (s *Server) handleSessionReport(w http.ResponseWriter, r *http.Request, selector string) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	meta, err := s.findSession(selector)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	trace, _, err := s.traceAndMap(selector)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+	if requireGET(w, r) {
 		return
 	}
 
+	meta, err := s.findSession(selector)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+
+		return
+	}
+
+	trace, _, err := s.traceAndMap(selector)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+
+		return
+	}
+
+	writeJSON(w, s.buildReportStatus(meta, trace))
+}
+
+// buildReportStatus assembles the report status for a session from the
+// in-flight job (if any) and the on-disk cache. Shared by the polling
+// endpoint and the SSE stream's terminal event.
+func (s *Server) buildReportStatus(meta model.SessionMeta, trace *model.Trace) reportStatus {
 	status := reportStatus{State: "none"}
+
 	status.JudgeCLIs, status.JudgeAvailable = s.judgeInfo()
 	if status.JudgeAvailable {
 		status.JudgeCLI = status.JudgeCLIs[0]
@@ -149,27 +203,35 @@ func (s *Server) handleSessionReport(w http.ResponseWriter, r *http.Request, sel
 			status.Stale = !judge.FreshAgainstTrace(cached, trace)
 		}
 	}
-	writeJSON(w, status)
+
+	return status
 }
 
 func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, selector string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+
 		return
 	}
+
 	meta, err := s.findSession(selector)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return
 	}
+
 	trace, _, err := s.traceAndMap(selector)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
+
 		return
 	}
+
 	clis, available := s.judgeInfo()
 	if !available {
 		http.Error(w, "no judge CLI found on PATH (looked for claude, codex)", http.StatusServiceUnavailable)
+
 		return
 	}
 
@@ -183,47 +245,72 @@ func (s *Server) handleSessionAnalyze(w http.ResponseWriter, r *http.Request, se
 		// Rubric false skips the task-rubric layer; absent or true keeps it.
 		Rubric *bool `json:"rubric"`
 	}
+
 	if r.Body != nil {
 		decoder := json.NewDecoder(r.Body)
 		if err := decoder.Decode(&req); err != nil {
 			if !errors.Is(err, io.EOF) {
 				http.Error(w, "invalid request body: "+err.Error(), http.StatusBadRequest)
+
 				return
 			}
 		} else if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
 			// One JSON value and nothing after it — trailing garbage means a
 			// broken client, and this request starts an expensive run.
 			http.Error(w, "invalid request body: trailing data after JSON object", http.StatusBadRequest)
+
 			return
 		}
 	}
+
 	if req.CLI != "" && !slices.Contains(clis, req.CLI) {
-		http.Error(w, fmt.Sprintf("judge CLI %q is not available (installed: %v)", req.CLI, clis), http.StatusBadRequest)
+		http.Error(
+			w,
+			fmt.Sprintf("judge CLI %q is not available (installed: %v)", req.CLI, clis),
+			http.StatusBadRequest,
+		)
+
 		return
 	}
 
 	noRubric := req.Rubric != nil && !*req.Rubric
 	config := jobConfig(req.CLI, req.Model, noRubric)
+
 	s.analyze.mu.Lock()
 	if job := s.analyze.jobs[meta.Key]; job != nil && !job.done {
 		sameConfig := job.config == config
 		s.analyze.mu.Unlock()
+
 		if !sameConfig {
 			// The API must not pretend to accept a configuration it will not
 			// run: the in-flight job was asked for something else.
-			http.Error(w, "an evaluation with a different judge configuration is already running for this session; wait for it to finish", http.StatusConflict)
+			http.Error(
+				w,
+				"an evaluation with a different judge configuration is already running for this session; wait for it to finish",
+				http.StatusConflict,
+			)
+
 			return
 		}
+
 		w.WriteHeader(http.StatusAccepted)
 		writeJSON(w, reportStatus{State: "running", JudgeAvailable: true})
+
 		return
 	}
+
 	if s.analyze.active >= maxConcurrentJudges {
 		s.analyze.mu.Unlock()
-		http.Error(w, fmt.Sprintf("%d evaluations already running; wait for one to finish", maxConcurrentJudges), http.StatusTooManyRequests)
+		http.Error(
+			w,
+			fmt.Sprintf("%d evaluations already running; wait for one to finish", maxConcurrentJudges),
+			http.StatusTooManyRequests,
+		)
+
 		return
 	}
-	job := &analyzeJob{config: config}
+
+	job := &analyzeJob{config: config, progress: newProgressLog()}
 	s.analyze.jobs[meta.Key] = job
 	s.analyze.active++
 	s.analyze.mu.Unlock()
@@ -247,12 +334,14 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli
 	if !noRubric {
 		cached = s.reportCache.Load(key)
 	}
+
 	report, err := judge.Analyze(ctx, trace, judge.Options{
 		Runner:       s.analyze.runner,
 		CLI:          cli,
 		Model:        judgeModel,
 		NoRubric:     noRubric,
 		CachedReport: cached,
+		OnProgress:   job.progress.append,
 	})
 
 	// Persist before publishing done, and outside the lock: once the job entry
@@ -261,6 +350,7 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli
 	if err == nil && !noRubric && s.reportCache.Dir != "" {
 		persisted = s.reportCache.Store(key, report) == nil
 	}
+
 	if persisted {
 		// Polls landing between the store and the index's next directory scan
 		// must find the report once the job entry is dropped below.
@@ -269,13 +359,18 @@ func (s *Server) runAnalyze(key string, trace *model.Trace, job *analyzeJob, cli
 
 	s.analyze.mu.Lock()
 	defer s.analyze.mu.Unlock()
+
 	s.analyze.active--
+
 	job.done = true
 	if err != nil {
 		job.err = err.Error()
+
 		return
 	}
+
 	job.report = report
+
 	if persisted {
 		// The cache owns the report now; dropping the entry keeps the jobs map
 		// bounded. When the disk write failed the entry stays as the only copy —

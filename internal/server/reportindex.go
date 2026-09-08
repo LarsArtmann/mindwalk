@@ -40,10 +40,13 @@ func (ri *reportIndex) load(cache judge.Cache, key string) *model.Report {
 	if cache.Dir == "" || key == "" {
 		return nil
 	}
+
 	ri.mu.Lock()
 	defer ri.mu.Unlock()
+
 	if time.Since(ri.scanned) >= reportIndexTTL {
 		ri.present = map[string]bool{}
+
 		if entries, err := os.ReadDir(cache.Dir); err == nil {
 			for _, entry := range entries {
 				if name, ok := strings.CutSuffix(entry.Name(), ".json"); ok {
@@ -51,29 +54,39 @@ func (ri *reportIndex) load(cache judge.Cache, key string) *model.Report {
 				}
 			}
 		}
+
 		for key := range ri.loaded {
 			if !ri.present[key] {
 				delete(ri.loaded, key)
 			}
 		}
+
 		ri.scanned = time.Now()
 	}
+
 	if !ri.present[key] {
 		return nil
 	}
+
 	fingerprint, err := fingerprintFile(cache.Path(key))
 	if err != nil {
 		delete(ri.loaded, key)
+
 		return nil
 	}
+
 	if memo, ok := ri.loaded[key]; ok && memo.fingerprint.equal(fingerprint) {
 		return memo.report
 	}
+
 	report := cache.Load(key)
+
 	if ri.loaded == nil {
 		ri.loaded = map[string]reportMemo{}
 	}
+
 	ri.loaded[key] = reportMemo{fingerprint: fingerprint, report: report}
+
 	return report
 }
 
@@ -84,8 +97,10 @@ func (ri *reportIndex) load(cache judge.Cache, key string) *model.Report {
 func (ri *reportIndex) markPresent(key string) {
 	ri.mu.Lock()
 	defer ri.mu.Unlock()
+
 	if ri.present == nil {
 		ri.present = map[string]bool{}
 	}
+
 	ri.present[key] = true
 }

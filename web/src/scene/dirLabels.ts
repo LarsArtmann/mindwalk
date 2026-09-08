@@ -52,8 +52,8 @@ export class DirLabelSet {
           depthWrite: false,
           depthTest: !alwaysOnTop,
           toneMapped: false,
-          fog: false
-        })
+          fog: false,
+        }),
       );
       if (alwaysOnTop) sprite.renderOrder = 20;
       sprite.visible = false;
@@ -103,7 +103,8 @@ export class DirLabelSet {
       this.point.project(camera);
       const sx = ((this.point.x + 1) / 2) * viewW;
       const sy = ((1 - this.point.y) / 2) * viewH;
-      const onScreen = this.point.z < 1 && sx > -60 && sx < viewW + 60 && sy > -40 && sy < viewH + 40;
+      const onScreen =
+        this.point.z < 1 && sx > -60 && sx < viewW + 60 && sy > -40 && sy < viewH + 40;
       // too small to matter, or so large we're inside it — either way the
       // name would float over unrelated geometry
       if (!onScreen || subtreePx < LABEL_MIN_SUBTREE_PX || subtreePx > maxDim * 1.6) {
@@ -122,7 +123,7 @@ export class DirLabelSet {
       const clash = kept.some(
         (other) =>
           Math.abs(other.sx - candidate.sx) < (other.pw + candidate.pw) / 2 + 14 &&
-          Math.abs(other.sy - candidate.sy) < (other.ph + candidate.ph) / 2 + 10
+          Math.abs(other.sy - candidate.sy) < (other.ph + candidate.ph) / 2 + 10,
       );
       candidate.label.target = clash ? 0 : 1;
       if (!clash) kept.push(candidate);

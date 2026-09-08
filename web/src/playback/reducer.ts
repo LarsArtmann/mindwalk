@@ -3,7 +3,7 @@ import type { CityMap, Target, Touch, Trace, TraceEvent } from "../types";
 export const touchRank: Record<Touch, number> = {
   hit: 1,
   read: 2,
-  edit: 3
+  edit: 3,
 };
 
 export interface FilePlayback {
@@ -50,7 +50,7 @@ export class PlaybackEngine {
       touchByPath: this.touchByPath,
       visitsByFile: this.visitsByFile,
       historyByPath: this.historyByPath,
-      recentTargets: this.recentTargets
+      recentTargets: this.recentTargets,
     };
   }
 
@@ -84,7 +84,10 @@ export class PlaybackEngine {
     if (event.targets.length > 0) {
       // the trail follows the strongest signal: skip weak (heuristic) targets
       const primary = event.targets.find((target) => !target.weak) ?? event.targets[0];
-      this.recentTargets.push({ ...primary, fileId: primary.fileId ?? this.idByPath.get(primary.path) });
+      this.recentTargets.push({
+        ...primary,
+        fileId: primary.fileId ?? this.idByPath.get(primary.path),
+      });
       if (this.recentTargets.length > RECENT_WINDOW) this.recentTargets.shift();
     }
   }
