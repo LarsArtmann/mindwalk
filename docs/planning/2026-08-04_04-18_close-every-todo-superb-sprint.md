@@ -31,48 +31,48 @@ Three items where a shipped feature has a tiny last-mile gap. The data flows
 end-to-end; the UI or contract just needs one final connection. Combined
 effort: ~55 minutes.
 
-| #   | What                                           | Why it's 1%/51%                                                                                                 | Effort |
-| --- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------ |
-| 1   | Wire `providerExecuted` into HUD warning       | Data exists Go→TS→event; HUD predicate at `Hud.tsx:59` just needs `&& !e.providerExecuted`. One-line fix.       | 30min  |
-| 2   | Add `model-switch` glyph to Timeline legend    | CSS class exists, `MARK_LABEL` entry exists, adapter emits marks. Legend is a hardcoded list missing one entry. | 10min  |
-| 3   | Make `mindwalk cache clear` also clear reports | `clearCache` clears agent-graphs only; users expect "clear" to clear everything. 4 lines repeating the pattern. | 15min  |
+| # | What                                           | Why it's 1%/51%                                                                                                 | Effort |
+| - | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------ |
+| 1 | Wire `providerExecuted` into HUD warning       | Data exists Go→TS→event; HUD predicate at `Hud.tsx:59` just needs `&& !e.providerExecuted`. One-line fix.       | 30min  |
+| 2 | Add `model-switch` glyph to Timeline legend    | CSS class exists, `MARK_LABEL` entry exists, adapter emits marks. Legend is a hardcoded list missing one entry. | 10min  |
+| 3 | Make `mindwalk cache clear` also clear reports | `clearCache` clears agent-graphs only; users expect "clear" to clear everything. 4 lines repeating the pattern. | 15min  |
 
 ### The 4% that delivers 64%
 
 Four correctness and contract items. Each closes a known bug or violated
 invariant with trivial effort. Combined: ~65 minutes.
 
-| #   | What                                  | Why it's 4%/64%                                                                                   | Effort |
-| --- | ------------------------------------- | ------------------------------------------------------------------------------------------------- | ------ |
-| 4   | Add `schema/progress.schema.json`     | AGENTS.md invariant ("update schema when JSON shapes change") is violated. 25-line JSON file.     | 20min  |
-| 5   | Fix `humanBytes` to handle GB         | 1.5 GB cache shows "1500.0 MB". One new `case` in a switch.                                       | 15min  |
-| 6   | Fix `gitDiffPaths` regex for spaces   | Paths with spaces break diff-header parsing. ~10 lines adding quoted-form + `---`/`+++` fallback. | 15min  |
-| 7   | Parse `---`/`+++` fallback diff lines | Bundled with #6 — same function, same regex family. Catches diffs without `diff --git` headers.   | (incl) |
+| # | What                                  | Why it's 4%/64%                                                                                   | Effort |
+| - | ------------------------------------- | ------------------------------------------------------------------------------------------------- | ------ |
+| 4 | Add `schema/progress.schema.json`     | AGENTS.md invariant ("update schema when JSON shapes change") is violated. 25-line JSON file.     | 20min  |
+| 5 | Fix `humanBytes` to handle GB         | 1.5 GB cache shows "1500.0 MB". One new `case` in a switch.                                       | 15min  |
+| 6 | Fix `gitDiffPaths` regex for spaces   | Paths with spaces break diff-header parsing. ~10 lines adding quoted-form + `---`/`+++` fallback. | 15min  |
+| 7 | Parse `---`/`+++` fallback diff lines | Bundled with #6 — same function, same regex family. Catches diffs without `diff --git` headers.   | (incl) |
 
 ### The 20% that delivers 80%
 
 Five test-coverage items that lock in shipped behavior against silent
 regressions. Combined: ~125 minutes.
 
-| #   | What                                         | Why it's 20%/80%                                                                                   | Effort |
-| --- | -------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------ |
-| 8   | Test: `evictAgentGraphCache()`               | 100 MB LRU eviction has zero test coverage. A future change could silently break it.               | 30min  |
-| 9   | Test: `crush.Adapter.Diagnostics()`          | Doctor diagnostics only exercised via CLI against empty dirs. Schema/project.json paths never hit. | 30min  |
-| 10  | Test: `adapter.OpenFile` (3-return)          | Public API with zero direct tests. Close function contract must be verified.                       | 20min  |
-| 11  | Verify `mindwalk analyze --judge crush` e2e  | Crush judge CLI wired but never fired against a real trace. Proves the feature works.              | 15min  |
-| 12  | Enrich test fixture (tokens/cost/read_files) | Fixture has all-zero data; exact observability path untestable via fixture.                        | 30min  |
+| #  | What                                         | Why it's 20%/80%                                                                                   | Effort |
+| -- | -------------------------------------------- | -------------------------------------------------------------------------------------------------- | ------ |
+| 8  | Test: `evictAgentGraphCache()`               | 100 MB LRU eviction has zero test coverage. A future change could silently break it.               | 30min  |
+| 9  | Test: `crush.Adapter.Diagnostics()`          | Doctor diagnostics only exercised via CLI against empty dirs. Schema/project.json paths never hit. | 30min  |
+| 10 | Test: `adapter.OpenFile` (3-return)          | Public API with zero direct tests. Close function contract must be verified.                       | 20min  |
+| 11 | Verify `mindwalk analyze --judge crush` e2e  | Crush judge CLI wired but never fired against a real trace. Proves the feature works.              | 15min  |
+| 12 | Enrich test fixture (tokens/cost/read_files) | Fixture has all-zero data; exact observability path untestable via fixture.                        | 30min  |
 
 ### The other 20% (to 100%)
 
 Four larger items that deliver real value but need more design work.
 Combined: ~2h45min.
 
-| #   | What                                                     | Why it's the remaining 20%                                                                          | Effort |
-| --- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------ |
-| 13  | Surface per-message duration from `finished_at`          | Last unused Crush column. Needs `model.Mark.Duration` field + adapter wiring + schema update.       | 60min  |
-| 14  | Refactor read_files observability through `ComputeStats` | Post-hoc override is fragile; threading grade through removes the risk.                             | 45min  |
-| 15  | Add SSE heartbeat/keep-alive pings                       | Long judge runs (~2min) could drop behind proxies. Needs a periodic write in the SSE handler.       | 30min  |
-| 16  | Extract hunk line ranges into `Target.Lines`             | Precise location info for diff-extracted targets in the Inspector. Parse `@@ -o,n +n,n @@` headers. | 30min  |
+| #  | What                                                     | Why it's the remaining 20%                                                                          | Effort |
+| -- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------ |
+| 13 | Surface per-message duration from `finished_at`          | Last unused Crush column. Needs `model.Mark.Duration` field + adapter wiring + schema update.       | 60min  |
+| 14 | Refactor read_files observability through `ComputeStats` | Post-hoc override is fragile; threading grade through removes the risk.                             | 45min  |
+| 15 | Add SSE heartbeat/keep-alive pings                       | Long judge runs (~2min) could drop behind proxies. Needs a periodic write in the SSE handler.       | 30min  |
+| 16 | Extract hunk line ranges into `Target.Lines`             | Precise location info for diff-extracted targets in the Inspector. Parse `@@ -o,n +n,n @@` headers. | 30min  |
 
 ---
 

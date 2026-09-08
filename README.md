@@ -25,7 +25,7 @@ that session (task wording, file paths, event digests) is sent to the model
 behind your own `claude` or `codex` CLI — see
 [Session evaluation](#session-evaluation).
 
-## Quick start
+## Installation
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/cosmtrek/mindwalk/master/scripts/install.sh | sh
@@ -40,6 +40,8 @@ To build from source: `make setup && make build` → `bin/mindwalk`.
 
 >[!TIP]
 >**Nix** users can add mindwalk via [numtide/llm-agents](https://github.com/numtide/llm-agents.nix) flake.
+
+## Quick start
 
 With no arguments, mindwalk scans `~/.claude/projects`, `~/.codex/sessions`,
 and `~/.pi/agent/sessions`, and the per-project `.crush/crush.db` (or

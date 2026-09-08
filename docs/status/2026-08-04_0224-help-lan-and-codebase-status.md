@@ -118,7 +118,7 @@
 
 ## g) Up to 3 questions I cannot figure out myself
 
-1. **Should I commit this status report now, or do you want to review it first?**  
+1. **Should I commit this status report now, or do you want to review it first?**\
    (The skill default says to commit it, but your instruction ended with "WAIT FOR INSTRUCTIONS!", so I am holding off.)
 
 2. **The `CHANGELOG.md` bullet is malformed from the batched old-schema warning entry — should I fix it in this session, or do you want a separate docs-only pass?**

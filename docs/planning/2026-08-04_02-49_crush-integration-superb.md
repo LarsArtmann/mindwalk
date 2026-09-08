@@ -46,16 +46,16 @@ column, MCP visibility) remain deferred.
 
 ### 1.2 Crush Parts JSON — What's Decoded vs What's Surfaced
 
-| Part Type       | Fields                                                           | Decoded?   | Surfaced?                                                                  | User Value Lost                                                               |
-| --------------- | ---------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `text`          | text                                                             | ✅         | ✅ User-message marks                                                      | —                                                                             |
-| `reasoning`     | thinking, signature, started_at, finished_at                     | ✅ Decoded | ❌ **Discarded**                                                           | Agent's thinking process invisible in timeline                                |
+| Part Type       | Fields                                                           | Decoded?   | Surfaced?                                                                 | User Value Lost                                                               |
+| --------------- | ---------------------------------------------------------------- | ---------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `text`          | text                                                             | ✅         | ✅ User-message marks                                                     | —                                                                             |
+| `reasoning`     | thinking, signature, started_at, finished_at                     | ✅ Decoded | ❌ **Discarded**                                                          | Agent's thinking process invisible in timeline                                |
 | `tool_call`     | id, name, input, provider_executed, finished                     | ✅ Decoded | ⚠️ **Partial** — `provider_executed` and `finished` decoded but never used | Provider-executed tools (server-side) have empty targets — ROADMAP flags this |
 | `tool_result`   | tool_call_id, name, content, data, mime_type, metadata, is_error | ✅ Decoded | ⚠️ **Partial** — metadata field decoded but not used                       | Structured tool metadata invisible                                            |
 | `finish`        | reason, time, message, details                                   | ✅ Decoded | ⚠️ **Partial** — only "stop" checked for user marks                        | Error, content_filter, canceled, max_tokens finish reasons invisible          |
-| `shell_command` | command, output, exit_code                                       | ✅ Decoded | ❌ **Discarded**                                                           | Bang-mode shell commands invisible in timeline                                |
-| `image_url`     | url, detail                                                      | ✅ Decoded | ❌ Discarded                                                               | Correct — no citymap representation                                           |
-| `binary`        | path, mime_type, data                                            | ✅ Decoded | ❌ Discarded                                                               | Correct — no citymap representation                                           |
+| `shell_command` | command, output, exit_code                                       | ✅ Decoded | ❌ **Discarded**                                                          | Bang-mode shell commands invisible in timeline                                |
+| `image_url`     | url, detail                                                      | ✅ Decoded | ❌ Discarded                                                              | Correct — no citymap representation                                           |
+| `binary`        | path, mime_type, data                                            | ✅ Decoded | ❌ Discarded                                                              | Correct — no citymap representation                                           |
 
 ### 1.3 Existing ROADMAP Items This Work Addresses
 
@@ -97,14 +97,14 @@ column, MCP visibility) remain deferred.
 
 ### Remaining 20% (deferred — low ROI or high effort)
 
-| #   | What                                            | Why Deferred                                                                                                                                 |
-| --- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | `files` table → diff visualization              | Large UI surface needed. The data (versioned file content) is rich but the UX (before/after diff viewer) is a separate project. Defer.       |
-| D2  | `todos` column → task progress                  | The todos field is the agent's internal task tracking. Minimal UI placement — unclear where it goes in the citymap/timeline metaphor. Defer. |
-| D3  | `updated_at` on messages → retry detection      | Low value — retries are visible as repeated tool calls already. Defer.                                                                       |
-| D4  | `metadata` on tool_results → structured display | No clear UI surface. Defer.                                                                                                                  |
-| D5  | MCP/hooks/skills visibility                     | These are crush capabilities with no natural representation in the citymap/timeline metaphor. Defer until a clear UX emerges.                |
-| D6  | `image_url`/`binary` content                    | Correct to discard — no citymap representation. Non-goal.                                                                                    |
+| #  | What                                            | Why Deferred                                                                                                                                 |
+| -- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1 | `files` table → diff visualization              | Large UI surface needed. The data (versioned file content) is rich but the UX (before/after diff viewer) is a separate project. Defer.       |
+| D2 | `todos` column → task progress                  | The todos field is the agent's internal task tracking. Minimal UI placement — unclear where it goes in the citymap/timeline metaphor. Defer. |
+| D3 | `updated_at` on messages → retry detection      | Low value — retries are visible as repeated tool calls already. Defer.                                                                       |
+| D4 | `metadata` on tool_results → structured display | No clear UI surface. Defer.                                                                                                                  |
+| D5 | MCP/hooks/skills visibility                     | These are crush capabilities with no natural representation in the citymap/timeline metaphor. Defer until a clear UX emerges.                |
+| D6 | `image_url`/`binary` content                    | Correct to discard — no citymap representation. Non-goal.                                                                                    |
 
 ---
 

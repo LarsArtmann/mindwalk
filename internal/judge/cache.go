@@ -2,6 +2,7 @@ package judge
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -151,6 +152,13 @@ func rubricFresh(report *model.Report, trace *model.Trace) bool {
 }
 
 func (c Cache) Store(sessionKey string, report *model.Report) error {
+	if err := c.store(sessionKey, report); err != nil {
+		return fmt.Errorf("store report for session %s: %w", sessionKey, err)
+	}
+	return nil
+}
+
+func (c Cache) store(sessionKey string, report *model.Report) error {
 	if c.Dir == "" || sessionKey == "" {
 		return nil
 	}

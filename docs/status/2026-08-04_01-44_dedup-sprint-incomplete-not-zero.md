@@ -19,7 +19,7 @@ Five new exported functions consolidating real cross-adapter duplication:
 | `UserHomeDir() string`                         | `home, err := os.UserHomeDir(); if err != nil { return "" }`                          | 5                                |
 | `HomePath(parts ...string) string`             | `home := UserHomeDir(); if home == "" { return "" }; return filepath.Join(home, ...)` | 5                                |
 | `OpenFile(path string) (*os.File, error)`      | `f, err := os.Open(path); if err != nil { return ..., err }; defer f.Close()`         | 4                                |
-| `ReadableDir(dir string) bool`                 | `if info, err := os.Stat(dir); err != nil                                             |                                  | !info.IsDir() { return nil, nil }` | 3   |
+| `ReadableDir(dir string) bool`                 | `if info, err := os.Stat(dir); err != nil                                             |                                  |
 | `NotRecognizedErr(harness, path string) error` | `fmt.Errorf("not a ... session: %s", path)`                                           | 4 (claudecode, codex, pi, crush) |
 
 ### CLI flag wiring consolidated in `cmd/mindwalk/main.go`

@@ -66,8 +66,8 @@
 
 1. **Merge checklists over memory.** This merge needed: Go build/vet/test (done) + frontend typecheck + `types.ts` field-parity check vs schema + AGENTS.md adapter list + lint. Nobody wrote that list; I improvised and dropped two items.
 2. **Contract changes must fan out to all implementors.** Adding `OutcomeKnown` to `adapter.ToolResult` should have triggered a grep for every adapter constructing `ToolResult` — crush does, and was missed. Rule: new optional field in a shared struct → grep all constructors, not just the conflicted files.
-3. **A conflicted file's conflict markers are the minimum, not the resolution.** For auto-merged files (`web/src/types.ts`, `README.md`, `cmd/mindwalk/main.go`, `internal/judge/cache.go`, `internal/server/analyze.go`) I trusted git's merge. Auto-merge correctness for *semantic* unions (both sides adding fields) is exactly where git is weakest.
-4. **Stale-comment rot:** `fingerprintPath`'s comment claims "the cache always misses, so each request goes back to the adapter" — false since the stable zero fingerprint makes cache *hits* within TTL (zero == zero). Behavior is fine (30 s staleness bound for crush traces); the comment lies about why.
+3. **A conflicted file's conflict markers are the minimum, not the resolution.** For auto-merged files (`web/src/types.ts`, `README.md`, `cmd/mindwalk/main.go`, `internal/judge/cache.go`, `internal/server/analyze.go`) I trusted git's merge. Auto-merge correctness for _semantic_ unions (both sides adding fields) is exactly where git is weakest.
+4. **Stale-comment rot:** `fingerprintPath`'s comment claims "the cache always misses, so each request goes back to the adapter" — false since the stable zero fingerprint makes cache _hits_ within TTL (zero == zero). Behavior is fine (30 s staleness bound for crush traces); the comment lies about why.
 5. **Disk I/O under lock:** `storeAgentGraphToDisk` runs while holding `s.mu` (pre-existing from the fork, now sitting inside upstream's stricter lock discipline). A large graph write blocks every request. Move outside the critical section.
 6. **Split brain — crush DB reads exist twice:** master's hand-written SQLite layer vs `sdk/go-crush-data`'s SDK routing. Two implementations of the same reads, one stale by design. This is the largest structural debt the session surfaced.
 7. **Silent-test-success trap:** the OutcomeKnown miss proves the test suite has no coverage of crush observability signals. A one-line assertion would have caught it.
@@ -78,28 +78,28 @@
 
 ## f) Things to get done next (impact-sorted)
 
-| # | Task | Impact | Effort |
-|---|------|--------|--------|
-| 1 | Set `OutcomeKnown` in the crush adapter wherever the DB records outcomes (mirror pi's `IsError != nil` / `ExitCode != nil` pattern) | High — fixes silent observability downgrade | S |
-| 2 | Add a crush observability-grade test so #1 can never regress | High | S |
-| 3 | Verify `web/src/types.ts` carries both `outcomeKnown` and `providerExecuted`; run frontend typecheck/build | High — merge completeness | S |
-| 4 | Merge `sdk/go-crush-data` into `master` (conflicts expected only in `go.mod`/`go.sum` — branch is based on `74ec6bb`) | High — kills the split brain | M |
-| 5 | After #4: delete the hand-written crush SQLite layer (openSQLite, SQL builders) | High | S |
-| 6 | Push `master` to `origin` (4 commits, normal push) | High — unblocks other machines | S |
-| 7 | Update project `AGENTS.md` adapter list (crush is the 4th adapter; `--crush-dir`/`--no-crush` flags exist) | Medium — docs truthfulness | S |
-| 8 | Run `nix flake check` / `nix run .#test` as the canonical validation pass | Medium | S |
-| 9 | Run golangci-lint; fix `wsl_v5`/`err113` findings in `tracestore.go` if the repo enforces them | Medium | S |
-| 10 | Fix the stale `fingerprintPath` comment; document the real 30 s TTL staleness contract for crush traces | Medium | S |
-| 11 | Move `storeAgentGraphToDisk` out of the `s.mu` critical section | Medium — latency under load | S |
-| 12 | Restart LSP; confirm project diagnostics match the clean build | Low | S |
-| 13 | Delete upstream's `port == 0 { port = 0 }` no-op in `Start` | Low | S |
-| 14 | Check `README.md` auto-merge for Crush-feature consistency (fork adds Crush support; upstream README won't mention it) | Medium | S |
-| 15 | Decide crush adapter's upstreaming fate (PR to cosmtrek/mindwalk vs fork-only) — gates #7 wording | Medium | decision |
-| 16 | Add a merge-checklist doc (Go + frontend + schema parity + docs list) so next upstream sync doesn't improvise | Medium | S |
-| 17 | Assert schema↔`types.ts` field parity in a test (the union pattern this merge used twice is untested) | Medium | M |
-| 18 | Consider `gofumpt`/treefmt parity with flake's `format` check | Low | S |
-| 19 | Benchmark agent-graph disk cache hit path (cold start claim is asserted, not measured) | Low | M |
-| 20 | Sweep other fork-local adapters' helpers for OutcomeKnown-adjacent gaps (e.g. does crush mark orphans/pending calls?) | Medium | S |
+| #  | Task                                                                                                                                | Impact                                      | Effort   |
+| -- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- | -------- |
+| 1  | Set `OutcomeKnown` in the crush adapter wherever the DB records outcomes (mirror pi's `IsError != nil` / `ExitCode != nil` pattern) | High — fixes silent observability downgrade | S        |
+| 2  | Add a crush observability-grade test so #1 can never regress                                                                        | High                                        | S        |
+| 3  | Verify `web/src/types.ts` carries both `outcomeKnown` and `providerExecuted`; run frontend typecheck/build                          | High — merge completeness                   | S        |
+| 4  | Merge `sdk/go-crush-data` into `master` (conflicts expected only in `go.mod`/`go.sum` — branch is based on `74ec6bb`)               | High — kills the split brain                | M        |
+| 5  | After #4: delete the hand-written crush SQLite layer (openSQLite, SQL builders)                                                     | High                                        | S        |
+| 6  | Push `master` to `origin` (4 commits, normal push)                                                                                  | High — unblocks other machines              | S        |
+| 7  | Update project `AGENTS.md` adapter list (crush is the 4th adapter; `--crush-dir`/`--no-crush` flags exist)                          | Medium — docs truthfulness                  | S        |
+| 8  | Run `nix flake check` / `nix run .#test` as the canonical validation pass                                                           | Medium                                      | S        |
+| 9  | Run golangci-lint; fix `wsl_v5`/`err113` findings in `tracestore.go` if the repo enforces them                                      | Medium                                      | S        |
+| 10 | Fix the stale `fingerprintPath` comment; document the real 30 s TTL staleness contract for crush traces                             | Medium                                      | S        |
+| 11 | Move `storeAgentGraphToDisk` out of the `s.mu` critical section                                                                     | Medium — latency under load                 | S        |
+| 12 | Restart LSP; confirm project diagnostics match the clean build                                                                      | Low                                         | S        |
+| 13 | Delete upstream's `port == 0 { port = 0 }` no-op in `Start`                                                                         | Low                                         | S        |
+| 14 | Check `README.md` auto-merge for Crush-feature consistency (fork adds Crush support; upstream README won't mention it)              | Medium                                      | S        |
+| 15 | Decide crush adapter's upstreaming fate (PR to cosmtrek/mindwalk vs fork-only) — gates #7 wording                                   | Medium                                      | decision |
+| 16 | Add a merge-checklist doc (Go + frontend + schema parity + docs list) so next upstream sync doesn't improvise                       | Medium                                      | S        |
+| 17 | Assert schema↔`types.ts` field parity in a test (the union pattern this merge used twice is untested)                               | Medium                                      | M        |
+| 18 | Consider `gofumpt`/treefmt parity with flake's `format` check                                                                       | Low                                         | S        |
+| 19 | Benchmark agent-graph disk cache hit path (cold start claim is asserted, not measured)                                              | Low                                         | M        |
+| 20 | Sweep other fork-local adapters' helpers for OutcomeKnown-adjacent gaps (e.g. does crush mark orphans/pending calls?)               | Medium                                      | S        |
 
 ---
 
@@ -111,4 +111,4 @@
 
 ---
 
-*Snapshot by Crush after session: rebase recovery + upstream merge + self-review. Point-in-time; verify before acting on stale claims.*
+_Snapshot by Crush after session: rebase recovery + upstream merge + self-review. Point-in-time; verify before acting on stale claims._

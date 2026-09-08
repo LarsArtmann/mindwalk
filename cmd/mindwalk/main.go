@@ -273,7 +273,7 @@ func trace(args []string) error {
 
 	tr, err := parseTrace(positional[0], crushDir)
 	if err != nil {
-		return err
+		return fmt.Errorf("parse trace %s: %w", positional[0], err)
 	}
 
 	return writeJSON(out, tr)
@@ -342,13 +342,13 @@ func analyze(args []string) error {
 
 		session, err = filepath.Abs(positional[0])
 		if err != nil {
-			return err
+			return fmt.Errorf("resolve session path %s: %w", positional[0], err)
 		}
 	}
 
 	tr, err := parseTrace(session, crushDirFor(*crushDir, *noCrush))
 	if err != nil {
-		return err
+		return fmt.Errorf("parse trace %s: %w", session, err)
 	}
 
 	cache := judge.Cache{Dir: judge.DefaultCacheDir()}
@@ -383,7 +383,7 @@ func analyze(args []string) error {
 		judge.Options{CLI: *judgeCLI, Model: *judgeModel, NoRubric: *noRubric, CachedReport: cached},
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("evaluate session %s: %w", session, err)
 	}
 
 	if !*noRubric {

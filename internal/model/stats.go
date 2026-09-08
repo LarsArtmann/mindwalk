@@ -116,9 +116,11 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 	}
 	// The reads grade: prefer the adapter-supplied signal (structural
 	// truth from a read_files table); fall back to deriving from weak
-	// target flags when the adapter did not supply one.
+	// target flags when the adapter did not supply one. Unrecognized
+	// override values are treated as absent so adapter bugs can never
+	// leak an invalid grade into stats or the exported schema.
 	readsSignal := signals.Reads
-	if readsSignal == "" {
+	if !knownObservabilityGrade(readsSignal) {
 		switch {
 		case readEvents == 0:
 			readsSignal = ObservabilityUnavailable
@@ -130,7 +132,7 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 	}
 	stats.Observability.Reads = readsSignal
 	errorSignal := signals.Errors
-	if errorSignal == "" {
+	if !knownObservabilityGrade(errorSignal) {
 		errorSignal = ObservabilityEstimated
 	}
 
@@ -140,6 +142,15 @@ func ComputeStats(trace *Trace, filesInRepo int, signals ObservabilitySignals) S
 
 	stats.Observability.Errors = errorSignal
 	return stats
+}
+
+func knownObservabilityGrade(v string) bool {
+	switch v {
+	case ObservabilityExact, ObservabilityEstimated, ObservabilityUnavailable:
+		return true
+	default:
+		return false
+	}
 }
 
 func countAction(counts *ActionCounts, action string) {

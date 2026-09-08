@@ -45,26 +45,6 @@ export const Hud = memo(function Hud({
   onOpenAgents,
   locked = false,
 }: HudProps) {
-<<<<<<< HEAD
-=======
-  const stats = trace?.stats;
-  const readFinal = stats ? stats.fovea - stats.edited : 0;
-  const unvisitedNow = stats ? Math.max(0, stats.filesInRepo - editedNow - readNow - seenNow) : 0;
-  const unvisitedFinal = stats ? Math.max(0, stats.filesInRepo - stats.fovea - stats.parafovea) : 0;
-  const ghostCount = city ? city.files.reduce((n, file) => n + (file.ghost ? 1 : 0), 0) : 0;
-  const errorCount = stats ? countActions(stats.errors) : 0;
-  const showReview = stats
-    ? errorCount > 0 || stats.churnFiles > 0 || stats.actions.edit > 0
-    : false;
-  const hasEvents = !!trace && trace.events.length > 0;
-  const hasTargets = !!trace && trace.events.some((e) => e.targets.length > 0);
-  const hasFileActions =
-    !!trace &&
-    trace.events.some((e) => (e.action === "read" || e.action === "edit") && !e.providerExecuted);
-  const showNoTargetsWarning = hasEvents && !hasTargets;
-  const noTargetsIsMisconfigured = showNoTargetsWarning && hasFileActions;
-
->>>>>>> 1ebd078 (feat: SUPERB web polish + vitest test scaffold + agent-graph hardening)
   const [churnOpen, setChurnOpen] = useState(false);
   const churnPanelRef = useRef<HTMLDivElement | null>(null);
   const churnToggleRef = useRef<HTMLButtonElement | null>(null);
@@ -279,13 +259,8 @@ export const Hud = memo(function Hud({
                       className="warn"
                       data-hint={`Edit events after the session's last build or test run — ${verifyRuns(stats.actions.verify)} total; pass/fail is not tracked`}
                     >
-<<<<<<< HEAD
                       {stats.editsAfterLastVerify} edit{stats.editsAfterLastVerify === 1 ? "" : "s"}{" "}
                       after last verify
-=======
-                      {stats.editsAfterLastVerify} edit
-                      {stats.editsAfterLastVerify === 1 ? "" : "s"} after last verify
->>>>>>> 1ebd078 (feat: SUPERB web polish + vitest test scaffold + agent-graph hardening)
                     </span>
                   ) : (
                     <span

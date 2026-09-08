@@ -362,8 +362,11 @@ func parseTrace(path string) (*model.Trace, error) {
 func writeJSON(path string, v any) {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
+		fmt.Fprintf(os.Stderr, "mindwalk: encode %s: %v\n", path, err)
 		return
 	}
 
-	_ = os.WriteFile(path, data, 0o644)
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		fmt.Fprintf(os.Stderr, "mindwalk: write %s: %v\n", path, err)
+	}
 }

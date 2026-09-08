@@ -670,12 +670,9 @@ func applyPatchChanges(input map[string]any, changes map[string]patchApplyChange
 		paths = append(paths, path)
 	}
 	sort.Strings(paths)
-<<<<<<< HEAD
-=======
 
 	var patchSb645 strings.Builder
 
->>>>>>> 1ebd078 (feat: SUPERB web polish + vitest test scaffold + agent-graph hardening)
 	for _, path := range paths {
 		operation := "Update"
 		switch strings.ToLower(changes[path].Type) {
@@ -684,17 +681,12 @@ func applyPatchChanges(input map[string]any, changes map[string]patchApplyChange
 		case "delete":
 			operation = "Delete"
 		}
-<<<<<<< HEAD
-		patch += fmt.Sprintf("*** %s File: %s\n", operation, path)
-	}
-=======
 
 		fmt.Fprintf(&patchSb645, "*** %s File: %s\n", operation, path)
 	}
 
 	patch += patchSb645.String()
 
->>>>>>> 1ebd078 (feat: SUPERB web polish + vitest test scaffold + agent-graph hardening)
 	merged["patch"] = patch
 	return merged
 }

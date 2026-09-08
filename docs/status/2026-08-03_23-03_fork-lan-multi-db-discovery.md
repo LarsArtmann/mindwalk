@@ -188,18 +188,18 @@ and is the most important gap.
 
 ### P0 — before push (all resolved except agents.go)
 
-| #   | Item                              | Status        | Where                                        |
-| --- | --------------------------------- | ------------- | -------------------------------------------- |
-| 1   | Fix `agents.go` → `openDBForPath` | **OPEN (P0)** | TODO_LIST "Fix `agents.go` multi-DB routing" |
-| 2   | gofmt                             | done          | build clean                                  |
-| 3   | go vet                            | done          | tests pass                                   |
-| 4   | go build                          | done          | `go build ./...` ok                          |
-| 5   | go test                           | done          | 11 packages green                            |
-| 6   | Fix server test isolation         | open          | TODO_LIST                                    |
-| 7   | `.gitignore` pnpm artifacts       | open          | TODO_LIST-adjacent (verify)                  |
-| 8   | Commit `--host` flag              | done          | bundled into `72f91e2`                       |
-| 9   | Commit multi-DB discovery         | done          | bundled into `72f91e2`                       |
-| 10  | Push to origin                    | done          | 1 commit ahead                               |
+| #  | Item                              | Status        | Where                                        |
+| -- | --------------------------------- | ------------- | -------------------------------------------- |
+| 1  | Fix `agents.go` → `openDBForPath` | **OPEN (P0)** | TODO_LIST "Fix `agents.go` multi-DB routing" |
+| 2  | gofmt                             | done          | build clean                                  |
+| 3  | go vet                            | done          | tests pass                                   |
+| 4  | go build                          | done          | `go build ./...` ok                          |
+| 5  | go test                           | done          | 11 packages green                            |
+| 6  | Fix server test isolation         | open          | TODO_LIST                                    |
+| 7  | `.gitignore` pnpm artifacts       | open          | TODO_LIST-adjacent (verify)                  |
+| 8  | Commit `--host` flag              | done          | bundled into `72f91e2`                       |
+| 9  | Commit multi-DB discovery         | done          | bundled into `72f91e2`                       |
+| 10 | Push to origin                    | done          | 1 commit ahead                               |
 
 ### P1–P4
 

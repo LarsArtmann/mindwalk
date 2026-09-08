@@ -42,7 +42,7 @@ func TestTraceSchemaAcceptsOutcomeCertainty(t *testing.T) {
 			},
 		},
 		Marks: []Mark{},
-		Stats: ComputeStats(&Trace{}, 0, ObservabilityEstimated),
+		Stats: ComputeStats(&Trace{}, 0, ObservabilitySignals{}),
 	}
 
 	document, err := json.Marshal(trace)

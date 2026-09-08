@@ -116,6 +116,22 @@ column coverage) beyond the session-count summary.
 - Use `make serve` for local development.
 - Use `make build` when refreshing the distributable binary and embedded frontend assets.
 
+Nix build constraints worth remembering:
+
+- `go.mod`'s `go` directive must stay at or below nixpkgs' `go_1_26`
+  (1.26.5 at the time of writing); the build runs with
+  `GOTOOLCHAIN=local`, so a higher directive breaks `nix build`.
+- `web/package-lock.json` must be regenerated (`npm install
+  --package-lock-only`) whenever `web/package.json` changes; an
+  out-of-sync lock makes the sandboxed frontend build fail with
+  npm `ENOTCACHED`.
+- Nix only sees git-tracked (or staged) files, so a newly added web
+  source file must be `git add`ed before `nix build .#frontend` picks
+  it up.
+- Reading the WAL-mode `testdata/crush/crush.db` recreates
+  `crush.db-shm`/`-wal` sidecars; they are gitignored transients, not
+  artifacts to commit or untracked blockers.
+
 Keep Go code formatted with `gofmt`. Do not hand-edit `internal/server/static`; when bundled assets need to change, regenerate them with `make build` (or `make embed-static`). When trace, citymap, or report JSON shapes change, update `schema` and the relevant tests in the same change.
 
 Guided tours are banned in the UI. The owner removed them deliberately (the tour component and its `onReplayTour` cheat-sheet hook are gone; leftover tour CSS was purged 2026-09-07). Never build or reintroduce a guided tour in any form.

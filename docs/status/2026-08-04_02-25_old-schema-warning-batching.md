@@ -44,7 +44,7 @@ Nothing is partially done. All changes are complete and verified.
 
 ## c) NOT STARTED
 
-1. **CHANGELOG formatting regression** — My edit accidentally clobbered the `adapter.ToolResult` bullet that followed the "Changed" section header. The diff shows the old `ToolResult` line lost its leading `- ` bullet and now runs directly into the new batching entry's text. This needs a fix. (See section d.)
+1. **CHANGELOG formatting regression** — My edit accidentally clobbered the `adapter.ToolResult` bullet that followed the "Changed" section header. The diff shows the old `ToolResult` line lost its leading `-` bullet and now runs directly into the new batching entry's text. This needs a fix. (See section d.)
 
 2. **`cmd/mindwalk/main.go` usage text** — The diff shows `--host HOST` added to the serve usage line and a `--host 0.0.0.0` example added. These are NOT my changes — they were already in the working tree when this session started (the git status at conversation start showed "clean", so these were committed by the auto-git daemon during the session, or were already there). I did not touch `main.go` and should not have. This is NOT my change and I should NOT commit it. (See section d.)
 
@@ -65,7 +65,7 @@ Nothing is partially done. All changes are complete and verified.
      the cross-message tool-call/result pairing happen at the type
    ```
 
-   The `adapter.ToolResult` entry lost its bullet (`- `) and the new entry's last line runs directly into it. The old text was a bullet point starting with ``- `adapter.ToolResult` now carries a `ToolResult`...`` and my replacement text ended with a blank line, then the orphaned continuation. **This must be fixed before committing.**
+   The `adapter.ToolResult` entry lost its bullet (`-`) and the new entry's last line runs directly into it. The old text was a bullet point starting with ``- `adapter.ToolResult` now carries a `ToolResult`...`` and my replacement text ended with a blank line, then the orphaned continuation. **This must be fixed before committing.**
 
 2. **`cmd/mindwalk/main.go` change is NOT mine** — The `--host` usage text and example were NOT added by me. They appeared in the working tree. Per the AGENTS.md rules ("NEVER revert changes you didn't author"), I must NOT commit this file. But I also must NOT revert it. The auto-git daemon likely committed it already, or it was part of a prior session. **I need to exclude this file from any commit.**
 
@@ -73,7 +73,7 @@ Nothing is partially done. All changes are complete and verified.
 
 ## e) WHAT WE SHOULD IMPROVE
 
-1. **CHANGELOG edit discipline** — I used `edit` to replace a block that was part of a larger bullet list. I should have used `multiedit` or a more targeted `edit` that preserved the following text. The `old_string` I matched consumed the `- ` prefix of the next bullet, and my `new_string` didn't restore it. **Fix: re-read the CHANGELOG, restore the `ToolResult` bullet.**
+1. **CHANGELOG edit discipline** — I used `edit` to replace a block that was part of a larger bullet list. I should have used `multiedit` or a more targeted `edit` that preserved the following text. The `old_string` I matched consumed the `-` prefix of the next bullet, and my `new_string` didn't restore it. **Fix: re-read the CHANGELOG, restore the `ToolResult` bullet.**
 
 2. **Test the CHANGELOG format too** — I ran `go test` and `go vet` but never checked that the CHANGELOG markdown rendered correctly. A quick `view` of the edited region would have caught the regression immediately.
 
@@ -91,7 +91,7 @@ Nothing is partially done. All changes are complete and verified.
 
 ### Immediate (this session, before commit)
 
-1. **Fix the CHANGELOG formatting regression** — Restore the `- ` bullet on the `adapter.ToolResult` line and ensure the new batching entry is a proper separate bullet.
+1. **Fix the CHANGELOG formatting regression** — Restore the `-` bullet on the `adapter.ToolResult` line and ensure the new batching entry is a proper separate bullet.
 
 2. **Exclude `cmd/mindwalk/main.go` from any commit** — The `--host` usage change is not mine. Do not stage it.
 

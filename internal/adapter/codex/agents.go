@@ -2,6 +2,7 @@ package codex
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -109,7 +110,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 		launches, err := readAgentLaunches(actor.Session.Path)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read agent launches from %s: %w", actor.Session.Path, err)
 		}
 
 		children := childrenByParent[actor.SourceID]

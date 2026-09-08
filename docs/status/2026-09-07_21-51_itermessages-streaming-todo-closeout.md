@@ -18,15 +18,15 @@
 
 ## Headline numbers
 
-| Metric                                | Value                                            |
-| ------------------------------------- | ------------------------------------------------ |
-| Go files changed                      | 2 (`sessions.go`, `agents.go` in crush adapter)  |
-| Docs changed                          | 4 (`AGENTS.md`, `CHANGELOG.md`, `ROADMAP.md`, `TODO_LIST.md`) |
-| Full Go suite (12 packages)           | PASS                                             |
-| Crush adapter with `-race`            | PASS                                             |
-| golangci-lint warnings                | 211 before == 211 after (A/B via git stash)      |
-| `nix develop -c make test`            | exit 0 (Go + frontend build)                     |
-| Items removed from TODO_LIST.md       | 2 (one was stale-shipped, one shipped today)     |
+| Metric                          | Value                                                         |
+| ------------------------------- | ------------------------------------------------------------- |
+| Go files changed                | 2 (`sessions.go`, `agents.go` in crush adapter)               |
+| Docs changed                    | 4 (`AGENTS.md`, `CHANGELOG.md`, `ROADMAP.md`, `TODO_LIST.md`) |
+| Full Go suite (12 packages)     | PASS                                                          |
+| Crush adapter with `-race`      | PASS                                                          |
+| golangci-lint warnings          | 211 before == 211 after (A/B via git stash)                   |
+| `nix develop -c make test`      | exit 0 (Go + frontend build)                                  |
+| Items removed from TODO_LIST.md | 2 (one was stale-shipped, one shipped today)                  |
 
 ---
 
@@ -112,7 +112,7 @@
 
 ## d) TOTALLY FUCKED UP
 
-Nothing is broken. Honest list of what *did* go wrong, ranked:
+Nothing is broken. Honest list of what _did_ go wrong, ranked:
 
 1. **I briefly trusted a masked exit code.** The `… | grep … ; EXIT=$?`
    pattern reported success regardless of `go test`'s real status. Caught it
@@ -172,58 +172,58 @@ Nothing is broken. Honest list of what *did* go wrong, ranked:
 > Brainstorm, not commitment — ROADMAP/TODO fuel, mostly sourced from what
 > this session touched or saw. Sorted roughly by impact.
 
-| #   | Item                                                                                    | Impact | Source seen this session |
-| --- | --------------------------------------------------------------------------------------- | ------ | ------------------------ |
-| 1   | Decide T24: PR T06+T07 upstream or stay fork-only                                        | High   | TODO_LIST (blocked)      |
-| 2   | Verify the "core playback feedback loop is broken" claim and fix the event summary card | High   | ROADMAP theme 5          |
-| 3   | Benchmark streaming Parse on a synthetic huge session (allocs, peak heap)                | High   | This session's gap       |
-| 4   | Mid-stream error-injection test for `Parse`                                              | High   | This session's gap       |
-| 5   | Split `Parse` (gocognit 78 → under limit)                                                | Med    | LSP diagnostics          |
-| 6   | Lint-debt policy for crush package (fix vs configure; 211 warnings)                      | Med    | golangci A/B run         |
-| 7   | Guided tour T16 design + build                                                           | Med    | TODO_LIST (blocked)      |
-| 8   | Todo-state UI surface (panel or timeline markers)                                        | Med    | ROADMAP idea added today |
-| 9   | Fixture session with real todo rows (positive DecodeTodos path)                          | Med    | todo_spike_test.go       |
-| 10  | Confirm/wire Vitest into `make test` gate                                                | Med    | make test log tail       |
-| 11  | Index `parsed.results` by ToolCallID (drop `resultFor` linear scan)                      | Med    | sessions.go read         |
-| 12  | Thread request context through adapter calls                                             | Med    | sessions.go read         |
-| 13  | `docs-health` HARVEST of this report's section (f) into TODO_LIST/ROADMAP                | Med    | Status-report skill      |
-| 14  | `docs-health` VERIFY sweep of AGENTS.md post-rewrite (catch remaining drift)             | Med    | AGENTS.md edit           |
-| 15  | Re-verify Pareto backlog T25–T32 against current code (T29 already proved stale-prone)   | Med    | TODO_LIST note           |
-| 16  | 100k-message stress test to find the first bottleneck                                    | Med    | ROADMAP theme 2          |
-| 17  | Lazy-load project DBs during listing scan                                                | Med    | ROADMAP theme 2          |
-| 18  | Cross-check parts parser against latest upstream Crush release                           | Med    | ROADMAP theme 1          |
-| 19  | `mindwalk trace <session>` outside the adapter's own data dir (sessionDBIndex bootstrap) | Med    | AGENTS.md limitation     |
-| 20  | Cut a release: Unreleased CHANGELOG section is ~400 lines since 0.0.0                    | Med    | CHANGELOG read           |
-| 21  | Extract mark-emission helpers from Parse (model-switch, finish-reason, thinking)         | Low    | sessions.go read         |
-| 22  | `Summarize` cyclop 13 refactor + nestif isAgent block                                    | Low    | LSP diagnostics          |
-| 23  | `BuildAgentGraph` gocognit 39 refactor                                                   | Low    | LSP diagnostics          |
-| 24  | goconst: `"error"` literal ×3 in sessions.go → constant                                  | Low    | golangci run             |
-| 25  | unparam (4) + testpackage (8) resolution                                                 | Low    | golangci run             |
-| 26  | errors.Is/As audit for `errors.AsType` migration candidates (Go 1.26)                    | Low    | err113/wrapcheck pattern |
-| 27  | In-memory SQLite fixture copy so todo spike test can run parallel                        | Low    | spike test docstring     |
-| 28  | Codify the stash/pop A/B lint-bench check as a script                                    | Low    | This session             |
-| 29  | Frontend: command palette (Cmd+P), collapsible HUD                                       | Low    | ROADMAP theme 5          |
-| 30  | Frontend: adapter health panel via `/api/adapters`                                       | Low    | ROADMAP theme 5          |
-| 31  | Frontend: group sessions by project/date in rail                                         | Low    | ROADMAP theme 5          |
-| 32  | Frontend: relative timestamps, harness colors, coverage gauge, error markers             | Low    | ROADMAP theme 5          |
-| 33  | Lazy projects.json TTL cache                                                             | Low    | ROADMAP theme 2          |
-| 34  | Connection-pool limits + WAL-safe concurrent reads                                       | Low    | ROADMAP theme 2          |
-| 35  | Surface Crush `files` table as before/after diff viewer                                  | Low    | ROADMAP theme 1          |
-| 36  | Generalize synthetic-path helper once a 2nd DB-backed adapter lands                      | Low    | ROADMAP theme 1          |
-| 37  | Support another agent format (Aider/Goose/Cursor/Continue)                               | Low    | ROADMAP theme 1          |
-| 38  | Real-time streaming infrastructure (theme 3 items)                                       | Low    | ROADMAP theme 3          |
-| 39  | Test-infrastructure theme items (theme 4)                                                | Low    | ROADMAP theme 4          |
-| 40  | Read remaining ROADMAP "Open questions" beyond #1 (unreviewed this session)              | Low    | ROADMAP structure        |
-| 41  | Decide commit granularity for the current 6-file diff (code+docs together or split)      | Low    | Working tree state       |
-| 42  | Allocs baseline assertion in CI for `BenchmarkFixtureParse`                              | Low    | CHANGELOG benchmark note |
-| 43  | Fuzz-parity: same-message vs cross-message fold results                                  | Low    | fuzz_test.go existence   |
-| 44  | Verify `docs/dynamic-rubric-evaluation.md` freshness at next docs pass                   | Low    | AGENTS.md reference      |
-| 45  | Mark Seq semantics: marks use `len(pendingOrder)` — review intent                        | Low    | sessions.go read         |
-| 46  | `make embed-static` regeneration discipline note after frontend changes                  | Low    | AGENTS.md dev section    |
-| 47  | wrapcheck allowlist for sealed `go-crush-data` SDK errors                                | Low    | golangci run             |
-| 48  | Consider `IterMessages` usage in `Stats`/other SDK paths if any materialize              | Low    | SDK API surface read     |
-| 49  | Version the "streaming keeps memory flat" claim in docs once measured (#3)               | Low    | AGENTS.md edit           |
-| 50  | Next-session review of this report: promote items 1–10, harvest 11–50                    | Low    | This report              |
+| #  | Item                                                                                     | Impact | Source seen this session |
+| -- | ---------------------------------------------------------------------------------------- | ------ | ------------------------ |
+| 1  | Decide T24: PR T06+T07 upstream or stay fork-only                                        | High   | TODO_LIST (blocked)      |
+| 2  | Verify the "core playback feedback loop is broken" claim and fix the event summary card  | High   | ROADMAP theme 5          |
+| 3  | Benchmark streaming Parse on a synthetic huge session (allocs, peak heap)                | High   | This session's gap       |
+| 4  | Mid-stream error-injection test for `Parse`                                              | High   | This session's gap       |
+| 5  | Split `Parse` (gocognit 78 → under limit)                                                | Med    | LSP diagnostics          |
+| 6  | Lint-debt policy for crush package (fix vs configure; 211 warnings)                      | Med    | golangci A/B run         |
+| 7  | Guided tour T16 design + build                                                           | Med    | TODO_LIST (blocked)      |
+| 8  | Todo-state UI surface (panel or timeline markers)                                        | Med    | ROADMAP idea added today |
+| 9  | Fixture session with real todo rows (positive DecodeTodos path)                          | Med    | todo_spike_test.go       |
+| 10 | Confirm/wire Vitest into `make test` gate                                                | Med    | make test log tail       |
+| 11 | Index `parsed.results` by ToolCallID (drop `resultFor` linear scan)                      | Med    | sessions.go read         |
+| 12 | Thread request context through adapter calls                                             | Med    | sessions.go read         |
+| 13 | `docs-health` HARVEST of this report's section (f) into TODO_LIST/ROADMAP                | Med    | Status-report skill      |
+| 14 | `docs-health` VERIFY sweep of AGENTS.md post-rewrite (catch remaining drift)             | Med    | AGENTS.md edit           |
+| 15 | Re-verify Pareto backlog T25–T32 against current code (T29 already proved stale-prone)   | Med    | TODO_LIST note           |
+| 16 | 100k-message stress test to find the first bottleneck                                    | Med    | ROADMAP theme 2          |
+| 17 | Lazy-load project DBs during listing scan                                                | Med    | ROADMAP theme 2          |
+| 18 | Cross-check parts parser against latest upstream Crush release                           | Med    | ROADMAP theme 1          |
+| 19 | `mindwalk trace <session>` outside the adapter's own data dir (sessionDBIndex bootstrap) | Med    | AGENTS.md limitation     |
+| 20 | Cut a release: Unreleased CHANGELOG section is ~400 lines since 0.0.0                    | Med    | CHANGELOG read           |
+| 21 | Extract mark-emission helpers from Parse (model-switch, finish-reason, thinking)         | Low    | sessions.go read         |
+| 22 | `Summarize` cyclop 13 refactor + nestif isAgent block                                    | Low    | LSP diagnostics          |
+| 23 | `BuildAgentGraph` gocognit 39 refactor                                                   | Low    | LSP diagnostics          |
+| 24 | goconst: `"error"` literal ×3 in sessions.go → constant                                  | Low    | golangci run             |
+| 25 | unparam (4) + testpackage (8) resolution                                                 | Low    | golangci run             |
+| 26 | errors.Is/As audit for `errors.AsType` migration candidates (Go 1.26)                    | Low    | err113/wrapcheck pattern |
+| 27 | In-memory SQLite fixture copy so todo spike test can run parallel                        | Low    | spike test docstring     |
+| 28 | Codify the stash/pop A/B lint-bench check as a script                                    | Low    | This session             |
+| 29 | Frontend: command palette (Cmd+P), collapsible HUD                                       | Low    | ROADMAP theme 5          |
+| 30 | Frontend: adapter health panel via `/api/adapters`                                       | Low    | ROADMAP theme 5          |
+| 31 | Frontend: group sessions by project/date in rail                                         | Low    | ROADMAP theme 5          |
+| 32 | Frontend: relative timestamps, harness colors, coverage gauge, error markers             | Low    | ROADMAP theme 5          |
+| 33 | Lazy projects.json TTL cache                                                             | Low    | ROADMAP theme 2          |
+| 34 | Connection-pool limits + WAL-safe concurrent reads                                       | Low    | ROADMAP theme 2          |
+| 35 | Surface Crush `files` table as before/after diff viewer                                  | Low    | ROADMAP theme 1          |
+| 36 | Generalize synthetic-path helper once a 2nd DB-backed adapter lands                      | Low    | ROADMAP theme 1          |
+| 37 | Support another agent format (Aider/Goose/Cursor/Continue)                               | Low    | ROADMAP theme 1          |
+| 38 | Real-time streaming infrastructure (theme 3 items)                                       | Low    | ROADMAP theme 3          |
+| 39 | Test-infrastructure theme items (theme 4)                                                | Low    | ROADMAP theme 4          |
+| 40 | Read remaining ROADMAP "Open questions" beyond #1 (unreviewed this session)              | Low    | ROADMAP structure        |
+| 41 | Decide commit granularity for the current 6-file diff (code+docs together or split)      | Low    | Working tree state       |
+| 42 | Allocs baseline assertion in CI for `BenchmarkFixtureParse`                              | Low    | CHANGELOG benchmark note |
+| 43 | Fuzz-parity: same-message vs cross-message fold results                                  | Low    | fuzz_test.go existence   |
+| 44 | Verify `docs/dynamic-rubric-evaluation.md` freshness at next docs pass                   | Low    | AGENTS.md reference      |
+| 45 | Mark Seq semantics: marks use `len(pendingOrder)` — review intent                        | Low    | sessions.go read         |
+| 46 | `make embed-static` regeneration discipline note after frontend changes                  | Low    | AGENTS.md dev section    |
+| 47 | wrapcheck allowlist for sealed `go-crush-data` SDK errors                                | Low    | golangci run             |
+| 48 | Consider `IterMessages` usage in `Stats`/other SDK paths if any materialize              | Low    | SDK API surface read     |
+| 49 | Version the "streaming keeps memory flat" claim in docs once measured (#3)               | Low    | AGENTS.md edit           |
+| 50 | Next-session review of this report: promote items 1–10, harvest 11–50                    | Low    | This report              |
 
 ## g) Questions I cannot figure out myself
 
@@ -241,5 +241,5 @@ Nothing is broken. Honest list of what *did* go wrong, ranked:
 
 ---
 
-*Point-in-time snapshot. When bringing this current later, use
-`docs-health` ANNOTATE mode — annotate inline, never rewrite.*
+_Point-in-time snapshot. When bringing this current later, use
+`docs-health` ANNOTATE mode — annotate inline, never rewrite._

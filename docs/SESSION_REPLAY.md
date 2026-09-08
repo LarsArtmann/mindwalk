@@ -95,15 +95,15 @@ script is the source of truth.
 
 ## Where the code lives
 
-| Layer            | Path                                                  |
-|------------------|-------------------------------------------------------|
-| Adapter          | `internal/adapter/crush/`                             |
-| Schema           | `schema/trace.schema.json`, `schema/progress.schema.json` |
-| Synth path       | `crush.SessionPath`, `crush.IsSessionPath`            |
-| Server endpoints | `internal/server/handlers.go` (`/api/sessions`, `/api/sessions/<k>/trace`, `/api/sessions/<k>/agents`) |
-| Frontend         | `web/src/api/client.ts`, `web/src/ui/AgentsPanel.tsx`, `web/src/ui/Hud.tsx` |
+| Layer            | Path                                                                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Adapter          | `internal/adapter/crush/`                                                                                                                                 |
+| Schema           | `schema/trace.schema.json`, `schema/progress.schema.json`                                                                                                 |
+| Synth path       | `crush.SessionPath`, `crush.IsSessionPath`                                                                                                                |
+| Server endpoints | `internal/server/handlers.go` (`/api/sessions`, `/api/sessions/<k>/trace`, `/api/sessions/<k>/agents`)                                                    |
+| Frontend         | `web/src/api/client.ts`, `web/src/ui/AgentsPanel.tsx`, `web/src/ui/Hud.tsx`                                                                               |
 | Tests            | `internal/adapter/crush/fixture_test.go`, `internal/adapter/crush/parts_test.go`, `internal/server/server_test.go` (`TestServerLoadsCrushFixtureSession`) |
-| Docs             | `docs/crush.md` (data-dir resolution + parts JSON shape) |
+| Docs             | `docs/crush.md` (data-dir resolution + parts JSON shape)                                                                                                  |
 
 ## Common regressions
 

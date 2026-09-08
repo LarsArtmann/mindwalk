@@ -82,8 +82,7 @@ crush://session/<id>
 
 `<id>` is the session's primary key in the `sessions` table. For
 agent-tool sub-agents, `<id>` is the literal `messageID$$toolCallID`
-format Crush uses upstream (see [Sub-agent session
-ids](#sub-agent-session-ids)).
+format Crush uses upstream (see [Sub-agent session ids](#sub-agent-session-ids)).
 
 The scheme is a single constant, `sessionPathScheme`, in the
 adapter package. Three helpers wrap the scheme:

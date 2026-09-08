@@ -563,6 +563,33 @@ func TestAnalyzeStreamHeartbeat(t *testing.T) {
 	if !sawHeartbeat {
 		t.Fatal("SSE stream did not send a keep-alive comment within the heartbeat interval")
 	}
+
+	// Wait for the judge goroutine to reach a terminal state. Without
+	// this, the test can return while the job is still writing its
+	// report into the report-cache TempDir, and the resulting
+	// create-after-remove race makes t.TempDir cleanup fail with
+	// "directory not empty".
+	deadline := time.Now().Add(5 * time.Second)
+
+	for {
+		resp := httptest.NewRecorder()
+		s.handleSessionResource(resp, httptest.NewRequest(http.MethodGet, "/api/sessions/eval/report", nil))
+
+		var status reportStatus
+		if err := json.Unmarshal(resp.Body.Bytes(), &status); err != nil {
+			t.Fatal(err)
+		}
+
+		if status.State == "done" || status.State == "failed" {
+			break
+		}
+
+		if time.Now().After(deadline) {
+			t.Fatalf("job never finished: %+v", status)
+		}
+
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 func TestAnalyzeStreamNoJobReturnsStatusImmediately(t *testing.T) {

@@ -2,6 +2,7 @@ package claudecode
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -46,7 +47,7 @@ func (a Adapter) AgentGraphInputs(root model.SessionMeta, _ []model.SessionMeta)
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read subagents dir %s: %w", subagentsDir, err)
 	}
 
 	for _, entry := range entries {
@@ -86,12 +87,12 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 	artifacts, err := discoverClaudeAgentArtifacts(subagentsDir, catalog)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("discover agent artifacts in %s: %w", subagentsDir, err)
 	}
 
 	rootLaunches, err := readClaudeAgentLaunches(root.Path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read agent launches from %s: %w", root.Path, err)
 	}
 
 	launches := append([]*claudeAgentLaunch(nil), rootLaunches...)
@@ -108,7 +109,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 		actorLaunches, readErr := readClaudeAgentLaunches(artifact.session.Path)
 		if readErr != nil {
-			return nil, readErr
+			return nil, fmt.Errorf("read agent launches from %s: %w", artifact.session.Path, readErr)
 		}
 
 		for _, launch := range actorLaunches {
@@ -184,7 +185,7 @@ func discoverClaudeAgentArtifacts(subagentsDir string, catalog []model.SessionMe
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read subagents dir %s: %w", subagentsDir, err)
 	}
 
 	for _, entry := range entries {
@@ -204,7 +205,7 @@ func discoverClaudeAgentArtifacts(subagentsDir string, catalog []model.SessionMe
 
 		data, readErr := os.ReadFile(filepath.Join(subagentsDir, entry.Name()))
 		if readErr != nil {
-			return nil, readErr
+			return nil, fmt.Errorf("read sidecar %s: %w", filepath.Join(subagentsDir, entry.Name()), readErr)
 		}
 
 		var sidecar claudeChildSidecar
@@ -235,7 +236,7 @@ func sortedClaudeArtifacts(byBasename map[string]*claudeAgentArtifact) []*claude
 func readClaudeAgentLaunches(path string) ([]*claudeAgentLaunch, error) {
 	f, closeFile, err := adapter.OpenFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open agent session %s: %w", path, err)
 	}
 	defer closeFile()
 

@@ -48,7 +48,7 @@
                 ./web/src
               ];
             };
-            npmDepsHash = "sha256-WbLUFBIGkPuGd+2UYMbkxtLPpQf2wtpxAy0taIFYrTA=";
+            npmDepsHash = "sha256-moOue8j0b2PIltWK8b2GaexQ6UxrbMjI3mHkvhBRHJM=";
             dontNpmBuild = false;
             installPhase = ''
               runHook preInstall
@@ -73,7 +73,7 @@
             ]) ./internal/server/static;
           };
 
-          vendorHash = "sha256-vQBKqqYqYuan5WYWolTGD4/ZhiaVX38GKlCrjPv5v8Y=";
+          vendorHash = "sha256-2RSeBQ6B3NTQsWq/toBIvrSv5D3uc0Dx25rT3VyePJs=";
 
           # Shared buildGoModule attributes for both binaries.
           commonGoArgs = {

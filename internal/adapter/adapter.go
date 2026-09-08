@@ -201,6 +201,9 @@ type ToolCall struct {
 }
 
 type ToolResult struct {
+	// ToolCallID pairs a result with its ToolCall.ID when the harness
+	// records the linkage; adapters that pair positionally leave it empty.
+	ToolCallID   string
 	Content      string
 	IsError      bool
 	OutcomeKnown bool

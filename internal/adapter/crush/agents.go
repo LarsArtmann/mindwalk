@@ -3,6 +3,7 @@ package crush
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -104,7 +105,7 @@ func (a Adapter) BuildAgentGraph(root model.SessionMeta, catalog []model.Session
 
 	launches, err := a.readAgentLaunches(root.Path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read agent launches from %s: %w", root.Path, err)
 	}
 
 	addedNodes := map[string]bool{mainID: true}
@@ -268,7 +269,7 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 
 	db, err := a.openDBForPath(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open crush database for %s: %w", path, err)
 	}
 
 	if db == nil {
@@ -284,7 +285,7 @@ func (a Adapter) readAgentLaunches(path string) ([]adapter.AgentLaunch, error) {
 
 	for msg, err := range db.inner.IterMessages(context.Background(), sessionID) {
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("read messages for session %s: %w", sessionID, err)
 		}
 
 		parsed := foldParts(msg.Parts, "")

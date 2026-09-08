@@ -2,8 +2,8 @@
 
 > **RESOLVED:** All actionable items in this report have been addressed. See the Resolution section at the bottom for details.
 
-**Date:** 2026-08-03 23:14  
-**Session scope:** Single bug investigation and fix  
+**Date:** 2026-08-03 23:14\
+**Session scope:** Single bug investigation and fix\
 **Commit:** `72f91e2` (auto-committed alongside pre-existing staged work)
 
 > **Update 2026-08-03:** the fix is current and pushed (`72f91e2`). The 31-item
