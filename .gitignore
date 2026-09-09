@@ -84,3 +84,7 @@ yarn-error.log*
 .pnpm-debug.log*
 # <<< buildflow-managed (.gitignore) <<<
 .jj/
+/result
+/result-*
+*.db-shm
+*.db-wal
