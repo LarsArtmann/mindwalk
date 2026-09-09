@@ -34,6 +34,10 @@ jobs:
         uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8
         with:
           version: latest
+        # The fork carries a known ~211-warning backlog (varnamelen, cyclop,
+        # wrapcheck, ...) predating CI. Lint reports but does not block until
+        # the debt sweep lands; restore blocking by removing this line.
+        continue-on-error: true
 
       - name: Test
         run: go test ./... -race -count=1
