@@ -19,7 +19,8 @@
 
 | Task                       | Status       | Impact | Effort | Evidence                                                                                                                                                                                                         |
 | -------------------------- | ------------ | ------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Upstream-PR decision (T24) | 🔵 `BLOCKED` | Medium | n/a    | T06+T07 (OutcomeKnown + cross-message pairing) are upstream-applicable and self-contained; T12 (s.mu order) and the crush adapter itself are fork-only. User must choose before any push to `cosmtrek/mindwalk`. |
+| Fix `--host` LAN access    | 🔴 `TODO`    | Medium | Small  | `serve --host 0.0.0.0` binds all interfaces but `requireLoopback` (upstream #23 hardening, kept in the fork) still 403s any non-loopback `Host` header — the flag's help text promises LAN access it cannot deliver. Needs: accept the configured host (and, for wildcard binds, local interface addresses) in the Host check, tests, then propose the allowance upstream before re-attempting plan task T20. |
+| Upstream restack on first merge | 🔴 `TODO` | High | Small | When any of PRs #25–#33 merges: run the restack loop recorded in AGENTS.md (fetch → `jj rebase -s <bottom> -d upstream/master --skip-emptied` → delete snapped bookmark → push), then re-verify the suite at each surviving slice tip. |
 
 > Post-merge recovery batch (OutcomeKnown gap, sdk→master merge, lint/nix/frontend
 > verification, merge checklist, parity test, and more — 31 tasks): see the Pareto

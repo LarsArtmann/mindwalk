@@ -261,3 +261,41 @@ importance order). IDs are `Txx.y`.
 4. Sandbox (`/tmp`) is disposable; the repo is not. Port, don't improvise.
 5. If a premise check fails (upstream moved), stop and re-verify before
    filing — never file a PR whose motivation we can't reproduce.
+
+## Execution record — 2026-09-09 (phase 2)
+
+Phase 2 (T13–T19) executed the same day; all six follow-up PRs are open
+upstream, each a single commit on the stacked chain:
+
+| Task | PR | Branch | Measured delta |
+| ---- | -- | ------ | -------------- |
+| T13 PR4 server wiring | #28 | `server-crush-wiring` | 6 files, +468/−41 |
+| T14 PR5 agent-graph disk cache | #29 | `agent-graph-disk-cache` | 2 files, +338/−3 |
+| T16 PR6 doctor + Closer | #30 | `doctor-command` | 3 files, +201/−3 |
+| T17 PR7 judge crush CLI | #31 | `judge-crush-cli` | 3 files, +62/−15 |
+| T18 PR8 judge progress SSE | #32 | `judge-progress-sse` | 11 files, +520/−8 |
+| T19 PR9 web crush hunks | #33 | `web-crush-harness` | 4 files, +19/−4 |
+
+Deviations from the plan, all deliberate:
+
+- **T15 (file PR4+5 after review movement) overridden by owner**: the
+  owner chose "file immediately" for the whole stream.
+- **T17 scope**: the rubric/cache/input "improvements" collapsed to the
+  crush CLI support plus two small hardening hunks (HomePath unification,
+  Store error wrapping). Everything else in those files is blank-line or
+  reflow churn that would only add review noise.
+- **T20 (`--host`) deferred**: upstream's #23 loopback hardening rejects
+  non-loopback Host headers, so `--host 0.0.0.0` cannot work without a
+  designed Host allowance. The fork's own flag has the same latent gap
+  (help text promises LAN access; LAN browsers get 403). Fix on the fork,
+  discuss the allowance with the maintainer, then upstream.
+- **Surgical ports, not textual ports**: the fork's CLI restructure
+  (`serveFlags`/`openSingle`/signal shutdown) stays fork-only; the slices
+  carry the same semantics written in upstream's existing style, which
+  keeps each PR reviewable against the code it modifies.
+- **Suite isolation added in PR4** (`TestMain` pinning `CRUSH_GLOBAL_DATA`,
+  `XDG_DATA_HOME`, `MINDWALK_HOME`): without it, any test constructing a
+  `Config` without `CrushDir` auto-discovers the developer's real 30k-session
+  Crush installation.
+
+Phase-3+ tasks (T21 done — #15 comment posted; T22–T26) remain open.
