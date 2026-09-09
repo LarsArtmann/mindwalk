@@ -231,6 +231,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`TestSummarizeMissingDatabase` passed only on machines with a local
+  `.crush` directory** — `Summarize` returned `errDBUnavailable` when no
+  database could be reached, but the test (and its documented intent)
+  expect "not a Crush session". In every clean checkout (CI included)
+  the test failed; a project-local `.crush/crush.db` masked it during
+  development. `Summarize` now returns `adapter.NotRecognizedErr` on
+  the nil-handle path, matching the session-foreign semantics the test
+  encodes.
 - **`queryReadFiles` swallowed SQLite errors** — the `rows.Next()` loop
   had no final `rows.Err()` check, so partial query results from a
   corrupted database could be silently used. Now returns nil on error.

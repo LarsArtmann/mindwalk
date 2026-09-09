@@ -164,7 +164,10 @@ func (a Adapter) Summarize(path string) (model.SessionMeta, error) {
 	}
 
 	if h == nil {
-		return model.SessionMeta{}, errDBUnavailable
+		// No database exists anywhere this adapter can reach, so the
+		// session cannot be recognized — report it as foreign rather
+		// than as a broken configuration.
+		return model.SessionMeta{}, adapter.NotRecognizedErr("Crush", path)
 	}
 	defer h.closeDiscard()
 
