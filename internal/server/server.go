@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"crypto/sha256"
 	"embed"
 	"encoding/hex"
@@ -73,6 +74,10 @@ type Server struct {
 	analyze     analyzeState
 	reportCache judge.Cache
 	reportIndex reportIndex
+
+	// httpServer is set inside Start so Shutdown can gracefully
+	// cancel in-flight SSE handlers when the CLI receives SIGTERM.
+	httpServer *http.Server
 }
 
 type repoMapEntry struct {
@@ -123,6 +128,11 @@ const (
 	// agent graphs are small but were the one unbounded cache; bound them the
 	// same way as traces
 	agentGraphMaxEntries = 16
+	// readHeaderTimeout caps how long a slow client can hold a
+	// connection open while sending headers. 10s is enough for a
+	// real browser over loopback but breaks Slowloris-style
+	// attacks (gosec G112).
+	readHeaderTimeout = 10 * time.Second
 )
 
 func New(cfg Config) *Server {
@@ -187,7 +197,33 @@ func (s *Server) Start(openBrowser bool) error {
 		_ = openURL(pageURL)
 	}
 	fmt.Printf("mindwalk serving %s\n", addr)
-	return http.Serve(ln, s.handler())
+	// Use http.Server (not http.Serve) so callers can call Shutdown
+	// for graceful SSE teardown — http.Serve blocks until the
+	// listener closes, which never cancels in-flight SSE handlers.
+	// ReadHeaderTimeout protects against Slowloris-style attacks
+	// (gosec G112); the server only serves loopback traffic by
+	// default, but the explicit cap is cheap insurance.
+	s.httpServer = &http.Server{
+		Handler:           s.handler(),
+		ReadHeaderTimeout: readHeaderTimeout,
+	}
+	if err := s.httpServer.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return fmt.Errorf("serve: %w", err)
+	}
+	return nil
+}
+
+// Shutdown gracefully stops the server started by Start, cancelling
+// in-flight SSE handlers within the supplied context. Safe to call
+// before Start (no-op).
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.httpServer == nil {
+		return nil
+	}
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("shutdown: %w", err)
+	}
+	return nil
 }
 
 func (s *Server) handler() http.Handler {
@@ -337,6 +373,10 @@ func (s *Server) handleSessionResource(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(parts) == 4 && parts[1] == "agents" && parts[3] == "trace" {
 		s.handleSessionAgentTrace(w, r, parts[0], parts[2])
+		return
+	}
+	if len(parts) == 3 && parts[1] == "analyze" && parts[2] == "stream" {
+		s.handleSessionAnalyzeStream(w, r, parts[0])
 		return
 	}
 	if len(parts) != 2 {

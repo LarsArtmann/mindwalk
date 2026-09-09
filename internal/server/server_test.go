@@ -1,8 +1,11 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -1757,5 +1760,59 @@ func TestAgentGraphCacheConcurrentEvictionUnderLoad(t *testing.T) {
 
 	if len(srv.agentGraphs) == 0 {
 		t.Fatal("cache is empty after 512 inserts; entries were lost")
+	}
+}
+
+// TestServerStartBindsPortZero pins the contract that a port-0 listen
+// yields an OS-picked port and the handler chain answers on it.
+func TestServerStartBindsPortZero(t *testing.T) {
+	srv := New(Config{ClaudeDir: filepath.Join(t.TempDir(), "no-claude"), CodexDir: filepath.Join(t.TempDir(), "no-codex"), PiDir: filepath.Join(t.TempDir(), "no-pi"), Port: 0})
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Listen: %v", err)
+	}
+	srvAddr := listener.Addr().String()
+	tcpAddr, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatalf("expected *net.TCPAddr, got %T", listener.Addr())
+	}
+	if tcpAddr.Port == 0 {
+		t.Fatalf("OS-picked port is 0; expected non-zero (srvAddr=%s)", srvAddr)
+	}
+
+	done := make(chan error, 1)
+	go func() { done <- http.Serve(listener, srv.handler()) }()
+
+	resp, err := http.Get("http://" + srvAddr + "/api/adapters") //nolint:noctx // test loopback
+	if err != nil {
+		t.Fatalf("GET %s: %v", srvAddr, err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+
+	if err := listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		t.Logf("listener.Close: %v (continuing)", err)
+	}
+	select {
+	case err := <-done:
+		if err != nil && !errors.Is(err, net.ErrClosed) && !errors.Is(err, http.ErrServerClosed) {
+			t.Logf("Serve returned %v (acceptable for test)", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Serve did not return within 2s of listener close")
+	}
+}
+
+func TestServerShutdownBeforeStartIsNoOp(t *testing.T) {
+	srv := New(Config{ClaudeDir: filepath.Join(t.TempDir(), "no-claude"), CodexDir: filepath.Join(t.TempDir(), "no-codex"), PiDir: filepath.Join(t.TempDir(), "no-pi")})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		t.Fatalf("Shutdown on un-started server: %v", err)
 	}
 }
