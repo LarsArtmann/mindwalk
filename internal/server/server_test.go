@@ -2,13 +2,16 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -834,6 +837,9 @@ func TestFreshScanInvalidatesAgentGraphCache(t *testing.T) {
 	if _, err := s.agentGraph(root); err != nil {
 		t.Fatal(err)
 	}
+	// Clear disk cache so the fresh-scan invalidation test isolates
+	// the in-memory cache path.
+	_ = os.RemoveAll(agentGraphCacheDir())
 	requestSessions(t, s, "/api/sessions?fresh=1")
 	if _, err := s.agentGraph(root); err != nil {
 		t.Fatal(err)
@@ -1605,4 +1611,151 @@ func (s *singleCrushSource) Summarize(path string) (model.SessionMeta, error) {
 func (s *singleCrushSource) Parse(path string) (*model.Trace, error) {
 	clone := *s.trace
 	return &clone, nil
+}
+
+// TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths is a
+// regression test for a bug where synthetic crush:// paths were treated
+// as filesystem locations by the fingerprint: os.Stat on a crush://
+// path produced an error or a "missing" entry that prevented the
+// fingerprint from reflecting the real input set, causing stale
+// agent-graph caches.
+func TestFingerprintAgentGraphInputsHandlesSyntheticCrushPaths(t *testing.T) {
+	crushPath := "crush://session/abc-123"
+	fp1, err := fingerprintAgentGraphInputs([]string{crushPath}, 1)
+	if err != nil {
+		t.Fatalf("fingerprint failed for crush:// path: %v", err)
+	}
+	fp2, err := fingerprintAgentGraphInputs([]string{crushPath}, 1)
+	if err != nil {
+		t.Fatalf("second fingerprint failed: %v", err)
+	}
+	if fp1.digest != fp2.digest {
+		t.Fatal("same inputs produced different fingerprints")
+	}
+	fp3, err := fingerprintAgentGraphInputs([]string{crushPath}, 2)
+	if err != nil {
+		t.Fatalf("fingerprint with different freshGen failed: %v", err)
+	}
+	// The digest excludes freshGen so disk cache keys survive restarts.
+	// The full fingerprint still differs because freshGen is a field.
+	if fp1.digest != fp3.digest {
+		t.Fatalf("different freshGen produced different digest (disk cache would not survive restart)")
+	}
+	if fp1 == fp3 {
+		t.Fatal("different freshGen produced identical fingerprint (stale in-memory cache)")
+	}
+}
+
+func TestEvictAgentGraphCacheN(t *testing.T) {
+	dir := t.TempDir()
+
+	// Write three files with distinct sizes and staggered mod times so the
+	// eviction order (oldest-first) is deterministic.
+	files := []struct {
+		name string
+		data []byte
+		age  time.Duration // how old relative to "now"
+	}{
+		{"oldest.json", make([]byte, 40), 3 * time.Hour},
+		{"middle.json", make([]byte, 40), 2 * time.Hour},
+		{"newest.json", make([]byte, 40), 1 * time.Hour},
+	}
+	now := time.Now()
+	for _, f := range files {
+		path := filepath.Join(dir, f.name)
+		if err := os.WriteFile(path, f.data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		mtime := now.Add(-f.age)
+		if err := os.Chtimes(path, mtime, mtime); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Threshold: 40+40=80 is under 100, but 40+40+40=120 exceeds it.
+	// The oldest file should be evicted, leaving the two newer files.
+	evictAgentGraphCacheN(dir, 100)
+
+	remaining, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range remaining {
+		names = append(names, e.Name())
+	}
+	sort.Strings(names)
+	want := []string{"middle.json", "newest.json"}
+	if len(names) != len(want) {
+		t.Fatalf("after eviction: %v files remain (%v), want %v", len(names), names, want)
+	}
+	for i := range want {
+		if names[i] != want[i] {
+			t.Fatalf("remaining[%d] = %q, want %q (all: %v)", i, names[i], want[i], names)
+		}
+	}
+}
+
+func TestEvictAgentGraphCacheNUnderCap(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.json"), make([]byte, 10), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// Total (10 B) is well under the threshold (1000 B) — nothing evicted.
+	evictAgentGraphCacheN(dir, 1000)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 file to survive, got %d", len(entries))
+	}
+}
+
+// TestAgentGraphCacheConcurrentEvictionUnderLoad exercises the
+// in-memory LRU eviction from many goroutines at once: the cache must
+// stay bounded without losing entries to a data race.
+func TestAgentGraphCacheConcurrentEvictionUnderLoad(t *testing.T) {
+	const (
+		writers         = 8
+		insertsPerWrite = 64 // 8 * 64 = 512 > agentGraphMaxEntries
+	)
+
+	srv := New(Config{ClaudeDir: filepath.Join(t.TempDir(), "no-claude"), CodexDir: filepath.Join(t.TempDir(), "no-codex"), PiDir: filepath.Join(t.TempDir(), "no-pi")})
+
+	var waitGroup sync.WaitGroup
+
+	waitGroup.Add(writers)
+
+	for workerID := range writers {
+		go func(workerID int) {
+			defer waitGroup.Done()
+
+			for i := range insertsPerWrite {
+				key := fmt.Sprintf("w%d-k%d", workerID, i)
+
+				srv.mu.Lock()
+				srv.agentGraphs[key] = agentGraphCacheEntry{
+					fingerprint: agentGraphFingerprint{},
+					graph:       &model.AgentGraph{Version: model.AgentGraphVersion, RootSessionKey: key},
+					used:        time.Now(),
+				}
+				srv.evictAgentGraphsLocked()
+				srv.mu.Unlock()
+			}
+		}(workerID)
+	}
+
+	waitGroup.Wait()
+
+	srv.mu.Lock()
+	defer srv.mu.Unlock()
+
+	if len(srv.agentGraphs) > agentGraphMaxEntries {
+		t.Fatalf("cache size %d exceeds cap %d after concurrent eviction", len(srv.agentGraphs), agentGraphMaxEntries)
+	}
+
+	if len(srv.agentGraphs) == 0 {
+		t.Fatal("cache is empty after 512 inserts; entries were lost")
+	}
 }

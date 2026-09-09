@@ -3,6 +3,7 @@ package server
 import (
 	"crypto/sha256"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -884,16 +885,42 @@ func (s *Server) agentGraph(root model.SessionMeta) (*model.AgentGraph, error) {
 		s.agentGraphLoads[root.Key] = load
 		s.mu.Unlock()
 
+		// On a memory miss, try the disk cache before paying for
+		// a fresh BuildAgentGraph call. The digest is stable across
+		// restarts so this warms cold starts.
+		if graph, ok := loadAgentGraphFromDisk(fingerprint.digest); ok {
+			s.mu.Lock()
+			s.agentGraphs[root.Key] = agentGraphCacheEntry{fingerprint: fingerprint, graph: graph}
+			if s.agentGraphLoads[root.Key] == load {
+				delete(s.agentGraphLoads, root.Key)
+			}
+			close(load.done)
+			s.mu.Unlock()
+			return graph, nil
+		}
+
 		s.runAgentGraphInflight(root.Key, load, graphSource, root, catalog)
 		return load.graph, load.err
 	}
 }
 
 func fingerprintAgentGraphInputs(paths []string, freshGen uint64) (agentGraphFingerprint, error) {
+	diskDigest, err := agentGraphDiskDigest(paths)
+	if err != nil {
+		return agentGraphFingerprint{}, err
+	}
+	return agentGraphFingerprint{digest: diskDigest, freshGen: freshGen}, nil
+}
+
+// agentGraphDiskDigest hashes the database file paths, sizes, and
+// modification times into a stable key that survives server restarts.
+// Synthetic crush:// paths are hashed by their string form. The
+// returned digest is the disk cache key for a graph built from the
+// given inputs.
+func agentGraphDiskDigest(paths []string) ([sha256.Size]byte, error) {
 	paths = append([]string(nil), paths...)
 	sort.Strings(paths)
 	var material strings.Builder
-	fmt.Fprintf(&material, "fresh:%d\n", freshGen)
 	previous := ""
 	for _, path := range paths {
 		path = filepath.Clean(path)
@@ -901,20 +928,28 @@ func fingerprintAgentGraphInputs(paths []string, freshGen uint64) (agentGraphFin
 			continue
 		}
 		previous = path
+		if crush.IsSessionPath(path) {
+			fmt.Fprintf(&material, "%s\x00synthetic\n", path)
+			continue
+		}
 		info, err := os.Stat(path)
 		if os.IsNotExist(err) {
 			fmt.Fprintf(&material, "%s\x00missing\n", path)
 			continue
 		}
 		if err != nil {
-			return agentGraphFingerprint{}, err
+			return [sha256.Size]byte{}, err
 		}
 		fmt.Fprintf(&material, "%s\x00%d\x00%d\n", path, info.Size(), info.ModTime().UnixNano())
 	}
-	return agentGraphFingerprint{digest: sha256.Sum256([]byte(material.String())), freshGen: freshGen}, nil
+	return sha256.Sum256([]byte(material.String())), nil
 }
 
 func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, source adapter.AgentGraphSource, root model.SessionMeta, catalog []model.SessionMeta) {
+	var (
+		storeDigest [sha256.Size]byte
+		storeGraph  *model.AgentGraph
+	)
 	defer func() {
 		if r := recover(); r != nil {
 			load.graph = nil
@@ -925,12 +960,23 @@ func (s *Server) runAgentGraphInflight(key string, load *inflightAgentGraph, sou
 		if load.err == nil {
 			s.agentGraphs[key] = agentGraphCacheEntry{fingerprint: load.fingerprint, graph: load.graph, used: time.Now()}
 			s.evictAgentGraphsLocked()
+			// Capture the snapshot for the disk write, then drop the
+			// lock before performing I/O. Holding mu across the write
+			// would block every concurrent agent-graph request behind
+			// the slowest disk — load.graph is read-only after the
+			// assignment above, so the snapshot is safe to publish.
+			storeDigest = load.fingerprint.digest
+			storeGraph = load.graph
 		}
 		if s.agentGraphLoads[key] == load {
 			delete(s.agentGraphLoads, key)
 		}
 		close(load.done)
 		s.mu.Unlock()
+
+		if storeGraph != nil {
+			storeAgentGraphToDisk(storeDigest, storeGraph)
+		}
 	}()
 	load.graph, load.err = source.BuildAgentGraph(root, catalog)
 }
@@ -951,6 +997,142 @@ func (s *Server) evictAgentGraphsLocked() {
 			return
 		}
 		delete(s.agentGraphs, oldestKey)
+	}
+}
+
+// agentGraphCacheVersion is the on-disk format version. Bumping this
+// invalidates all existing cache files so a format change never serves
+// a stale or incompatible graph.
+const agentGraphCacheVersion = 1
+
+// agentGraphCacheFile wraps a persisted graph with a version tag so
+// future format changes can reject old files cleanly.
+type agentGraphCacheFile struct {
+	Version int              `json:"version"`
+	Graph   model.AgentGraph `json:"graph"`
+}
+
+// maxAgentGraphCacheBytes is the soft cap for the total disk cache.
+// When exceeded, oldest files are evicted until usage drops below it.
+const maxAgentGraphCacheBytes = 100 * 1024 * 1024 // 100 MB
+
+// agentGraphCacheDir returns the disk directory for persisted agent
+// graphs. Created lazily on first store. When MINDWALK_HOME is set
+// (e.g. to a temp dir in tests), the cache lives there instead.
+func agentGraphCacheDir() string {
+	home := adapter.MindwalkHome()
+	if home == "" {
+		return ""
+	}
+	return filepath.Join(home, "agent-graphs")
+}
+
+// loadAgentGraphFromDisk tries to read a previously persisted agent
+// graph for the given digest. Returns (nil, false) on any miss,
+// version mismatch, or corruption.
+func loadAgentGraphFromDisk(digest [sha256.Size]byte) (*model.AgentGraph, bool) {
+	dir := agentGraphCacheDir()
+	if dir == "" {
+		return nil, false
+	}
+	path := filepath.Join(dir, hex.EncodeToString(digest[:])+".json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, false
+	}
+	var file agentGraphCacheFile
+	if err := json.Unmarshal(data, &file); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: corrupt file %s: %v", path, err)
+		return nil, false
+	}
+	if file.Version != agentGraphCacheVersion {
+		log.Printf("mindwalk: agent-graph disk cache: version %d in %s (expected %d), ignoring",
+			file.Version, path, agentGraphCacheVersion)
+		return nil, false
+	}
+	log.Printf("mindwalk: agent-graph disk cache hit: %s", path)
+	return &file.Graph, true
+}
+
+// storeAgentGraphToDisk writes the graph to disk keyed by digest so
+// the next cold start can skip rebuilding it. Errors are logged but
+// never block the caller — the disk cache is best-effort.
+func storeAgentGraphToDisk(digest [sha256.Size]byte, graph *model.AgentGraph) {
+	dir := agentGraphCacheDir()
+	if dir == "" {
+		return
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: cannot create dir %s: %v", dir, err)
+		return
+	}
+	file := agentGraphCacheFile{Version: agentGraphCacheVersion, Graph: *graph}
+	data, err := json.Marshal(file)
+	if err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: marshal error: %v", err)
+		return
+	}
+	path := filepath.Join(dir, hex.EncodeToString(digest[:])+".json")
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		log.Printf("mindwalk: agent-graph disk cache: write %s: %v", path, err)
+		return
+	}
+	log.Printf("mindwalk: agent-graph disk cache miss: stored %s", path)
+	evictAgentGraphCache(dir)
+}
+
+// evictAgentGraphCache removes oldest cache files when the total size
+// of the directory exceeds maxAgentGraphCacheBytes. Files are sorted
+// by modification time (oldest first) and deleted until usage is under
+// the cap.
+func evictAgentGraphCache(dir string) {
+	evictAgentGraphCacheN(dir, maxAgentGraphCacheBytes)
+}
+
+// evictAgentGraphCacheN is the size-parameterised core of
+// evictAgentGraphCache, extracted so tests can exercise eviction with a
+// small threshold instead of writing 100 MB of fixture files.
+func evictAgentGraphCacheN(dir string, maxBytes int64) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return
+	}
+	type cacheFile struct {
+		path    string
+		size    int64
+		modTime int64
+	}
+	var files []cacheFile
+	var total int64
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		files = append(files, cacheFile{
+			path:    filepath.Join(dir, entry.Name()),
+			size:    info.Size(),
+			modTime: info.ModTime().UnixNano(),
+		})
+		total += info.Size()
+	}
+	if total <= maxBytes {
+		return
+	}
+	sort.Slice(files, func(i, j int) bool {
+		return files[i].modTime < files[j].modTime
+	})
+	for _, f := range files {
+		if total <= maxBytes {
+			break
+		}
+		if err := os.Remove(f.path); err == nil {
+			total -= f.size
+			log.Printf("mindwalk: agent-graph disk cache: evicted %s", f.path)
+		}
 	}
 }
 
