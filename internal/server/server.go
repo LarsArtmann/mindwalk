@@ -145,6 +145,21 @@ func New(cfg Config) *Server {
 	return s
 }
 
+// Close releases resources held by adapters (database handles,
+// file handles). Adapters that do not implement adapter.Closer are
+// skipped. Safe to call multiple times.
+func (s *Server) Close() error {
+	var firstErr error
+	for _, src := range s.adapters {
+		if c, ok := src.(adapter.Closer); ok {
+			if err := c.Close(); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+	return firstErr
+}
+
 func (s *Server) Start(openBrowser bool) error {
 	port := s.cfg.Port
 	if port == 0 {

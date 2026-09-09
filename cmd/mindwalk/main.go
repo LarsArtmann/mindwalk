@@ -44,6 +44,8 @@ func run(args []string) error {
 		return trace(args[1:])
 	case "analyze":
 		return analyze(args[1:])
+	case "doctor":
+		return doctor(args[1:])
 	case "-h", "--help", "help":
 		usage()
 		return nil
@@ -65,7 +67,9 @@ func serve(args []string) error {
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, Dev: *dev}).Start(!*noOpen)
+	srv := server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, Dev: *dev})
+	defer srv.Close()
+	return srv.Start(!*noOpen)
 }
 
 func open(args []string) error {
@@ -87,7 +91,9 @@ func open(args []string) error {
 	if err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, OpenSession: session}).Start(!*noOpen)
+	srv := server.New(server.Config{Port: *port, ClaudeDir: *claudeDir, CodexDir: *codexDir, PiDir: *piDir, CrushDir: *crushDir, DisableCrush: *noCrush, OpenSession: session})
+	defer srv.Close()
+	return srv.Start(!*noOpen)
 }
 
 func openMap(args []string) error {
@@ -105,7 +111,9 @@ func openMap(args []string) error {
 	if err != nil {
 		return err
 	}
-	return server.New(server.Config{Port: *port, Dev: *dev, RepoRoot: repo, MapOnly: true}).Start(!*noOpen)
+	srv := server.New(server.Config{Port: *port, Dev: *dev, RepoRoot: repo, MapOnly: true})
+	defer srv.Close()
+	return srv.Start(!*noOpen)
 }
 
 func build(args []string) error {
@@ -269,6 +277,89 @@ func crushDirFor(override string, noCrush bool) string {
 		return "/dev/null/mindwalk-no-crush"
 	}
 	return override
+}
+
+// doctorSources builds the adapter sources the doctor command inspects,
+// honouring the same --crush-dir/--no-crush flags as serve.
+func doctorSources(claudeDir, codexDir, piDir, crushDir string, noCrush bool) []adapter.Source {
+	sources := []adapter.Source{
+		claudecode.Adapter{Dir: claudeDir},
+		codex.Adapter{Dir: codexDir},
+		pi.Adapter{Dir: piDir},
+	}
+	if noCrush {
+		return sources
+	}
+	return append(sources, crush.NewAdapter(crushDir))
+}
+
+// closeSources closes any source that implements adapter.Closer. Safe
+// to call on mixed source lists where only some adapters hold open
+// resources (e.g. crush's database handles).
+func closeSources(srcs []adapter.Source) {
+	for _, src := range srcs {
+		if c, ok := src.(adapter.Closer); ok {
+			_ = c.Close()
+		}
+	}
+}
+
+// doctor prints adapter status, data-directory paths, session counts,
+// and diagnostic checks so users can verify their configuration and
+// troubleshoot issues.
+func doctor(args []string) error {
+	fs := flag.NewFlagSet("doctor", flag.ExitOnError)
+	claudeDir := fs.String("claude-dir", claudecode.DefaultDir(), "Claude Code projects directory")
+	codexDir := fs.String("codex-dir", codex.DefaultDir(), "Codex sessions directory")
+	piDir := fs.String("pi-dir", pi.DefaultDir(), "pi sessions directory")
+	crushDir := fs.String("crush-dir", "", "Crush data directory override (containing crush.db); empty = auto-discover")
+	noCrush := fs.Bool("no-crush", false, "disable the Crush adapter (skip the per-project .crush scan)")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	srcs := doctorSources(*claudeDir, *codexDir, *piDir, *crushDir, *noCrush)
+	defer closeSources(srcs)
+
+	for _, src := range srcs {
+		harness := src.Harness()
+		metas, err := src.ListSessions()
+		status := "ok"
+		count := 0
+		if err != nil {
+			status = "error: " + err.Error()
+		} else {
+			count = len(metas)
+		}
+		dirStatus := ""
+		if dir := src.SessionDir(); dir != "" {
+			if adapter.ReadableDir(dir) {
+				dirStatus = " [dir ok]"
+			} else {
+				dirStatus = " [dir missing]"
+			}
+		}
+		fmt.Printf("%-8s  sessions=%-4d  %s%s\n", harness, count, status, dirStatus)
+		if diag, ok := src.(adapter.DiagnosticsSource); ok {
+			for _, check := range diag.Diagnostics() {
+				fmt.Printf("         %-16s  %-5s  %s\n", check.Name, check.Status, check.Detail)
+			}
+		}
+	}
+
+	fmt.Println()
+	fmt.Println("Data directories:")
+	fmt.Printf("  claude-dir  %s\n", *claudeDir)
+	fmt.Printf("  codex-dir   %s\n", *codexDir)
+	fmt.Printf("  pi-dir      %s\n", *piDir)
+	if *noCrush {
+		fmt.Printf("  crush       disabled\n")
+	} else if *crushDir != "" {
+		fmt.Printf("  crush-dir   %s\n", *crushDir)
+	} else {
+		fmt.Printf("  crush       auto-discover\n")
+	}
+	return nil
 }
 
 func parseOutputArgs(args []string) ([]string, string, error) {
